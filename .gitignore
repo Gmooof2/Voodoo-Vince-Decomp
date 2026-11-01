@@ -1,0 +1,21 @@
+/.run/*
+__pycache__/
+
+# Local paths: machine-specific, never committed
+/config/local_paths.json
+/config/xbox_retail_pubkey.json
+
+# Game, prototype, SDK and derived classes: never committed
+*.xbe
+*.iso
+*.bin
+*.cue
+*.exe
+*.pdb
+*.dll
+*.obj
+*.lib
+/extracted/
+/build/
+/derived/
+/ghidra/

@@ -1,0 +1,2 @@
+# The input manifest, config/inputs.manifest.jsonl, reviewed by the developer at 3.6 T12.
+adb0e4a80b0d9c3a9d0d62239257c9b8e788a262

@@ -1,0 +1,16 @@
+# The public firewall audit: no game files, no secrets, no gate (byte identity needs your own copy of the game).
+name: audit
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.15'
+      - run: python tools/audit_public.py --public-ci

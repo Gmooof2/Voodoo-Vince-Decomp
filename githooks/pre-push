@@ -1,0 +1,41 @@
+#!/bin/sh
+# pre-push (T9, phase 1.1): firewall audit of every blob reachable from the pushed commits.
+# stdin: "<local ref> <local sha> <remote ref> <remote sha>" per ref. Per line:
+#   deletion (local sha all zeros): nothing; new remote ref (remote sha all zeros) or a remote sha absent here:
+#   the whole history of the local sha (OLD = the empty tree); else rev-list --objects <remote sha>..<local sha>.
+# Python: the first that runs of env PY, .claude/pa.json key "python", python on PATH (3.6 T4). Any non-zero audit
+# exit (1 hits, 2 refusal) or no runnable Python blocks.
+ROOT=$(git rev-parse --show-toplevel) || exit 1
+ENV_PY=$PY
+PA_PY=$(sed -n 's/.*"python"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$ROOT/.claude/pa.json" 2>/dev/null | head -n 1)
+PY=
+for c in "$ENV_PY" "$PA_PY" python; do
+  if [ -n "$c" ] && "$c" -c "" >/dev/null 2>&1; then PY=$c; break; fi
+done
+if [ -z "$PY" ]; then
+  echo "pre-push: no Python runs (env PY '$ENV_PY', .claude/pa.json python '$PA_PY', python on PATH); set env PY; push blocked" >&2
+  exit 1
+fi
+EMPTY_TREE=$(git hash-object -t tree /dev/null) || exit 1
+fail=0
+while read -r lref lsha rref rsha; do
+  [ -z "$lsha" ] && continue
+  case "$lsha" in *[!0]*) ;; *) echo "pre-push: $rref deletion, nothing to audit" >&2; continue ;; esac
+  old=$rsha
+  case "$rsha" in *[!0]*) ;; *) old=$EMPTY_TREE ;; esac
+  if [ "$old" != "$EMPTY_TREE" ] && ! git cat-file -e "$old^{commit}" 2>/dev/null; then
+    echo "pre-push: remote sha $rsha not in this clone; auditing the whole history of $lsha" >&2
+    old=$EMPTY_TREE
+  fi
+  "$PY" "$ROOT/tools/audit_public.py" --range "$old..$lsha"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "pre-push: audit_public.py --range for $lref -> $rref exit $rc (1 hits, 2 refusal)" >&2
+    fail=1
+  fi
+done
+if [ "$fail" -ne 0 ]; then
+  echo "pre-push: push blocked" >&2
+  exit 1
+fi
+exit 0

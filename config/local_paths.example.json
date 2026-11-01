@@ -1,0 +1,18 @@
+{
+  "game_dir": "<absolute path to the game-files folder, outside the repo>",
+  "retail_xbe": "extracted/retail/default.xbe",
+  "retail_iso": "<retail ISO file name>.iso",
+  "prototype_dir": "extracted/prototype",
+  "preview_iso": "<prototype preview folder>/<preview image>.bin",
+  "preview_cue": "<prototype preview folder>/<preview image>.cue",
+  "ghidra_project_dir": "<absolute path or game_dir-relative dir, outside the repo>",
+  "ghidra_dir": "<Ghidra 12.1.4 install dir (ghidra_12.1.4_PUBLIC), outside the repo>",
+  "java_home": "<absolute path to the Adoptium JDK 21.0.12 home>",
+  "objdiff_cli": "<path to objdiff-cli-windows-x86_64.exe v3.8.3, outside the repo>",
+  "xbox_ip": null,
+  "msvc71_dir": null,
+  "xbdm_dll": null,
+  "boot_folder": null,
+  "original_install": null,
+  "boot_folder_source": "<absolute PC path of the loose-file retail game copied to the boot folder>"
+}

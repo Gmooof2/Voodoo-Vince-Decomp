@@ -1,0 +1,22 @@
+#!/bin/sh
+# pre-commit (T9, phase 1.1): firewall audit of the staged blobs. Enabled by `git config core.hooksPath githooks`.
+# Python: the first that runs of env PY, .claude/pa.json key "python", python on PATH (3.6 T4). Any non-zero audit
+# exit (1 hits, 2 refusal) or no runnable Python blocks.
+ROOT=$(git rev-parse --show-toplevel) || exit 1
+ENV_PY=$PY
+PA_PY=$(sed -n 's/.*"python"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$ROOT/.claude/pa.json" 2>/dev/null | head -n 1)
+PY=
+for c in "$ENV_PY" "$PA_PY" python; do
+  if [ -n "$c" ] && "$c" -c "" >/dev/null 2>&1; then PY=$c; break; fi
+done
+if [ -z "$PY" ]; then
+  echo "pre-commit: no Python runs (env PY '$ENV_PY', .claude/pa.json python '$PA_PY', python on PATH); set env PY; commit blocked" >&2
+  exit 1
+fi
+"$PY" "$ROOT/tools/audit_public.py" --staged
+rc=$?
+if [ "$rc" -ne 0 ]; then
+  echo "pre-commit: audit_public.py --staged exit $rc (1 hits, 2 refusal); commit blocked" >&2
+  exit 1
+fi
+exit 0

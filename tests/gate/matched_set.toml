@@ -1,0 +1,51 @@
+# gate fixture matched set (1.5 T3): the 5 compiler_pin functions of tests/gate/src. Written only by
+#   `PY tools/matched_set.py add --list <this> --symbol S` (or `--emitter S --unit U --reason TEXT`); never typed.
+# [[function]] symbol (mangled, as in config/retail/symbols.txt), unit (units.toml name), va (int), size (int),
+#   xbe_sha1 (= config/check.retail_xbe.sha pin), body_sha1 (= sha1 of retail XBE bytes va..va+size). Hashes only (D46).
+# [[emitter]] symbol, unit, reason: a non-retail scaffold symbol its unit's obj may define (not counted).
+# Check: `PY tools/matched_set.py check --list <this> --src DIR --objs DIR` (docs/ops/tools.md `## matched_set`).
+
+[[function]]
+symbol = "??$fill@PAUVector3@@U1@@std@@YAXPAUVector3@@0ABU1@@Z"
+unit = "Xbox\\OfficialRelease\\EvilVince.obj"
+va = 0x00044995
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8a5b63f0be83a902fcb13d0e3206cb425365d9dd"
+
+[[function]]
+symbol = "??$_Uninit_fill_n@PAUVector3@@IU1@V?$allocator@UVector3@@@std@@@std@@YAXPAUVector3@@IABU1@AAV?$allocator@UVector3@@@0@U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "Xbox\\OfficialRelease\\EvilVince.obj"
+va = 0x00044B6E
+size = 0x4F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d2a3458a45837ca4051009faf5f8dadcd246b916"
+
+[[function]]
+symbol = "??1FlourSackMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\FlourSack.obj"
+va = 0x00079868
+size = 0x1F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2c028b0ffe383da26c00a3d8e8af21a9ac123785"
+
+[[function]]
+symbol = "_LocString_GetStringID"
+unit = "Xbox\\OfficialRelease\\LocString.obj"
+va = 0x00140B98
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d07067fe343977ad3ac026a11e69cc93e5353800"
+
+[[function]]
+symbol = "?SetState@VinceDropsInCutscene@@EAEXH@Z"
+unit = "Xbox\\OfficialRelease\\JaniceCutscenes.obj"
+va = 0x000A871D
+size = 0x6C4
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8e01111abd3151ba9205973c17566846373a13f7"
+
+[[emitter]]
+symbol = "?pin_emit_FlourSackMain_dtor@@YAXPAVFlourSackMain@@@Z"
+unit = "Xbox\\OfficialRelease\\FlourSack.obj"
+reason = "test scaffold: odr-uses the implicit ??1FlourSackMain@@UAE@XZ (retail emits it via the unmodeled ctor 0x796EC); FlourSack.cpp:61-63"

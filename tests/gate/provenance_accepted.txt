@@ -1,0 +1,2 @@
+# gate fixture provenance_lint hedge exceptions (3.2 T7): format as config/provenance_accepted.txt
+# (<path from repo root, src/ = tests/gate/src><TAB><verbatim line><TAB><reason>); no entries.

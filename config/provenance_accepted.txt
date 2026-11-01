@@ -1,0 +1,7 @@
+# provenance_lint hedge exceptions (3.2 T6): exact lines the `hedge` check accepts.
+# Format: <path from repo root><TAB><verbatim line, surrounding whitespace ignored><TAB><reason>. Hand-kept; add a
+# line only for text quoted verbatim from a public upstream source, never for our own comments.
+src/Libs/BeepLib/Xbox/Official_Release/infblock.c	int     data_type;  /* best guess about the data type: ascii or binary */	zlib zlib.h z_stream comment, upstream text verbatim (not our claim)
+src/Libs/BeepLib/Xbox/Official_Release/infcodes.c	int     data_type;  /* best guess about the data type: ascii or binary */	zlib zlib.h z_stream comment, upstream text verbatim (not our claim)
+src/Libs/BeepLib/Xbox/Official_Release/inflate.c	int     data_type;  /* best guess about the data type: ascii or binary */	zlib zlib.h z_stream comment, upstream text verbatim (not our claim)
+src/Libs/BeepLib/Xbox/Official_Release/infutil.c	int     data_type;  /* best guess about the data type: ascii or binary */	zlib zlib.h z_stream comment, upstream text verbatim (not our claim)

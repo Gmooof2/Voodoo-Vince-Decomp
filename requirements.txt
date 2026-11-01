@@ -1,0 +1,2 @@
+# x86 decoder for tools/proto_map.py (T8, phase 1.2). Install: PY -m pip install --require-hashes -r requirements.txt
+iced-x86==1.21.0 --hash=sha256:04e04a8cc49ca7d89448fb78e3bab4ae364cf1fc888c996540a791c9999077c1
