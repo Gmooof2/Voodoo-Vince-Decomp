@@ -13,7 +13,21 @@ class allocator {};
 template<class _Elem, class _Traits = char_traits<_Elem>, class _Ax = allocator<_Elem> >
 class basic_string {
 public:
+    class const_iterator { // NAME: proto-pdb:default.pdb
+    public:
+        const_iterator(const _Elem* _Ptr) { _Myptr = _Ptr; } // src proto-pdb:default.pdb const_iterator
+        const _Elem* _Myptr;
+    };
+    class iterator : public const_iterator { // NAME: proto-pdb:default.pdb
+    public:
+        iterator(_Elem* _Ptr) : const_iterator(_Ptr) {}
+    };
+
     basic_string() { _Myres = _BUF_SIZE - 1; _Eos(0); }
+    basic_string(const basic_string& _Right); // src proto-pdb:default.pdb basic_string
+    iterator begin() { return (iterator(_Myptr())); } // src proto-pdb:default.pdb begin
+    // VC 7.1 body: cl keeps it out of line and emits the fold alias of BeepLib's const end (0x0003559F) byte-equal (C0233)
+    iterator end() { return (iterator(_Myptr() + _Mysize)); } // src proto-pdb:default.pdb end
     ~basic_string() { _Tidy(true); }
     basic_string& operator=(const _Elem* _Ptr) { return assign(_Ptr); }
     basic_string& assign(const _Elem* _Ptr);
@@ -36,11 +50,15 @@ protected:
     } _Bx;              // 0x04
 
 public:
+    _Elem* _Myptr() { return (_BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf); }
     const _Elem* _Myptr() const { return (_BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf); }
 
     unsigned int _Mysize; // 0x14
     unsigned int _Myres;  // 0x18
 };
+
+template<class _FwdIt, class _Ty>
+void replace(_FwdIt _First, _FwdIt _Last, const _Ty& _Oldval, const _Ty& _Newval); // src proto-pdb:default.pdb replace
 
 }
 
@@ -71,6 +89,42 @@ extern "C" int __cdecl fseek(_iobuf* stream, long offset, int origin); // src pr
 extern "C" int __cdecl fclose(_iobuf* stream); // src proto-pdb:default.pdb fclose
 extern "C" unsigned int __cdecl fread(void* buf, unsigned int size, unsigned int count, _iobuf* stream); // src proto-pdb:default.pdb fread
 extern "C" unsigned int __cdecl fwrite(const void* buf, unsigned int size, unsigned int count, _iobuf* stream); // src proto-pdb:default.pdb fwrite
+extern "C" _iobuf* __cdecl fopen(const char* filename, const char* mode); // src proto-pdb:default.pdb fopen
+
+struct tm_unz_s { // NAME: proto-pdb:default.pdb
+    unsigned int tm_sec;               // 0x00
+    unsigned int tm_min;               // 0x04
+    unsigned int tm_hour;              // 0x08
+    unsigned int tm_mday;              // 0x0C
+    unsigned int tm_mon;               // 0x10
+    unsigned int tm_year;              // 0x14
+};
+DECOMP_SIZE_ASSERT(tm_unz_s, 0x18);
+
+struct unz_file_info_s { // NAME: proto-pdb:default.pdb
+    unsigned long version;             // 0x00
+    unsigned long version_needed;      // 0x04
+    unsigned long flag;                // 0x08
+    unsigned long compression_method;  // 0x0C
+    unsigned long dosDate;             // 0x10
+    unsigned long crc;                 // 0x14
+    unsigned long compressed_size;     // 0x18
+    unsigned long uncompressed_size;   // 0x1C
+    unsigned long size_filename;       // 0x20
+    unsigned long size_file_extra;     // 0x24
+    unsigned long size_file_comment;   // 0x28
+    unsigned long disk_num_start;      // 0x2C
+    unsigned long internal_fa;         // 0x30
+    unsigned long external_fa;         // 0x34
+    tm_unz_s tmu_date;                 // 0x38
+};
+DECOMP_SIZE_ASSERT(unz_file_info_s, 0x50);
+
+extern "C" int unzGetCurrentFileInfo(void* file, unz_file_info_s* pfile_info, char* szFileName, unsigned long fileNameBufferSize, void* extraField, unsigned long extraFieldBufferSize, char* szComment, unsigned long commentBufferSize); // NAME: proto-pdb:default.pdb
+extern "C" int unzOpenCurrentFile(void* file); // NAME: proto-pdb:default.pdb
+extern "C" int unzReadCurrentFile(void* file, void* buf, unsigned int len); // NAME: proto-pdb:default.pdb
+extern "C" int unzCloseCurrentFile(void* file); // NAME: proto-pdb:default.pdb
+void* BeepMalloc(unsigned int size, const char* file, int line); // NAME: proto-pdb:default.pdb
 
 void BeepFree(void* p); // NAME: proto-pdb:default.pdb
 void* operator new(unsigned int size, const char* file, int line);
@@ -163,6 +217,10 @@ public:
 DECOMP_SIZE_ASSERT(MemoryFileHandler, 0x18);
 
 extern "C" int __stdcall CloseHandle(void* hObject); // src proto-pdb:default.pdb CloseHandle
+extern "C" void* __stdcall CreateFileA(const char* lpFileName, unsigned long dwDesiredAccess, unsigned long dwShareMode, void* lpSecurityAttributes, unsigned long dwCreationDisposition, unsigned long dwFlagsAndAttributes, void* hTemplateFile); // NAME: proto-pdb:default.pdb
+extern "C" unsigned long __stdcall SetFilePointer(void* hFile, long lDistanceToMove, long* lpDistanceToMoveHigh, unsigned long dwMoveMethod); // NAME: proto-pdb:default.pdb
+extern "C" int __stdcall SetEndOfFile(void* hFile); // NAME: proto-pdb:default.pdb
+extern "C" unsigned long __stdcall GetFileSize(void* hFile, unsigned long* lpFileSizeHigh); // NAME: proto-pdb:default.pdb
 
 struct _OVERLAPPED { // NAME: proto-pdb:default.pdb
     unsigned long Internal;            // 0x00
@@ -293,6 +351,29 @@ void StandardFileHandler::SeekRelative(int offset)
     fseek(_f, offset, 1);
 }
 
+// FUNCTION: USA 0x000370A7
+// PROTOTYPE: PREVIEW 0x004257B5 identical
+// NAME: proto-pdb:default.pdb
+bool ZipFileHandler::Open(const std::basic_string<char>& filename, int flags)
+{
+    Close();
+    unz_file_info_s fileinfo;
+    unzGetCurrentFileInfo(_zip, &fileinfo, 0, 0, 0, 0, 0, 0);
+    _filesize = fileinfo.uncompressed_size;
+    unzOpenCurrentFile(_zip);
+    _filedata = (unsigned char*)BeepMalloc(_filesize + 1, "BeepFile.cpp", 347);
+    // !FAKE: c2 register allocation; dummy local; _filesize cached in edi across the call without it (match_one 87.41 -> 100.0)
+    int v0 = unzReadCurrentFile(_zip, _filedata, _filesize);
+    if (v0 != _filesize) {
+        Close();
+        return false;
+    }
+    _filedata[_filesize] = 0;
+    unzCloseCurrentFile(_zip);
+    _currentpos = 0;
+    return true;
+}
+
 // FUNCTION: USA 0x0003712A
 // PROTOTYPE: PREVIEW 0x00425838 identical
 // NAME: proto-pdb:default.pdb
@@ -421,6 +502,18 @@ BeepFile::BeepFile()
 {
 }
 
+// FUNCTION: USA 0x00037558
+// PROTOTYPE: PREVIEW 0x00425C2C identical
+// NAME: proto-pdb:default.pdb
+bool StandardFileHandler::GenericOpen(const std::basic_string<char>& filename, const char* mode)
+{
+    Close();
+    std::basic_string<char> fname(filename);
+    std::replace(fname.begin(), fname.end(), '/', '\\');
+    _f = fopen(fname.c_str(), mode);
+    return _f != 0;
+}
+
 // FUNCTION: USA 0x000375DA
 // PROTOTYPE: PREVIEW 0x00425CAE identical
 // NAME: proto-pdb:default.pdb
@@ -432,6 +525,35 @@ bool StandardFileHandler::Open(const std::basic_string<char>& filename, int flag
     if (flags & 2)
         return GenericOpen(filename, "r+b");
     return GenericOpen(filename, "rb");
+}
+
+// FUNCTION: USA 0x00037616
+// PROTOTYPE: PREVIEW 0x00425CEA identical
+// NAME: proto-pdb:default.pdb
+bool AsyncFileHandler::Open(const std::basic_string<char>& filename, int flags)
+{
+    Close();
+    std::basic_string<char> fname(filename);
+    std::replace(fname.begin(), fname.end(), '/', '\\');
+    unsigned long access = 0x80000000;
+    unsigned long disposition = 3;
+    if (flags & 1) {
+        access = 0xC0000000;
+        disposition = 4;
+    }
+    _fh = CreateFileA(fname.c_str(), access, 1, 0, disposition, 0x60000000, 0);
+    if (_fh != (void*)-1) {
+        if ((flags & 1) && _desiredsize) {
+            SetFilePointer(_fh, _desiredsize, 0, 0);
+            SetEndOfFile(_fh);
+            SetFilePointer(_fh, 0, 0, 0);
+            _filesize = _desiredsize;
+        } else {
+            _filesize = GetFileSize(_fh, 0);
+        }
+        return true;
+    }
+    return false;
 }
 
 // FUNCTION: USA 0x000376F7

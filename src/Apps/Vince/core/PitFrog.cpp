@@ -6,21 +6,61 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string() { _Myres = 15; _Eos(0); }
     basic_string(const E* _Ptr);
+    basic_string(const basic_string& _Right);
     ~basic_string() { _Tidy(true); }
+    basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
+    basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
+    basic_string& operator+=(const basic_string& _Right) { return append(_Right); }
+    basic_string& append(const basic_string& _Right) { return append(_Right, 0, npos); }
+    basic_string& append(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
+    const E* c_str() const { return _Myptr(); }
+    unsigned int size() const { return _Mysize; }
+    int compare(const E* _Ptr) const;
+    static const unsigned int npos = (unsigned int)(-1);
+    const E* _Myptr() const { return _BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf; }
 protected:
+    void _Eos(unsigned int _Newsize);
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    char _pad00[0x1C];
+    enum { _BUF_SIZE = 16 / sizeof(E) < 1 ? 1 : 16 / sizeof(E) };
+    char _Alval;                       // 0x00
+    union {
+        E _Buf[_BUF_SIZE];
+        E* _Ptr;
+    } _Bx;                             // 0x04
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
 };
+template <class E, class T, class A>
+inline bool operator==(const basic_string<E, T, A>& _Left, const E* _Right)
+{
+    return _Left.compare(_Right) == 0;
+}
+template <class E, class T, class A>
+inline bool operator!=(const basic_string<E, T, A>& _Left, const E* _Right)
+{
+    return !(_Left == _Right);
+}
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
-class BeepTDF;               // NAME: proto-pdb:default.pdb
+const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
+
+extern "C" int __cdecl sscanf(const char*, const char*, ...); // NAME: proto-pdb:default.pdb
+
+class BeepTDF { // NAME: proto-pdb:default.pdb
+public:
+    const SwampString GetStringRecord(const SwampString& id, const SwampString& def) const;
+    int GetIntRecord(const SwampString& id, int def) const;
+};
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3 { // NAME: proto-pdb:default.pdb
+    Vector3() {}
+    Vector3(float _x, float _y, float _z) { x = _x; y = _y; z = _z; }
     void RotateJ(float);
 
     float x;                           // 0x00
@@ -33,6 +73,29 @@ class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     Vector3 GetFacing() const;
 };
+
+class Critter { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x234];               // 0x00
+    Vector3 _homePosition;             // 0x234
+    char field_240[0x2C8 - 0x240];     // 0x240
+};
+DECOMP_SIZE_ASSERT(Critter, 0x2C8);
+
+class Locator { // NAME: proto-pdb:default.pdb
+public:
+    const Vector3& GetLocation() const { return _pos; }
+
+    Vector3 _pos;                      // 0x00
+    char field_C[0x48 - 0xC];          // 0x0C
+};
+DECOMP_SIZE_ASSERT(Locator, 0x48);
+
+class LocatorManager { // NAME: proto-pdb:default.pdb
+public:
+    Locator* Find(const SwampString& s) const;
+};
+extern LocatorManager* g_locatorManager; // NAME: proto-pdb:default.pdb
 
 class SoundManager { // NAME: proto-pdb:default.pdb
 public:
@@ -87,11 +150,15 @@ public:
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
+    virtual SwampString Save();
 
     int _state;                        // 0x4C
-    char field_50[0x6C - 0x50];        // 0x50
+    Vector3 _wanderPatrolCenter;       // 0x50
+    char field_5C[0x6C - 0x5C];        // 0x5C
     Vector3 _wanderDir;                // 0x6C
-    char field_78[0xBC - 0x78];        // 0x78
+    char field_78[0xA8 - 0x78];        // 0x78
+    bool _wanderAvoidLedges;           // 0xA8
+    char field_A9[0xBC - 0xA9];        // 0xA9
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
@@ -112,10 +179,26 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
 public:
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_HIDDEN = 0,
+        STATE_IDLE = 3
+    };
     virtual void DeathFX();
+    virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
     void SetRandomPatrolDir();
+    Critter* GetPitFrog() { return (Critter*)_node; }
 
-    char field_240[0x39C - 0x240];     // 0x240
+    char field_240[0x33C - 0x240];     // 0x240
+    Vector3 _landingFacing;            // 0x33C
+    Vector3 _pitPos;                   // 0x348
+    bool _haspit;                      // 0x354
+    char field_355[0x358 - 0x355];     // 0x355
+    SwampString _patrolLoc;            // 0x358
+    SwampString _pit;                  // 0x374
+    char field_390[0x394 - 0x390];     // 0x390
+    int _hoverAnimIndex;               // 0x394
+    char field_398[0x39C - 0x398];     // 0x398
 };
 DECOMP_SIZE_ASSERT(PitFrogMain, 0x39C);
 
@@ -136,6 +219,59 @@ void PitFrogMain::DeathFX()
 {
     SoundManager::PlaySound("frogdeath", 0, _node, false, 0.0f, 0.0f);
     MonsterMain::DeathFX();
+}
+
+// FUNCTION: USA 0x00116807
+// PROTOTYPE: PREVIEW 0x0050104B identical
+// NAME: proto-pdb:default.pdb
+void PitFrogMain::Load(const BeepTDF& tdf)
+{
+    _pit = tdf.GetStringRecord("pit", "false");
+    if (_pit == "true") {
+        SetState(STATE_HIDDEN);
+        _haspit = true;
+        _wanderAvoidLedges = false;
+        _landingFacing = _node->GetFacing();
+    } else {
+        SetState(STATE_IDLE);
+        _haspit = false;
+    }
+    SwampString landFacing;
+    landFacing = tdf.GetStringRecord("landFacing", "");
+    if (landFacing.size() != 0) {
+        sscanf(landFacing.c_str(), "%f %f %f", &_landingFacing.x, &_landingFacing.y, &_landingFacing.z);
+    }
+    Vector3 patrolCenter = GetPitFrog()->_homePosition;
+    if (_haspit) {
+        // !FAKE: inliner; pointer locals and hand form of the inlined Vector3 scale and difference (no PDB free
+        // operator, D78); direct member reads score 98.05, the C0191 pointer locals 100.0
+        const Vector3* v2 = &_landingFacing;
+        Vector3 v0(v2->x * 1.75f, v2->y * 1.75f, v2->z * 1.75f);
+        const Vector3* v1 = &GetPitFrog()->_homePosition;
+        _pitPos = Vector3(v1->x - v0.x, v1->y - v0.y, v1->z - v0.z);
+        _patrolLoc = tdf.GetStringRecord("patrolLoc", "");
+        if (_patrolLoc != "") {
+            // !FAKE: c2 register allocation; dummy local; the PDB records no local for the Find result
+            Locator* p = g_locatorManager->Find(_patrolLoc);
+            if (p) {
+                patrolCenter = p->GetLocation();
+            }
+        }
+        _hoverAnimIndex = tdf.GetIntRecord("hoverAnim", 0);
+    }
+    _wanderPatrolCenter = patrolCenter;
+}
+
+// FUNCTION: USA 0x00116AA5
+// PROTOTYPE: PREVIEW 0x005012E9 identical
+// NAME: proto-pdb:default.pdb
+SwampString PitFrogMain::Save()
+{
+    SwampString str = MonsterMain::Save();
+    str += format("\t\tpatrolLoc = %s;\n", _patrolLoc.c_str());
+    str += format("\t\tpit = %s;\n", _pit.c_str());
+    str += format("\t\tlandFacing = %f %f %f;\n", _landingFacing.x, _landingFacing.y, _landingFacing.z);
+    return str;
 }
 
 // FUNCTION: USA 0x00117D11

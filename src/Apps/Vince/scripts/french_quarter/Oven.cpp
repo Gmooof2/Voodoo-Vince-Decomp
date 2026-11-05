@@ -1,36 +1,9 @@
 // UNIT: src/Apps/Vince/scripts/french_quarter/Oven.cpp OBJ: Xbox\OfficialRelease\Oven.obj OPT: /O1 /Oy
 #include "../../../../include/decomp.h"
 
-namespace std { // NAME: proto-pdb:default.pdb
-template <class E> struct char_traits;
-template <class T> class allocator;
-template <class E, class T, class A> class basic_string {
-public:
-    basic_string(const E* ptr);
-    ~basic_string() { _Tidy(true); }
-
-protected:
-    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
-
-private:
-    char _pad00[0x1C];
-};
-template <class T, class A = allocator<T> > class deque {
-public:
-    deque() : _Map(0), _Mapsize(0), _Myoff(0), _Mysize(0) {} // src proto-pdb:default.pdb _Mapsize
-    ~deque() { _Tidy(); }
-
-protected:
-    void _Tidy();
-
-private:
-    char _pad00[0x4];
-    T** _Map;                          // 0x04
-    unsigned int _Mapsize;             // 0x08
-    unsigned int _Myoff;               // 0x0C
-    unsigned int _Mysize;              // 0x10
-};
-}
+#pragma warning(disable: 4530)
+#include <string>
+#include <deque>
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 class BeepTDF { // NAME: proto-pdb:default.pdb
@@ -47,6 +20,19 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
     float y;                           // 0x04
     float z;                           // 0x08
 };
+
+#ifndef NON_MATCHING
+// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
+namespace std {
+template <> void deque<Vector3,std::allocator<Vector3> >::_Tidy();
+// retail 0x0001D5C2 (named fold alias); the VC 7.1 body (throw length_error) emits unnamed throw-info data (C0236)
+template <> void deque<Vector3,std::allocator<Vector3> >::_Xlen() const;
+template <> Vector3** _Uninitialized_copy(Vector3**, Vector3**, Vector3**, std::allocator<Vector3*>&); // 0x0007F3FD
+template <> basic_string<char,std::char_traits<char>,std::allocator<char> >::basic_string(const char *);
+template <> void basic_string<char,std::char_traits<char>,std::allocator<char> >::_Tidy(bool,unsigned int);
+}
+#endif
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
@@ -130,6 +116,7 @@ public:
     virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
     virtual void HitBy(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x50
     virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
 
     void RegisterTimerEvent(unsigned int, float, bool);
     void RemoveTimerEvents();
@@ -157,6 +144,7 @@ public:
     OvenMain(SwampSceneNode* node);
     virtual void Activate();
     virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
 
     ResourceHandle<AnimationResource> _open; // 0xBC
     bool _active;                      // 0xC0
@@ -166,8 +154,64 @@ public:
     int _bakeCount;                    // 0xC8
     SoundNode* _beltSound;             // 0xCC
     std::deque<Vector3> _gingerDMLocs; // 0xD0
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(OvenMain, 0xE4);
+
+#ifdef NON_MATCHING
+// row USA 0x0007B188, PREVIEW 0x0046718F identical
+// best: match_one objdiff 100.0, bytes match; wall: provenance_lint nested operator (C0212): no NAME tag, so
+// no FUNCTION tag (4.3 T7.c1)
+template Vector3 const & std::deque<Vector3,std::allocator<Vector3> >::const_iterator::operator*()const;
+#endif
+
+// FUNCTION: USA 0x0007B602
+// PROTOTYPE: PREVIEW 0x00467609 identical
+// NAME: proto-pdb:default.pdb
+// VC 7.1 <deque> body verbatim as an explicit specialization: the header's _Xlen cannot be redeclared noreturn
+// (C2381), so `__assume(0)` restates its throw body's effect (C0237, !FAKE) and no throw-info is emitted
+template <> void std::deque<Vector3,std::allocator<Vector3> >::_Growmap(size_type _Count)
+{
+    if (max_size() / _DEQUESIZ - _Mapsize < _Count) {
+        _Xlen();
+        __assume(0); // !FAKE: noreturn restated (C0237)
+    }
+
+    size_type _Inc = _Mapsize / 2;
+    if (_Inc < _DEQUEMAPSIZ)
+        _Inc = _DEQUEMAPSIZ;
+    if (_Count < _Inc && _Mapsize <= max_size() / _DEQUESIZ - _Inc)
+        _Count = _Inc;
+    size_type _Myboff = _Myoff / _DEQUESIZ;
+    _Mapptr _Newmap = this->_Almap.allocate(_Mapsize + _Count);
+    _Mapptr _Myptr = _Newmap + _Myboff;
+
+    _Myptr = _Uninitialized_copy(_Map + _Myboff, _Map + _Mapsize, _Myptr, this->_Almap);
+    if (_Myboff <= _Count) {
+        _Myptr = _Uninitialized_copy(_Map, _Map + _Myboff, _Myptr, this->_Almap);
+        _Uninitialized_fill_n(_Myptr, _Count - _Myboff, (_Tptr)0, this->_Almap);
+        _Uninitialized_fill_n(_Newmap, _Myboff, (_Tptr)0, this->_Almap);
+    } else {
+        _Uninitialized_copy(_Map, _Map + _Count, _Myptr, this->_Almap);
+        _Myptr = _Uninitialized_copy(_Map + _Count, _Map + _Myboff, _Newmap, this->_Almap);
+        _Uninitialized_fill_n(_Myptr, _Count, (_Tptr)0, this->_Almap);
+    }
+
+    _Destroy_range(_Map + _Myboff, _Map + _Mapsize, this->_Almap);
+    if (_Map)
+        this->_Almap.deallocate(_Map, _Mapsize);
+
+    _Map = _Newmap;
+    _Mapsize += _Count;
+}
+
+// FUNCTION: USA 0x0007B707
+// PROTOTYPE: PREVIEW 0x0046770E identical
+// NAME: proto-pdb:default.pdb
+template void std::deque<Vector3,std::allocator<Vector3> >::push_back(Vector3 const &);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
 // FUNCTION: USA 0x0007B15E
 // PROTOTYPE: PREVIEW 0x00467165 identical
@@ -178,6 +222,16 @@ void OvenMain::Activate()
     RemoveTimerEvents();
     if (!_noMoreCookies)
         RegisterTimerEvent(0, 1.0f, false);
+}
+
+const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x0007B2AF
+// PROTOTYPE: PREVIEW 0x004672B6 identical
+// NAME: proto-pdb:default.pdb
+SwampString OvenMain::Save()
+{
+    return format("\t\tnomorecookies=%d;\n", _noMoreCookies);
 }
 
 #ifdef NON_MATCHING
@@ -200,6 +254,15 @@ OvenMain::OvenMain(SwampSceneNode* node)
 void OvenMain::Load(const BeepTDF& tdf)
 {
     _noMoreCookies = tdf.GetBoolRecord("nomorecookies", false);
+}
+
+// FUNCTION: USA 0x0007B5DB
+// PROTOTYPE: PREVIEW 0x004675E2 identical
+// NAME: proto-pdb:default.pdb
+SwampScript* OvenMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\Oven.h", 21) OvenMain(node);
 }
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1OvenMain@@UAE@XZ in this unit (no matched

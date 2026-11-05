@@ -3,18 +3,23 @@
 CLI: gate.py [--self-test] [--config P]
   no args      src/ + config/matched_set.toml (the project's matched set); writes derived/gate/last.json.
   --self-test  tests/gate/src + tests/gate/matched_set.toml (the gate fixture, NOT the matched set); banner first;
-               never writes last.json. Then 75 controls (was 63 before 4.1 T4; 13 from 1.5 T5, 5 lock controls from T6, cut-marker from
+               never writes last.json. Then 109 controls (was 107 before 4.4 T3, 106 before 4.3 T3, 76 before 4.2 T5.c4, 75 before 4.2 T5, 63 before 4.1 T4; 13 from 1.5 T5, 5 lock controls from T6, cut-marker from
                2.1 T2: targets + hashes.txt without cut.complete -> rc 2 at `cut`; relink from 2.3 T7: the relink
                layer with relink control one-function -> rc 1, only the `relink` global fails; 9 prov-* from 3.2 T7:
                prov-hedge prov-proto-pdb prov-name-retail prov-placeholder prov-src prov-fake-diff prov-locals prov-d66
-               prov-accepted, each a planted violation -> `provenance` fails with a FAIL line of that check at the
+               prov-accepted (and prov-forceinline from 4.2 T5: a `__forceinline` member under a `// !FAKE:` label),
+               each a planted violation -> `provenance` fails with a FAIL line of that check at the
                plant's path:line (3.5 T4 C7; was: any line of that check); 3 pin-*
                from 3.4 T6.1 on a list copy: pin-unsized (a row renamed to an unsized func pin) and pin-site-corr (a
                site-corr func pin) fail `size`, pin-alias-dup (a fold-alias name of a listed VA beside it): add
                refused `already in`, then the gate refuses the list rc 2 `duplicate va`); 2 relink-* from 3.4
                T6.1: relink-entry (relink control entry: our first .text function to the head of /ORDER -> rc 2,
                relink REFUSED `our PE entry`) and relink-literal (control literal: a synthetic duplicate literal
-               COMDAT with one byte flipped -> rc 2, relink REFUSED `our ranges overlap`), only relink failing; each
+               COMDAT with one byte flipped -> rc 2, relink REFUSED `our ranges overlap`; 4.3 T3: relink-fold, control fold, two
+               synthetic fold-alias .text COMDAT copies at one VA, one byte flipped, the same refusal; 4.4 T3: relink-samename,
+               control samename, a same-name copy of a matched row's COMDAT, one byte flipped, the same refusal, and
+               relink-weak, control weak, a row's reloc via a weak external whose TagIndex is the row itself -> rc 1,
+               relink `.text digest` FAIL), only relink failing; each
                one mutated scratch copy under <.run/phase>/gate/controls/<name>/ (removed after) that must fail at its own named
                check; each prints its full gate output under `control <name>:`, then `control <name>: failed as
                expected at <check>` or `... DID NOT FAIL ...`; last line `controls: J failed as expected of K`.
@@ -68,6 +73,12 @@ CLI: gate.py [--self-test] [--config P]
                with 0 lines), each exactly its one FAIL; annotations-order (direct: an out-of-order plant plus one real
                failure -> exactly that FAIL and the ORDER line; real failure gone -> no FAIL, ORDER line still there);
                annotations-row (through _core: a matched row's NAME line removed -> rc 1, the `annotations` global fails).
+               4.2 T5.c4 (D119, D118): 28 pin-plant-<id> (direct: PIN_PLANTS, one plant in a scratch pin copy, rows
+               re-run in-process by pin_rows State.replant -> a new FAIL pin-row line of the plant's own class at its
+               VA); pin-literal-list (through _core with the pin layer: an accepted-list copy waiving a non-literal row
+               -> pin_rows fails `accepted-stale` at it, the count line names pin_rows); pin-unruled (direct: a scratch
+               pin copy with ??1Diary@@QAE@XZ's tag forged to a hand xref -> matched_set add refused naming the
+               pin-row check; with the real pins the same add passes).
                Controls with a config take make(d, config) (CFG_CONTROLS);
                a control's kw "undo" (env / monkeypatch restore) runs in the runner's finally. objdiff, marker, asm
                assert build pass + their verdict text, d26 `cl exit 0` + D4002, body_sha1 / xbe_sha1 their verdict
@@ -96,11 +107,14 @@ tests/gate/provenance_accepted.txt; 3.5 T4: lint_rev = provenance_lint.UPSTREAM 
 annotations (4.1 T4: annotations.check(src_root, list_path) in-process; no failures `pass`; failures `fail: <n>
 failure(s)`, each `FAIL <file>:<line>: ...` line printed; Refuse `fail: REFUSED <why>` and gate rc 2; order lines are
 advisory: `ORDER <file>:<line>: ...` each, then `gate: annotations order lines: <n>`, never failing the row);
+pin_rows (4.2 T5, D119: pin_rows.check(config, bdir, list_path) in-process: every pin row plus I10 over the run's
+list and build dir; no failures `pass`; failures `fail: <n> failure(s)`, each `FAIL pin-row ...` line printed; Refuse
+(pin_rows / matched_set / byte_compare) `fail: REFUSED <why>` and gate rc 2; controls run it only in pin-literal-list);
 lock-imports (verifier_lock.unlisted again: no tools/ module outside the lock was imported by the layers).
 Output: `PASS|FAIL <symbol>: <check> <verdict>; ...` per function (build target xbe_sha1 size body_sha1 defined asm
 objdiff bytes), `PASS|FAIL <global>: <verdict>` per global check, `gate: audit classes not checked: <list or none>` when
 the audit ran, `gate: layer seconds: <layer> <s>, ...; total <s>` (lock check_env list cut build target xbe matched_set
-objdiff bytes relink audit provenance annotations lock-imports report; a layer not run is absent; an early return prints neither;
+objdiff bytes relink audit provenance annotations pins lock-imports report; a layer not run is absent; an early return prints neither;
 4.1 T3.1), then `N passed, F failed of N` (functions).
 A function passes iff matched_set.is_done over ALL its verdicts. Build dir removed on pass, kept (path printed) on fail.
 last.json: {date, xbe_sha1, rows: [{symbol, unit, va, size, body_sha1, verdicts, passed}], audit_not_checked: [class],
@@ -154,6 +168,7 @@ import build  # noqa: E402
 import byte_compare  # noqa: E402
 import coff_info  # noqa: E402
 import matched_set  # noqa: E402
+import pin_rows  # noqa: E402  pin-row layer (4.2 T5, D119)
 import provenance_lint  # noqa: E402  provenance layer (3.2 T7)
 import relink  # noqa: E402  whole-image relink layer (2.3 T7)
 import verifier_lock  # noqa: E402
@@ -241,13 +256,15 @@ def _core(src_root, list_path, config=None, write_last=False, units_path=None, s
           run_audit=True, run_lint=True, lint_accepted=None, lint_base=None,
           lint_rev=provenance_lint.UPSTREAM,  # 3.5 T4 W5; was: lint_rev="HEAD"
           marker_root=None, audit_tools=None,  # 4.1 T3.1: the tree holding config/PUBLIC_TREE, the audit script's dir
-          run_annotations=True):  # 4.1 T4
+          run_annotations=True,  # 4.1 T4
+          run_pins=True):  # 4.2 T5
     """-> (rc, {symbol: {check: verdict}}, {global: verdict}, {"bdir", "failures"}); prints the gate output.
     Overrides default to the gate's own inputs (units.toml, SYMTABS, the pinned delink dir, <.run/phase>/gate/build).
     run_relink / run_audit False (self-test controls other than `relink` / `audit`, 2.6 T11): that layer is not run
     and adds no global (the history audit is ~25 s of each control, the relink ~3 s). run_lint False likewise (3.2 T7:
     the provenance layer runs in the positive run and the prov-* controls); run_annotations False likewise (4.1 T4:
-    the positive run and the annotations-* controls)."""
+    the positive run and the annotations-* controls); run_pins False likewise (4.2 T5: the positive run and the
+    pin-literal-list control)."""
     refused, glob, verd, failed_units = False, {}, {}, {}
     bdir = Path(bdir) if bdir else byte_compare._phase_run_dir() / "gate" / "build"
     secs = {}
@@ -488,6 +505,24 @@ def _core(src_root, list_path, config=None, write_last=False, units_path=None, s
         except Exception as e:  # a layer that cannot run fails; the other layers still run (D51)
             glob["annotations"] = f"fail: annotations error {type(e).__name__}: {e}"
         mark("annotations")
+    # pin rows (4.2 T5, D119): pin_rows.check in-process (every pin row + I10 over this run's list and build dir);
+    # verdict from its fail list / Refuse (D26), never its text
+    info["pin_rows"] = []
+    if not run_pins:  # no key, as for relink above
+        print("gate: pin_rows layer not run (self-test control; runs in the positive run and pin-literal-list)")
+    else:
+        try:
+            pf = pin_rows.check(config, bdir, list_path)
+            info["pin_rows"] = pf
+            for ln in pf:
+                print(ln)
+            glob["pin_rows"] = "pass" if not pf else f"fail: {len(pf)} failure(s)"
+        except (pin_rows.Refuse, matched_set.Refuse, byte_compare.Refuse) as e:
+            refused = True
+            glob["pin_rows"] = f"fail: REFUSED {e}"
+        except Exception as e:  # a layer that cannot run fails; the other layers still run (D51)
+            glob["pin_rows"] = f"fail: pin_rows error {type(e).__name__}: {e}"
+        mark("pins")
     lcauses = verifier_lock.unlisted(lock_root, lock_modules)  # modules imported lazily by the layers above
     glob["lock-imports"] = "pass" if not lcauses else "fail: " + "; ".join(lcauses)
     mark("lock-imports")
@@ -1064,6 +1099,24 @@ def _c_relink_literal(d):
     return _relink_refused("literal", "our ranges overlap", "a synthetic duplicate literal COMDAT, one byte flipped")
 
 
+def _c_relink_fold(d):  # 4.3 T3: the fold-VA accept (C0198) must not swallow a differing copy
+    return _relink_refused("fold", "our ranges overlap", "two synthetic fold-alias .text COMDAT copies, one byte flipped")
+
+
+def _c_relink_samename(d):  # 4.4 T3 (C0215): the same-name row merge must not swallow a differing copy
+    return _relink_refused("samename", "our ranges overlap",
+                           "a synthetic same-name copy of a matched row's COMDAT, one byte flipped")
+
+
+def _c_relink_weak(d):  # 4.4 T3 (C0217): a weak external whose TagIndex names a wrong body -> the image differs
+    print("control relink-weak: relink layer with control weak (a row's reloc -> a weak external, TagIndex the row itself)")
+    return {"relink_control": "weak"}, lambda r, v, g, i: (
+        r == 1 and g.get("relink", "pass").startswith("fail: .text digest") and bool(v)
+        and all(matched_set.is_done({"verdicts": x}) for x in v.values())
+        and all(val == "pass" for k, val in g.items() if k != "relink"),
+        "relink (rc 1, .text digest FAIL; every fn row and other global pass)")
+
+
 def _c_relink_bare_exit(d):  # 3.5 T4 W1: a bare SystemExit() in the relink chain (relink.load_xbe) -> rc 2, not 0
     orig = relink.load_xbe
 
@@ -1246,6 +1299,12 @@ def _c_prov_locals(d):
 
 def _c_prov_d66(d):
     return _prov_plant(d, TAIL, TAIL + "extern volatile int zz_gate_d66;\n", ("d66",))
+
+
+def _c_prov_forceinline(d):  # 4.2 T5 (D116, D117): refused even under a `// !FAKE:` label
+    return _prov_plant(d, TAIL, TAIL + "struct ZzGateForceinline {\n    // !FAKE: inliner; gate control\n"
+                       "    __forceinline int zz_gate_forceinline() const { return 0; }\n};\n", ("forceinline",),
+                       {"forceinline": "__forceinline int zz_gate_forceinline"})
 
 
 def _c_prov_accepted(d):
@@ -1558,6 +1617,133 @@ def _c_pin_alias_dup(d):
         "add refusal + list (duplicate va)")
 
 
+# 4.2 T5 pin-row plants (c2/c3, D119): (id, VA of the row edited (first pin row there), field edits ("+": the edited
+# copy inserted after the row; tag None: the column dropped), the plant's own fail class, the VA it fails at)
+PIN_FIELDS = ("va", "kind", "size", "name", "tag", "status")
+_PP = "proto-pdb-public+"
+PIN_PLANTS = (
+    ("H1", 0x000FFD8C, {"status": "disasm-verified"}, "status-vs-tag", 0x000FFD8C),
+    ("H2", 0x000FFD8C, {"status": "disasm-verified", "tag": _PP + "site-corr+callee-bytes"}, "route-func", 0x000FFD8C),
+    ("H3", 0x000FFD8C, {"status": "disasm-verified", "tag": _PP + "retail-xref"}, "hand-name-not-in-evidence",
+     0x000FFD8C),
+    ("H4", 0x001C8648, {"status": "disasm-verified", "tag": _PP + "site-corr+data-bytes"}, "route-global", 0x001C8648),
+    ("H5", 0x001C8648, {"status": "disasm-verified", "tag": _PP + "retail-disasm"}, "hand-name-not-in-evidence",
+     0x001C8648),
+    ("T1", 0x00027A42, {"tag": None}, "grammar", 0x00027A42),
+    ("N1", 0x00027A42, {"name": "?NotAPublic@@YAXXZ"}, "name-not-public", 0x00027A42),
+    ("N2", 0x000E0887, {"name": "?NotAPublic@@YAXXZ"}, "name-not-public", 0x000E0887),
+    ("N3", 0x000220C6, {"name": "?NotAPublic@@YAXXZ"}, "route-label", 0x000220C6),
+    ("N4", 0x001EA324, {"name": "_s_00000000"}, "route-label", 0x001EA324),
+    ("V1", 0x000E0887, {"va": "0x000E0518"}, "site-conflict-only", 0x000E0518),
+    ("V2", 0x00027A42, {"va": "0x000BFFD7"}, "route-func", 0x000BFFD7),
+    ("V3", 0x00027A42, {"va": "0x7FFF0000"}, "va-off-image", 0x7FFF0000),
+    ("V4", 0x002369CC, {"va": "0x002369D0"}, "site-conflict-only", 0x002369D0),
+    ("V5", 0x001C8648, {"va": "0x001C864C"}, "site-conflict-only", 0x001C864C),
+    ("Wa1", 0x000E0887, {"name": "?RunLevel@@YAXXZ"}, "site-conflict-only", 0x000E0887),
+    ("Wa2", 0x00027A42, {"name": "?RunLevel@@YAXXZ"}, "route-func", 0x00027A42),
+    ("Wa3", 0x00018B34, {"name": "?RunLevel@@YAXXZ"}, "site-conflict-only", 0x00018B34),
+    ("Wa4", 0x00011178, {"name": "?RunLevel@@YAXXZ"}, "fold-other-name-not-alias", 0x00011178),
+    ("Wb1", 0x002369CC, {"name": "_g_pfnxcsuOnline"}, "site-conflict-only", 0x002369CC),
+    ("Wb2", 0x001CAE20, {"name": "__real@40e00000"}, "route-float", 0x001CAE20),
+    ("Wb3", 0x002231E0, {"name": "_g_pfnxcsuOnline"}, "site-conflict-only", 0x002231E0),
+    ("Wb4", 0x002231E0, {"name": "__imp__XcVerifyPKCS1Signature@12"}, "section-differs", 0x002231E0),
+    ("Wb5", 0x00225748, {"name": "__imp__XcVerifyPKCS1Signature@12"}, "section-differs", 0x00225748),
+    ("D1", 0x00027A42, {"+": True}, "dup-same-row", 0x00027A42),
+    ("D2", 0x00027A42, {"+": True, "va": "0x00011000"}, "dup-name-two-vas", 0x00011000),
+    ("D3", 0x00027A42, {"+": True, "name": "?RunLevel@@YAXXZ"}, "va-two-names", 0x00027A42),
+    ("Tw1", 0x001253D7, {"name": "_XShaHmacUpdate@12"}, "route-func", 0x001253D7),
+)
+PIN_UNRULED = "??1Diary@@QAE@XZ"  # D118: sized disasm-verified sole-name func pin 0x0010027B, its row passes pin_rows
+
+
+def _pin_scratch(d, path, text):
+    """Write a scratch copy under the control's dir d, never over the real file (C0177: assert the target first)."""
+    p = (d / path.name).resolve()
+    assert p.is_relative_to(d.resolve()) and p != path.resolve(), f"pin control scratch {p} outside {d}"
+    p.write_text(text, encoding="utf-8", newline="\n")
+    return p
+
+
+def _pin_new(pid, base, s):
+    """Fail lines of State s not in base's (line numbers dropped), each printed under the control."""
+    key = lambda x: re.sub(r" \S+\.txt:\d+:", ":", x)  # noqa: E731
+    before = {key(x) for x in base.row_fail_lines()}
+    new = [x for x in s.row_fail_lines() if key(x) not in before]
+    for x in new:
+        print(f"control {pid}: {x}")
+    return new
+
+
+def _pin_plant(pid, va, edits, cls, at):
+    """kw `direct`: the pin file copy with one plant, rows re-run in-process (State.replant) -> a new fail line of
+    class cls at VA at."""
+    def make(d, config=None):
+        base = pin_rows.state(config)
+        L = pin_rows.PIN.read_text(encoding="utf-8").splitlines()
+        i = next(k for k, ln in enumerate(L) if ln.startswith(f"0x{va:08X} "))
+        f, e = L[i].split(), dict(edits)
+        ins = e.pop("+", False)
+        for k, v in e.items():
+            f[PIN_FIELDS.index(k)] = v
+        new = " ".join(x for x in f if x is not None)
+        L[i:i + 1] = [L[i], new] if ins else [new]
+        p = _pin_scratch(d, pin_rows.PIN, "\n".join(L) + "\n")
+        print(f"control pin-plant-{pid}: pin copy, row 0x{va:08X} {'+ inserted' if ins else 'edited'} {sorted(e)}")
+
+        def expect(r, v, g, i_):
+            new_lines = _pin_new(f"pin-plant-{pid}", base, base.replant(p))
+            return (any(x.split()[2:4] == [cls, f"0x{at:08X}"] for x in new_lines),
+                    f"pin-row {cls} 0x{at:08X}")
+        return {"direct": True}, expect
+    return make
+
+
+def _c_pin_literal_list(d, config=None):
+    """Through _core with the pin layer: the accepted list copy waives a non-literal row (?handledMain@@YAXXZ) ->
+    pin_rows fails `accepted-stale` at it; pin_rows' cached State swapped for the copy's (restored by undo)."""
+    base = pin_rows.state(config)
+    acc = _pin_scratch(d, pin_rows.ACCEPTED, pin_rows.ACCEPTED.read_text(encoding="utf-8")
+                       + "0x000E0887\t?handledMain@@YAXXZ\tgate control: a waiver for a non-literal row\n")
+    pin_rows._STATE[config] = base.replant(pin_rows.PIN, acc)
+    print("control pin-literal-list: accepted list copy + a waiver of non-literal 0x000E0887")
+    return {"undo": lambda: pin_rows._STATE.__setitem__(config, base)}, lambda r, v, g, i: (
+        g.get("pin_rows", "pass").startswith("fail: ")
+        and any(x.split()[2:4] == ["accepted-stale", "0x000E0887"] for x in i.get("pin_rows", [])),
+        "pin_rows accepted-stale 0x000E0887")
+
+
+def _c_pin_unruled(d, config=None):
+    """kw `direct` (D118): a scratch pin copy with PIN_UNRULED's tag forged to a hand xref tag; matched_set add of it
+    on a list copy is refused naming the pin-row check; the same add with the real pins passes (restored by undo)."""
+    base, pins0 = pin_rows.state(None), matched_set.PINS
+    L = pin_rows.PIN.read_text(encoding="utf-8").splitlines()
+    i = next(k for k, ln in enumerate(L) if ln.split()[3:4] == [PIN_UNRULED])
+    f = L[i].split()
+    f[4] = _PP + "retail-xref"
+    L[i] = " ".join(f)
+    p = _pin_scratch(d, pin_rows.PIN, "\n".join(L) + "\n")
+    lp = d / "matched_set.toml"
+    shutil.copy2(FIX_LIST, lp)
+
+    def undo():
+        matched_set.PINS = pins0
+        pin_rows._STATE[None] = base
+
+    def expect(r, v, g, i_):
+        matched_set.PINS, pin_rows._STATE[None] = p, base.replant(p)
+        try:
+            matched_set.add_function(lp, PIN_UNRULED)
+            why = None
+        except matched_set.Refuse as e:
+            why = str(e)
+        undo()
+        print(f"control pin-unruled: forged pin, add {PIN_UNRULED}: {why or 'NOT refused'}")
+        matched_set.add_function(lp, PIN_UNRULED)  # real pins: D118 lifts the refusal (raises if not)
+        print(f"control pin-unruled: real pins, add {PIN_UNRULED}: added")
+        return bool(why) and "pin-row check: " in why, "matched_set add refused (pin-row check)"
+    return {"direct": True, "undo": undo}, expect
+
+
 CONTROLS =(("objdiff", _c_objdiff), ("bytes-alone", _c_bytes), ("target", _c_target), ("cut-marker", _c_cut_marker),
             ("body_sha1", _c_body),
             ("xbe_sha1", _c_xbe), ("empty-list", _c_empty), ("missing-list", _c_missing), ("extra", _c_extra),
@@ -1567,9 +1753,11 @@ CONTROLS =(("objdiff", _c_objdiff), ("bytes-alone", _c_bytes), ("target", _c_tar
             ("lock-pyc", _c_lock_pyc), ("lock-symlink", _c_lock_symlink), ("symtab-pin", _c_symtab_pin),
             ("lock-imports", _c_lock_imports),
             ("relink", _c_relink), ("relink-entry", _c_relink_entry), ("relink-literal", _c_relink_literal),
+            ("relink-fold", _c_relink_fold), ("relink-samename", _c_relink_samename), ("relink-weak", _c_relink_weak),
             ("prov-hedge", _c_prov_hedge), ("prov-proto-pdb", _c_prov_proto), ("prov-name-retail", _c_prov_name),
             ("prov-placeholder", _c_prov_place), ("prov-src", _c_prov_src), ("prov-fake-diff", _c_prov_fake),
             ("prov-locals", _c_prov_locals), ("prov-d66", _c_prov_d66), ("prov-accepted", _c_prov_accepted),
+            ("prov-forceinline", _c_prov_forceinline),
             ("pin-unsized", _c_pin_unsized), ("pin-site-corr", _c_pin_site), ("pin-alias-dup", _c_pin_alias_dup),
             ("data-impostor", _c_data_impostor), ("xbe-wrong", _c_xbe_wrong), ("objdiff-cli", _c_objdiff_cli),
             ("build-refuse", _c_build_refuse), ("target-missing", _c_target_missing),
@@ -1587,15 +1775,18 @@ CONTROLS =(("objdiff", _c_objdiff), ("bytes-alone", _c_bytes), ("target", _c_tar
             ("prov-d66-pdb-volatile", _c_prov_d66_pdb_volatile), ("annotations-folded", _c_annotations_folded),
             ("annotations-malformed", _c_annotations_malformed), ("annotations-no-name", _c_annotations_no_name),
             ("annotations-no-source", _c_annotations_no_source), ("annotations-count", _c_annotations_count),
-            ("annotations-order", _c_annotations_order), ("annotations-row", _c_annotations_row))
+            ("annotations-order", _c_annotations_order), ("annotations-row", _c_annotations_row),
+            *((f"pin-plant-{p[0]}", _pin_plant(*p)) for p in PIN_PLANTS),  # 4.2 T5: 28 pin-row plants
+            ("pin-literal-list", _c_pin_literal_list), ("pin-unruled", _c_pin_unruled))
 CFG_CONTROLS = (_c_data_impostor, _c_xbe_wrong, _c_objdiff_cli,
                 _c_toolchain_split, _c_prov_locals_cache, _c_prov_inputs_pin,  # 3.5 T4: make(d, config)
-                _c_audit_null_key, _c_audit_tail, _c_prov_d66_pdb_volatile)
+                _c_audit_null_key, _c_audit_tail, _c_prov_d66_pdb_volatile,
+                _c_pin_literal_list, _c_pin_unruled, *(m for n, m in CONTROLS if n.startswith("pin-plant-")))
 LINE_GLOBALS = {"extra": "*objects* extra", "audit": "audit_public", "empty-list": "list",
                 "relink": "relink", "relink-entry": "relink",
-                "relink-literal": "relink", "audit-null-key": "audit_public", "audit-tail": "audit_public",
+                "relink-literal": "relink", "relink-fold": "relink", "audit-null-key": "audit_public", "audit-tail": "audit_public",
                 "audit-line-pin": "audit_public", "audit-literal-pin": "audit_public",
-                "annotations-row": "annotations"}  # control -> global on the count line
+                "annotations-row": "annotations", "pin-literal-list": "pin_rows"}  # control -> global on the count line
 
 
 def controls(config=None):
@@ -1620,7 +1811,8 @@ def controls(config=None):
                 args = {"src_root": FIX_SRC, "list_path": FIX_LIST, "bdir": d / "build", "config": config,
                         "run_relink": name.startswith("relink"), "run_audit": name == "audit",
                         "run_lint": name.startswith("prov-"), "lint_accepted": FIX_ACC,
-                        "run_annotations": name.startswith("annotations-"), **kw}
+                        "run_annotations": name.startswith("annotations-"),
+                        "run_pins": name == "pin-literal-list", **kw}
                 # 4.1 T4: kw `direct`: the control's expect does the whole check, no gate run; was: always _core
                 rc, v, g, i = (1, {}, {}, {}) if kw.get("direct") else _core(args.pop("src_root"), args.pop("list_path"), **args)
                 ok, at = expect(rc, v, g, i)

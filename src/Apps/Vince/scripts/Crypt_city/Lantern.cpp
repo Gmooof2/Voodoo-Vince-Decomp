@@ -93,9 +93,10 @@ private:
 };
 DECOMP_SIZE_ASSERT(LanternMain, 0xCC);
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x0006A5D2
 // NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0 + bytes match; gate relink REFUSED (InsideKosmobotCutscenes external ?FrameTick@CutsceneDriver@@UAEXXZ 0x0006A5D2 lies in a replaced range; C0233 Fix 1 n/a: non-template, KosmoPigCutscene also calls it)
 void LanternMain::FrameTick()
 {
     g_swamp->_input->GetPad(0);

@@ -1,5 +1,7 @@
 // UNIT: src/Libs/LocString/LocString.cpp OBJ: Xbox\OfficialRelease\LocString.obj OPT: /O1 /Oy
 #include "../../include/decomp.h"
+#pragma warning(disable: 4530)
+#include <memory>
 
 class BeepFile { // NAME: proto-pdb:default.pdb
 public:
@@ -56,6 +58,11 @@ extern "C" int LocString_GetStringID(void* hblob, unsigned int uIndex)
         return p->m_aStringIndex[uIndex].m_wValue;
     return -1;
 }
+
+// FUNCTION: USA 0x00140BBA
+// PROTOTYPE: PREVIEW 0x0052A488 identical
+// NAME: proto-pdb:default.pdb
+template std::auto_ptr<BeepFile>::~auto_ptr<BeepFile>();
 
 // FUNCTION: USA 0x00140BD1
 // PROTOTYPE: PREVIEW 0x0052A49F identical

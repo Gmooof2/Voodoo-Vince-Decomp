@@ -14,6 +14,27 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
+struct Vector4 { // NAME: proto-pdb:default.pdb
+    void Set(unsigned int argb);
+
+    float x; // 0x00
+    float y; // 0x04
+    float z; // 0x08
+    float w; // 0x0C
+};
+DECOMP_SIZE_ASSERT(Vector4, 0x10);
+
+// FUNCTION: USA 0x000DCD1B
+// PROTOTYPE: PREVIEW 0x004C8078 identical
+// NAME: proto-pdb:default.pdb
+void Vector4::Set(unsigned int argb)
+{
+    z = (argb & 0xFF) * (1.0f / 255.0f);
+    y = ((argb >> 8) & 0xFF) * (1.0f / 255.0f);
+    x = ((argb >> 16) & 0xFF) * (1.0f / 255.0f);
+    w = (argb >> 24) * (1.0f / 255.0f);
+}
+
 // FUNCTION: USA 0x000DCDF6
 // PROTOTYPE: PREVIEW 0x004C8153 identical
 // NAME: proto-pdb:default.pdb
@@ -26,8 +47,6 @@ void Vector3::RotateJ(float r)
     z = v2 * v1 + v3 * z;
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes mismatch (3 bytes at +0x35)
 // FUNCTION: USA 0x000DCE28
 // PROTOTYPE: PREVIEW 0x004C8185 identical
 // NAME: proto-pdb:default.pdb
@@ -40,9 +59,8 @@ unsigned int Vector3::GetRGB() const
             c = 0.0f;
         if (c > 1.0f)
             c = 1.0f;
-        float v = c * 255.0f;
-        rgb = (rgb << 8) + _mm_cvtt_ss2si(_mm_load_ss(&v));
+        float v0 = c * 255.5f;
+        rgb = (rgb << 8) + _mm_cvtt_ss2si(_mm_load_ss(&v0));
     }
     return rgb | 0xFF000000;
 }
-#endif

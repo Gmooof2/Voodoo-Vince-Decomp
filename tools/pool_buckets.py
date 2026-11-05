@@ -34,7 +34,8 @@ import coff_info  # noqa: E402
 import proto_map  # noqa: E402
 
 CAND = REPO / "derived" / "candidates" / "candidates.jsonl"
-LEDGER = REPO / "docs" / "matching" / "attempts.jsonl"
+import match_one  # noqa: E402  ledger files and order (4.4 T11)
+LEDGER = match_one.LEDGER  # the frozen base; every reader takes match_one.ledger_paths() (4.4 T11)
 MATCHED = REPO / "config" / "matched_set.toml"
 UNITS = REPO / "config" / "retail" / "units.toml"
 QA_ABSENT = REPO / "docs" / "evidence" / "qa_absent.md"
@@ -44,30 +45,60 @@ STOP = 20  # START_HERE.md: stop at about 20 attempts without progress
 # Verdicts recorded only in task summaries (the ledger has no verdict field): symbol -> (bucket, source).
 NOTES = {
     "?GetTSC@BeepState@@QAE_KXZ": ("wall-d45", "2.5 T4, C0084"),
-    "??$RELEASE@UDirect3D@@@@YAXAAPAUDirect3D@@@Z": ("held-d78", "2.5 T12"),
+    "??$RELEASE@UDirect3D@@@@YAXAAPAUDirect3D@@@Z": ("held-d78", "2.5 T12; 4.3 T3 ruled by the developer 2026-11-02: stays "
+                                                       "held under D78, no `unknown01` enumerator, no D78 exception"),
+    # 4.3 T4: match_one 100, gate relink refuses the emitted vtable (unnamed ??_G / folded default slots, C0203)
+    **{sym: ("wall-vtable-relink", "4.3 T4 C0201 C0203") for sym in (
+        "??0PuddleRegionMain@@QAE@PAVSwampSceneNode@@@Z",)},
+    # 4.3 T5: match_one 100 (RegionTrigger ctor 63.57: also an /O1 AABox inline limit), vtable slots unnamed (C0203)
+    **{sym: ("wall-vtable-relink", "4.3 T5 C0203") for sym in (
+        "??0VinceCeilingFan@@QAE@PAVSwampSceneNode@@@Z", "??0RegionTrigger@@QAE@XZ",
+        "??0LevelScript@@QAE@PAVSwampSceneNode@@_N@Z")},
+    # 4.3 T8: match_one 100, vtable slots unnamed (C0203)
+    **{sym: ("wall-vtable-relink", "4.3 T8 C0203") for sym in (
+        "??0MainstreetRegionMain@@QAE@PAVSwampSceneNode@@@Z",
+        "??0UIClusterMain@@QAE@PAVSwampSceneNode@@@Z", "??0VinceFlat@@QAE@PAVSwampSceneNode@@@Z",
+        "??0VinceZapHat@@QAE@PAVSwampSceneNode@@@Z")},
+    # 4.4 T4: the 4.3 T8 C0215/C0217 relink-refused rows matched (T3 relink change, D117 ruling); keys dropped
+    "?DumpMemoryLeaks@AllocationTracker@@QAE_NXZ": ("wall-dir32", "4.3 T8.c17 C0155: 99.62"),
+    "?IsVisible@Frustum@@QBE_NABUAABox@@M@Z": ("wall-d45", "4.3 T8.c25 C0219: inline-asm rsqrtss radius, D116"),
+    # 4.3 T9: retail inline-asm length/sqrt (D116, C0219); best draft guarded (logs/T9.cost.md)
+    "?FrameTick@GingerDeadManMain@@EAEXXZ": ("wall-d45", "4.3 T9.c1 C0219: 84.36"),
+    "?FrameTick@RockChunkMain@@UAEXXZ": ("wall-d45", "4.3 T9.c4 C0219: 71.17"),
+    "?IsVinceInTheWay@LiftMain@@AAE_NXZ": ("wall-d45", "4.3 T9.c13 C0219: 65.65"),
+    "?CalcBounds@GatorNode@@QBEXI@Z": ("wall-d45", "4.3 T9.c27 C0219: 79.80 (control)"),
+    "??0LoadScreen@@QAE@XZ": ("wall-vtable-relink", "4.3 T9.c3 C0203: 97.64, vtable slots unnamed"),
     # 3.3 verdicts (R3.3-005)
     "?Render@Sprite@@QBEXXZ": ("wall-thinker", "3.3 T4, T21 R3.3-004: best 98.597565; R1 cvttss2si operand order, "
                                "R2 y-add order; untried lead: name _loc.u/_loc.v (FAKE)"),  # was past-stop (3.3 T4)
 }
 # Same, keyed by VA where one symbol names several folded rows (T14 row = line of logs/T14.rows.txt).
 NOTES_VA = {
-    0x000CA770: ("relink-refused", "3.3 T14 row 55, same construct, not attempted; 3.4 T10 C0154"),
-    0x000E88E1: ("relink-refused", "3.3 T14 row 57, same construct, not attempted; 3.4 T10 C0154"),
-    **{va: ("pin-only-alias", "3.3 T14 C0132") for va in (
-        0x000292A6, 0x0006A5D2, 0x0001819A, 0x000BE119, 0x000C1028, 0x000C0299)},
-    **{va: ("pin-only-alias", "3.3 T10 C0132") for va in (0x000775B9, 0x000775E2)},
+    0x0010F1FB: ("relink-refused", "4.3 T5: FloorSwitchMain::HitBy match_one 100; relink refuses fold callee "
+                 "ResetPopupTimer@SwitchMain 0x0007EA16 in the replaced SwitchSafe range (C0154)"),
+    # 4.4 T4: 0x000292A6, 0x000775B9, 0x000775E2, 0x000CA770, 0x000E88E1 dropped (matched 4.3 T16)
+    0x0006A5D2: ("relink-refused", "4.3 T16 C0250: LanternMain::FrameTick fold-VA row; CutsceneDriver::FrameTick "
+                 "callers (InsideKosmobotCutscenes) fail `lies in a replaced range`; a non-template alias cannot be "
+                 "redefined in callers (D78)"),
+    0x0001819A: ("relink-refused", "4.3 T16 C0250: ??4ResourceHandle<VertexShaderResource> matched row would overlap "
+                 "SwampRenderer/ShootingCam COMDAT copies at the fold VA; guarded to keep SetVertexShader + "
+                 "ClearStateCache"),
     # 3.4 verdicts (R3.4-005)
-    0x0010027B: ("refused-by-tool", "3.4 T12: ??1Diary@@QAE@XZ pin-only, matched_set refuses"),
-    0x00125F98: ("refused-by-tool", "3.4 T6.1/T12: ?Set@GameOptions@@QBEXXZ sole name a disasm-verified pin"),
-    **{va: ("held-d78-inline", "3.4 T12 ruling; Gen 4 question 40a575bd") for va in (
-        0x00063D47, 0x000CB0D1, 0x000CAFF0, 0x000277AF)},
+    0x0010027B: ("refused-by-tool", "3.4 T12: ??1Diary@@QAE@XZ pin-only; D118 lifted it (4.2 T5: matched_set add "
+                 "--list <scratch copy> passes), was: matched_set refuses"),
+    0x00125F98: ("refused-by-tool", "3.4 T6.1/T12: ?Set@GameOptions@@QBEXXZ sole name a disasm-verified pin; D118 "
+                 "lifted it (4.2 T5: matched_set add --list <scratch copy> passes), was: matched_set refuses"),
     **{va: ("wall-dir32", "3.4 T12 C0155") for va in (0x00033D78, 0x00033C74)},
+    0x00033C26: ("wall-dir32", "4.3 T5.c10 C0155: ??0AllocationTracker, 97.63"),
     **{va: ("wall-d45", "3.4 AABox __asm") for va in (0x000DDE5B, 0x000DDEA2)},
-    0x000AD6E6: ("wall-data-name", "3.4 T12: SwampGamePad ctor"),
-    **{va: ("wall-vtable-relink", "3.3 T4 C0123; vtable pins C0129") for va in (
-        0x000DA7A4, 0x0014F54F, 0x0014F56C, 0x0014F5BE)},
+    # 4.4 T4: the 3.3 T4 wall-vtable-relink VAs (BundleWrapper ctor, FFly ctors) and 3.3 T14 pin-only-alias VAs matched
     **{va: ("xdk-callee-unnamed", "3.4") for va in (0x000C5C15, 0x000BD0E9)},
+    # 4.3 T5: objdiff 100, masked 1: callee has only the undecorated Ghidra name (C0192)
+    **{va: ("xdk-callee-unnamed", "4.3 T5 C0192") for va in (0x000354F0, 0x000DA1DE, 0x000C5E54)},
     0x000BD3A8: ("folded-template-name", "3.4 T12: AddOverride"),
+    # 4.4 T4: a pin (T4.c1) added this ??_G to the pool; match_one 100 + bytes equal (inline ~FrontEndUI, T4.c8), but
+    # its pin has no size so matched_set refuses it (D118 needs a sized pin) and the cut lacks the EndMenu reloc (c0035)
+    0x0013E262: ("refused-by-tool", "4.4 T4: ??_GFrontEndUI match_one 100; pin unsized, matched_set refuses; size the pin (0x29) at the next re-cut"),
 }
 # Symbols past the stop whose pa-thinker consultation (M17) is done: symbol -> source. None in 3.3.
 THINKER = {}
@@ -78,10 +109,14 @@ BUCKETS = [
      "nothing under the current rules: cl 13.10 has no `__rdtsc` intrinsic (C0084); permanent wall"),
     ("wall-dir32", "base-displacement DIR32 reloc the delink cut does not express; objdiff stays < 100 (C0155)",
      "a delink rule for base-disp DIR32 fields (C0155); source cannot fix it"),
-    ("refused-by-tool", "the row's lane name is a pin only; matched_set / match_finish refuses it",
-     "a fold-alias name (symbols.txt func line) or a pin ruling (T6.1/T12)"),
-    ("held-d78-inline", "match needs an inline helper absent from the PDB; held by the T12 ruling (D78)",
-     "a PDB-recorded inline helper (Gen 4 question, commit 40a575bd)"),
+    ("refused-by-tool", "the row's lane name is a pin only; matched_set / match_finish refused it until D118 (4.2 T5: "
+     "a sized disasm-verified pin whose pin row passes pin_rows.py is added; 0x0010027B, 0x00125F98 pass add on a "
+     "scratch list)",
+     "match_finish on the row (D118 lifted the sole-name refusal); an unruled pin: its pin row passing pin_rows.py, or a symbols.txt func line "
+     "(units_seed --write, never re-run on a hand-edited table; 4.2 T3)"),
+    ("held-d78-inline", "match needed an inline helper absent from the PDB; held by the 3.4 T12 ruling (D78); "
+     "D117 (4.2) frees them by a pointer local or hand forms, no helper",
+     "match_finish with the D117 lever its note names (C0191); a row no allowed form matches goes to the developer"),
     ("wall-data-name", "a data target's only name is undecorated (PDB data records, C0129)",
      "a decorated data name for the target (T12)"),
     ("wall-vtable-relink", "ctor stores a vptr; the vtable target is unnamed, relink fails (C0123)",
@@ -104,9 +139,9 @@ BUCKETS = [
     ("relink-refused", "objdiff 100 and bytes equal, but the gate's relink refuses the unit (PE entry != pin entry: "
      "out-of-line COMDAT copy of a folded member, C0136); rows sharing the construct included",
      "a relink rule for out-of-line copies of folded COMDATs (tools/relink.py, verifier-locked: a plan decision)"),
-    ("pin-only-alias", "self-alias folded VA named only by pins; match_one passes, match_finish refuses "
-     "(no func line in symbols.txt, C0132)",
-     "a symbols.txt func line for the pin alias (multi-public/fold naming, D44 residue), then match_finish"),
+    ("pin-only-alias", "self-alias folded VA named only by pins; since 3.4 T6.1 matched_set add passes (4.2 T3: all 8), so nothing refuses "
+     "them (sole-name pins too since D118, 4.2 T5); was: match_finish refuses, no func line in symbols.txt (C0132)",
+     "a draft under the alias name the source instantiates, then match_finish; no symbols.txt line (4.2 T3)"),
     ("past-stop-thinker", f"attempted >= {STOP} times without a match; pa-thinker consulted (M17)",
      "the consultation's lever tried, else filed as a wall"),
     ("past-stop", f"attempted >= {STOP} times (ledger or recorded scratch runs) without a match; thinker not yet consulted",
@@ -330,7 +365,7 @@ def main(argv):
     rows = [json.loads(x) for x in CAND.read_text(encoding="utf-8").splitlines() if x.strip()]
     nrows = [r for r in rows if r.get("lane") == "near"]  # 3.4 T13: near lane section
     rows = [r for r in rows if r.get("lane", "identical") == "identical"]  # 3.4 T2: near lane in next_candidates.md
-    ledger = [json.loads(x) for x in LEDGER.read_text(encoding="utf-8").splitlines() if x.strip()]
+    ledger = match_one.load_ledger()
     ms = tomllib.loads(MATCHED.read_text(encoding="utf-8"))
     matched = {(f["symbol"], as_int(f["va"])) for f in ms.get("function", [])}
     maxsize = max((f["size"] for f in ms.get("function", [])), default=0)
@@ -413,7 +448,8 @@ def main(argv):
 
     ins = [("derived/candidates/candidates.jsonl", CAND, f"{pool} identical + {len(nrows)} near rows, "
             "from `PY tools/candidates.py --write`"),
-           ("docs/matching/attempts.jsonl", LEDGER, f"{len(ledger)} ledger lines"),
+           *((p.relative_to(REPO).as_posix(), p, f"{len(ledger)} ledger lines, all files" if p == LEDGER else "ledger, "
+             "appended after the base") for p in match_one.ledger_paths()),
            ("config/matched_set.toml", MATCHED, f"{len(matched)} matched, {npm} identical + {nm} near in the lanes"),
            ("config/retail/units.toml", UNITS, "opt, kind, delink"),
            ("derived/proto_map/retail-xbe/functions.jsonl", candidates.FUNCS, f"{len(fx)} rows, class counts"),

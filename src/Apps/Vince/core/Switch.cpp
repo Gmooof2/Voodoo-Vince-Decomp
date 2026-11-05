@@ -11,12 +11,35 @@ public:
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
     basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
     static const unsigned int npos = (unsigned int)(-1);
+    bool empty() const { return _Mysize == 0; }
 
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    char _pad00[0x1C];
+    char _pad00[0x14];
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
+};
+template <class T, class A = allocator<T> > class vector { // NAME: proto-pdb:default.pdb
+public:
+    typedef T* iterator;
+    // !FAKE: inliner; hand form of the VC7.1 body; vector() { _Buy(0); } folds to these three stores (C0191)
+    vector() { _Myfirst = 0; _Mylast = 0; _Myend = 0; }
+    ~vector() { _Tidy(); }
+    iterator begin() { return _Myfirst; }
+    iterator end() { return _Mylast; }
+    unsigned int size() const { return _Myfirst == 0 ? 0 : _Mylast - _Myfirst; }
+    bool empty() const { return size() == 0; }
+
+protected:
+    void _Tidy();
+
+private:
+    char _Alval;                       // 0x00
+    T* _Myfirst;                       // 0x04
+    T* _Mylast;                        // 0x08
+    T* _Myend;                         // 0x0C
 };
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
@@ -45,6 +68,8 @@ public:
 
     const Quaternion& SetFacing(const Vector3& dir);
     void SetScript(const SwampString& name);
+    unsigned int GetZone() const;
+    class SwampScript* GetScript() const;
 
     int _Type;                         // 0x04
     SwampString _Name;                 // 0x08
@@ -63,19 +88,31 @@ public:
 DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
 
 class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
-};
-
-class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
 public:
-    void SubRef();
+    char field_24[0x8];                // 0x24
+    float _length;                     // 0x2C
 };
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
     ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    bool IsValid() const { return _Resource != 0; }
+    T& operator()() { return *_Resource; }
 
     T* _Resource;                      // 0x00
+};
+
+class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef();
+    void SetAnimationSpeed(float speed);
+    void SetAnimationTime(float time) { _time = time; }
+    float GetAnimationLength() const { return _anim._Resource->_length; }
+
+    ResourceHandle<AnimationResource> _anim; // 0x24
+    char field_28[0x10];               // 0x28
+    float _time;                       // 0x38
 };
 
 class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
@@ -123,6 +160,9 @@ public:
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
 
+    void RemoveTimerEvents();
+    void RegisterTimerEvent(unsigned int id, float time, bool repeat);
+
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
     char field_24[0x28];               // 0x24
@@ -146,6 +186,7 @@ public:
     virtual bool TestActivate() const;
     virtual void Activate();
     virtual void Message(SwampScript* source, int message, void* data);
+    virtual void TimerEvent(unsigned int timerId);
 
     enum Messages { // NAME: proto-pdb:default.pdb
         MESSAGE_TURN_OFF = 0x14,
@@ -161,16 +202,24 @@ public:
         STATE_TURNINGOFF = 3
     };
 
+    enum Timers { // NAME: proto-pdb:default.pdb
+        TIMER_TURNOFF = 0,
+        TIMER_SWITCHSPECIFIC = 1
+    };
+
 protected:
     bool NotifyTarget(int message);
+    bool ActivateTarget();
 public:
     void ResetPopupTimer();
 
-    char field_BC[0xF4 - 0xBC];        // 0xBC
+    SwampString _onAnimName;           // 0xBC
+    SwampString _offAnimName;          // 0xD8
     ResourceHandle<AnimationResource> _onAnim; // 0xF4
-    char field_F8[0x100 - 0xF8];       // 0xF8
+    ResourceHandle<AnimationResource> _offAnim; // 0xF8
+    char field_FC[0x100 - 0xFC];       // 0xFC
     SwampString _activatorName;        // 0x100
-    char field_11C[0x138 - 0x11C];     // 0x11C
+    SwampString _target;               // 0x11C
     bool _popupOK;                     // 0x138
     bool _oneWayThrow;                 // 0x139
     bool _multiTarget;                 // 0x13A
@@ -183,6 +232,12 @@ public:
     virtual void Activate();
 };
 DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
+
+class FloorSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void HitBy(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+};
+DECOMP_SIZE_ASSERT(FloorSwitchMain, 0x13C);
 
 class CarriedObject : public Critter { // NAME: proto-pdb:default.pdb
 public:
@@ -205,6 +260,7 @@ public:
 class CritterManager { // NAME: proto-pdb:default.pdb
 public:
     Critter* Find(const SwampString& name);
+    void FindAllMatching(std::vector<Critter*>& matches, const SwampString& name, unsigned int zone);
 
     char field_0[0x28];                // 0x00
     Vince* _vinceCache;                // 0x28
@@ -237,6 +293,36 @@ void SwitchMain::Activate()
     }
 }
 
+// FUNCTION: USA 0x0010F1FB
+// PROTOTYPE: PREVIEW 0x004F9B19 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100, bytes match; gate relink REFUSED (our ranges overlap at 0x0007EA16: ResetPopupTimer@SwitchMain copy vs SwitchSafe row; else external in replaced range, C0154)
+void FloorSwitchMain::HitBy(CollisionType type, SwampSceneNode* critterHitBy, const Ptr<CollisionResultObject>& cr)
+{
+    if (type == VerticalCollision && _popupOK && critterHitBy == pManager->_vinceCache) {
+        if (_state == STATE_ON) {
+            RemoveTimerEvents();
+            ResetPopupTimer();
+        }
+        if (_state == STATE_OFF)
+            Activate();
+    }
+}
+#endif
+
+// SwitchMain::ResetPopupTimer: retail folds it (ICF) into SwitchSafeMain::ResetPopupTimer at 0x0007EA16, the
+// SwitchSafe.cpp row; proto_map lists Switch.obj among its modules. This byte-equal copy lands at that VA as a fold
+// duplicate in relink (C0233 Fix 1), so the replaced SwitchSafe range no longer refuses this unit's external.
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: byte-equal copy; gate relink REFUSED (our ranges overlap at 0x0007EA16 with the matched SwitchSafeMain row)
+void SwitchMain::ResetPopupTimer()
+{
+    RegisterTimerEvent(TIMER_TURNOFF, 1.0f, false);
+}
+#endif
+
 #ifdef NON_MATCHING
 // best: match_one objdiff 53.45, bytes mismatch (masked 0)
 // FUNCTION: USA 0x0010F3D4
@@ -255,6 +341,68 @@ void BasicWallSwitchMain::Activate()
     vince->SetScript("VinceSwitch");
     vince->_readyToUseObject = false;
     SwitchMain::Activate();
+}
+#endif
+
+// FUNCTION: USA 0x0010F4FB
+// PROTOTYPE: PREVIEW 0x004F9DEA identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 87.85, bytes mismatch (masked 0); one _Tidy now (shared `return false` after the else); retail lays the _Tidy block after the size test (jne to the loop test), ours after the loop (13 drafts)
+bool SwitchMain::NotifyTarget(int message)
+{
+    if (_target.empty())
+        return false;
+    if (_multiTarget) {
+        // !FAKE: c2 register allocation; dummy local; retail loads pManager into edi before GetZone (match_one 75.53 -> 81.39)
+        CritterManager* p = pManager;
+        std::vector<Critter*> targets;
+        p->FindAllMatching(targets, _target, _node->GetZone());
+        if (targets.empty())
+            return false;
+        for (std::vector<Critter*>::iterator it = targets.begin(); it != targets.end(); ++it)
+            (*it)->GetScript()->Message(this, message, 0);
+        return true;
+    } else {
+        // !FAKE: c1xx front end; temporary; Find's result tested then used, no PDB local (stand-in)
+        Critter* p = pManager->Find(_target);
+        if (p != 0) {
+            p->GetScript()->Message(this, message, 0);
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
+// FUNCTION: USA 0x0010F5BB
+// PROTOTYPE: PREVIEW 0x004F9EAA identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 89.77, bytes mismatch (masked 0); one _Tidy now (shared `return false` after the else); retail lays the _Tidy block after the size test (jne to the loop test), ours after the loop (11 drafts)
+bool SwitchMain::ActivateTarget()
+{
+    if (_target.empty())
+        return false;
+    if (_multiTarget) {
+        // !FAKE: c2 register allocation; dummy local; retail loads pManager into edi before GetZone (NotifyTarget match_one 75.53 -> 81.39)
+        CritterManager* p = pManager;
+        std::vector<Critter*> targets;
+        p->FindAllMatching(targets, _target, _node->GetZone());
+        if (targets.empty())
+            return false;
+        for (std::vector<Critter*>::iterator it = targets.begin(); it != targets.end(); ++it)
+            (*it)->GetScript()->Activate();
+        return true;
+    } else {
+        // !FAKE: c1xx front end; temporary; Find's result tested then used, no PDB local (stand-in)
+        Critter* p = pManager->Find(_target);
+        if (p != 0) {
+            p->GetScript()->Activate();
+            return true;
+        }
+    }
+    return false;
 }
 #endif
 
@@ -297,3 +445,28 @@ void SwitchMain::Message(SwampScript* source, int message, void* data)
     }
 }
 #endif
+
+// FUNCTION: USA 0x0010F758
+// PROTOTYPE: PREVIEW 0x004F9FF2 identical
+// NAME: proto-pdb:default.pdb
+void SwitchMain::TimerEvent(unsigned int timerId)
+{
+    if (timerId == TIMER_TURNOFF) {
+        if (!_popupOK) {
+            RegisterTimerEvent(TIMER_TURNOFF, 0.1f, false);
+            return;
+        }
+        if (_offAnimName.empty()) {
+            // !FAKE: c1xx front end; temporary; the AddRef/IsValid/SubRef copy needs a named handle, no PDB local (stand-in)
+            ResourceHandle<AnimationControl> tmp = ((GatorNode*)_node)->StartAnimation(_onAnim, false, true);
+            if (tmp.IsValid()) {
+                tmp().SetAnimationTime(tmp().GetAnimationLength());
+                tmp().SetAnimationSpeed(-1.0f);
+            }
+        } else
+            ((GatorNode*)_node)->StartAnimation(_offAnim, false, false);
+        SetState(STATE_TURNINGOFF);
+        if (NotifyTarget(8))
+            _popupOK = false;
+    }
+}

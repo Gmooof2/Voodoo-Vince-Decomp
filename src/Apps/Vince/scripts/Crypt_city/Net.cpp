@@ -105,8 +105,33 @@ public:
     T* _Resource;                      // 0x00
 };
 
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    SwampScript* GetScript() const;
+};
+class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+};
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+};
+class Vince : public Critter { // NAME: proto-pdb:default.pdb
+};
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x28];                // 0x00
+    Vince* _vinceCache;                // 0x28
+};
+DECOMP_SIZE_ASSERT(CritterManager, 0x2C);
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
 class CarriedObjectMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_IDLE = 0,
+        STATE_CARRIED = 1,
+        STATE_USE = 2,
+        STATE_OBJECTSPECIFIC = 3
+    };
     virtual ~CarriedObjectMain();
 private:
 
@@ -118,7 +143,11 @@ DECOMP_SIZE_ASSERT(CarriedObjectMain, 0xF8);
 // NAME: proto-pdb:default.pdb
 class NetMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_SWIPING = 3
+    };
     NetMain(SwampSceneNode* node);
+    virtual void AnimationFinished();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -128,6 +157,16 @@ public:
     std::vector<Critter*> _fliesList;  // 0x100
 };
 DECOMP_SIZE_ASSERT(NetMain, 0x110);
+
+// FUNCTION: USA 0x00069732
+// NAME: proto-pdb:default.pdb
+void NetMain::AnimationFinished()
+{
+    if (_state == STATE_SWIPING) {
+        SetState(STATE_CARRIED);
+        pManager->_vinceCache->GetScript()->Message(this, 0x14, 0); // src proto-pdb:default.pdb MESSAGE_OBJECT_FINISHED
+    }
+}
 
 // FUNCTION: USA 0x00069DC1
 // PROTOTYPE: PREVIEW 0x004562D6 identical

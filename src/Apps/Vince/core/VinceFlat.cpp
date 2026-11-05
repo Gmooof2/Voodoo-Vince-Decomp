@@ -4,15 +4,127 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    unsigned int _pad00[7];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
-struct Vector3;              // NAME: proto-pdb:default.pdb
-class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    Vector3() {}
+    Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    void InvalidateAllSubScripts();
+
+    char field_4[0xA4 - 0x4];          // 0x04
+};
+
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    void SetCollidable(bool b) { _collidable = b; }
+
+    char field_A4[0xA8 - 0xA4];        // 0xA4
+    bool _collidable;                  // 0xA8
+    char field_A9[0xAC - 0xA9];        // 0xA9
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_AC[0xB4 - 0xAC];        // 0xAC
+};
+DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { _RefCount--; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x10];               // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle() : _Resource(0) {}
+    ~ResourceHandle()
+    {
+        if (_Resource)
+            _Resource->SubRef();
+    }
+    ResourceHandle& operator=(const ResourceHandle& h);
+
+    T* _Resource;                      // 0x00
+};
+
+class AnimationControl; // NAME: proto-pdb:default.pdb
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
+
+    char field_0[0x18];                // 0x00
+    AnimationManager* _animationManager; // 0x18
+};
+
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+
+    char field_B4[0x200 - 0xB4];       // 0xB4
+};
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
+
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+public:
+    void SetCurSpeed(float f) { _CurSpeed = f; }
+    void SetVelocity(const Vector3& v) { _Velocity = v; }
+
+    float _MaxSpeed;                   // 0x200
+    float _CurSpeed;                   // 0x204
+    char field_208[0x20C - 0x208];     // 0x208
+    Vector3 _Velocity;                 // 0x20C
+};
+
+class Vince : public Critter { // NAME: proto-pdb:default.pdb
+};
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -48,6 +160,11 @@ public:
 
     void RegisterTimerEvent(unsigned int, float, bool);
 
+protected:
+    SwampScript(SwampSceneNode* node);
+
+public:
+
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
     SwampScript* _parent;              // 0x24
@@ -76,12 +193,22 @@ public:
         MESSAGE_OUCH = 0x15,
         MESSAGE_SUCCESS = 0x16
     };
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_FLAT = 0,
+        STATE_POPUP = 1
+    };
     VinceFlat(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+    virtual void AnimationFinished();
+    virtual void TimerEvent(unsigned int id);
+    Vince* GetVince() { return (Vince*)_node; }
+    virtual ~VinceFlat();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
-    char field_4C[0x58 - 0x4C];        // 0x4C
+    ResourceHandle<AnimationResource> _flatten; // 0x4C
+    ResourceHandle<AnimationResource> _popup;   // 0x50
+    States _state;                     // 0x54
     bool _playQuip;                    // 0x58
     bool _playSuccess;                 // 0x59
 };
@@ -105,6 +232,25 @@ void VinceFlat::Message(SwampScript* source, int message, void* data)
         _parent->Message(source, message, data);
     }
 }
+
+// FUNCTION: USA 0x0012177A
+// PROTOTYPE: PREVIEW 0x0050A43D identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match; wall: relink refuses: external ??1VinceFlat@@UAE@XZ does not resolve by name (??_G 0x001348F8 calls 0x00121879, unnamed fold of ~VinceFlat/~BasketStopperMain) (4.4 T4.c9)
+VinceFlat::VinceFlat(SwampSceneNode* node) : SwampScript(node), _playQuip(false), _playSuccess(false)
+{
+    GetVince()->SetCurSpeed(0.0f);
+    Vector3 vel(0.0f, 0.0f, 0.0f);
+    GetVince()->SetVelocity(vel);
+    GetVince()->SetCollidable(false);
+    _flatten = g_swamp->GetAnimationManager().Load("vince_flatten");
+    _popup = g_swamp->GetAnimationManager().Load("vince_flatten_recover");
+    GetVince()->StartAnimation(_flatten, false, false);
+    _state = STATE_FLAT;
+    GetVince()->InvalidateAllSubScripts();
+}
+#endif
 
 // FUNCTION: USA 0x00121947
 // PROTOTYPE: PREVIEW 0x0050A5F1 identical

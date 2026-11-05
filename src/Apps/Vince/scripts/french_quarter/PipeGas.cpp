@@ -135,6 +135,7 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     CritterMain(SwampSceneNode* node);
+    virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
 
     char field_4C[0xBC - 0x4C];        // 0x4C
@@ -143,8 +144,16 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 class PipeGasMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_QUERY_BURNING = 0x14
+    };
+
     PipeGasMain(SwampSceneNode* node);
+    virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
+
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 
 protected:
     void TurnOnFlame();
@@ -155,6 +164,18 @@ protected:
     SoundNode* _sound;                 // 0xC8
 };
 DECOMP_SIZE_ASSERT(PipeGasMain, 0xCC);
+
+// FUNCTION: USA 0x000815F5
+// PROTOTYPE: PREVIEW 0x0046D4E7 identical
+// NAME: proto-pdb:default.pdb
+void PipeGasMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message != MESSAGE_QUERY_BURNING) {
+        CritterMain::Message(source, message, data);
+        return;
+    }
+    *(bool*)data = _lit;
+}
 
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes provisional (masked = vptr store, literals)
@@ -186,6 +207,15 @@ PipeGasMain::PipeGasMain(SwampSceneNode* node) : CritterMain(node), _emitter(0),
     _pipeJointId = ((Critter*)_node)->GetModel()().GetBoneIndex("locator_gas", false);
 }
 #endif
+
+// FUNCTION: USA 0x00081929
+// PROTOTYPE: PREVIEW 0x0046D81B identical
+// NAME: proto-pdb:default.pdb
+SwampScript* PipeGasMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\PipeGas.h", 11) PipeGasMain(node);
+}
 
 // FUNCTION: USA 0x00081B78
 // PROTOTYPE: PREVIEW 0x0046DA37 identical

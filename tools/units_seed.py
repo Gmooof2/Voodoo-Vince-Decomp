@@ -10,8 +10,10 @@ CLI: units_seed.py --write [--force] | --check | --route --class C [--apply]   [
   --check: validates both files (headers vs pin, unit keys/ranges/indices, symbol grammar/order/uniqueness/lint).
   --route --class C [--apply] (3.2 T8): T1's unit-edge route (docs/evidence/units.md "Unit-edge route") over the
     game units whose last seed item is in class C (ROUTE_CLASSES order); edges by `pin` (disasm-verified pin of the
-    edge proc's PDB public), `chain`, `chain-neighbour`; outside procs explained as `moved` (between LIS anchors of
-    one other unit's main run) or as another unit's chain proc; gap scans uncapped. Dry run prints the verdicts;
+    edge proc's PDB public), `chain`, `chain-neighbour`, `neighbour-fixed` (4.4 T8: the adjacent run's unit, proto
+    link order, has its facing edge fixed in units.toml and that VA lies in our own anchor gap); outside procs
+    explained as `moved` (between LIS anchors of one other unit's main run) or as another unit's chain proc; gap
+    scans uncapped. Dry run prints the verdicts;
     --apply edits units.toml per unit block (released: range, edges, delink = true; kept: delink_reason
     "<item>; searched: <evidence>; fails: <why>"; old reason kept as a `# was:` line), never re-renders the file.
 Files and prints hold names, addresses, counts and hashes only, never bytes (D46).
@@ -43,8 +45,10 @@ NMOD = 689
 CNT_CODE = 0x20000000
 XBE_EXEC = 0x4
 KINDS = ("game", "xdk", "linker", "unknown")
-EDGE_OK = ("anchor", "neighbour", "window", "neighbour-window", "chain", "chain-neighbour", "pin")
-# was ("anchor", "neighbour", "window", "neighbour-window", "chain", "chain-neighbour"); 3.2 T8 adds `pin` (route)
+D120_WHY = ("copy in a gap between unit ranges", "copy bracketed by anchors of two different units")
+EDGE_OK = ("anchor", "neighbour", "window", "neighbour-window", "chain", "chain-neighbour", "pin", "neighbour-fixed")
+# was ("anchor", "neighbour", "window", "neighbour-window", "chain", "chain-neighbour"); 3.2 T8 adds `pin` (route);
+# 4.4 T8 adds `neighbour-fixed` (route: the adjacent run's unit has its facing edge fixed in units.toml)
 ROUTE_CLASSES = ("inconsistent", "end-ambiguous", "start-ambiguous", "near-identical", "identical", "excluded",
                  "no-range")
 # was (... "identical", "excluded"); 3.2 T9 adds `no-range` (game units with no anchor in the main run; pin anchors)
@@ -806,6 +810,7 @@ class Route:
         self.gfa = [g[0] for g in self.gf]
         self.ranged = sorted((u for u in cur if "text_start" in u), key=lambda u: u["text_start"])
         self.rstarts = [u["text_start"] for u in self.ranged]
+        self.cur = {u["index"]: u for u in cur}  # 4.4 T8: units.toml state, read by neighbour_fixed
         self.xsecs = [s for s in d["x"]["sections"] if s["flags"] & XBE_EXEC]
         self._chains, self._cpv = {}, None
 
@@ -931,11 +936,58 @@ class Route:
         q = pl[-1] if side == "end" else pl[0]
         if side == "end" and q["off"] + q["len"] != main["end"] or side == "start" and q["off"] != main["start"]:
             return None
+        lo, hi = self.anchor_gap(u, side)
         for n in self.pubs.get(q["va"], ()):
             if n in self.pins:
                 v = self.pins[n]
-                return (v + q["len"] if side == "end" else v), f"pin {n[:60]} 0x{v:08X}"
+                if lo is None or not (lo <= v and v + q["len"] <= hi):  # C0257: a folded pin elsewhere is no edge
+                    continue
+                return (v + q["len"] if side == "end" else v), f"pin {n[:60]} 0x{v:08X} in own anchor gap"
         return None
+
+    def neighbour_fixed(self, u, side):
+        """4.4 T8 `neighbour-fixed`: the adjacent run in proto link order (main["prev"] for a start, main["next"] for
+        an end) is another unit's main run whose facing edge is fixed in units.toml (edge class in EDGE_OK, not
+        itself `neighbour-fixed`); that VA lies in our own anchor gap (no other unit's LIS anchor between). The seed's
+        `neighbour` class with the neighbour's fixed edge in place of its LIS anchor. -> (VA, evidence) or (None, why)."""
+        main = u["_main"]
+        run = main["prev"] if side == "start" else main["next"]
+        far = "end" if side == "start" else "start"
+        if run is None:
+            return None, f"no {'previous' if side == 'start' else 'next'} run in the section"
+        nb = self.seed.get(run["module"])
+        if nb is None or nb["index"] == u["index"]:
+            return None, f"adjacent run of module {run['module']} has no unit"
+        if nb.get("_main") is not run:
+            return None, f"adjacent run of {_short(nb)} is not its main run"
+        c = self.cur.get(nb["index"])
+        if c is None or "text_start" not in c:
+            return None, f"neighbour {_short(nb)} has no range"
+        ek = c[f"edge_{far}"]
+        v = c[f"text_{far}"]
+        if ek not in EDGE_OK or ek == "neighbour-fixed":
+            return None, f"neighbour {_short(nb)} {far} {ek}"
+        lo, hi = self.anchor_gap(u, side)
+        if lo is None or not (lo <= v <= hi):
+            gap = f"0x{lo:08X}-0x{hi:08X}" if lo is not None else "none"
+            return None, f"neighbour {_short(nb)} {far} {ek} 0x{v:08X} outside own anchor gap {gap}"
+        return v, f"neighbour {_short(nb)} {far} {ek} 0x{v:08X} (units.toml) in own anchor gap 0x{lo:08X}-0x{hi:08X}"
+
+    def anchor_gap(self, u, side):  # retail gap after the unit's last LIS anchor (end) / before its first (start)
+        own = [q for q in u["_main"]["procs"] if q["va"] in self.anchor]
+        if not own:
+            return None, None
+        t, n = self.anchor[own[-1 if side == "end" else 0]["va"]]
+        sec = next((s for s in self.xsecs if s["virtualAddr"] <= t < s["virtualAddr"] + s["virtualSize"]), None)
+        if sec is None:
+            return None, None
+        slo, shi = sec["virtualAddr"], sec["virtualAddr"] + sec["virtualSize"]
+        k = bisect.bisect_left(self.ancv, t)
+        if side == "end":
+            nx = self.ancr[k + 1][0] if k + 1 < len(self.ancr) else shi
+            return t + n, min(nx, shi)
+        pv = self.ancr[k - 1] if k > 0 else None
+        return max(pv[0] + pv[1], slo) if pv else slo, t
 
     def chain_pv(self):  # retail VA -> (unit, proc) of every proc on a valid chain of any unit's unpinned edge
         if self._cpv is None:
@@ -1080,8 +1132,11 @@ class Route:
             else:
                 v, kind, _out, ev = self.chain(u, side)
                 if v is None:
-                    kept.append((item, ev, "no pin, chain fails"))
-                    continue
+                    nv, nev = self.neighbour_fixed(u, side)  # 4.4 T8
+                    if nv is None:
+                        kept.append((item, f"{ev}; {nev}", "no pin, chain fails, neighbour edge not fixed"))
+                        continue
+                    v, kind, ev = nv, "neighbour-fixed", f"{nev}; chain: {ev}"
                 edges[i] = kind
             notes.append(f"{side} {edges[i]}: {ev}")
             if side == "start":
@@ -1118,6 +1173,9 @@ class Route:
                     if why is not None:
                         unexpl.append((why, ev))
             notes += [ev for why, ev in outs if why is None]
+            if not kept and unexpl and all(w in D120_WHY for w, _e in unexpl):  # D120: edges fixed, stray stays uncut
+                notes += [f"stray stays uncut (D120): {ev}; reason: {w}" for w, ev in unexpl]
+                unexpl = []
             if unexpl:
                 item = f"inconsistent: {len(outs)} procs outside range, {len(outs) - len(unexpl)} explained"
                 kept.append((item, " | ".join(ev for _w, ev in unexpl), " | ".join(w for w, _e in unexpl)))
@@ -1167,19 +1225,18 @@ def _edit_block(lines, u, dec):
         setk("edge_end", _tq(dec["edges"][1]))
         setk("delink", "true")
         if ri is not None:
-            if was:
-                del blk[ri]
-            else:
-                blk[ri] = "# was: " + blk[ri]
+            blk[ri] = "# was: " + blk[ri]  # 4.4 T6.1: the last reason is kept too (was: dropped when a `# was:` stood)
+            ev = [f"# route: range {_hx(dec['range'][0])}-{_hx(dec['range'][1])} edges {'/'.join(dec['edges'])}"]
+            ev += [f"# route: {n}" for n in dec["notes"]]
+            if not any(x.startswith("# route: ") for x in blk):
+                blk[ri + 1:ri + 1] = ev
     else:
         new = f"delink_reason = {_tq(_reason(dec['kept']))}"
         if ri is None:
             raise SystemExit(f"units_seed: {_short(u)} kept but has no delink_reason line")
         if blk[ri] != new:
-            if not was:
-                blk.insert(ri, "# was: " + blk[ri])
-                ri += 1
-            blk[ri] = new
+            blk.insert(ri, "# was: " + blk[ri])  # 4.4 T8: every superseded reason stays (was: only when none stood)
+            blk[ri + 1] = new
     lines[st:end] = blk
     if dec["release"] and old[0] == "[[unit]]" and not any(x.startswith("text_start = ") for x in old):
         # `no-range` release: move the block into the ranged section (ranged by text_start first, as --write renders)
@@ -1197,7 +1254,7 @@ def _edit_block(lines, u, dec):
     return blk != old
 
 
-def do_route(cfg_path, cls, apply):
+def do_route(cfg_path, cls, apply, only=None):
     global ARGS_CFG
     ARGS_CFG = cfg_path
     d = load(cfg_path)
@@ -1212,7 +1269,7 @@ def do_route(cfg_path, cls, apply):
         if u["kind"] != "game" or u["delink"]:
             continue
         cl = [item_class(x) for x in gate_items(u["delink_reason"])]
-        if None not in cl and max(cl) == ci:
+        if None not in cl and max(cl) == ci and (only is None or u["index"] == only):
             sel.append(u)
     sel.sort(key=lambda u: (u["_range"][0] if u["_range"] else 0, u["index"]))  # `no-range`: no seed range
     rt = Route(d, seed, cur)
@@ -1267,13 +1324,14 @@ def main(argv):
     g.add_argument("--route", action="store_true", help="T1 unit-edge route over one class (dry run unless --apply)")
     ap.add_argument("--class", dest="cls", choices=ROUTE_CLASSES, help="route class (with --route)")
     ap.add_argument("--apply", action="store_true", help="--route: edit units.toml per unit block")
+    ap.add_argument("--unit", type=int, help="--route: only the unit with this index (4.4 T6.1)")
     ap.add_argument("--force", action="store_true", help="--write over hand-edited files")
     ap.add_argument("--config", help="config path (default config/local_paths.json)")
     args = ap.parse_args(argv)
     if args.route:
         if not args.cls:
             _refuse("--route needs --class")
-        return do_route(args.config, args.cls, args.apply)
+        return do_route(args.config, args.cls, args.apply, args.unit)
     if args.write:
         return do_write(args.config, args.force)
     pin = coff_info.pinned_sha()

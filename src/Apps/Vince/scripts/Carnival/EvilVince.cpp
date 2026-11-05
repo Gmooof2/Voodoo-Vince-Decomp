@@ -1,4 +1,5 @@
 // UNIT: src/Apps/Vince/scripts/Carnival/EvilVince.cpp OBJ: Xbox\OfficialRelease\EvilVince.obj OPT: /O1 /Oy /EHa
+#include "../../../../include/decomp.h"
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
     float x;
@@ -27,14 +28,98 @@ void SwampSceneNode::SetScale(Vector3 v)
 
 class FireFlyNode; // NAME: proto-pdb:default.pdb
 
-class EvilVinceMain { // NAME: proto-pdb:default.pdb
+namespace std { // NAME: proto-pdb:default.pdb
+template<class _Elem> struct char_traits; // src proto-pdb:default.pdb char_traits
+template<class _Ty> class allocator;
+template<class _Elem, class _Traits, class _Ax> class basic_string;
+}
+typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
+
+class BeepTDF;               // NAME: proto-pdb:default.pdb
+class CollisionResultObject; // NAME: proto-pdb:default.pdb
+template <class T> class Ptr; // NAME: proto-pdb:default.pdb
+
+class SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    enum CollisionType { // NAME: proto-pdb:default.pdb
+        HorizontalCollision = 0,
+        VerticalCollision = 1
+    };
+    virtual ~SwampScript();                                        // vtable+0x00
+    virtual bool TestActivate() const;                             // vtable+0x04
+    virtual void Activate();                                       // vtable+0x08
+    virtual void Deactivate();                                     // vtable+0x0C
+    virtual void FrameTick();                                      // vtable+0x10
+    virtual void TimerEvent(unsigned int);                         // vtable+0x14
+    virtual void AnimationFinished();                              // vtable+0x18
+    virtual void SecondaryAnimationFinished();                     // vtable+0x1C
+    virtual void AnimationInterrupted();                           // vtable+0x20
+    virtual void SecondaryAnimationInterrupted();                  // vtable+0x24
+    virtual void AnimationTrigger(const SwampString&, float, float, unsigned int); // vtable+0x28
+    virtual bool LosingControl(const SwampString&);                // vtable+0x2C
+    virtual void GainingControl(SwampScript*);                     // vtable+0x30
+    virtual void Message(SwampScript*, int, void*);                // vtable+0x34
+    virtual void EnteringRegion(SwampSceneNode*);                  // vtable+0x38
+    virtual void LeavingRegion(SwampSceneNode*);                   // vtable+0x3C
+    virtual void SoundFinished(const SwampString&);                // vtable+0x40
+    virtual void SoundStreamerFinished(const SwampString&);        // vtable+0x44
+    virtual void MovieFinished(const SwampString&);                // vtable+0x48
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void HitBy(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x50
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
+    virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
+    virtual void InvalidateScript();                               // vtable+0x60
+
+    char field_4[0x1C];                // 0x04
+    SwampSceneNode* _node;             // 0x20
+    char field_24[0x28];               // 0x24
+};
+DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
+
+class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~CritterMain();
+    virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
+    virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+    virtual void SetState(int);                                    // vtable+0x6C
+
+    int _state;                        // 0x4C
+    char field_50[0x6C];               // 0x50
+};
+DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
+
+class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
+
+    char field_BC[0x240 - 0xBC];       // 0xBC
+};
+DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
+
+class EvilVinceMain : public MonsterMain { // NAME: proto-pdb:default.pdb
 public:
     struct EvilWhammy { // NAME: proto-pdb:default.pdb
         bool _started;                 // 0x0
         bool _hitVince;                // 0x1
         FireFlyNode *_effect;          // 0x4
     };
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_IDLE = 0,
+        STATE_HIDDEN = 1,
+        STATE_APPEARING = 2,
+        STATE_INIT_TAUNT = 3,
+        STATE_PREATTACK = 4,
+        STATE_ATTACK = 5,
+        STATE_WHAMMY = 6,
+        STATE_VINCEIDLE = 7,
+        STATE_PAUSE = 8,
+        STATE_JUMPOUT = 9,
+        STATE_JUMPIN = 10
+    };
+    virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
+
+    char field_240[0x2C4 - 0x240];     // 0x240
 };
+DECOMP_SIZE_ASSERT(EvilVinceMain, 0x2C4);
 
 typedef unsigned int size_t;
 typedef int ptrdiff_t;
@@ -43,6 +128,21 @@ inline void *__cdecl operator new(size_t, void *_Where)
 {
     return (_Where);
 }
+
+#ifdef NON_MATCHING
+class exception { // NAME: proto-pdb:default.pdb
+public:
+    exception();
+    exception(const char *const& _What);
+    exception(const exception& _That);
+    virtual ~exception();
+    virtual const char *what() const;
+
+private:
+    const char *_m_what;
+    int _m_doFree;
+};
+#endif
 
 namespace std { // NAME: proto-pdb:default.pdb
 
@@ -64,6 +164,12 @@ public:
     typedef const value_type& const_reference;
     typedef size_t size_type;
     typedef ptrdiff_t difference_type;
+
+    size_type max_size() const
+    {
+        size_type _Count = (size_type)(-1) / sizeof (_Ty);
+        return (0 < _Count ? _Count : 1);
+    }
 
     template<class _Other>
     struct rebind { // src proto-pdb:default.pdb rebind
@@ -176,6 +282,98 @@ template _List_nod<EvilVinceMain::EvilWhammy, allocator<EvilVinceMain::EvilWhamm
     _List_nod<EvilVinceMain::EvilWhammy, allocator<EvilVinceMain::EvilWhammy> >::_Node *,
     _List_nod<EvilVinceMain::EvilWhammy, allocator<EvilVinceMain::EvilWhammy> >::_Node *,
     const EvilVinceMain::EvilWhammy&);
+
+template<class _Elem, class _Traits = char_traits<_Elem>, class _Ax = allocator<_Elem> >
+class basic_string { // src proto-pdb:default.pdb basic_string
+public:
+    basic_string(const _Elem *_Ptr);
+    int compare(const _Elem *_Ptr) const;
+
+    _Ax _Alval;
+    union _Bxty { // src proto-pdb:default.pdb _Bxty
+        _Elem _Buf[16];
+        _Elem *_Ptr;
+    } _Bx;
+    size_t _Mysize;
+    size_t _Myres;
+};
+
+template<class _Elem, class _Traits, class _Alloc>
+inline bool operator==(const basic_string<_Elem, _Traits, _Alloc>& _Left, const _Elem *_Right)
+{
+    return (_Left.compare(_Right) == 0);
+}
+
+#ifdef NON_MATCHING
+// best: match_one objdiff 96.3, bytes mismatch (masked 1); wall: codegen, length_error(const string&) called out
+// of line (retail inlines it: call logic_error ctor 0x0001179C, then stores ??_7length_error; C0255 residual).
+// Throw-info data now pinned (4.4 T4); throw() on the dtors/what as in VC 7.1 <stdexcept> changes nothing (96.3,
+// 4.4 T4.c5). ~basic_string omitted: declared, it adds an EH frame for the temp that retail lacks (objdiff 77.4)
+class logic_error : public ::exception { // src proto-pdb:default.pdb logic_error
+public:
+    explicit logic_error(const basic_string<char>& _Message);
+    virtual ~logic_error();
+    virtual const char *what() const;
+
+private:
+    basic_string<char> _Str;
+};
+
+class length_error : public logic_error { // src proto-pdb:default.pdb length_error
+public:
+    explicit length_error(const basic_string<char>& _Message)
+        : logic_error(_Message)
+    {
+    }
+
+    virtual ~length_error()
+    {
+    }
+};
+
+template<class _Ty, class _Alloc>
+class _List_ptr : public _List_nod<_Ty, _Alloc> { // src proto-pdb:default.pdb _List_ptr
+};
+
+template<class _Ty, class _Alloc>
+class _List_val : public _List_ptr<_Ty, _Alloc> { // src proto-pdb:default.pdb _List_val
+protected:
+    typedef typename _Alloc::template rebind<_Ty>::other _Alty; // src proto-pdb:default.pdb _Alty
+
+    _Alty _Alval;
+};
+
+template<class _Ty, class _Ax = allocator<_Ty> >
+class list : public _List_val<_Ty, _Ax> { // src proto-pdb:default.pdb list
+public:
+    typedef _List_val<_Ty, _Ax> _Mybase;
+    typedef typename _Mybase::_Alty _Alloc;
+    typedef typename _Alloc::size_type size_type;
+    typedef typename _Mybase::_Genptr _Nodeptr;
+
+    size_type max_size() const
+    {
+        return (this->_Alval.max_size());
+    }
+
+protected:
+    // FUNCTION: USA 0x0004515E
+    // NAME: proto-pdb:default.pdb
+    void _Incsize(size_type _Count)
+    {
+        if (max_size() - _Mysize < _Count)
+            throw length_error("list<T> too long");
+        _Mysize += _Count;
+    }
+
+    _Nodeptr _Myhead;
+    size_type _Mysize;
+};
+
+// !FAKE: c1xx front end; explicit instantiation of a single member; retail emits it through callers in this unit
+// (not matched yet); the instantiation emits it instead
+template void list<EvilVinceMain::EvilWhammy>::_Incsize(size_type);
+#endif
 
 template<class _Ty, class _Alloc>
 class _Vector_val { // src proto-pdb:default.pdb _Vector_val
@@ -298,4 +496,13 @@ template vector<Vector3>::pointer vector<Vector3>::_Ufill(pointer, size_type, co
 template vector<Vector3>::iterator vector<Vector3>::insert(iterator, const Vector3&);
 template void allocator<Vector3>::construct(Vector3 *, const Vector3&);
 
+}
+
+// FUNCTION: USA 0x00044ADC
+// PROTOTYPE: PREVIEW 0x00432913 identical
+// NAME: proto-pdb:default.pdb
+void EvilVinceMain::AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone)
+{
+    if (_state == STATE_ATTACK && name == "trigger_whammy")
+        SetState(STATE_WHAMMY);
 }

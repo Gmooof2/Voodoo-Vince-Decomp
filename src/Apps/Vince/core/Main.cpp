@@ -33,7 +33,6 @@ int main()
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0 + bytes match for ??1VinceLoadScreen@@UAE@XZ; the gate fails _main (masked 1)
 namespace std { // NAME: proto-pdb:default.pdb
 template<class _Elem>
 struct char_traits {};
@@ -45,15 +44,49 @@ template<class _Elem, class _Traits = char_traits<_Elem>, class _Ax = allocator<
 class basic_string {
 public:
     ~basic_string() { _Tidy(true); }
+    bool empty() const { return (_Mysize == 0); }
+    const _Elem& operator[](unsigned int _Off) const { return (_Myptr()[_Off]); }
+    const _Elem* _Myptr() const { return (_BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf); }
 
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    char _pad00[0x1C];
+    enum { _BUF_SIZE = 16 / sizeof(_Elem) < 1 ? 1 : 16 / sizeof(_Elem) };
+    char _Alval;                       // 0x00
+    union {
+        _Elem _Buf[_BUF_SIZE];
+        _Elem* _Ptr;
+    } _Bx;                             // 0x04
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
 };
 }
+typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
+void ReadErrorHalt(); // NAME: proto-pdb:default.pdb
+#endif
+
+// FUNCTION: USA 0x000E04F0
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0 + bytes match; wall: any added code renumbers _main's pinned scope table $T318 (->$T402)
+void WeAreScrewedByAReadError(const SwampString& filename)
+{
+    if (filename.empty()) {
+        ReadErrorHalt();
+        return;
+    }
+    switch (filename[0]) {
+    case 'D':
+    case 'd':
+        ReadErrorHalt();
+    }
+}
+#endif
+
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0 + bytes match for ??1VinceLoadScreen@@UAE@XZ; the gate fails _main (masked 1): pin $T318 becomes $T465 (4.3 T16.c6)
 class CXBFont; // NAME: proto-pdb:default.pdb
 
 class CXBPackedResource { // NAME: proto-pdb:default.pdb

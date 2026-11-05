@@ -1,7 +1,28 @@
 // UNIT: src/Apps/Vince/core/xbfont.cpp OBJ: core\XBox\OfficialRelease\xbfont.obj OPT: /O1 /Oy
 #include "../../../include/decomp.h"
 
-struct GLYPH_ATTR;  // NAME: proto-pdb:default.pdb
+struct GLYPH_ATTR { // NAME: proto-pdb:default.pdb
+    float tu1;                         // 0x00
+    float tv1;                         // 0x04
+    float tu2;                         // 0x08
+    float tv2;                         // 0x0C
+    short wOffset;                     // 0x10
+    short wWidth;                      // 0x12
+    short wAdvance;                    // 0x14
+};
+DECOMP_SIZE_ASSERT(GLYPH_ATTR, 0x18);
+
+struct _D3DDEVICE_CREATION_PARAMETERS { // NAME: proto-pdb:default.pdb
+    unsigned int AdapterOrdinal;       // 0x00
+    int DeviceType;                    // 0x04 enum _D3DDEVTYPE
+    void* hFocusWindow;                // 0x08 HWND__*
+    unsigned long BehaviorFlags;       // 0x0C
+};
+DECOMP_SIZE_ASSERT(_D3DDEVICE_CREATION_PARAMETERS, 0x10);
+
+extern "C" void __stdcall D3DDevice_GetCreationParameters(_D3DDEVICE_CREATION_PARAMETERS* pParameters); // src proto-pdb:default.pdb D3DDevice_GetCreationParameters
+void* operator new[](unsigned int size, const char* file, int line);
+
 struct XBRESOURCE;  // NAME: proto-pdb:default.pdb
 struct D3DTexture;  // NAME: proto-pdb:default.pdb
 struct D3DResource;
@@ -40,6 +61,8 @@ public:
     CXBFont();
     ~CXBFont();
     long Destroy();
+    long Create(D3DTexture* pFontTexture, void* pFontData);
+    long CreateShaders();
     void SetScaleFactors(float fXScaleFactor, float fYScaleFactor);
     void SetBaseScaleFactors(float fXScaleFactor, float fYScaleFactor);
     float GetScalingCode(const unsigned short* str) const;
@@ -104,6 +127,78 @@ CXBFont::CXBFont()
     m_fXBaseScaleFactor = 1.0f;
     m_fYBaseScaleFactor = 1.0f;
     m_dwNestedBeginCount = 0;
+}
+
+// FUNCTION: USA 0x000FF74D
+// PROTOTYPE: PREVIEW 0x004EA2FA identical
+// NAME: proto-pdb:default.pdb
+long CXBFont::Create(D3DTexture* pFontTexture, void* pFontData)
+{
+    m_pFontTexture = pFontTexture;
+    // !FAKE: c2 register allocation; stand-in local; the data cursor (no PDB local)
+    unsigned char* p = (unsigned char*)pFontData + 8;
+    // !FAKE: c2 register allocation; stand-in local; the file version (no PDB local)
+    unsigned long v0 = *(unsigned long*)p;
+    p += 4;
+    if (v0 == 4) {
+        m_fFontHeight = (float)*(unsigned long*)p;
+        p += 4;
+        m_fFontYAdvance = m_fFontHeight;
+        float fTexWidth = (float)*(unsigned long*)p;
+        p += 4;
+        float fTexHeight = (float)*(unsigned long*)p;
+        p += 4;
+        p += 4;
+        // !FAKE: c2 register allocation; stand-in local; the low glyph kept in di (no PDB local)
+        unsigned short v1 = *(unsigned short*)p;
+        p += 2;
+        m_cMaxGlyph = *(unsigned short*)p;
+        p += 2;
+        p += 4;
+        m_Glyphs = (GLYPH_ATTR*)p;
+        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+        m_TranslatorTable = new("\\beep\\vendor\\Microsoft\\XbCommon\\xbfont.cpp", 259) short[m_cMaxGlyph + 1];
+        // !FAKE: c2 loop; stand-in loop counter; no PDB local
+        for (unsigned short v2 = 0; v2 <= m_cMaxGlyph; v2++) {
+            if (v2 < v1) {
+                m_TranslatorTable[v2] = 0;
+            } else {
+                m_TranslatorTable[v2] = v2 - v1;
+                // !FAKE: c2 register allocation; stand-in local; the glyph kept in eax (no PDB local)
+                GLYPH_ATTR* v3 = &m_Glyphs[m_TranslatorTable[v2]];
+                v3->wWidth++;
+                v3->tu1 *= (fTexWidth - 1.0f) / fTexWidth;
+                v3->tv1 *= (fTexHeight - 1.0f) / fTexHeight;
+                v3->tu2 *= (fTexWidth - 1.0f) / fTexWidth;
+                v3->tv2 *= (fTexHeight - 1.0f) / fTexHeight;
+            }
+        }
+        m_fFontHeight += 1.0f;
+    } else if (v0 == 5) {
+        m_fFontHeight = *(float*)p;
+        p += 4;
+        m_fFontTopPadding = *(float*)p;
+        p += 4;
+        m_fFontBottomPadding = *(float*)p;
+        p += 4;
+        m_fFontYAdvance = *(float*)p;
+        p += 4;
+        m_cMaxGlyph = *(unsigned short*)p;
+        p += 2;
+        m_TranslatorTable = (short*)p;
+        p += 2 * (m_cMaxGlyph + 1);
+        m_dwNumGlyphs = *(unsigned long*)p;
+        p += 4;
+        m_Glyphs = (GLYPH_ATTR*)p;
+    } else {
+        return 0x80004005;
+    }
+    if (CreateShaders() < 0)
+        return 0x80004005;
+    _D3DDEVICE_CREATION_PARAMETERS d3dcp;
+    D3DDevice_GetCreationParameters(&d3dcp);
+    m_bSaveState = 1;
+    return 0;
 }
 
 // FUNCTION: USA 0x000FF8C4

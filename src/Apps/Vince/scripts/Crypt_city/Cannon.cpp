@@ -4,11 +4,24 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
-class BeepTDF;               // NAME: proto-pdb:default.pdb
+class BeepTDF { // NAME: proto-pdb:default.pdb
+public:
+    int GetIntRecord(const SwampString& id, int def) const;
+};
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
@@ -56,6 +69,7 @@ class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void Message(SwampScript*, int, void*);
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -93,11 +107,65 @@ enum CritterType { // NAME: proto-pdb:default.pdb
     CRITTER_TYPE_STATIC = 0x4
 };
 
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+    void SubRef() { _RefCount--; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
+
+class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef();
+};
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+
+    T* _Resource;                      // 0x00
+};
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    AnimationManager* GetAnimationManager() { return _animationManager; }
+
+    char field_0[0x18];                // 0x00
+    AnimationManager* _animationManager; // 0x18
+};
+
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
+class GatorNode { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>& anim, bool a, bool b);
+    void SetAnimSpeed(float speed);
+};
+
 // Retail layout: Critter _CritterType 0x258 -> 0x268 (+0x10).
-class Critter { // NAME: proto-pdb:default.pdb
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
     char field_0[0x268];               // 0x00
     CritterType _CritterType;          // 0x268
+};
+
+class Cannon : public Critter { // NAME: proto-pdb:default.pdb
 };
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
@@ -112,8 +180,6 @@ DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 struct Quaternion { // NAME: proto-pdb:default.pdb
     void Apply(const Vector3&, Vector3&) const;
-    // !FAKE: __forceinline; plain inline stays an out-of-line call at /O1, retail inlines it
-    __forceinline Vector3 Apply(const Vector3& v) const { Vector3 r; Apply(v, r); return r; }
 
     Vector3 v;                         // 0x00
     float w;                           // 0x0C
@@ -141,15 +207,36 @@ DECOMP_SIZE_ASSERT(AimingCam, 0x188);
 void AimingCam::SetBaseRotation(const Quaternion& q)
 {
     _baseRotation = q;
-    _baseFacing = _baseRotation.Apply(Vector3(0.0f, 0.0f, 1.0f));
+    // !FAKE: inliner; dummy local v0 for the by-value Apply; retail inlines it, /O1 keeps it out of line (T4.c1 E.SB 100.0)
+    Vector3 v0;
+    _baseRotation.Apply(Vector3(0.0f, 0.0f, 1.0f), v0);
+    _baseFacing = v0;
 }
 
 class SoundNode; // NAME: proto-pdb:default.pdb
 
 class CannonMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_UPRIGHT = 0,
+        STATE_TIPPING = 1,
+        STATE_TIPPED = 2,
+        STATE_AIMING = 3
+    };
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_ISTIPPED = 0x14
+    };
+
     CannonMain(SwampSceneNode* node);
     virtual ~CannonMain();
+    virtual void AnimationFinished();
+    virtual void Message(SwampScript* source, int message, void* data);
+    virtual void Load(const BeepTDF& tdf);
+private:
+    void StartAiming();
+    Cannon* GetCannon() { return (Cannon*)_node; }
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
 
     AimingCam* _cannonCam;             // 0xBC
     SoundNode* _tensionSound;          // 0xC0
@@ -157,6 +244,18 @@ public:
     float _pitch;                      // 0xC8
 };
 DECOMP_SIZE_ASSERT(CannonMain, 0xCC);
+
+// FUNCTION: USA 0x0005D56D
+// PROTOTYPE: PREVIEW 0x004499C5 identical
+// NAME: proto-pdb:default.pdb
+void CannonMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message != MESSAGE_ISTIPPED) {
+        CritterMain::Message(source, message, data);
+        return;
+    }
+    *(bool*)data = _state != STATE_UPRIGHT;
+}
 
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes provisional (masked 1 = the vptr store; gSettings+0x38C.. resolve)
@@ -173,6 +272,39 @@ CannonMain::CannonMain(SwampSceneNode* node) : CritterMain(node)
     _pitch = BeepLib::RandomFloat(-gSettings._maxCannonPitchDown, gSettings._maxCannonPitchUp);
 }
 #endif
+// FUNCTION: USA 0x0005D628
+// PROTOTYPE: PREVIEW 0x00449A80 identical
+// NAME: proto-pdb:default.pdb
+SwampScript* CannonMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\sarcophagushustle\\Cannon.h", 41) CannonMain(node);
+}
+
+// FUNCTION: USA 0x0005DBCE
+// PROTOTYPE: PREVIEW 0x0044A00D identical
+// NAME: proto-pdb:default.pdb
+void CannonMain::AnimationFinished()
+{
+    SetState(STATE_TIPPED);
+    StartAiming();
+}
+
+// FUNCTION: USA 0x0005DDCD
+// PROTOTYPE: PREVIEW 0x0044A20C identical
+// NAME: proto-pdb:default.pdb
+void CannonMain::Load(const BeepTDF& tdf)
+{
+    // !FAKE: c2 block layout; dummy local; the record value held in a local gives retail's `mov edi,eax` + `cmp edi,2` (if: sete temp; switch: dec/dec)
+    int v0 = tdf.GetIntRecord("state", 0);
+    if (v0 == STATE_TIPPED) {
+        // !FAKE: c1xx front end; temporary; retail keeps the StartAnimation handle copy alive to the block end, no PDB local (stand-in)
+        ResourceHandle<AnimationControl> tmp = GetCannon()->StartAnimation(g_swamp->GetAnimationManager()->Load("cannon_aim"), false, true);
+        ((GatorNode*)_node)->SetAnimSpeed(0.0f);
+        SetState(STATE_TIPPED);
+    }
+}
+
 // FUNCTION: USA 0x0005DF92
 // PROTOTYPE: PREVIEW 0x0044A3D1 identical
 // NAME: proto-pdb:default.pdb

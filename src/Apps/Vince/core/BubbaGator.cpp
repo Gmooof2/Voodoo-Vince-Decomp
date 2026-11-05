@@ -4,6 +4,16 @@ namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string;
+template <class T, class A = allocator<T> > class vector {
+public:
+    unsigned int capacity() const { return (_Myfirst == 0 ? 0 : _Myend - _Myfirst); }
+
+private:
+    char _pad00[0x4];                  // 0x00
+    T* _Myfirst;                       // 0x04
+    T* _Mylast;                        // 0x08
+    T* _Myend;                         // 0x0C
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -96,10 +106,12 @@ public:
         STATE_ATTACK_BITE = 9
     };
     virtual void TimerEvent(unsigned int timerId);
+    virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
 
     // retail creationFunc pushes new size 0x388; the prototype PDB says 0x38C; the
     // PDB's second BubbaGatorMain record (size 0x388, no _loopSound) puts _attackCount at 0x384
-    char field_240[0x384 - 0x240];     // 0x240
+    char field_240[0x380 - 0x240];     // 0x240
+    bool _attackMoving;                // 0x380
     int _attackCount;                  // 0x384
 };
 DECOMP_SIZE_ASSERT(BubbaGatorMain, 0x388);
@@ -143,6 +155,19 @@ void BubbaGatorMain::TimerEvent(unsigned int timerId)
     }
 }
 
+// FUNCTION: USA 0x0010FBA5
+// PROTOTYPE: PREVIEW 0x004FA438 identical
+// NAME: proto-pdb:default.pdb
+void BubbaGatorMain::AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone)
+{
+    if (_state == STATE_ATTACK_BELLY_STRAIGHT) {
+        if (value > prev)
+            _attackMoving = true;
+        else
+            _attackMoving = false;
+    }
+}
+
 // FUNCTION: USA 0x00111413
 // PROTOTYPE: PREVIEW 0x004FBC7A identical
 // NAME: proto-pdb:default.pdb
@@ -151,3 +176,33 @@ SwampScript* BubbaGatorMain::creationFunc(SwampSceneNode* node)
     // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\BubbaGator.h", 14) BubbaGatorMain(node);
 }
+
+enum PARAM_TYPES { // NAME: proto-pdb:default.pdb
+    PARAM_FLOAT = 0x0,
+    PARAM_STRING = 0x1,
+    PARAM_VECTOR2 = 0x2,
+    PARAM_VECTOR3 = 0x3,
+    PARAM_VECTOR4 = 0x4,
+    PARAM_VERTEX = 0x5,
+    PARAM_QUATERNION = 0x6,
+    PARAM_INT = 0x7,
+    PARAM_DOTANGLE = 0x8,
+};
+
+class Param { // NAME: proto-pdb:default.pdb
+public:
+    const char* _Name;                 // 0x00
+    PARAM_TYPES _Type;                 // 0x04
+    float _Min;                        // 0x08
+    float _Max;                        // 0x0C
+    const char* _s;                    // 0x10
+    void* val;                         // 0x14
+    bool _Modify;                      // 0x18
+};
+DECOMP_SIZE_ASSERT(Param, 0x1C);
+
+// FUNCTION: USA 0x00111476
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but 0x00111476 also folds vector<std::string>::capacity, which FrontEndUI.obj calls as an external (4.3 T12)
+template unsigned int std::vector<Param,std::allocator<Param> >::capacity()const;
+#endif

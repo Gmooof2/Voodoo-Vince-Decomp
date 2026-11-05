@@ -4,7 +4,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -13,6 +23,36 @@ class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
 class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+class SwampScript;           // NAME: proto-pdb:default.pdb
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    SwampScript* GetScript() const;
+};
+
+class RegionTrigger : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+};
+
+class RegionManager { // NAME: proto-pdb:default.pdb
+public:
+    RegionTrigger* Find(const SwampString&);
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    RegionManager& GetRegionManager() const { return *_regionManager; }
+
+    char field_0[0x30];                // 0x00
+    RegionManager* _regionManager;     // 0x30
+    char field_34[0x68 - 0x34];        // 0x34
+};
+DECOMP_SIZE_ASSERT(Swamp, 0x68);
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
+class CutsceneDriver { // NAME: proto-pdb:default.pdb
+public:
+    static void SetStream(const SwampString& wav, bool looped);
+};
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -67,20 +107,40 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 void* operator new(unsigned int size, const char* file, int line);
 
 class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual void EnteringRegion(SwampSceneNode*);
+    bool InRegion() const { return _inRegion; }
 
-    char field_4C[0x64 - 0x4C];        // 0x4C
+    bool _isZone;                      // 0x4C
+    bool _inRegion;                    // 0x4D
+    char field_4E[0x64 - 0x4E];        // 0x4E
 };
 DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class CourtyardRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     CourtyardRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     char field_64[0x68 - 0x64];        // 0x64
 };
 DECOMP_SIZE_ASSERT(CourtyardRegionMain, 0x68);
+
+// FUNCTION: USA 0x0006FD79
+// PROTOTYPE: PREVIEW 0x0045C026 identical
+// NAME: proto-pdb:default.pdb
+void CourtyardRegionMain::EnteringRegion(SwampSceneNode* node)
+{
+    if (!InRegion()) {
+        LevelScript::EnteringRegion(node);
+        RegionTrigger* r = g_swamp->GetRegionManager().Find("firstVoodooIcon");
+        bool didicon = false;
+        r->GetScript()->Message(this, 0x14, &didicon);
+        CutsceneDriver::SetStream(didicon ? "vinceMeetsKosmoCutscene" : "firstVoodooIcon", false);
+    }
+}
 
 // FUNCTION: USA 0x0006FE24
 // PROTOTYPE: PREVIEW 0x0045C0D6 identical

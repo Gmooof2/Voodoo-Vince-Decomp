@@ -20,13 +20,127 @@ typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > S
 class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
-struct Vector3;              // NAME: proto-pdb:default.pdb
-class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+struct AABox;                // NAME: proto-pdb:default.pdb
 
-class Critter { // NAME: proto-pdb:default.pdb
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    float x; // 0x00
+    float y; // 0x04
+    float z; // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
+
+struct Vector4 { // NAME: proto-pdb:default.pdb
+    // !FAKE: inliner; hand form of the PDB inline conversion operator
+    operator Vector3() const { return *(const Vector3*)this; }
+
+    float x; // 0x00
+    float y; // 0x04
+    float z; // 0x08
+    float w; // 0x0C
+};
+DECOMP_SIZE_ASSERT(Vector4, 0x10);
+
+struct Matrix { // NAME: proto-pdb:default.pdb
+    const Vector4& operator[](int i) const { return row[i]; }
+
+    Vector4 row[4]; // 0x00
+};
+DECOMP_SIZE_ASSERT(Matrix, 0x40);
+
+struct Quaternion { // NAME: proto-pdb:default.pdb
+    Vector3 Apply(const Vector3& v) const { Vector3 r; Apply(v, r); return r; }
+    void Apply(const Vector3&, Vector3&) const;
+
+    Vector3 v; // 0x00
+    float w;   // 0x0C
+};
+DECOMP_SIZE_ASSERT(Quaternion, 0x10);
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+
+    const Vector3& GetLocation() const { return _Location; }
+    const Quaternion& SetFacing(const Vector3&);
+    const Vector3& SetLocation(const Vector3&);
+
+    char field_4[0x30];                // 0x04
+    Vector3 _Location;                 // 0x34
+    char field_40[0x64];               // 0x40
+};
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_A4[0x8];                // 0xA4
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    float GetRadius() const { return _radius; }
+
+    float _height;                     // 0xAC
+    float _radius;                     // 0xB0
+};
+DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
+public:
+    Matrix GetBoneOrientation(int) const;
+
+    char field_B4[0x14C];              // 0xB4
+};
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
+
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
     void PlaySound(const SwampString&, unsigned int, bool, float, float);
+
+    char field_200[0xC8];              // 0x200
 };
+DECOMP_SIZE_ASSERT(Critter, 0x2C8);
+
+class Vince : public Critter { // NAME: proto-pdb:default.pdb
+public:
+    void SetOnFire(float, bool);
+
+    char field_2C8[0x2D0];             // 0x2C8
+};
+DECOMP_SIZE_ASSERT(Vince, 0x598);
+
+class FireFlyNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+};
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Vince* GetVince() const { return _vinceCache; }
+
+    char field_0[0x28];                // 0x00
+    Vince* _vinceCache;                // 0x28
+};
+DECOMP_SIZE_ASSERT(CritterManager, 0x2C);
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
+class Globals { // NAME: proto-pdb:default.pdb
+public:
+    float GetMainstreetFlameRange() const { return _mainstreetFlameRange; }
+    float GetMainstreetFlameDiameter() const { return _mainstreetFlameDiameter; }
+    float GetMainstreetFlameTime() const { return _mainstreetFlameTime; }
+
+    char field_0[0x254];               // 0x000
+    float _mainstreetFlameRange;       // 0x254
+    float _mainstreetFlameDiameter;    // 0x258
+    float _mainstreetFlameTime;        // 0x25C
+    char field_260[0x7AC];             // 0x260
+};
+DECOMP_SIZE_ASSERT(Globals, 0xA0C);
+
+extern Globals gSettings; // NAME: proto-pdb:default.pdb
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -88,12 +202,64 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
 public:
+    virtual void FrameTick();
     virtual void Activate();
 
-    char field_BC[0xC8 - 0xBC];        // 0xBC
+    char field_BC[0xC0 - 0xBC];        // 0xBC
+    FireFlyNode* _emitter;             // 0xC0
+    int _flameJointId;                 // 0xC4
     bool _active;                      // 0xC8
 };
 DECOMP_SIZE_ASSERT(RocketMain, 0xCC);
+
+// FUNCTION: USA 0x00081BCB
+// PROTOTYPE: PREVIEW 0x0046DA8A identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 96.19, radius copied by mov (retail fld/fst feeding radius + diameter); rocket/radius slot -4 vs -0x10
+void RocketMain::FrameTick()
+{
+    Critter* rocket = GetCritter();
+    Matrix m = rocket->GetBoneOrientation(_flameJointId);
+    Vector3 flamedir = m[2];
+    Vector3 flamepos = m[3];
+    _emitter->SetFacing(flamedir);
+    _emitter->SetLocation(flamepos);
+    // !FAKE: c2 register allocation; stand-in v0 for the cached Vince (ebx; no PDB local)
+    Vince* v0 = pManager->GetVince();
+    if (v0) {
+        float RocketRange = gSettings.GetMainstreetFlameRange();
+        Quaternion q = rocket->GetWorldRotation();
+        Vector3 v = rocket->GetWorldPosition();
+        // !FAKE: inliner; hand form of the by-value Quaternion::Apply and the Vector3 sum, difference, scale and
+        // LengthSquared (out of line in our /O1 build; no free operator in the PDB): stand-ins v1..v6
+        {
+            Vector3 v1;
+            q.Apply(flamedir, v1);
+            flamedir = v1;
+        }
+        {
+            Vector3 v1;
+            q.Apply(flamepos, v1);
+            Vector3 v2 = v1;
+            Vector3 v3 = {v2.x + v.x, v2.y + v.y, v2.z + v.z};
+            flamepos = v3;
+        }
+        float radius = v0->GetRadius();
+        float v4 = gSettings.GetMainstreetFlameDiameter() + radius;
+        Vector3 vincecenter = v0->GetLocation();
+        vincecenter.y += radius;
+        Vector3 tovince = {vincecenter.x - flamepos.x, vincecenter.y - flamepos.y, vincecenter.z - flamepos.z};
+        float v5 = tovince.z * flamedir.z + tovince.y * flamedir.y + tovince.x * flamedir.x;
+        if (v5 > 0.0f && v5 < radius + RocketRange) {
+            Vector3 v6 = {flamedir.x * v5, flamedir.y * v5, flamedir.z * v5};
+            Vector3 v7 = {tovince.x - v6.x, tovince.y - v6.y, tovince.z - v6.z};
+            if (v7.x * v7.x + v7.y * v7.y + v7.z * v7.z < v4 * v4)
+                v0->SetOnFire(gSettings.GetMainstreetFlameTime(), true);
+        }
+    }
+}
+#endif
 
 // FUNCTION: USA 0x00081EA4
 // PROTOTYPE: PREVIEW 0x0046DD63 identical

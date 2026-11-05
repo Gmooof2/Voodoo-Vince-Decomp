@@ -29,6 +29,7 @@ LISTED = tuple(sorted([
     "config/audit_private_accepted.txt",
     "config/check.retail_xbe.sha",
     "config/inputs.manifest.jsonl",  # 3.5 T4 F6: provenance_lint.inputs pins the PDB/EXE/XBE to its rows
+    "config/pin_accepted.txt",  # 4.2 T5: pin_rows literal-copy waivers (D119)
     "config/provenance_accepted.txt",
     "config/retail/symbols.txt",  # 3.5 T4 F3: the name -> VA table the gate compares by (symbols_pin.txt not listed)
     "config/toolchain.sha256",
@@ -44,6 +45,7 @@ LISTED = tuple(sorted([
     "tools/pdb_info.py",
     "tools/pdb_types.py",
     "tools/pe_info.py",
+    "tools/pin_rows.py",  # 4.2 T5: the gate's pin_rows layer (D119)
     "tools/provenance_lint.py",
     "tools/relink.py",
     "tools/verifier_lock.py",

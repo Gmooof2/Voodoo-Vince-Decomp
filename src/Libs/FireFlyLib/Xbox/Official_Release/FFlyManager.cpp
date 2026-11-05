@@ -9,14 +9,27 @@ extern "C" int __stdcall VirtualFree(void* lpAddress, unsigned long dwSize, unsi
 
 class FFlyManager { // NAME: proto-pdb:default.pdb
 public:
+    FFlyManager();
     FFlyParticle* Alloc(unsigned int nblocks);
     void Free(FFlyParticle* block, unsigned int nblocks);
     static unsigned int FitBlocks(unsigned int particles);
 
     unsigned int _nMaxAllocBlks;       // 0x00
     unsigned int _nAllocBlks;          // 0x04
+private:
+    static FFlyManager* s_ffmanager;
 };
 DECOMP_SIZE_ASSERT(FFlyManager, 0x8);
+
+// FUNCTION: USA 0x0006DE22
+// PROTOTYPE: PREVIEW 0x0045A0B5 identical
+// NAME: proto-pdb:default.pdb
+FFlyManager::FFlyManager()
+{
+    _nMaxAllocBlks = 0;
+    _nAllocBlks = 0;
+    s_ffmanager = this;
+}
 
 // FUNCTION: USA 0x0006DE31
 // PROTOTYPE: PREVIEW 0x0045A0C4 identical

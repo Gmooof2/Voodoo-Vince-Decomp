@@ -4,7 +4,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -66,19 +76,51 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line);
 
-class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    void ActivateMatching(const SwampString&, unsigned int);
+    void SetSleepMatching(const SwampString&, bool, unsigned int);
+};
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
-    char field_4C[0x64 - 0x4C];        // 0x4C
+class CutsceneDriver { // NAME: proto-pdb:default.pdb
+public:
+    static void SetStream(const SwampString& wav, bool looped);
+};
+
+class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual void EnteringRegion(SwampSceneNode*);
+    bool InRegion() const { return _inRegion; }
+
+    bool _isZone;                      // 0x4C
+    bool _inRegion;                    // 0x4D
+    char field_4E[0x64 - 0x4E];        // 0x4E
 };
 DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class BigPigRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     BigPigRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(BigPigRegionMain, 0x64);
+
+// FUNCTION: USA 0x000702FF
+// PROTOTYPE: PREVIEW 0x0045C49E identical
+// NAME: proto-pdb:default.pdb
+void BigPigRegionMain::EnteringRegion(SwampSceneNode* node)
+{
+    if (!InRegion()) {
+        LevelScript::EnteringRegion(node);
+        pManager->ActivateMatching("SafeHookRope", 0);
+        pManager->SetSleepMatching("Big", false, 0);
+        pManager->SetSleepMatching("SafeHookRope", false, 0);
+        CutsceneDriver::SetStream("kosmoPigCutscene", false);
+    }
+}
 
 // FUNCTION: USA 0x000704A5
 // PROTOTYPE: PREVIEW 0x0045C644 identical

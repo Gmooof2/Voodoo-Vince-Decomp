@@ -23,7 +23,8 @@ Matched means the gate (D40, D26); nothing else is a claim.
 ## 3. Work loop
 - Iterate with `PY tools/match_one.py --symbol <name> --task T<n>` (builds the unit alone; objdiff + bytes; not a
   claim). `--task` is required; every run, refusals too, appends one line to the attempt ledger
-  `docs/matching/attempts.jsonl` (`--ledger P` for scratch runs; test runs never write the committed ledger).
+  `docs/matching/attempts-<phase>.jsonl` (4.4 T11: `attempts.jsonl` is the frozen base, read first; `--ledger P` for
+  scratch runs; test runs never write the committed ledger).
 - `--listing` also writes the unit's `/FAs` listing into the kept workdir and prints `listing: <path>`.
 - `--control "<flags>"` builds the unit with its `opt` replaced (also for `opt = "unknown"` units); it prints
   `control run: no claim` and is the one-flag-flipped control a newly set `opt` needs.
@@ -42,7 +43,7 @@ Matched means the gate (D40, D26); nothing else is a claim.
   disassembly or retail strings; an unknown stays `field_<offset>`, `function_<VA>`, `undefined4`.
 - D80 is inactive: retail /GL is no (docs/evidence/toolchain.md:169-172). If /GL turns `yes` or `unknown`, never swap
   arguments or change a signature at a call into an unmatched callee; match the callee first.
-- Every match-only construct gets `// !FAKE:`; the D79 forms never appear (CONVENTIONS §4).
+- Every match-only construct gets `// !FAKE:`; the D116 forms (was D79) never appear, with or without the marker (CONVENTIONS §4).
 - Keep the attempt journal in the task log: edit, `match_one` lines, undo to the last best (CK18).
 
 ## 4. Finish
@@ -53,6 +54,15 @@ Matched means the gate (D40, D26); nothing else is a claim.
 - Batch form, the expert runs it: `PY tools/match_finish_batch.py T<n> (--symbol S ... | --symbols-from FILE) --paths P ...`
   (`--help`; 4.1 T7). Rows the full gate fails leave, guarded per CONVENTIONS §5, and the gate re-runs. Coders never run
   the gate: they stop at `match_one` and name their rows and files.
+- Coders per batch, measured so far: 2 clean at 4.3 T4 (~50 matches/wall h, 12-50 B rows) and 4 clean at 4.3 T5
+  (~66 matches/wall h, 52-128 B rows; 0 collisions, 0 wrong failures each). Rule for T8: 6 coders only if T5's
+  matches per wall hour beat T4's by a quarter or more (49.7 x 1.25 = 62.1) with no collision or wrong failure, else
+  the best count measured; later batch tasks use the best count measured, or fewer when the slice holds fewer units.
+  Measured at 4.3 T8: 6 clean (~48 matches, ~8.6 kB per wall h, 129-256 B rows; 0 collisions, 0 wrong failures). Final count for the rest of 4.3: 6 coders, fewer when the slice holds fewer units.
+  Rows: `docs/ops/validation.md` "4.3 Coders per batch". Finish in the foreground only (C0201).
+- A row that fails bytes, or a kept guard: `PY tools/va_dis.py obj <build>/<unit>.obj <symbol> [<retailVA>]` prints
+  our function beside retail's bytes, relocation targets checked by name, first differing line marked `>>` (`--help`
+  for a guarded build; 4.4 T9). Prints only (D46). For the retail body with its delinked reloc names: C0063.
 - Full `PY tools/gate.py` again; compare with `baseline.txt`: the new row passes, every baseline row still passes, rc 0.
 - List every change outside the claim (file, line, why) in the task summary.
 - Commit through `bash tools/commit_task.sh`; `PY tools/progress.py` refreshes `docs/progress.md` from the gate's

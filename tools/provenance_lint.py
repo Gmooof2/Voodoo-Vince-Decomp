@@ -28,7 +28,9 @@ Checks (each failure `FAIL <id> <file>:<line>: <why>`):
                NUL-terminated string holding it as a whole token
   d66          `volatile`, `#pragma optimize`, `__asm` in a matched function body has `// !FAKE:` on the line or
                heading the comment block directly above
-  locals       (T6.c2) each S_BPREL32/S_REGREL32/S_REGISTER local (params included) of a matched function's proc in
+  forceinline  (4.2 T5) `__forceinline` in code (comments aside) in any file of DIR, with or without `// !FAKE:` (D116,
+               D117: a call retail inlined is matched by a pointer local or a hand form, C0191)
+  locals      (T6.c2) each S_BPREL32/S_REGREL32/S_REGISTER local (params included) of a matched function's proc in
                its /Z7 obj is a local of the PDB proc at its `// PROTOTYPE: PREVIEW 0x<VA>` (no PROTOTYPE line: of the
                PDB procs named exactly as the obj proc) or neutral (`v<N>`, `tmp`, `i`, `p`); line = first whole-word
                use in the body. The obj proc is the one whose offset field relocates to the matched symbol. Objs: unit
@@ -79,7 +81,7 @@ UPSTREAM = "@{u}"  # fake-diff rev: the merge-base of HEAD and its upstream (3.5
 EXTS = annotations.EXTS
 FUNC = annotations.FUNC
 CHECKS = ("proto-pdb", "placeholder", "src-pdb", "src-retail", "hedge", "fake-diff", "name-retail", "d66", "locals",
-          "accepted")
+          "accepted", "forceinline")
 
 ID = r"~?[A-Za-z_]\w*"
 QUAL = rf"{ID}(?:\s*<[^()]*?>)?(?:::{ID}(?:\s*<[^()]*?>)?)*"
@@ -91,6 +93,7 @@ FIELD_DECL = re.compile(r"^[^/]*?\bfield_([0-9A-Fa-f]+)\s*(\[[^\]]*\])?\s*;")
 OFF_COMMENT = re.compile(r"//\s*0x([0-9A-Fa-f]+)\b")
 HEDGE = re.compile(r"\b(probably|likely|seems|maybe|perhaps|presumably|appears\s+to|guess)\b", re.I)
 D66 = re.compile(r"\bvolatile\b|#\s*pragma\s+optimize\b|\b__asm\b")
+FORCEINLINE = re.compile(r"\b__forceinline\b")  # D116, D117: refused, `!FAKE` or not
 KEYWORD_DECL = re.compile(rf"^(?:typedef\s+)?(?:class|struct|union|enum|namespace)\s+(?:__declspec\([^)]*\)\s+)?({QUAL})")
 ANON = re.compile(r"^\s*(?:typedef\s+)?enum\s*\{")
 CALL_NAME = re.compile(rf"({QUAL}|{ID}::operator\s*[^\s(]+|operator\s*[^\s(]+)\s*\(")
@@ -533,6 +536,10 @@ def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED
             m = HEDGE.search(text)
             if m and ("src/" + rel, ls[i].strip()) not in acc:
                 fails.append(f"FAIL hedge src/{rel}:{i + 1}: hedge word `{m.group(1)}` in a comment")
+        for i, line in enumerate(ls):  # forceinline: every file, `// !FAKE:` or not (D116, D117)
+            if FORCEINLINE.search(code_part(line)):
+                fails.append(f"FAIL forceinline src/{rel}:{i + 1}: `__forceinline` is refused, `// !FAKE:` or not "
+                             f"(D116, D117)")
     for p, ls in scoped:
         rel = "src/" + p.relative_to(src).as_posix()
         bs = bodies(ls)
@@ -843,7 +850,9 @@ def self_test(src, pdb, xbe, matched, list_path=MATCHED, accepted=ACCEPTED):
                "// src proto-pdb:default.pdb ZzSelftestNotInPdb",
                f'// src retail 0x{va:08X} "zz_selftest_not_retail"',
                "// this is probably a planted hedge",
-               "struct ZzSelftestNotInXbe; // NAME: retail"]
+               "struct ZzSelftestNotInXbe; // NAME: retail",
+               "// !FAKE: inliner; __forceinline; planted",
+               "__forceinline int zz_selftest_forceinline() { return 0; }"]
         p.write_text("\n".join(ls) + "\n", encoding="utf-8", newline="\n")
         acc = SCRATCH / "accepted.txt"  # accepted control: a real line widened by a hedge word
         acc.write_text((Path(accepted).read_text(encoding="utf-8") if Path(accepted).is_file() else "")

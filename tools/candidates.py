@@ -14,7 +14,7 @@ Checks per row (row passes iff all pass): sig, reloc, c0035, bodymax, library (d
   unresolved or provisional.
   Member rule (3.4 T16): a size `-` data row g named N whose PDB public N is one proto VA P with S_GDATA32/S_LDATA32
   records at P named N of one pdb_types.tsize S (name_sites.rec_size, route step b) spans [g, min(g + S, next pinned
-  VA > g, func or data, either table)); a target inside resolves to that row's status (STATUSES/PIN_STATUSES decide)
+  VA > g, func or data, either table)); a target inside resolves to that row's status (accepted() decides)
   and its site carries `member: "<name>+0x<off>"`. Otherwise the row stays 1 byte; sized rows unchanged.
   --control member: positive 0x235794 -> ?beepState@@3VBeepState@@A+0x1C; planted g+S past a typed global and g+1
   of an untyped sizeless global -> unresolved. Writes nothing; exit 0 iff all hold, else 1.
@@ -23,8 +23,9 @@ done y/- : (symbol, va) is a config/matched_set.toml [[function]] row (T7).
 Near lane (3.4 T2, C0142): functions.jsonl class near-identical with candidateVA and similarity >= proto_map.THRESHOLD,
   va = candidateVA; NEAR_EXCL in order (unit as above, tail, fold, no lane name = no table func at va, size `-`, or
   status not near-corr / PIN_STATUSES); size = that func line's table size. Same CHECKS and TAGS, no identity (no
-  Images.match, so no `constant` sites); near-corr stays outside the accepted statuses (a near-corr target is
-  provisional). Every jsonl row carries `lane` (identical | near), ranks count per lane; near rows add similarity,
+  Images.match, so no `constant` sites). Site acceptance (4.2 T9, D115): accepted() = self, constant, STATUSES,
+  PIN_STATUSES, or CALLEE_STATUSES (near-corr) when the target is a func-table VA; a near-corr data target stays
+  provisional. Every jsonl row carries `lane` (identical | near), ranks count per lane; near rows add similarity,
   protoLength. The doc's identical sections hold identical rows only; `## Near lane (3.4 T2)` is the last section.
 Doc holds names, VAs, sizes, units, tags, verdicts and reasons only, no bytes or disassembly (D46); no dates.
 Exit: 0 ok; 1 --check differs; 2 refusal (missing input, retail sha1 != pin).
@@ -60,7 +61,8 @@ FOLDS = REPO / "derived" / "dup_report" / "retail_folds.jsonl"
 UNITS = REPO / "config" / "retail" / "units.toml"
 SYMS = REPO / "config" / "retail" / "symbols.txt"
 SYMS_PIN = REPO / "config" / "retail" / "symbols_pin.txt"  # 2.1 T4: read after SYMS, as gate.py SYMTABS
-PIN_STATUSES = ("disasm-verified",)  # 2.1 T4: symbols_pin.txt status, evidence per line in docs/evidence/compiler_pin.md
+PIN_STATUSES = ("disasm-verified", "corr-verified")  # was ("disasm-verified",); 4.2 T5 adds D113's corr-verified
+# 2.1 T4: symbols_pin.txt status, evidence per line in docs/evidence/compiler_pin.md
 PINS = REPO / "config" / "compiler_pin.toml"
 MATCHED = REPO / "config" / "matched_set.toml"  # [[function]] rows: gate-verified matches (D40)
 DOC = REPO / "docs" / "matching" / "next_candidates.md"
@@ -69,14 +71,25 @@ CHECKS = ("sig", "reloc", "c0035", "bodymax", "library")
 TAGS = ("float", "switch", "bittest", "inlined", "vcall", "eh")
 EXCL = ("not identical", "targetVAs != 1", "no unit", "unit not game", "unit not delink", "tail", "fold", "no symbol", "boundary")
 RESIDUE = REPO / "docs" / "matching" / "delink_residue.md"  # 3.2 T8: undelinked game units, written with DOC
-EXPECT = dict(zip(EXCL, (5254, 0, 73, 1436, 1576, 0, 18, 85, 2)))  # 3.4 T1 tally (after 3.3 T21)
-# was (5254, 0, 73, 1436, 1576, 0, 18, 120, 2) 3.3 T1; was (5254, 0, 73, 1436, 1724, 0, 18, 114, 2) 3.2 T8.c1; was (5254, 0, 73, 1436, 2392, 0, 0, 60, 2) 3.2 T3;
+EXPECT = dict(zip(EXCL, (5254, 0, 73, 1436, 955, 0, 24, 119, 5)))  # 4.4 T8 B5 cut (HannaCutscenes, DoorPulleyBucket, Spring, bakeryMain, WallSwitch, MainTunnelCutscenes, PowerIcon, VinceWalkIn, Terradactyl: 30 rows out of not delink, 2 to no symbol, 2 to fold)
+# was (5254, 0, 73, 1436, 985, 0, 22, 117, 5) 4.4 T8 B4 cut (theSquare, GasPumps, MoleGatePuzzle, Bell: 116 rows out of not delink, 4 to no symbol, 1 to fold); was (5254, 0, 73, 1436, 1101, 0, 21, 113, 5) 4.4 T7.1 B3 cut (HouseOfMirrors, SwampDebugGeometry, SwampBSP, FontManager: 57 rows out of not delink, 4 to no symbol); was (5254, 0, 73, 1436, 1158, 0, 21, 109, 5) 4.4 T7.1 B2 cut (ZombieGuidanceCounselor, VoodooShop, FFlyController, SwampCollide, SwampSoundResource: 131 rows out of not delink, 13 to no symbol); was (5254, 0, 73, 1436, 1289, 0, 21, 96, 5) 4.4 T7.1 B1 cut (SwampWorld, SwampLight, Whammy, Critter, SwampFireFlyNode: 246 rows out of not delink, 18 to no symbol); was (5254, 0, 73, 1436, 1535, 0, 21, 78, 5) 4.4 T6.1; was (5254, 0, 73, 1436, 1576, 0, 18, 77, 5) 4.4 T4; was (5254, 0, 73, 1436, 1576, 0, 18, 81, 5) 4.3 T15; was (5254, 0, 73, 1436, 1576, 0, 18, 85, 2) 3.4 T1; was (5254, 0, 73, 1436, 1576, 0, 18, 120, 2) 3.3 T1; was (5254, 0, 73, 1436, 1724, 0, 18, 114, 2) 3.2 T8.c1; was (5254, 0, 73, 1436, 2392, 0, 0, 60, 2) 3.2 T3;
 # was 2417 not delink, 1.4
-EXPECT_POOL = 1944  # 3.4 T1; was 1909 (3.3 T1); was 1767 (3.2 T8.c1); was 1171 (3.2 T3); was 1148 (1.4, compiler_pin.md:31-32)
+EXPECT_POOL = 2522  # 4.4 T8 B5 cut; was 2496 (4.4 T8 B4 cut); was 2385 (4.4 T7.1 B3 cut); was 2332 (4.4 T7.1 B2 cut); was 2214 (4.4 T7.1 B1 cut); was 1986 (4.4 T6.1 ScareHouse cut + its name_sites pins); was 1949 (4.4 T4 vtable slot pins); was 1945 (4.3 T15, 0x000388BB hand pin); was 1944 (3.4 T1); was 1909 (3.3 T1); was 1767 (3.2 T8.c1); was 1171 (3.2 T3); was 1148 (1.4, compiler_pin.md:31-32)
 NEAR_EXCL = ("no unit", "unit not game", "unit not delink", "tail", "fold", "no lane name")  # 3.4 T2 near lane
-NEAR_STATUSES = ("near-corr",) + PIN_STATUSES  # lane name statuses; near-corr never joins the accepted ones
-EXPECT_NEAR = dict(zip(NEAR_EXCL, (167, 0, 615, 0, 5, 366)))  # 3.4 T2 (1260 near rows, 238 near-corr pins); was 456 at 96 pins
-EXPECT_NEAR_POOL = 107  # 3.4 T2; was 17 at 96 pins
+NEAR_STATUSES = ("near-corr",) + PIN_STATUSES  # lane name statuses
+CALLEE_STATUSES = ("near-corr",)  # 4.2 T9 (D115): accepted for a func-table target only, never data or vtable
+# was: near-corr never joins the accepted ones (3.4 T2, D104)
+
+
+def accepted(status, target, funcs):
+    """4.2 T9 (D115): a site's resolved status is accepted: self or constant, units_seed.STATUSES, PIN_STATUSES, or
+    CALLEE_STATUSES when target is a func-table VA (funcs = load_symbols()[0]). candidates.py and family_census.py."""
+    return (status in ("self", "constant") or status in units_seed.STATUSES + PIN_STATUSES
+            or status in CALLEE_STATUSES and target in funcs)
+
+
+EXPECT_NEAR = dict(zip(NEAR_EXCL, (152, 0, 388, 0, 9, 549)))  # 4.4 T8 after the T7.1+T8 cuts (27 units); was (167, 0, 598, 0, 6, 380) 4.4 T6.1 ScareHouse cut; was (167, 0, 615, 0, 5, 366) 3.4 T2 (1260 near rows, 238 near-corr pins); was 456 at 96 pins
+EXPECT_NEAR_POOL = 162  # 4.4 T8 after the T7.1+T8 cuts; was 109 4.4 T6.1; was 107 3.4 T2; was 17 at 96 pins
 PROTO_BASE, TAIL = 0x400400, (0x13BD4E, 0x13F2F4)
 # LF_PROCEDURE / LF_MFUNCTION, 16-bit-index (0x0008/0x0009) and 32-bit-index (0x1008/0x1009) forms (CodeView cvinfo.h)
 PROC_LEAVES = {0x0008: "LF_PROCEDURE_16t", 0x0009: "LF_MFUNCTION_16t", 0x1008: "LF_PROCEDURE", 0x1009: "LF_MFUNCTION"}
@@ -409,7 +422,7 @@ def compute():
                 sites[-1]["member"] = mem  # 3.4 T16
             if st_ is None:
                 unres.append(t)
-            elif st_ not in ("self", "constant") and st_ not in units_seed.STATUSES + PIN_STATUSES:
+            elif not accepted(st_, t, funcs):  # 4.2 T9 (D115): near-corr func callee accepted
                 prov.append(t)
         ut = sorted(set(unres))
         if ut:
@@ -527,7 +540,8 @@ def render(res):
          "data row [va, va+size) (size `-` = exact VA, or the member extent [va, min(va + S, next pinned VA)) when "
          "the PDB public of that name has S_GDATA32/S_LDATA32 records of one type size S; the site then carries "
          "`member` name+offset), with the row status in units_seed.STATUSES "
-         f"({', '.join(units_seed.STATUSES)}) or the pin status ({', '.join(PIN_STATUSES)}). Tables: "
+         f"({', '.join(units_seed.STATUSES)}) or the pin status ({', '.join(PIN_STATUSES)}), or "
+         f"{' / '.join(CALLEE_STATUSES)} on a func row only (D115; 4.2 T9). Tables: "
          "config/retail/symbols.txt, then config/retail/symbols_pin.txt (as gate.py). \"provisional\" = a "
          "resolving row's status outside both.",
          "- c0035: rel sites whose target lies in the unit's [text_start, text_end) and outside own extent: each must "
@@ -598,8 +612,8 @@ def render_near(res):  # 3.4 T2: appended after render(res); identical sections 
          "- size = the table size of that `func` line; rank (size, VA) ascending within the lane.",
          "- Same checks and tags as the identical lane, with no identity: no name_sites.Images.match, so no "
          "`constant` sites.",
-         "- Acceptance unchanged: near-corr is outside units_seed.STATUSES and the pin status, so a near-corr target of "
-         "any lane's site is provisional; the row's own name is the only place near-corr is used.",
+         "- Acceptance (D115, 4.2 T9): a near-corr target of any lane's site is accepted when it is a symbols table "
+         "func VA (a called function), never a data row; the row's own name uses near-corr as above.",
          "",
          f"- Near rows {res['nrows']}. Excluded in order: " + "; ".join(f"{k} {v}" for k, v in res["nexcl"].items())
          + f". Pool {len(near)}.",

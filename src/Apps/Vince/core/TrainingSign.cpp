@@ -103,8 +103,12 @@ public:
     TrainingSignMain(SwampSceneNode* node);
     virtual ~TrainingSignMain();
     virtual void FrameTick();
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(TrainingSignMain, 0xBC);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes provisional (masked 1 = the vptr store); /O2 /Oy control 90.53
@@ -119,3 +123,12 @@ TrainingSignMain::TrainingSignMain(SwampSceneNode* node) : CritterMain(node)
     RegisterFrameTick();
 }
 #endif
+
+// FUNCTION: USA 0x0013694B
+// PROTOTYPE: PREVIEW 0x00520B11 identical
+// NAME: proto-pdb:default.pdb
+SwampScript* TrainingSignMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("scripts\\common\\TrainingSign.cpp", 6) TrainingSignMain(node);
+}

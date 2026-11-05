@@ -4,7 +4,20 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+    basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, (unsigned int)-1); }
+    basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
+    basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
+    basic_string& assign(const E* _Ptr);
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -12,7 +25,104 @@ class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
-class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+struct AABox;                // NAME: proto-pdb:default.pdb
+struct Matrix;               // NAME: proto-pdb:default.pdb
+struct Quaternion;           // NAME: proto-pdb:default.pdb
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+    const SwampString& GetName() const { return _Name; }
+
+    char field_4[0x4];                 // 0x04
+    SwampString _Name;                 // 0x08
+    char field_24[0xA4 - 0x24];        // 0x24
+};
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { _RefCount--; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x60 - 0x24];        // 0x24
+};
+DECOMP_SIZE_ASSERT(ModelResource, 0x60);
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ~ResourceHandle()
+    {
+        if (_Resource)
+            _Resource->SubRef();
+    }
+
+    T* _Resource;                      // 0x00
+};
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class ModelManager : public ResourceManager<ModelResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    ModelManager& GetModelManager() const { return *_modelManager; }
+
+    char field_0[0x28];                // 0x00
+    ModelManager* _modelManager;       // 0x28
+};
+
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
+    virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
+    virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
+
+    char field_A4[0xAC - 0xA4];        // 0xA4
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_AC[0xB4 - 0xAC];        // 0xAC
+};
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
+public:
+    virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
+
+    char field_B4[0x200 - 0xB4];       // 0xB4
+};
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
+
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+};
+
+class SoundManager { // NAME: proto-pdb:default.pdb
+public:
+    static void PlaySound(const SwampString&, unsigned int, SwampSceneNode*, bool, float, float);
+};
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -45,6 +155,7 @@ public:
     virtual SwampString Save();                                    // vtable+0x58
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
+    SwampSceneNode* GetNode() { return _node; }
 
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
@@ -66,13 +177,31 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line);
 
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    void Remove(const SwampString&);
+    Critter* Find(const SwampString&);
+
+    char field_0[0x2C];                // 0x00
+};
+DECOMP_SIZE_ASSERT(CritterManager, 0x2C);
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
 class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void Message(SwampScript*, int, void*);
+    Critter* GetBasicDoor() { return (Critter*)GetNode(); }
 
     char field_BC[0x110 - 0xBC];       // 0xBC
 };
 DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 
 class TeslaCoilPartMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_DESTROY = 0x1A
+    };
+    virtual void Message(SwampScript*, int, void*);
 
     char field_110[0x114 - 0x110];     // 0x110
 };
@@ -81,22 +210,81 @@ DECOMP_SIZE_ASSERT(TeslaCoilPartMain, 0x114);
 class TeslaCoilLowerMain : public TeslaCoilPartMain { // NAME: proto-pdb:default.pdb
 public:
     TeslaCoilLowerMain(SwampSceneNode* node);
+    virtual void Message(SwampScript*, int, void*);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
-    char field_114[0x130 - 0x114];     // 0x114
+    SwampString _activatorName;        // 0x114
 };
 DECOMP_SIZE_ASSERT(TeslaCoilLowerMain, 0x130);
 
 class TeslaCoilUpperMain : public TeslaCoilPartMain { // NAME: proto-pdb:default.pdb
 public:
     TeslaCoilUpperMain(SwampSceneNode* node);
+    virtual void Message(SwampScript*, int, void*);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
-    char field_114[0x130 - 0x114];     // 0x114
+    SwampString _model;                // 0x114
 };
 DECOMP_SIZE_ASSERT(TeslaCoilUpperMain, 0x130);
+
+// FUNCTION: USA 0x0008BD7C
+// PROTOTYPE: PREVIEW 0x0047789F identical
+// NAME: proto-pdb:default.pdb
+void TeslaCoilPartMain::Message(SwampScript* source, int message, void* data)
+{
+    switch (message) {
+    case 6:
+        pManager->Remove("teslaCoilBlowUp");
+        pManager->Remove("teslaCoilDestroyed");
+        break;
+    }
+    BasicDoorMain::Message(source, message, data);
+}
+
+// FUNCTION: USA 0x0008BDF0
+// PROTOTYPE: PREVIEW 0x00477913 identical
+// NAME: proto-pdb:default.pdb
+void TeslaCoilLowerMain::Message(SwampScript* source, int message, void* data)
+{
+    TeslaCoilPartMain::Message(source, message, data);
+    switch (message) {
+    case 6:
+        TeslaCoilPartMain::Message(source, message, data);
+        if (pManager->Find("DinoBoss"))
+            SetState(0);
+        break;
+    case 7:
+        _activatorName = source->GetNode()->GetName();
+        break;
+    case 0x14:
+        SoundManager::PlaySound("qch_pad", 0x20, GetNode(), true, 0.0f, 0.0f);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0008BEBA
+// PROTOTYPE: PREVIEW 0x004779DD identical
+// NAME: proto-pdb:default.pdb
+void TeslaCoilUpperMain::Message(SwampScript* source, int message, void* data)
+{
+    TeslaCoilPartMain::Message(source, message, data);
+    switch (message) {
+    case 6:
+        TeslaCoilPartMain::Message(source, message, data);
+        if (pManager->Find("DinoBoss"))
+            SetState(0);
+        break;
+    case 0x14:
+        SoundManager::PlaySound("qch_tesla", 0x20, GetNode(), true, 0.0f, 0.0f);
+        break;
+    case MESSAGE_DESTROY:
+        _model = "teslaCoilDestroyed_base";
+        GetBasicDoor()->SetModel(g_swamp->GetModelManager().Load(_model));
+        break;
+    }
+}
 
 // FUNCTION: USA 0x0008C16C
 // PROTOTYPE: PREVIEW 0x00477C8F identical

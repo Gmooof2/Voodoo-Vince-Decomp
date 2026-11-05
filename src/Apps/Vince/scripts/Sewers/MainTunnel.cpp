@@ -14,30 +14,106 @@ protected:
 private:
     char _pad00[0x1C];
 };
+template <class T, class A = allocator<T> > class deque {
+public:
+    ~deque() { _Tidy(); }
+
+protected:
+    void _Tidy();
+
+private:
+    char _pad00[0x14];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
-struct Vector3;              // NAME: proto-pdb:default.pdb
-class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    void Zero() { x = y = z = 0.0f; }
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
+struct Quaternion { // NAME: proto-pdb:default.pdb
+    Quaternion() {}
+    void Identity() { v.Zero(); w = 1.0f; }
+
+    Vector3 v;                         // 0x00
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Quaternion, 0x10);
+class SwampScript;           // NAME: proto-pdb:default.pdb
 class AnimationResource;     // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
     bool IsValid() const { return _Resource != 0; }
 
     T* _Resource;                      // 0x00
 };
 
-class GatorNode { // NAME: proto-pdb:default.pdb
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString&);
+};
+
+class ModelManager : public ResourceManager<ModelResource> { // NAME: proto-pdb:default.pdb
+};
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const struct AABox& GetBounds() const;                 // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+
+    SwampScript* GetScript() const;
+    unsigned int GetZone() const;
+    void SetOption(unsigned int, bool, bool);
+
+    char field_4[0xA4 - 0x4];          // 0x04
+};
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+// src proto-pdb:default.pdb GatorNode base CollidableCylinder : CollidableNode; CollidableCylinder not modelled
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    void SetCollidable(bool collidable) { _collidable = collidable; }
+
+    float _sphereRadius;               // 0xA4
+    bool _collidable;                  // 0xA8
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class GatorNode : public CollidableNode { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
     void SetAnimSpeed(float speed);
     float GetAnimSpeed();
+
+    char field_AC[0x200 - 0xAC];       // 0xAC
 };
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
 class SwampInput { // NAME: proto-pdb:default.pdb
 public:
@@ -49,9 +125,12 @@ public:
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
     SwampInput& GetInput() const { return *_input; }
+    ModelManager& GetModelManager() const { return *_modelManager; }
 
     char field_0[0x4];                 // 0x00
     SwampInput* _input;                // 0x04
+    char field_8[0x28 - 0x8];          // 0x08
+    ModelManager* _modelManager;       // 0x28
 };
 
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
@@ -101,6 +180,7 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual ~CritterMain();
+    virtual void Message(SwampScript*, int, void*);                // vtable+0x34
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -127,7 +207,9 @@ public:
         STATE_SPEEDING_UP = 1,
         STATE_ON = 2
     };
+    virtual void Activate();
     virtual void FrameTick();
+    virtual void Message(SwampScript* source, int message, void* data);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);
@@ -152,6 +234,7 @@ public:
         STATE_ON = 2
     };
     virtual void Activate();
+    virtual void Message(SwampScript* source, int message, void* data);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);
@@ -164,14 +247,74 @@ private:
 DECOMP_SIZE_ASSERT(ReverseElevatorMain, 0xCC);
 
 class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual void EnteringRegion(SwampSceneNode*);                  // vtable+0x38
+    virtual void Message(SwampScript*, int, void*);                // vtable+0x34
 
-    char field_4C[0x64 - 0x4C];        // 0x4C
+    bool _isZone;                      // 0x4C
+    bool _inRegion;                    // 0x4D
+    char field_4E[0x64 - 0x4E];        // 0x4E
 };
 DECOMP_SIZE_ASSERT(LevelScript, 0x64);
+
+class Critter; // NAME: proto-pdb:default.pdb
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Create(const SwampString&, const SwampString&, const char*, ResourceHandle<ModelResource>, const Vector3&,
+                    const Quaternion&, unsigned int);
+    void InvalidateMatching(const char*, unsigned int);
+    void NotifyMatchingCritters(const char*, SwampScript*, unsigned int, void*);
+};
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
+class DoorRockBlockMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_DILLO_EXPLODE = 0x14,
+        MESSAGE_OPEN = 0x15
+    };
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_CLOSED = 0,
+        STATE_OPEN = 1
+    };
+    virtual void Message(SwampScript* source, int message, void* data);
+private:
+    virtual void SetState(int state);
+
+public:
+    bool _cleared;                     // 0xBC
+private:
+    static int _rockDoors;
+    // access only: retail mangles _rockDoors private (@@0HA); MainTunnelRegionMain::EnteringRegion stores it
+    friend class MainTunnelRegionMain;
+};
+DECOMP_SIZE_ASSERT(DoorRockBlockMain, 0xC0);
+
+class CutsceneDriver : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    static void SetStream(const SwampString&, bool);
+};
+
+class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void Message(SwampScript*, int, void*);                // vtable+0x34
+
+    char field_BC[0x110 - 0xBC];       // 0xBC
+};
+DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
+
+class SwitchBoxGateMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void Message(SwampScript* source, int message, void* data);
+};
+DECOMP_SIZE_ASSERT(SwitchBoxGateMain, 0x110);
 
 class MainTunnelRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     MainTunnelRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
+    virtual void Message(SwampScript* source, int message, void* data);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -187,15 +330,42 @@ public:
         STATE_OPEN = 2
     };
     virtual void Activate();
+    virtual void Message(SwampScript* source, int message, void* data);
+    virtual void FrameTick();
 private:
     virtual void SetState(int state);
 public:
     ResourceHandle<AnimationResource> _animIdle; // 0xBC
     ResourceHandle<AnimationResource> _animOpen; // 0xC0
-    char field_C4[0xCC - 0xC4];        // 0xC4
+    int _dilloCount;                   // 0xC4
+    float _nextDilloCountdown;         // 0xC8
     bool _open;                        // 0xCC
 };
 DECOMP_SIZE_ASSERT(ArmorDilloChuteMain, 0xD0);
+
+// FUNCTION: USA 0x0009F6DA
+// PROTOTYPE: PREVIEW 0x0048A77E identical
+// NAME: proto-pdb:default.pdb
+void WheelPlatformAMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message != 6) {
+        CritterMain::Message(source, message, data);
+        return;
+    }
+    SetState(_on ? STATE_ON : STATE_OFF);
+}
+
+// FUNCTION: USA 0x0009F6FC
+// PROTOTYPE: PREVIEW 0x0048A7A0 identical
+// NAME: proto-pdb:default.pdb
+void ReverseElevatorMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message != 6) {
+        CritterMain::Message(source, message, data);
+        return;
+    }
+    SetState(_on ? STATE_ON : STATE_OFF);
+}
 
 // FUNCTION: USA 0x0009F71E
 // PROTOTYPE: PREVIEW 0x0048A7C2 identical
@@ -206,6 +376,80 @@ void ArmorDilloChuteMain::Activate()
         _open = true;
         SetState(STATE_OPENING);
     }
+}
+
+// FUNCTION: USA 0x0009F734
+// PROTOTYPE: PREVIEW 0x0048A7D8 identical
+// NAME: proto-pdb:default.pdb
+void ArmorDilloChuteMain::Message(SwampScript* source, int message, void* data)
+{
+    switch (message) {
+    case 6:
+        SetState(_open ? STATE_OPEN : STATE_CLOSED);
+        break;
+    case 0x14:
+        _dilloCount--;
+        break;
+    default:
+        CritterMain::Message(source, message, data);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0009F7AD
+// PROTOTYPE: PREVIEW 0x0048A831 identical
+// NAME: proto-pdb:default.pdb
+void DoorRockBlockMain::Message(SwampScript* source, int message, void* data)
+{
+    switch (message) {
+    case 6:
+        CritterMain::Message(source, message, data);
+        SetState(_cleared ? STATE_OPEN : STATE_CLOSED);
+        if (!_cleared)
+            _rockDoors++;
+        break;
+    case MESSAGE_DILLO_EXPLODE:
+        if (!_cleared) {
+            _rockDoors--;
+            _cleared = true;
+            SetState(STATE_OPEN);
+        }
+        break;
+    case MESSAGE_OPEN:
+        _cleared = true;
+        SetState(STATE_OPEN);
+        break;
+    default:
+        CritterMain::Message(source, message, data);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0009F83D
+// PROTOTYPE: PREVIEW 0x0048A8C1 identical
+// NAME: proto-pdb:default.pdb
+void SwitchBoxGateMain::Message(SwampScript* source, int message, void* data)
+{
+    switch (message) {
+    case 2:
+    case 6:
+        BasicDoorMain::Message(source, message, data);
+        BasicDoorMain::Message(this, 0x17, 0);
+        break;
+    default:
+        BasicDoorMain::Message(source, message, data);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0009F893
+// PROTOTYPE: PREVIEW 0x0048A917 identical
+// NAME: proto-pdb:default.pdb
+void MainTunnelRegionMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message == 6)
+        pManager->NotifyMatchingCritters("switch_", this, 0x16, 0);
+    LevelScript::Message(source, message, data);
 }
 
 // FUNCTION: USA 0x0009F8C9
@@ -306,6 +550,54 @@ void ArmorDilloChuteMain::SetState(int state)
     }
 }
 
+// FUNCTION: USA 0x0009FA50
+// PROTOTYPE: PREVIEW 0x0048AAD4 identical
+// NAME: proto-pdb:default.pdb
+void DoorRockBlockMain::SetState(int state)
+{
+    _state = state;
+    // !FAKE: local; retail holds _node in esi across the state cases (no PDB local)
+    GatorNode* node = (GatorNode*)_node;
+    switch (state) {
+    case STATE_CLOSED:
+        node->SetOption(2, false, false);
+        node->SetCollidable(true);
+        break;
+    case STATE_OPEN:
+        node->SetOption(2, true, false);
+        node->SetCollidable(false);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0009FAB7
+// PROTOTYPE: PREVIEW 0x0048AB3B identical
+// NAME: proto-pdb:default.pdb
+void MainTunnelRegionMain::EnteringRegion(SwampSceneNode* node)
+{
+    if (!_inRegion) {
+        LevelScript::EnteringRegion(node);
+        pManager->InvalidateMatching("chuteKillerDillo", 0);
+        DoorRockBlockMain::_rockDoors = 0;
+        CutsceneDriver::SetStream("kosmoAppearsMainTunnel", false);
+    }
+}
+
+// FUNCTION: USA 0x0009FBC3
+// PROTOTYPE: PREVIEW 0x0048AC47 identical
+// NAME: proto-pdb:default.pdb
+void WheelPlatformAMain::Activate()
+{
+    if (!_on) {
+        _on = true;
+        SetState(STATE_SPEEDING_UP);
+        _sound = SoundManager::CreateSound("rmt_waterwheel", 9, GetNode(), true);
+        _sound->SetPitch(-1.25f);
+        _sound->SetMinDistance(5.0f);
+        _sound->Play();
+    }
+}
+
 // FUNCTION: USA 0x0009FD3B
 // PROTOTYPE: PREVIEW 0x0048ADBF identical
 // NAME: proto-pdb:default.pdb
@@ -348,30 +640,111 @@ SwampScript* MainTunnelRegionMain::creationFunc(SwampSceneNode* node)
 }
 
 // Retail layout: the ctor clears a node bool at 0x260 (proto PDB Critter 0x252 _deathTemporary).
-class Critter { // NAME: proto-pdb:default.pdb
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
-    char field_0[0x260];               // 0x00
+    char field_200[0x260 - 0x200];     // 0x200
     bool field_260;                    // 0x260
 };
 
-class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
+class Settings { // NAME: proto-pdb:default.pdb
 public:
-    char field_BC[0x250 - 0xBC];       // 0xBC
+    char field_0[0x34];                // 0x00
+};
+DECOMP_SIZE_ASSERT(Settings, 0x34);
+
+class Globals : public Settings { // NAME: proto-pdb:default.pdb
+public:
+    char field_34[0x898 - 0x34];       // 0x34
+    float _maintunnelDillosPerChute;   // 0x898
+    float _maintunnelDilloRegenTime;   // 0x89C
+};
+extern Globals gSettings; // NAME: proto-pdb:default.pdb
+
+template <class T> class SwampShuffleQueue { // NAME: proto-pdb:default.pdb
+public:
+    std::deque<T> _queue;              // 0x00
 };
 
+class MultiAnimation { // NAME: proto-pdb:default.pdb
+public:
+    SwampShuffleQueue<ResourceHandle<AnimationResource> > _animQueue; // 0x00
+};
+DECOMP_SIZE_ASSERT(MultiAnimation, 0x14);
+
+class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~MonsterMain();
+
+    char field_BC[0x240 - 0xBC];       // 0xBC
+};
+DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
+
+// FUNCTION: USA 0x000A0A7D
+// PROTOTYPE: PREVIEW 0x0048BB10 identical
+// NAME: proto-pdb:default.pdb
 class KillerDilloMain : public MonsterMain { // NAME: proto-pdb:default.pdb
 public:
     KillerDilloMain(SwampSceneNode* node);
 
-    char field_250[0x324 - 0x250];     // 0x250
+    MultiAnimation _multiAnimIdle;     // 0x240
+    MultiAnimation _multiAnimIdle2;    // 0x254
+    MultiAnimation _multiAnimIdle3;    // 0x268
+    MultiAnimation _multiAnimIdleHurt; // 0x27C
+    MultiAnimation _multiAnimStartRoll; // 0x290
+    MultiAnimation _multiAnimRoll;     // 0x2A4
+    MultiAnimation _multiAnimWindupBite; // 0x2B8
+    MultiAnimation _multiAnimAttackBiteStraight; // 0x2CC
+    MultiAnimation _multiAnimAttackBiteLeft; // 0x2E0
+    MultiAnimation _multiAnimAttackBiteRight; // 0x2F4
+    MultiAnimation _multiAnimWalk;     // 0x308
+    char field_31C[0x324 - 0x31C];     // 0x31C
 };
+DECOMP_SIZE_ASSERT(KillerDilloMain, 0x324);
+
+// !FAKE: c1xx front end; scaffold call; retail's ??1KillerDilloMain@@UAE@XZ is implicit (no vptr store, C0029); this
+// qualified call odr-uses it so this unit emits it (matched_set [[emitter]] row)
+void pin_emit_KillerDilloMain_dtor(KillerDilloMain* p)
+{
+    p->KillerDilloMain::~KillerDilloMain();
+}
 
 class ChuteKillerDilloMain : public KillerDilloMain { // NAME: proto-pdb:default.pdb
 public:
     ChuteKillerDilloMain(SwampSceneNode* node);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_DROP = 0x16
+    };
 
     SwampScript* _chute;               // 0x324
 };
+
+// FUNCTION: USA 0x0009FEB2
+// PROTOTYPE: PREVIEW 0x0048AF36 identical
+// NAME: proto-pdb:default.pdb
+void ArmorDilloChuteMain::FrameTick()
+{
+    if (_open && _dilloCount < gSettings._maintunnelDillosPerChute) {
+        _nextDilloCountdown -= g_swamp->GetInput().GetElapsedTime();
+        if (_nextDilloCountdown <= 0.0f) {
+            _dilloCount++;
+            _nextDilloCountdown = gSettings._maintunnelDilloRegenTime;
+            ResourceHandle<ModelResource> model = g_swamp->GetModelManager().Load("killerDillo_base");
+            Vector3 loc = _node->GetWorldPosition();
+            Quaternion rot;
+            rot.Identity();
+            // !FAKE: c2 register allocation; neutral stand-ins v0, p; the PDB names no local for the zone (edi, read
+            // before the string temps) or the new critter (edi)
+            unsigned int v0 = _node->GetZone();
+            Critter* p = pManager->Create("chuteKillerDillo", "ChuteKillerDilloMain", "killerdillo", model, loc, rot, v0);
+            p->GetScript()->Message(this, 7, this);
+            p->GetScript()->Message(this, ChuteKillerDilloMain::MESSAGE_DROP, 0);
+        }
+    }
+}
 
 #ifdef NON_MATCHING
 // FUNCTION: USA 0x000A0D59
@@ -383,3 +756,12 @@ ChuteKillerDilloMain::ChuteKillerDilloMain(SwampSceneNode* node) : KillerDilloMa
     ((Critter*)_node)->field_260 = false;
 }
 #endif
+
+// FUNCTION: USA 0x000A0DFA
+// PROTOTYPE: PREVIEW 0x0048BEA9 identical
+// NAME: proto-pdb:default.pdb
+SwampScript* ChuteKillerDilloMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 129) ChuteKillerDilloMain(node);
+}

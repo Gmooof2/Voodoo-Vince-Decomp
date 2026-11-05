@@ -1,0 +1,7 @@
+# pin_rows literal copies (4.2 T5, D119): a literal row whose site conflict is accepted, one per line.
+# Format: 0x<VA><TAB><name as in symbols_pin.txt><TAB><reason>. Literals only (??_C@, __real@); hand-kept, LISTED.
+0x001C80D4	??_C@_08KKLAKCLE@counters?$AA@	retail VA also reached from a second proto literal of another name (4.2 T3)
+0x001CAE20	__real@40a00000	retail holds two copies of this literal (also 0x001CBB8C); sites reach both (4.2 T3)
+0x001CBC3C	??_C@_0O@MKBOPAMC@pauseCounters?$AA@	retail holds two copies of this literal (also 0x001C80D4); sites reach both (4.2 T3)
+0x001CBCC4	__real@3f800000	retail holds two copies of this literal (also 0x001D0C34); sites reach both (4.2 T3)
+0x001EF300	__real@40c3880000000000	retail VA reached from a proto literal of another value, its function identical with the pointer masked (4.2 T3)

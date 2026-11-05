@@ -4,15 +4,109 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* _Ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
+template <class E, class T, class A>
+basic_string<E, T, A> operator+(const basic_string<E, T, A>& _Left, const basic_string<E, T, A>& _Right);
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
-class BeepTDF;               // NAME: proto-pdb:default.pdb
+const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
+
+class BeepTDF { // NAME: proto-pdb:default.pdb
+public:
+    int GetIntRecord(const SwampString& id, int def) const;
+    bool GetBoolRecord(const SwampString& id, bool def) const;
+};
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
-class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+class SwampScript;           // NAME: proto-pdb:default.pdb
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    T& operator()() { return *_Resource; }
+
+    T* _Resource;                      // 0x00
+};
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x8];                // 0x24
+    float _length;                     // 0x2C
+};
+
+class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef();
+    void SetAnimationTime(float time) { _time = time; }
+    float GetAnimationLength() const { return _anim._Resource->_length; }
+
+    ResourceHandle<AnimationResource> _anim; // 0x24
+    char field_28[0x10];               // 0x28
+    float _time;                       // 0x38
+};
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    SwampScript* GetScript() const;
+
+    char field_0[0xA4];                // 0x00
+};
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_A4[0x8];                // 0xA4
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_AC[0x8];                // 0xAC
+};
+DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+    char field_B4[0x14C];              // 0xB4
+};
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
+
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_200[0xC8];              // 0x200
+};
+DECOMP_SIZE_ASSERT(Critter, 0x2C8);
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -68,14 +162,41 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line);
 
+class DoorStorageRoomMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_DOOR_CRACK = 0x14,
+        MESSAGE_DOOR_OPEN = 0x15,
+        MESSAGE_DOOR_CLOSE = 0x16
+    };
+};
+
 class ScaleMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum State { // NAME: proto-pdb:default.pdb
+        Up = 0x0,
+        GoingDown = 0x1,
+        Down = 0x2,
+        GoingUp = 0x3,
+        StayingDown = 0x4
+    };
+
     ScaleMain(SwampSceneNode* node);
+    virtual void TimerEvent(unsigned int timerID);
+    virtual void AnimationFinished();
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     void RestartTimer();
+    Critter* GetScale() { return static_cast<Critter*>(_node); }
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
-    char field_BC[0xD4 - 0xBC];        // 0xBC
+    bool _bVince;                      // 0xBC
+    ResourceHandle<AnimationResource> _vinceOn; // 0xC0
+    ResourceHandle<AnimationResource> _vinceOff; // 0xC4
+    ResourceHandle<AnimationResource> _flourOn; // 0xC8
+    ResourceHandle<AnimationResource> _flourOff; // 0xCC
+    bool _vinceLanded;                 // 0xD0
 };
 DECOMP_SIZE_ASSERT(ScaleMain, 0xD4);
 
@@ -86,6 +207,68 @@ void ScaleMain::RestartTimer()
 {
     UnregisterTimerEvent(1);
     RegisterTimerEvent(1, 0.3f, false);
+}
+
+// FUNCTION: USA 0x0007BAB4
+// NAME: proto-pdb:default.pdb
+void ScaleMain::TimerEvent(unsigned int timerID)
+{
+    if (_state != StayingDown && timerID == 1) {
+        if (_bVince)
+            GetScale()->StartAnimation(_vinceOff, false, false);
+        else
+            GetScale()->StartAnimation(_flourOff, false, false);
+        SetState(GoingUp);
+    }
+}
+
+// FUNCTION: USA 0x0007BF74
+// PROTOTYPE: PREVIEW 0x00467F4A identical
+// NAME: proto-pdb:default.pdb
+void ScaleMain::AnimationFinished()
+{
+    // !FAKE: c2 register allocation; neutral stand-in local; retail keeps the Find result in ebx across the switch
+    Critter* v0 = pManager->Find("DoorStorageRoom");
+    switch (_state) {
+    case GoingDown:
+        RestartTimer();
+        v0->GetScript()->Message(this, DoorStorageRoomMain::MESSAGE_DOOR_CRACK, 0);
+        SetState(Down);
+        break;
+    case GoingUp:
+        SetState(Up);
+        v0->GetScript()->Message(this, DoorStorageRoomMain::MESSAGE_DOOR_CLOSE, 0);
+        break;
+    case StayingDown:
+        v0->GetScript()->Message(this, DoorStorageRoomMain::MESSAGE_DOOR_OPEN, 0);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0007C006
+// PROTOTYPE: PREVIEW 0x00467FDC identical
+// NAME: proto-pdb:default.pdb
+void ScaleMain::Load(const BeepTDF& tdf)
+{
+    // !FAKE: c2 register allocation; neutral stand-in local; retail keeps the state record in edi
+    int v1 = tdf.GetIntRecord("state", 0);
+    _vinceLanded = tdf.GetBoolRecord("vinceLanded", false);
+    if (v1 == StayingDown) {
+        // !FAKE: c1xx front end; neutral stand-in local; the returned handle copy retail AddRefs and SubRefs
+        ResourceHandle<AnimationControl> tmp = GetScale()->StartAnimation(_vinceOn, false, false);
+        tmp().SetAnimationTime(tmp().GetAnimationLength());
+        SetState(StayingDown);
+    }
+}
+
+// FUNCTION: USA 0x0007C0A4
+// PROTOTYPE: PREVIEW 0x0046807A identical
+// NAME: proto-pdb:default.pdb
+SwampString ScaleMain::Save()
+{
+    // !FAKE: c2 register allocation; dummy local; retail loads _state into esi before the first format call (no PDB local; same form as MirrorUrnMain::Save 86.57 -> 100.0)
+    int v0 = _state;
+    return format("\t\tstate = %d;\n", v0) + format("\t\tvinceLanded = %d;\n", _vinceLanded);
 }
 
 // FUNCTION: USA 0x0007C106

@@ -6,7 +6,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -14,7 +24,30 @@ class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
-class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+class SwampScript;           // NAME: proto-pdb:default.pdb
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    enum NodeOptions { DontDraw = 0x2 }; // NAME: proto-pdb:default.pdb
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+
+    SwampScript* GetScript() const;
+    void SetOption(unsigned int option, bool on, bool recurse);
+
+    char field_4[0xA4 - 0x4];          // 0x04
+};
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+// src proto-pdb:default.pdb Critter base GatorNode (SwampSceneNode at 0x0), not modelled
+class Critter : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+};
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -71,6 +104,8 @@ void* operator new(unsigned int size, const char* file, int line);
 class LightBeamMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     LightBeamMain(SwampSceneNode* node);
+protected:
+    virtual void FrameTick();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -98,9 +133,26 @@ struct SpotlightGlowVertex { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(SpotlightGlowVertex, 0x1C);
 
+class TextureResource; // NAME: proto-pdb:default.pdb
+template <class T> class ResourceHandle; // NAME: proto-pdb:default.pdb
+
+enum _D3DRENDERSTATETYPE { // NAME: proto-pdb:default.pdb
+    D3DRS_ZFUNC = 0x39,
+    D3DRS_STENCILZFAIL = 0x44,
+    D3DRS_STENCILPASS = 0x45,
+    D3DRS_STENCILFUNC = 0x46,
+    D3DRS_STENCILREF = 0x47,
+    D3DRS_STENCILFAIL = 0x91
+};
+
 class SwampRenderer { // NAME: proto-pdb:default.pdb
 public:
     template <class T> D3DVertexBuffer* CreateVertexBuffer(const T* verts, unsigned int num) const;
+    void SetTexture(unsigned long stage, const ResourceHandle<TextureResource>& texture);
+    void SetEmptyTexture(unsigned long stage);
+    long SetStreamSource(D3DVertexBuffer* vb, unsigned int stride);
+    void SetRenderState(_D3DRENDERSTATETYPE state, unsigned long value);
+    void ReverseCullMode();
 };
 
 // FUNCTION: USA 0x0006AD05
@@ -125,6 +177,7 @@ template D3DVertexBuffer* SwampRenderer::CreateVertexBuffer<SpotlightGlowVertex>
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
     void AddRef() { ++_RefCount; }
+    void SubRef() { _RefCount--; }
 
     char field_0[0x1C];                // 0x00
     unsigned int _RefCount;            // 0x1C
@@ -140,6 +193,11 @@ DECOMP_SIZE_ASSERT(TextureResource, 0x30);
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle()
+    {
+        if (_Resource)
+            _Resource->SubRef();
+    }
 
     T* _Resource;                      // 0x00
 };
@@ -151,10 +209,13 @@ public:
     // PROTOTYPE: PREVIEW 0x00457122 identical
     // NAME: proto-pdb:default.pdb
     ResourceHandle<TextureResource> GetDefaultTexture() const { return _defaultTexture; }
+    ResourceHandle<TextureResource> GetVolumeNoise() const { return _volumeNoise; }
 
     char field_0[0x58];                // 0x00
     ResourceHandle<TextureResource> _defaultTexture; // 0x58
-    char field_5C[0x28];               // 0x5C
+    char field_5C[0x68 - 0x5C];        // 0x5C
+    ResourceHandle<TextureResource> _volumeNoise; // 0x68
+    char field_6C[0x84 - 0x6C];        // 0x6C
 };
 DECOMP_SIZE_ASSERT(TextureManager, 0x84);
 
@@ -193,3 +254,122 @@ SpotLightBeam::~SpotLightBeam()
     for (int i = 0; i < 2; i++)
         delete[] indicesEndcaps[i];
 }
+
+// FUNCTION: USA 0x0006B322
+// PROTOTYPE: PREVIEW 0x004576E5 identical
+// NAME: proto-pdb:default.pdb
+void LightBeamMain::FrameTick()
+{
+    int lightLevel;
+    // !FAKE: c1xx front end; stand-in local; ends the string temporary before GetScript (BumperTargetMain form)
+    Critter* tmp = pManager->Find("lantern");
+    tmp->GetScript()->Message(0, 0x14, &lightLevel); // src proto-pdb:default.pdb MESSAGE_LIGHTLEVEL
+    _node->SetOption(SwampSceneNode::DontDraw, lightLevel == 0, true);
+}
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    TextureManager& GetTextureManager() const { return *_textureManager; }
+    SwampRenderer& GetRenderer() const { return *_renderer; }
+
+    char field_0[0x8];                 // 0x00
+    SwampRenderer* _renderer;          // 0x08
+    char field_C[0x38 - 0xC];          // 0x0C
+    TextureManager* _textureManager;   // 0x38
+    char field_3C[0x68 - 0x3C];        // 0x3C
+};
+DECOMP_SIZE_ASSERT(Swamp, 0x68);
+
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
+enum _D3DPRIMITIVETYPE { D3DPT_TRIANGLESTRIP = 6, D3DPT_TRIANGLEFAN = 7 }; // NAME: proto-pdb:default.pdb
+extern "C" void __fastcall D3DDevice_SetRenderState_Simple(unsigned long, unsigned long); // src proto-pdb:default.pdb D3DDevice_SetRenderState_Simple
+extern "C" void __stdcall D3DDevice_DrawIndexedVertices(_D3DPRIMITIVETYPE primitiveType, unsigned int vertexCount, const unsigned short* indexData); // src proto-pdb:default.pdb D3DDevice_DrawIndexedVertices
+extern "C" void __stdcall D3DDevice_SetRenderState_StencilEnable(unsigned long value); // src proto-pdb:default.pdb D3DDevice_SetRenderState_StencilEnable
+extern "C" void __stdcall D3DDevice_SetRenderState_StencilFail(unsigned long value); // src proto-pdb:default.pdb D3DDevice_SetRenderState_StencilFail
+
+class DrawLevel { // NAME: proto-pdb:default.pdb
+public:
+    static bool AreWeMirroring() { return _mirroringHappening; }
+
+protected:
+    static bool _mirroringHappening;
+};
+
+class LightBeam : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+protected:
+    void RenderBeam(bool bInside) const;
+    void RenderLighting(bool bInside) const;
+    static void SelectShaders(bool);
+
+    static SpotLightBeam* _beam;
+};
+
+// FUNCTION: USA 0x0006B384
+// PROTOTYPE: PREVIEW 0x00457747 identical
+// NAME: proto-pdb:default.pdb
+void LightBeam::RenderBeam(bool bInside) const
+{
+    // !FAKE: c1xx front end; stand-in local; the PDB records no local for the renderer (edi in retail)
+    SwampRenderer* p = &g_swamp->GetRenderer();
+    SelectShaders(true);
+    p->SetTexture(0, g_swamp->GetTextureManager().GetVolumeNoise());
+    D3DDevice_SetRenderState_Simple(0x40304, 1);
+    D3DDevice_SetRenderState_Simple(0x40344, 0x302);
+    D3DDevice_SetRenderState_Simple(0x40348, 1);
+    D3DDevice_DrawIndexedVertices(D3DPT_TRIANGLESTRIP, _beam->indexCountBeam, _beam->indicesBeam);
+    p->SetStreamSource(0, 0);
+    p->SetEmptyTexture(0);
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+}
+
+// FUNCTION: USA 0x0006B425
+// PROTOTYPE: PREVIEW 0x004577E8 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 98.90, bytes mismatch (retail reloads g_swamp before GetTextureManager; cl CSEs it, 12 forms)
+void LightBeam::RenderLighting(bool bInside) const
+{
+    if (DrawLevel::AreWeMirroring())
+        return;
+    SelectShaders(false);
+    // !FAKE: c1xx front end; stand-in local; the PDB records no local for the renderer (esi in retail)
+    SwampRenderer* p = &g_swamp->GetRenderer();
+    p->SetTexture(0, g_swamp->GetTextureManager().GetDefaultTexture());
+    if (bInside) {
+        D3DDevice_SetRenderState_Simple(0x40354, 0x204);
+        D3DDevice_SetRenderState_Simple(0x4034C, 0x40000000);
+    } else {
+        D3DDevice_SetRenderState_Simple(0x40358, 0);
+        D3DDevice_SetRenderState_StencilEnable(1);
+        D3DDevice_SetRenderState_Simple(0x40368, 1);
+        D3DDevice_SetRenderState_Simple(0x40374, 0x1E01);
+        p->ReverseCullMode();
+        D3DDevice_DrawIndexedVertices(D3DPT_TRIANGLESTRIP, _beam->indexCountCone, _beam->indicesCone);
+        for (unsigned int i = 0; i < 2; i++)
+            D3DDevice_DrawIndexedVertices(D3DPT_TRIANGLEFAN, _beam->indexCountEndcap, _beam->indicesEndcaps[i]);
+        p->ReverseCullMode();
+        D3DDevice_SetRenderState_Simple(0x40364, 0x202);
+        D3DDevice_SetRenderState_Simple(0x40378, 0);
+        D3DDevice_SetRenderState_StencilFail(0);
+        D3DDevice_SetRenderState_Simple(0x40374, 0);
+        D3DDevice_SetRenderState_Simple(0x40358, 0x1010101);
+        D3DDevice_SetRenderState_Simple(0x4034C, 0x18000000);
+    }
+    D3DDevice_SetRenderState_Simple(0x40304, 1);
+    D3DDevice_SetRenderState_Simple(0x40344, 0x8003);
+    D3DDevice_SetRenderState_Simple(0x40348, 1);
+    D3DDevice_DrawIndexedVertices(D3DPT_TRIANGLESTRIP, _beam->indexCountCone, _beam->indicesCone);
+    for (unsigned int i = 0; i < 2; i++)
+        D3DDevice_DrawIndexedVertices(D3DPT_TRIANGLEFAN, _beam->indexCountEndcap, _beam->indicesEndcaps[i]);
+    p->SetEmptyTexture(0);
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    D3DDevice_SetRenderState_StencilEnable(0);
+    p->SetRenderState(D3DRS_STENCILREF, 0);
+    p->SetRenderState(D3DRS_STENCILFUNC, 0x207);
+    p->SetRenderState(D3DRS_STENCILPASS, 0x1E00);
+    p->SetRenderState(D3DRS_STENCILFAIL, 0x1E00);
+    p->SetRenderState(D3DRS_STENCILZFAIL, 0x1E00);
+    p->SetRenderState(D3DRS_ZFUNC, 0x203);
+}
+#endif

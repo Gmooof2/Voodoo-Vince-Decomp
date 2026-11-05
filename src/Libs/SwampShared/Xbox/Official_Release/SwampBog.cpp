@@ -87,7 +87,7 @@ const BogVertex* Bog::GetVertices() const
 // PROTOTYPE: PREVIEW 0x004CA7BF identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: control `/O1 /Oy /Oi` objdiff 76.9
+// best: control `/O1 /Oy /Oi` objdiff 76.9 (4.3 T16.c5: pragma intrinsic(memset), negated/nested/early-return ifs, D3DResource::Register inline: all 76.85; retail lays the else block first and reloads ecx before GetVertices)
 Bog::Bog(void* fileImage)
 {
     _bog = (BOG_HEADER*)fileImage;

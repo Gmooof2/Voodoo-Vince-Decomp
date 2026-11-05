@@ -4,7 +4,18 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+    int compare(const E* _Ptr) const;
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 template <class T, class A = allocator<T> > class deque {
 public:
     ~deque() { _Tidy(); }
@@ -15,6 +26,11 @@ protected:
 private:
     char _pad00[0x14];
 };
+template <class E, class T, class A>
+inline bool operator==(const basic_string<E, T, A>& _Left, const E* _Right)
+{
+    return _Left.compare(_Right) == 0;
+}
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -26,6 +42,9 @@ struct Quaternion;           // NAME: proto-pdb:default.pdb
 struct AABox;                // NAME: proto-pdb:default.pdb
 class SwampSceneNode;        // NAME: proto-pdb:default.pdb
 class SwampScript;           // NAME: proto-pdb:default.pdb
+class AnimationResource;     // NAME: proto-pdb:default.pdb
+class AnimationControl;      // NAME: proto-pdb:default.pdb
+template <class T> class ResourceHandle; // NAME: proto-pdb:default.pdb
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -58,6 +77,7 @@ public:
     virtual SwampString Save();                                    // vtable+0x58
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
+    SwampSceneNode* GetNode() { return _node; }
 
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
@@ -68,6 +88,7 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual ~CritterMain();
+    virtual void Message(SwampScript*, int, void*);
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -94,6 +115,9 @@ DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 // src proto-pdb:default.pdb GatorNode base CollidableCylinder : CollidableNode : SwampSceneNode, all at 0x0; only SwampSceneNode modelled
 class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>& anim, bool restart, bool loop);
+    void SetAnimSpeed(float speed);
+
     char field_A4[0x200 - 0xA4];       // 0xA4
 };
 DECOMP_SIZE_ASSERT(GatorNode, 0x200);
@@ -104,11 +128,19 @@ public:
 };
 DECOMP_SIZE_ASSERT(Critter, 0x2C8);
 
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
 void* operator new(unsigned int size, const char* file, int line);
 
 class ButlerStartRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     ButlerStartRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -124,15 +156,42 @@ DECOMP_SIZE_ASSERT(ButlerResetRegionMain, 0x4C);
 
 class CaptainBrusqueMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_FINISHED_THANKS = 0x14
+    };
+    enum {
+        STATE_IDLE = 0x0,
+        STATE_CRUMPLED = 0x1
+    };
     CaptainBrusqueMain(SwampSceneNode* node);
+    virtual void Message(SwampScript* source, int message, void* data);
     virtual void Activate();
     virtual void InvalidateScript();
+protected:
+    // access: the retail symbol is protected (?SetState@CaptainBrusqueMain@@MAEXH@Z)
+    virtual void SetState(int);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     Critter* _dolly;                   // 0xBC
 };
 DECOMP_SIZE_ASSERT(CaptainBrusqueMain, 0xC0);
+
+// FUNCTION: USA 0x0008ECD7
+// PROTOTYPE: PREVIEW 0x0047A396 identical
+// NAME: proto-pdb:default.pdb
+void CaptainBrusqueMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message != MESSAGE_FINISHED_THANKS) {
+        CritterMain::Message(source, message, data);
+        return;
+    }
+    if (_dolly) {
+        _dolly->Invalidate();
+        _dolly = 0;
+    }
+    SetState(STATE_CRUMPLED);
+}
 
 // FUNCTION: USA 0x0008ED17
 // PROTOTYPE: PREVIEW 0x0047A3D6 identical
@@ -172,7 +231,8 @@ DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
 
 class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
 };
-class SoundResource; // NAME: proto-pdb:default.pdb
+class SoundResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
@@ -185,9 +245,40 @@ public:
     T* _Resource;                      // 0x00
 };
 
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
+
+    char field_0[0x18];                // 0x00
+    AnimationManager* _animationManager; // 0x18
+};
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
 template <class T> class SwampShuffleQueue { // NAME: proto-pdb:default.pdb
 public:
+    T Fetch();
+
     std::deque<T> _queue;              // 0x00
+};
+
+class SoundNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    void Play();
+    void SetMinDistance(float);
+    void SetMaxDistance(float);
+};
+
+class SoundManager { // NAME: proto-pdb:default.pdb
+public:
+    static SoundNode* CreateSound(const ResourceHandle<SoundResource>&, const SwampString&, unsigned int, SwampSceneNode*, bool);
 };
 
 class MultiAnimation { // NAME: proto-pdb:default.pdb
@@ -201,6 +292,7 @@ DECOMP_SIZE_ASSERT(MultiAnimation, 0x14);
 class DollyMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     DollyMain(SwampSceneNode* node);
+    virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
     virtual void InvalidateScript();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -254,6 +346,35 @@ void CaptainBrusqueMain::Activate()
         _dolly->GetScript()->Activate();
 }
 
+// FUNCTION: USA 0x0008EEE9
+// PROTOTYPE: PREVIEW 0x0047A619 identical
+// NAME: proto-pdb:default.pdb
+void CaptainBrusqueMain::SetState(int state)
+{
+    // !FAKE: c2 register allocation; neutral pointer local; retail reads _node once into esi (no PDB local)
+    GatorNode* p = (GatorNode*)_node;
+    _state = state;
+    switch (state) {
+    case STATE_IDLE:
+        p->StartAnimation(g_swamp->GetAnimationManager().Load("captainBrusque_idle"), true, false);
+        break;
+    case STATE_CRUMPLED:
+        p->StartAnimation(g_swamp->GetAnimationManager().Load("captainBrusque_dollyThanksVince"), false, true);
+        p->SetAnimSpeed(0.0f);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0008EFA0
+// PROTOTYPE: PREVIEW 0x0047A6D0 identical
+// NAME: proto-pdb:default.pdb
+void ButlerStartRegionMain::EnteringRegion(SwampSceneNode* node)
+{
+    // !FAKE: c1xx front end; temporary; retail destroys the "busybutler" string before GetScript, a one-expression chain keeps it to the end (match_one 67.83 -> 100.0)
+    Critter* critter = pManager->Find("busybutler");
+    critter->GetScript()->Message(this, 0x14, 0); // src proto-pdb:default.pdb MESSAGE_START
+}
+
 // FUNCTION: USA 0x0008F131
 // PROTOTYPE: PREVIEW 0x0047A861 identical
 // NAME: proto-pdb:default.pdb
@@ -261,6 +382,20 @@ SwampScript* CaptainBrusqueMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\manorhouse\\captainsroom\\CaptainsRoom.h", 31) CaptainBrusqueMain(node);
+}
+
+// FUNCTION: USA 0x0008F158
+// PROTOTYPE: PREVIEW 0x0047A888 identical
+// NAME: proto-pdb:default.pdb
+void DollyMain::AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone)
+{
+    if (name == "trigger_giggle") {
+        // !FAKE: c1xx front end; neutral stand-in local; the PDB records no local for the sound node
+        SoundNode* p = SoundManager::CreateSound(_giggleComments.Fetch(), "dolly_giggle", 10, GetNode(), true);
+        p->SetMinDistance(2.0f);
+        p->SetMaxDistance(10.0f);
+        p->Play();
+    }
 }
 
 // FUNCTION: USA 0x0008F769

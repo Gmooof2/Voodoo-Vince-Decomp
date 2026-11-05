@@ -7,7 +7,12 @@ template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
     basic_string(const E* ptr);
+    basic_string(const basic_string& _Right);
     ~basic_string() { _Tidy(true); }
+    basic_string& operator+=(const basic_string& _Right) { return append(_Right); }
+    basic_string& append(const basic_string& _Right) { return append(_Right, 0, npos); }
+    basic_string& append(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
+    static const unsigned int npos = (unsigned int)(-1);
 
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
@@ -17,13 +22,20 @@ private:
 };
 template <class T, class A = allocator<T> > class vector { // src proto-pdb:default.pdb vector
 public:
+    // !FAKE: inliner; hand form of the VC7.1 body; vector() { _Buy(0); } folds to these three stores (C0191)
+    vector() { _Myfirst = 0; _Mylast = 0; _Myend = 0; }
+    ~vector();
     unsigned int size() const;
 
 private:
-    char _pad00[0x10];
+    char field_0[4];                   // 0x00 _Vector_val::_Alval (allocator, 1 byte) + pad
+    T* _Myfirst;                       // 0x04
+    T* _Mylast;                        // 0x08
+    T* _Myend;                         // 0x0C
 };
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
+const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
 
 class BeepTDF { // NAME: proto-pdb:default.pdb
 public:
@@ -73,6 +85,9 @@ public:
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
     char field_24[0x28];               // 0x24
+
+protected:
+    SwampScript(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
@@ -89,14 +104,22 @@ public:
     };
     struct ProgressHint;               // NAME: proto-pdb:default.pdb
 
+    LevelScript(SwampSceneNode* node, bool isZone);
+    virtual void TimerEvent(unsigned int id);
+    virtual void EnteringRegion(SwampSceneNode* node);
     virtual void LeavingRegion(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
+    virtual bool DoProgressHint(int level, const SwampString& hint); // vtable+0x64
 
-    bool _isZone;                      // 0x4C
+    bool _isZone;                     // 0x4C
     bool _inRegion;                    // 0x4D
     int _progressHintLevel;            // 0x50
     std::vector<ProgressHint> _progressHints; // 0x54
+
+private:
+    void LoadHints();
 };
 DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
@@ -132,3 +155,26 @@ void LevelScript::Load(const BeepTDF& tdf)
     SwampScript::Load(tdf);
     _progressHintLevel = tdf.GetIntRecord("progresshintlevel", 0);
 }
+
+// FUNCTION: USA 0x000EC767
+// PROTOTYPE: PREVIEW 0x004D7A6B identical
+// NAME: proto-pdb:default.pdb
+SwampString LevelScript::Save()
+{
+    SwampString str = SwampScript::Save();
+    str += format("\t\tprogresshintlevel=%i;\n", _progressHintLevel);
+    return str;
+}
+
+// FUNCTION: USA 0x000ECDD8
+// PROTOTYPE: PREVIEW 0x004D80D2 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match; wall: relink refuses: ??_GLevelScript (0x000ECE14, inlines the implicit ~LevelScript) calls ~vector<ProgressHint> 0x00017F50, unnamed: external ??1?$vector@UProgressHint@LevelScript@@V?$allocator@UProgressHint@LevelScript@@@std@@@std@@QAE@XZ does not resolve by name (4.4 T4.c9)
+LevelScript::LevelScript(SwampSceneNode* node, bool isZone)
+    : SwampScript(node), _isZone(isZone), _inRegion(false), _progressHintLevel(0)
+{
+    if (_isZone)
+        LoadHints();
+}
+#endif

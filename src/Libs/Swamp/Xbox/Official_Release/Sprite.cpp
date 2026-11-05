@@ -2,6 +2,26 @@
 #include "../../../../include/decomp.h"
 #include <xmmintrin.h>
 
+namespace std { // NAME: proto-pdb:default.pdb
+template <class E> struct char_traits;
+template <class T> class allocator;
+template <class E, class T, class A> class basic_string {
+public:
+    bool empty() const { return _Mysize == 0; }
+
+private:
+    enum { _BUF_SIZE = 16 / sizeof(E) < 1 ? 1 : 16 / sizeof(E) };
+    char _Alval;                       // 0x00
+    union {
+        E _Buf[_BUF_SIZE];
+        E* _Ptr;
+    } _Bx;                             // 0x04
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
+};
+}
+typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
+
 struct D3DTexture; // NAME: proto-pdb:default.pdb
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
@@ -33,6 +53,13 @@ template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
     ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    ResourceHandle& operator=(const ResourceHandle& h)
+    {
+        if (_Resource) _Resource->SubRef();
+        _Resource = h._Resource;
+        if (_Resource) _Resource->AddRef();
+        return *this;
+    }
     T& operator()() { return *_Resource; }
     bool IsValid() const { return _Resource != 0; }
 
@@ -40,7 +67,12 @@ public:
 };
 DECOMP_SIZE_ASSERT(ResourceHandle<TextureResource>, 0x4);
 
-class TextureManager { // NAME: proto-pdb:default.pdb
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class TextureManager : public ResourceManager<TextureResource> { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<TextureResource> GetDefaultTexture() const { return _defaultTexture; }
 
@@ -119,8 +151,6 @@ public:
     Matrix() {}
     void Rotation(float, float, float);
     void Apply(const Vector4&, Vector4&) const;
-    // !FAKE: __forceinline; plain inline stays an out-of-line call at /O1, retail inlines it
-    __forceinline Vector4 Apply(const Vector4& v) const { Vector4 r; Apply(v, r); return r; }
 
     Vector4 row[4];                    // 0x00
 };
@@ -165,6 +195,7 @@ public:
 class Sprite { // NAME: proto-pdb:default.pdb
 public:
     void SetUV(float u1, float v1, float u2, float v2);
+    void SetTexture(const SwampString& filename);
     void Render() const;
 
 private:
@@ -220,15 +251,12 @@ D3DTexture* TextureResource::GetTexture() const
 // FUNCTION: USA 0x000BD667
 // PROTOTYPE: PREVIEW 0x004A83BE identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0 + bytes match; held out: progress.py refuses the done row
 D3DTexture* SingleTexture::GetTexture() const
 {
     if (_texPtr)
         return _texPtr;
     return g_swamp->GetTextureManager().GetDefaultTexture()().GetTexture();
 }
-#endif
 
 // FUNCTION: USA 0x000BD690
 // PROTOTYPE: PREVIEW 0x004A83E7 identical
@@ -250,11 +278,23 @@ void Sprite::ComputeSize()
     }
 }
 
+// FUNCTION: USA 0x000BD6D9
+// PROTOTYPE: PREVIEW 0x004A8430 identical
+// NAME: proto-pdb:default.pdb
+void Sprite::SetTexture(const SwampString& filename)
+{
+    if (!filename.empty())
+        _texture = g_swamp->GetTextureManager().Load(filename);
+    else
+        _texture = g_swamp->GetTextureManager().GetDefaultTexture();
+    ComputeSize();
+}
+
 // FUNCTION: USA 0x000BD746
 // PROTOTYPE: PREVIEW 0x004A849D identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 98.6
+// best: match_one objdiff 97.87 (T4.c3 H.01 hand form; 98.6 was with the attribute D116 now refuses)
 void Sprite::Render() const
 {
     if (!_w || !_h)
@@ -288,8 +328,12 @@ void Sprite::Render() const
     if (_rotation != 0.0f) {
         Matrix rot;
         rot.Rotation(0.0f, 0.0f, _rotation);
-        for (int i = 0; i < 4; i++)
-            v[i].loc = rot.Apply(v[i].loc);
+        for (int i = 0; i < 4; i++) {
+            // !FAKE: inliner; temporary tmp for the by-value Apply; retail inlines it (T4.c3 H.01 97.87, row stays guarded)
+            Vector4 tmp;
+            rot.Apply(v[i].loc, tmp);
+            v[i].loc = tmp;
+        }
     }
     for (int i = 0; i < 4; i++) {
         v[i].loc.x = _loc.u + v[i].loc.x;

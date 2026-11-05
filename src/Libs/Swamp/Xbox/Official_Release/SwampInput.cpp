@@ -20,6 +20,7 @@ DECOMP_SIZE_ASSERT(LD_LAUNCH_DASHBOARD, 0xC00);
 extern "C" unsigned long __stdcall XLaunchNewImageA(const char*, LAUNCH_DATA*); // NAME: proto-pdb:default.pdb
 extern "C" void __stdcall XInputClose(void* hDevice); // src proto-pdb:default.pdb XInputClose
 void operator delete[](void* p);
+void* operator new[](unsigned int size, const char* file, int line); // NAME: proto-pdb:default.pdb
 extern "C" void* __cdecl memset(void*, int, unsigned int); // NAME: proto-pdb:default.pdb
 #pragma intrinsic(memset)
 
@@ -27,8 +28,19 @@ typedef struct _XPP_DEVICE_TYPE { // NAME: proto-pdb:default.pdb
     unsigned long Reserved[3];         // 0x00
 } XPP_DEVICE_TYPE;
 DECOMP_SIZE_ASSERT(XPP_DEVICE_TYPE, 0xC);
-extern "C" XPP_DEVICE_TYPE g_DeviceType_Gamepad;
+extern "C" XPP_DEVICE_TYPE XDEVICE_TYPE_GAMEPAD_TABLE; // NAME: proto-pdb:default.pdb
 extern "C" void* __stdcall XInputOpen(XPP_DEVICE_TYPE*, unsigned long, unsigned long, void*); // NAME: proto-pdb:default.pdb
+extern "C" XPP_DEVICE_TYPE XDEVICE_TYPE_MEMORY_UNIT_TABLE; // NAME: proto-pdb:default.pdb
+
+typedef struct _XDEVICE_PREALLOC_TYPE { // NAME: proto-pdb:default.pdb
+    XPP_DEVICE_TYPE* DeviceType;       // 0x00
+    unsigned long dwPreallocCount;     // 0x04
+} XDEVICE_PREALLOC_TYPE;
+DECOMP_SIZE_ASSERT(XDEVICE_PREALLOC_TYPE, 0x8);
+extern "C" void __stdcall XInitDevices(unsigned long, XDEVICE_PREALLOC_TYPE*); // NAME: proto-pdb:default.pdb
+extern "C" unsigned long __stdcall XGetDevices(XPP_DEVICE_TYPE*); // NAME: proto-pdb:default.pdb
+extern "C" int __stdcall XGetDeviceChanges(XPP_DEVICE_TYPE*, unsigned long*, unsigned long*); // NAME: proto-pdb:default.pdb
+void* operator new(unsigned int size, const char* file, int line); // NAME: proto-pdb:default.pdb
 
 typedef struct _XINPUT_GAMEPAD { // NAME: proto-pdb:default.pdb
     unsigned short wButtons;           // 0x00
@@ -44,10 +56,31 @@ namespace BeepLib { // NAME: proto-pdb:default.pdb
 double GetTime();
 }
 
-class RumbleResource; // NAME: proto-pdb:default.pdb
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x24];                // 0x00
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class BeepTDF; // NAME: proto-pdb:default.pdb
+
+class RumbleResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    unsigned int SamplesRequired() const;
+    unsigned int SampleRate() const { return _rate; }
+    void GenerateSamples(unsigned short* samples, bool& loop) const;
+
+    BeepTDF* _rumble;                  // 0x24
+    float _duration;                   // 0x28
+    unsigned int _rate;                // 0x2C
+};
+DECOMP_SIZE_ASSERT(RumbleResource, 0x30);
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    const T& operator()() const { return *_Resource; }
+    bool IsValid() const { return _Resource != 0; }
+
     T* _Resource;                      // 0x00
 };
 
@@ -77,7 +110,13 @@ public:
     ~SwampGamePad();
     void SetState(const _XINPUT_GAMEPAD& newState);
     bool IsAnyButton() const;
+    const _XINPUT_GAMEPAD& GetState() const { return _current; }
 
+protected:
+    friend class SwampInput;
+    void Update();
+
+public:
     void* _handle;                     // 0x00
     unsigned long _lastPacketNum;      // 0x04
     bool _ignoreNextUpdate;            // 0x08
@@ -87,7 +126,11 @@ public:
     bool _rumblePaused;                // 0x0C
     unsigned short _buttonsHeld;       // 0x0E
     float _autoRepeatTimer;            // 0x10
-    char field_14[0x14];               // 0x14
+    unsigned int _rumbleCurrent;       // 0x14
+    unsigned int _rumbleMax;           // 0x18
+    unsigned int _rumbleHi;            // 0x1C
+    float _rumbleRate;                 // 0x20
+    float _rumbleLast;                 // 0x24
     unsigned short* _rumblePattern;    // 0x28
     _XINPUT_GAMEPAD _current;          // 0x2C
     _XINPUT_GAMEPAD _previous;         // 0x3E
@@ -104,7 +147,7 @@ public:
     struct InputRecord { // NAME: proto-pdb:default.pdb
         double sessionTime;            // 0x00
         float elapsed;                 // 0x08
-        char field_C[0x14];            // 0x0C
+        _XINPUT_GAMEPAD padState;      // 0x0C
     };
 
     void ResumeGame();
@@ -116,26 +159,35 @@ public:
     bool IsPadPresent(int player) const;
     bool FindActivePad(int player);
     void PlayRumble(int player, const ResourceHandle<RumbleResource>& rumble);
+    float GetGameTime() const { return _gameTimePublic; }
 
 private:
+    SwampInput();
+    void AddRecord();
     const InputRecord& GetRecord();
 
 public:
 
-    char field_0[0x8];                 // 0x00
+    float _elapsed;                    // 0x00
+    float _actualElapsed;              // 0x04
     float _gameTimePublic;             // 0x08
     float _sessionTimePublic;          // 0x0C
     double _gameTimeInternal;          // 0x10
     double _sessionTimeInternal;       // 0x18
     double _createTime;                // 0x20
-    char field_28[0xC];                // 0x28
+    float _simSpeed;                   // 0x28
+    float _frameMaximum;               // 0x2C
+    float _rumbleScale;                // 0x30
     bool _pauseGame;                   // 0x34
-    char field_35[0x1];                // 0x35
+    bool _devChanges;                  // 0x35
     bool _recording;                   // 0x36
     bool _playback;                    // 0x37
-    char field_38[0x1];                // 0x38
+    bool _ignoreInput;                 // 0x38
     bool _pauseInput;                  // 0x39
-    char field_3A[0xA];                // 0x3A
+    bool _pipeJpadToDpad;              // 0x3A
+    bool _autoRepeatEnabled;           // 0x3B
+    float _autoRepeatRate;             // 0x3C
+    float _autoRepeatStart;            // 0x40
     int _activePad[4];                 // 0x44
     unsigned long _deviceMap;          // 0x54
     SwampGamePad* _pads[4];            // 0x58
@@ -149,8 +201,16 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampInput, 0x120);
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1)
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    SwampInput& GetInput() const { return *_input; }
+
+    char field_0[0x4];                 // 0x00
+    SwampInput* _input;                // 0x04
+};
+
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
 // FUNCTION: USA 0x000AD6E6
 // PROTOTYPE: PREVIEW 0x0049856D identical
 // NAME: proto-pdb:default.pdb
@@ -170,9 +230,8 @@ SwampGamePad::SwampGamePad(int slot)
     memset(&_previous, 0, sizeof(_previous));
     memset(&_feedback, 0, sizeof(_feedback));
     if (slot >= 0)
-        _handle = XInputOpen(&g_DeviceType_Gamepad, slot, 0, 0);
+        _handle = XInputOpen(&XDEVICE_TYPE_GAMEPAD_TABLE, slot, 0, 0);
 }
-#endif
 
 // FUNCTION: USA 0x000AD74E
 // PROTOTYPE: PREVIEW 0x004985D5 identical
@@ -199,6 +258,50 @@ bool SwampGamePad::IsAnyButton() const
             return true;
     }
     return false;
+}
+
+// FUNCTION: USA 0x000AD7AB
+// PROTOTYPE: PREVIEW 0x00498632 identical
+// NAME: proto-pdb:default.pdb
+SwampInput::SwampInput()
+    : _elapsed(0.0f),
+      _actualElapsed(0.0f),
+      _gameTimePublic(0.0f),
+      _sessionTimePublic(0.0f),
+      _gameTimeInternal(0.0),
+      _sessionTimeInternal(0.0),
+      _createTime(BeepLib::GetTime()),
+      _simSpeed(1.0f),
+      _frameMaximum(0.1f),
+      _rumbleScale(1.0f),
+      _pauseGame(false),
+      _devChanges(false),
+      _recording(false),
+      _playback(false),
+      _ignoreInput(false),
+      _pauseInput(false),
+      _pipeJpadToDpad(false),
+      _autoRepeatEnabled(true),
+      _autoRepeatRate(0.1f),
+      _autoRepeatStart(1.0f),
+      _deviceMap(0),
+      _defaultPad(-1),
+      _records(0),
+      _recordFile(0)
+{
+    XDEVICE_PREALLOC_TYPE deviceTypes[2] = {
+        { &XDEVICE_TYPE_GAMEPAD_TABLE, 4 },
+        { &XDEVICE_TYPE_MEMORY_UNIT_TABLE, 1 }
+    };
+    XInitDevices(2, deviceTypes);
+    _deviceMap = XGetDevices(&XDEVICE_TYPE_GAMEPAD_TABLE);
+    for (int i = 0; i < 4; i++) {
+        _activePad[i] = 0;
+        if (_deviceMap & (1 << i))
+            _pads[i] = new("SwampInput.cpp", 0x17A) SwampGamePad(i);
+        else
+            _pads[i] = 0;
+    }
 }
 
 // FUNCTION: USA 0x000AD8B3
@@ -280,6 +383,26 @@ void SwampInput::ResumeInputStream()
     }
 }
 
+// FUNCTION: USA 0x000AD9C9
+// PROTOTYPE: PREVIEW 0x00498850 identical
+// NAME: proto-pdb:default.pdb
+void SwampInput::AddRecord()
+{
+    if (_recording) {
+        if (_currentRecord == BUFFERED_RECORDS) {
+            fwrite(_records, 1, BUFFERED_RECORDS * sizeof(InputRecord), _recordFile);
+            _currentRecord = 0;
+        }
+        // !FAKE: c2 scheduling; pointer local; retail calls GetPad before the time stores (match_one 66.7 -> 100.0)
+        const SwampGamePad* p = GetPad(0);
+        _records[_currentRecord].sessionTime = _sessionTimeInternal;
+        _records[_currentRecord].elapsed = _elapsed;
+        _records[_currentRecord].padState = p->GetState();
+        _currentRecord++;
+        _totalRecords++;
+    }
+}
+
 // FUNCTION: USA 0x000ADA62
 // PROTOTYPE: PREVIEW 0x004988E9 identical
 // NAME: proto-pdb:default.pdb
@@ -310,6 +433,34 @@ void SwampGamePad::SetState(const _XINPUT_GAMEPAD& newState)
     _ignoreNextUpdate = true;
 }
 
+// FUNCTION: USA 0x000ADB1C
+// PROTOTYPE: PREVIEW 0x004989A3 identical
+// NAME: proto-pdb:default.pdb
+void SwampGamePad::PlayRumble(const ResourceHandle<RumbleResource>& rumble)
+{
+    if (!rumble.IsValid()) {
+        _rumblePlaying = false;
+        _rumbleDirty = true;
+        return;
+    }
+    _rumbleHi = rumble().SamplesRequired();
+    if (!_rumbleHi) {
+        _rumblePlaying = false;
+        _rumbleDirty = true;
+        return;
+    }
+    if (!_rumblePattern || _rumbleMax < _rumbleHi) {
+        delete[] _rumblePattern;
+        _rumbleMax = (_rumbleHi + 15) & ~15;
+        _rumblePattern = new("SwampInput.cpp", 142) unsigned short[_rumbleMax * 2];
+    }
+    rumble().GenerateSamples(_rumblePattern, _rumbleLoop);
+    _rumbleRate = rumble().SampleRate();
+    _rumbleCurrent = 0;
+    _rumbleLast = g_swamp->GetInput().GetGameTime();
+    _rumblePlaying = true;
+}
+
 // FUNCTION: USA 0x000ADE2A
 // PROTOTYPE: PREVIEW 0x00498CB1 identical
 // NAME: proto-pdb:default.pdb
@@ -324,6 +475,74 @@ void SwampInput::PlayRumble(int player, const ResourceHandle<RumbleResource>& ru
         _pads[_activePad[player] - 1]->PlayRumble(rumble);
     }
 }
+
+// FUNCTION: USA 0x000ADE70
+// PROTOTYPE: PREVIEW 0x00498CF7 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 97.01, bytes mismatch (masked 0 since T9.c46 pins): x87 clamp fcom vs retail fld/fld st(1)/fcompp; SetState-visible regalloc (edx loop)
+void SwampInput::Update()
+{
+    int i;
+    if (!_playback) {
+        double last_time = _sessionTimeInternal;
+        _sessionTimeInternal = BeepLib::GetTime() - _createTime;
+        _actualElapsed = _sessionTimeInternal - last_time;
+        if (!_pauseGame) {
+            _elapsed = (_actualElapsed > _frameMaximum ? _frameMaximum : _actualElapsed) * _simSpeed;
+            _gameTimeInternal += _elapsed;
+        } else {
+            _elapsed = 0.0f;
+        }
+        _devChanges = false;
+        if (!_ignoreInput) {
+            unsigned long insertions;
+            unsigned long removals;
+            if (XGetDeviceChanges(&XDEVICE_TYPE_GAMEPAD_TABLE, &insertions, &removals)) {
+                for (i = 0; i < 4; i++) {
+                    if (removals & (1 << i)) {
+                        delete _pads[i];
+                        _pads[i] = 0;
+                        _devChanges = true;
+                    }
+                    if (insertions & (1 << i)) {
+                        _pads[i] = new("SwampInput.cpp", 0x2C5) SwampGamePad(i);
+                        _devChanges = true;
+                    }
+                }
+            }
+            for (i = 0; i < 4; i++) {
+                if (_pads[i])
+                    _pads[i]->Update();
+            }
+            if (_activePad[0] == 0)
+                FindActivePad(0);
+        } else {
+            _XINPUT_GAMEPAD gp;
+            memset(&gp, 0, sizeof(gp));
+            for (i = 0; i < 4; i++) {
+                if (_pads[i])
+                    _pads[i]->SetState(gp);
+            }
+        }
+        if (_recording && !_pauseInput)
+            AddRecord();
+    } else if (!_pauseInput) {
+        // !FAKE: c1xx front end; reference locals; the proto PDB lists no record or pad local (stand-ins)
+        const InputRecord& p = GetRecord();
+        _sessionTimeInternal = p.sessionTime;
+        _elapsed = p.elapsed;
+        _gameTimeInternal += _elapsed;
+        SwampGamePad* v1 = (SwampGamePad*)GetPad(0);
+        v1->_previous = v1->_current;
+        v1->_current = p.padState;
+    } else {
+        _elapsed = 0.0f;
+    }
+    _gameTimePublic = _gameTimeInternal;
+    _sessionTimePublic = _sessionTimeInternal;
+}
+#endif
 
 // FUNCTION: USA 0x000AE197
 // PROTOTYPE: PREVIEW 0x0049901E identical

@@ -20,12 +20,17 @@ struct AllocationRecord { // NAME: proto-pdb:default.pdb
     unsigned int size;                 // 0x08
     void* addr;                        // 0x0C
     void* alignedAddr;                 // 0x10
-    char field_14[0x24 - 0x14];        // 0x14
+    AllocType type;                    // 0x14
+    unsigned int checkpoint;           // 0x18
+    int lockedCount;                   // 0x1C
+    AllocationRecord* next;            // 0x20
 };
 DECOMP_SIZE_ASSERT(AllocationRecord, 0x24);
 
 class AllocationTracker { // NAME: proto-pdb:default.pdb
 public:
+    ~AllocationTracker();
+    bool DumpMemoryLeaks();
     static AllocationTracker& GetAllocationTracker();
     AllocationRecord* RemoveRecord(void* addr);
     void SetCheckpoint()
@@ -46,6 +51,8 @@ public:
     bool _ignoreAllLeaks;              // 0x10020
 
 private:
+    static int _createCount;
+    AllocationTracker();
     void Clear();
 };
 DECOMP_SIZE_ASSERT(AllocationTracker, 0x10024);
@@ -74,6 +81,54 @@ void AllocationRecord::Print()
     sprintf(outputbuf, "%s(%d) : %d bytes\n", file, line, size);
     OutputDebugStringA(outputbuf);
 }
+
+// FUNCTION: USA 0x00033C26
+// PROTOTYPE: PREVIEW 0x004223AC identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 97.63, bytes match (masked 0); verdict cut-reloc: 9 DIR32 XBE_FILE_HEADER_00010000 relocs on the 0x1000x displacements in the cut
+AllocationTracker::AllocationTracker()
+{
+    _createCount++;
+    memset(_hash, 0, sizeof(_hash));
+    _allocCount = _maxAllocCount = 0;
+    _totalAllocCount = _allocSize = _maxAllocSize = 0;
+    _ignoreAllLeaks = false;
+    _lastCheckpoint = 0;
+    _checkpointAllocCount = 0;
+    _checkpointAllocSize = 0;
+}
+#endif
+
+// FUNCTION: USA 0x00033CDC
+// PROTOTYPE: PREVIEW 0x00422462 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 99.62, bytes match (masked 0); verdict cut-reloc: DIR32 relocs on the 0x1000x displacements in the cut
+bool AllocationTracker::DumpMemoryLeaks()
+{
+    bool bFoundLeaks = false;
+    char outputbuf[1024];
+    if (_ignoreAllLeaks)
+        return false;
+    if (_allocCount && _checkpointAllocCount) {
+        OutputDebugStringA("***  MEMORY LEAKS DETECTED! ***\n");
+        sprintf(outputbuf, "Detected %d memory leaks totaling %d bytes\n", _checkpointAllocCount, _checkpointAllocSize);
+        OutputDebugStringA(outputbuf);
+        // !FAKE: c1xx front end; neutral locals v1, p; the PDB names no loop locals
+        for (int v1 = 0; v1 < 16384; v1++) {
+            for (AllocationRecord* p = _hash[v1]; p; p = p->next) {
+                if (p->checkpoint == _lastCheckpoint) {
+                    bFoundLeaks = true;
+                    p->Print();
+                }
+            }
+        }
+        return bFoundLeaks;
+    }
+    return false;
+}
+#endif
 
 #ifdef NON_MATCHING
 // best: match_one objdiff 99.84, bytes match (masked 0); verdict cut-reloc
@@ -180,6 +235,16 @@ void operator delete[](void* p)
 {
     if (p)
         FreeMemory(p, AllocationRecord::ARRAY);
+}
+
+// FUNCTION: USA 0x00033EE0
+// PROTOTYPE: PREVIEW 0x00422666 identical
+// NAME: proto-pdb:default.pdb
+AllocationTracker::~AllocationTracker()
+{
+    DumpMemoryLeaks();
+    Clear();
+    _createCount--;
 }
 
 // FUNCTION: USA 0x00033F22

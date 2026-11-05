@@ -13,6 +13,7 @@ class basic_string {
 public:
     basic_string(const _Elem *_Ptr);
     ~basic_string() { _Tidy(true); }
+    int compare(const _Elem *_Ptr) const;
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
     char _pad00[0x1C];
@@ -75,6 +76,12 @@ class Vince : public Critter {
 
 class AnimCam;
 
+class FireFlyNode { // NAME: proto-pdb:default.pdb
+public:
+    void Play();
+    void StopSpawning();
+};
+
 class SwampScript {
 public:
     virtual void InvalidateScript();
@@ -86,6 +93,7 @@ protected:
     AnimCam* NewCamera(const std::basic_string<char>& name);
     void StateTransition(unsigned int anim, int state);
 public:
+    virtual void AnimationTrigger(unsigned int id, const std::basic_string<char>& name, float value, float prev, unsigned int bone);
     AnimCam* _cam;
     bool _cancelled;
     bool _autostop;
@@ -132,13 +140,38 @@ public:
     bool _wasWhammyReady;
 };
 
+class LeavingRoachfortCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
+public:
+    enum States {
+        STATE_V_INHALE = 0x0,
+        STATE_V_FLOATS = 0x1,
+        STATE_LAST = 0x2
+    };
+private:
+    virtual void SetState(int state);
+public:
+    Vince* _vince;
+    bool _wasWhammyReady;
+};
+
 class PlanGoesAwryCutscene : public CutsceneDriver {
 public:
+    enum Ids { // NAME: proto-pdb:default.pdb
+        ID_VINCE = 0x1
+    };
     enum States {
         STATE_E_PULLCORD = 0x0,
         STATE_LAST = 0xE
     };
     virtual void AnimationFinished(unsigned int id);
+    virtual void AnimationTrigger(unsigned int id, const std::basic_string<char>& name, float value, float prev, unsigned int bone);
+
+    Vince* _vince;                     // 0x78
+    Critter* _ethel;                   // 0x7C
+    Critter* _janice;                  // 0x80
+    GatorNode* _balloon;               // 0x84
+    FireFlyNode* _effect;              // 0x88
+    bool _wasWhammyReady;              // 0x8C
 };
 
 // Retail string addresses (push imm32 operands), in body order; contents not reproduced.
@@ -157,6 +190,20 @@ void* operator new(unsigned int size, const char* file, int line);
 void PlanGoesAwryCutscene::AnimationFinished(unsigned int id)
 {
     StateTransition(id, STATE_LAST);
+}
+
+// FUNCTION: USA 0x000A8353
+// PROTOTYPE: PREVIEW 0x00493253 identical
+// NAME: proto-pdb:default.pdb
+void PlanGoesAwryCutscene::AnimationTrigger(unsigned int id, const std::basic_string<char>& name, float value, float prev, unsigned int bone)
+{
+    CutsceneDriver::AnimationTrigger(id, name, value, prev, bone);
+    if (id == ID_VINCE && name.compare("trigger_sizzle") == 0 && _effect) {
+        if (value > 0.0f)
+            _effect->Play();
+        else
+            _effect->StopSpawning();
+    }
 }
 
 // FUNCTION: USA 0x000A871D
@@ -253,6 +300,24 @@ void JaniceDefeatCutscene::SetState(int state)
     case STATE_V_HMMM:
         NewCamera(s_001EA6B4);
         _vince->StartAnimation(g_swamp->GetAnimationManager()->Load(s_001EA69C), false, false);
+        break;
+    }
+    _state = state;
+}
+
+// FUNCTION: USA 0x000AA0E1
+// PROTOTYPE: PREVIEW 0x00494F55 identical
+// NAME: proto-pdb:default.pdb
+void LeavingRoachfortCutscene::SetState(int state)
+{
+    switch (state) {
+    case STATE_V_INHALE:
+        NewCamera("camera_00_LR");
+        _vince->StartAnimation(g_swamp->GetAnimationManager()->Load("vince_janiceDefeated003b"), false, false);
+        break;
+    case STATE_V_FLOATS:
+        NewCamera("camera_01_LR");
+        _vince->StartAnimation(g_swamp->GetAnimationManager()->Load("vince_janiceDefeated004"), false, false);
         break;
     }
     _state = state;

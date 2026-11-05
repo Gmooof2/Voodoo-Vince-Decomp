@@ -8402,18 +8402,18 @@ src/Libs/Swamp/Xbox/Official_Release/SwampScript.cpp:305 uncited
 <!-- readability:NAME-SCAN -->
 ## NAME-SCAN
 
-- HEAD: `d0dc82661d826b53309cbb2368f5d2aa5d359719`
+- HEAD: `1b932528170e6bd86c674caf913a9b91505c7cc7`
 - Tree: working-copy allowlist
 
 - names in the list: 23017
-- files scanned: 418, binary skipped: 0
-- tagged-src: exact 20320, variant 0, mangled 0
-- untagged-src: exact 210, variant 9845, mangled 0
-- symbols-config: exact 29434, variant 4711, mangled 4650
+- files scanned: 611, binary skipped: 0
+- tagged-src: exact 75985, variant 0, mangled 11
+- untagged-src: exact 1262, variant 31548, mangled 0
+- symbols-config: exact 37524, variant 6341, mangled 5760
 - tests: exact 837, variant 234, mangled 3
-- tools: exact 13229, variant 10204, mangled 11
-- docs: exact 47868, variant 13983, mangled 2932
-- untagged-src rows: 206, listed 206, unlisted 0
+- tools: exact 14750, variant 11224, mangled 24
+- docs: exact 90005, variant 29796, mangled 6767
+- untagged-src rows: 605, listed 605, unlisted 0
 - name_scan: 0 unlisted untagged-src rows
 
 <!-- /readability:NAME-SCAN -->

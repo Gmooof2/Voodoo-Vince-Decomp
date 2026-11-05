@@ -6,6 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string();
     basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, (unsigned int)-1); }
@@ -66,9 +67,21 @@ public:
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
 
+protected:
+    SwampScript(SwampSceneNode* node);
+    void RegisterSaveLoadVar(const SwampString&, SwampString*, const char*);
+    void RegisterSaveLoadVar(const SwampString&, bool*, bool);
+
+public:
     char field_4[0x48];                // 0x04
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampScriptManager& Instance();
+    SwampScript* Create(const SwampString&, SwampSceneNode*) const;
+};
 
 // Retail layout: BeginPlayback tests [_stream + 0xDC] (proto PDB 0x64 = _file._fh, SoundStreamer 0xC0).
 class SoundStreamer { // NAME: proto-pdb:default.pdb
@@ -90,10 +103,57 @@ public:
     enum NodeOptions { DontDraw = 0x2 }; // NAME: proto-pdb:default.pdb
     bool PopScript();
     void SetOption(unsigned int option, bool on, bool recurse);
+    void SetScript(SwampScript* script);
+};
+
+class SwampScene { // NAME: proto-pdb:default.pdb
+public:
+    void AddNode(SwampSceneNode* node, unsigned int);
+};
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+};
+
+class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle() : _Resource(0) {}
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+
+    T* _Resource;                      // 0x00
 };
 
 class AnimCam : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    static AnimCam* SwitchTo(const SwampString&, float, bool, float);
 };
+
+class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    GatorNode(const ResourceHandle<ModelResource>& mh);
+
+    char field_0[0x200];               // 0x00
+};
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+};
+class Vince : public Critter { // NAME: proto-pdb:default.pdb
+};
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x28];                // 0x00
+    Vince* _vinceCache;                // 0x28
+};
+DECOMP_SIZE_ASSERT(CritterManager, 0x2C);
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class MusicManager { // NAME: proto-pdb:default.pdb
 public:
@@ -127,7 +187,9 @@ public:
 
     char field_0[0x4];                 // 0x00
     SwampInput* _input;                // 0x04
-    char field_8[0xC];                 // 0x08
+    char field_8[0x4];                 // 0x08
+    SwampScene* _scene;                // 0x0C
+    char field_10[0x4];                // 0x10
     DiskArbitrator* _diskArbitrator;   // 0x14
     char field_18[0x1C];               // 0x18
     SoundManager* _soundManager;       // 0x34
@@ -161,7 +223,9 @@ private:
 
 protected:
     void StateTransition(unsigned int, int);
+    GatorNode* NewNode(unsigned int id);
     CutsceneAnimationScript* NewScript(SwampSceneNode* node, unsigned int id);
+    AnimCam* NewCamera(const SwampString& name);
 
 public:
     static void BeginPlayback();
@@ -179,8 +243,9 @@ class CutsceneAnimationScript : public SwampScript { // NAME: proto-pdb:default.
 public:
     CutsceneAnimationScript(SwampSceneNode*, CutsceneDriver*, unsigned int);
     virtual void AnimationFinished();
+    virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
 
-    CutsceneDriver* _cd;               // 0x4C
+    CutsceneDriver* _cd;              // 0x4C
     unsigned int _id;                  // 0x50
 };
 DECOMP_SIZE_ASSERT(CutsceneAnimationScript, 0x54);
@@ -190,13 +255,23 @@ public:
     enum { // NAME: proto-pdb:default.pdb
         MESSAGE_QUERYTRIGGERED = 0x14
     };
+    CutsceneRegionMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+    virtual void EnteringRegion(SwampSceneNode* node);
     virtual void Load(const BeepTDF& tdf);
 
     SwampString _cutsceneName;         // 0x4C
     bool _triggered;                   // 0x68
 };
 DECOMP_SIZE_ASSERT(CutsceneRegionMain, 0x6C);
+
+// FUNCTION: USA 0x001085BF
+// PROTOTYPE: PREVIEW 0x004F2F78 identical
+// NAME: proto-pdb:default.pdb
+CutsceneAnimationScript::CutsceneAnimationScript(SwampSceneNode* node, CutsceneDriver* cd, unsigned int id)
+    : SwampScript(node), _cd(cd), _id(id)
+{
+}
 
 // FUNCTION: USA 0x001085E5
 // PROTOTYPE: PREVIEW 0x004F2F9E identical
@@ -205,6 +280,15 @@ void CutsceneAnimationScript::AnimationFinished()
 {
     if (_cd)
         _cd->AnimationFinished(_id);
+}
+
+// FUNCTION: USA 0x001085F9
+// PROTOTYPE: PREVIEW 0x004F2FB2 identical
+// NAME: proto-pdb:default.pdb
+void CutsceneAnimationScript::AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone)
+{
+    if (_cd)
+        _cd->AnimationTrigger(_id, name, value, prev, bone);
 }
 
 // FUNCTION: USA 0x00108628
@@ -225,6 +309,18 @@ void CutsceneDriver::StateTransition(unsigned int id, int lastState)
 CutsceneAnimationScript* CutsceneDriver::NewScript(SwampSceneNode* node, unsigned int id)
 {
     return new("core\\Cutscene.cpp", 225) CutsceneAnimationScript(node, this, id);
+}
+
+// FUNCTION: USA 0x0010882D
+// PROTOTYPE: PREVIEW 0x004F31C3 identical
+// NAME: proto-pdb:default.pdb
+GatorNode* CutsceneDriver::NewNode(unsigned int id)
+{
+    // !FAKE: c1xx front end; neutral local; the PDB records no local for the new node (three uses need one)
+    GatorNode* p = new("core\\Cutscene.cpp", 217) GatorNode(ResourceHandle<ModelResource>());
+    p->SetScript(NewScript(p, id));
+    g_swamp->_scene->AddNode(p, 0);
+    return p;
 }
 
 #ifdef NON_MATCHING
@@ -266,6 +362,19 @@ void CutsceneDriver::Cleanup()
 }
 #endif
 
+// FUNCTION: USA 0x001087D6
+// PROTOTYPE: PREVIEW 0x004F316C identical
+// NAME: proto-pdb:default.pdb
+AnimCam* CutsceneDriver::NewCamera(const SwampString& name)
+{
+    if (_cam)
+        _cam->PopScript();
+    _cam = AnimCam::SwitchTo(name, 0.0f, false, 0.0f);
+    _cam->SetScript(NewScript(_cam, 0));
+    _cameraStart = g_swamp->GetInput().GetSessionTimeAccurate();
+    return _cam;
+}
+
 #ifdef NON_MATCHING
 // FUNCTION: USA 0x0010892C
 // PROTOTYPE: PREVIEW 0x004F32BF near-identical
@@ -286,6 +395,15 @@ void CutsceneRegionMain::Message(SwampScript* source, int message, void* data)
         *(bool*)data = _triggered;
 }
 
+// FUNCTION: USA 0x00108B62
+// PROTOTYPE: PREVIEW 0x004F34C8 identical
+// NAME: proto-pdb:default.pdb
+CutsceneRegionMain::CutsceneRegionMain(SwampSceneNode* node) : SwampScript(node), _triggered(false)
+{
+    RegisterSaveLoadVar("cutscenename", &_cutsceneName, "");
+    RegisterSaveLoadVar("triggered", &_triggered, false);
+}
+
 // FUNCTION: USA 0x00108BE4
 // PROTOTYPE: PREVIEW 0x004F354A identical
 // NAME: proto-pdb:default.pdb
@@ -294,4 +412,15 @@ void CutsceneRegionMain::Load(const BeepTDF& tdf)
     SwampScript::Load(tdf);
     if (_cutsceneName.empty())
         _cutsceneName = tdf.GetStringRecord("cutscene", "");
+}
+
+// FUNCTION: USA 0x00108CE6
+// PROTOTYPE: PREVIEW 0x004F364C identical
+// NAME: proto-pdb:default.pdb
+void CutsceneRegionMain::EnteringRegion(SwampSceneNode* node)
+{
+    if (node == pManager->_vinceCache && !_triggered) {
+        _triggered = true;
+        SwampScriptManager::Instance().Create(_cutsceneName, 0);
+    }
 }

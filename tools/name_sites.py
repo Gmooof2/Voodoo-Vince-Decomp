@@ -1,7 +1,8 @@
 """Name unresolved reloc targets of pool rows by prototype site correspondence (T5, phase 3.1).
 
 Usage: PY tools/name_sites.py [--unit U] [--apply] [--doc] [--rows P] [--control positive|planted] | --check-cut
-       | --near [--apply] | --control near-positive|near-planted --unit U
+       | --near [--apply] | --control near-positive|near-planted --unit U | --control near-callee-planted
+       | --provisional [--check] | --control prov-drop|prov-false-unblocked
 Rows: pool rows (derived/candidates/candidates.jsonl minus config/matched_set.toml), all or one unit.
 Per row: identity re-verified (prototype default.exe bytes at protoVA vs retail XBE bytes at va, `size` bytes,
   proto_map.mask_proc each side: same (off, kind) mask list, equal unmasked bytes), else its sites -> proto-mismatch.
@@ -21,7 +22,8 @@ Second pass (T6, always, all rows): each unnamed non-constant residue target blo
   source proto-pdb-public+caller-xref[+check]; else the residue entries carry each route's result (`evidence`).
 --doc writes docs/matching/naming_residue.md (no bytes; ??_C@ names and string labels masked, D46).
 --check-cut: every pool site whose target is in symbols_pin.txt, resolved or not, has a cut relocation at its offset naming
-  the pin (3.2 T4); every other unresolved site's target is in residue.jsonl; exit 0 all hold, 1 FAIL lines.
+  the pin (3.2 T4); every other unresolved site's target is in residue.jsonl or the site is in ACCEPTED_SITES (4.4 T18,
+  counted by reason); a listed site that no longer fails prints STALE; exit 0 all hold, 1 FAIL/STALE lines.
 Outputs (gitignored): derived/name_sites/{names.jsonl,residue.jsonl,pins.txt}; addresses, names, counts only (D46).
   residue.jsonl always holds every pool row's residue, --unit included (3.4 T1, C0139); names/pins follow --unit.
 --apply appends pins.txt to config/retail/symbols_pin.txt (env NAME_SITES_SYMS_PIN overrides that path, scratch tests).
@@ -53,6 +55,28 @@ Outputs (gitignored): derived/name_sites/{names.jsonl,residue.jsonl,pins.txt}; a
 --control near-positive --unit U: identical candidates.jsonl rows of U (done included) through near_check: named (own
   symbol), no-caller (no-xref, abstain), wrong (else); exit 0 iff wrong 0 and named >= 10 (judgeable rows only); near-planted --unit U: swapped-name pair of U's first two passing near rows and the first decoy-window
   pair (proto_map DECOY_SHIFT gap, best_candidate >= THRESHOLD) must both fail.
+--control near-callee-planted (4.2 T1): wrong names on called functions (look-alike, sibling, forged, moved), all near
+  rows; see run_near_callee_planted. Writes nothing.
+--promote-corr [--bss] [--apply] (4.2 T7, D113): the pin file's site-corr rows retagged in a copy under .run/<phase>/promote_corr/
+  (data ??_7 -> +site-corr+slot-bytes corr-verified; __TI and other non-literal data with raw retail bytes ->
+  +site-corr+site-bundle corr-verified; bss data only with --bss; ??_C@/__real@ never; func -> +site-corr+callee-bytes
+  disasm-verified, size = PDB proc length; 4.2 T9, D115: a func whose proto VA passes near_check at its VA with a
+  contiguous Ghidra extent, no table start inside -> +anchor-window+caller-xref near-corr, size = Ghidra size, route
+  near), replanted once through pin_rows (the locked checker); a candidate passes
+  when its row has no fails; every other row must equal the real file's state (else refusal). Writes
+  derived/name_sites/corr.jsonl; --apply rewrites the passing lines in place plus one `# <phase> <T<n>>` comment line (4.3 T15: phase
+  from the plan heading as .run/<phase>, task from the required --task T<n>; was the literal `# 4.2 T7`). --doc
+  adds "Pins not promoted (4.2 T7, for T11)" when corr.jsonl exists. --control planted-corr: names swapped between
+  two passing slots, bundle, func and near rows (where 2 exist), replanted: every planted row must be refused. Writes nothing.
+--provisional [--check] (4.2 T11): docs/matching/provisional_residue.md from the frozen start set
+  docs/matching/provisional_start.md (484 rows): each row once, Unblocked (every start target accepted now:
+  candidates.accepted over the pin tables, func VA or the data line at target - member offset) or Blocked under its
+  primary blocking target with the evidence searched (corr.jsonl, near.jsonl, residue.jsonl, apply.jsonl); buckets by
+  pool_buckets.assign; figures vs T2 (484 start, 585 name-only supply, 719 census rows blocked). Reads residue.jsonl as
+  the last run left it (run `--min-rows 1` dry first). --check parses the doc back: exit 1 when a start row is in
+  neither/both sections, an Unblocked row has a target not accepted, or a Blocked row has none blocking.
+  --control prov-drop (one parsed row dropped) / prov-false-unblocked (one Blocked row moved): exit 0 only when the
+  check fails. Pin tables only; no cut.
 Exit: 0 ok; 1 control or --check-cut failed; 2 refusal (missing input, retail sha mismatch, bad args, --apply VA already
   named, --promote-data with --control/--check-cut/--doc, --promote-data --apply without one data site-corr line per VA).
 """
@@ -60,6 +84,7 @@ import argparse
 import bisect
 import json
 import os
+import re
 import struct
 import sys
 import tomllib
@@ -352,7 +377,9 @@ def callee(img, pubs, tab_va, pva, rva, n):
         pd, rd = target(pb, pva, o, k), target(rb, rva, o, k)
         if k == "rel" and rva <= rd < rva + n:
             continue
-        rn = {x for x in tab_va.get(rd, ()) if (rd, x) not in NEAR_CORR}  # 3.4 T2: near-corr names never agree
+        # 3.4 T2: near-corr names never agree. Unchanged by 4.2 T9 (D115): this is byte-route evidence for promotion
+        # (mirrors locked pin_rows.py callee); near-corr is accepted at candidates.accepted, never promoted from here.
+        rn = {x for x in tab_va.get(rd, ()) if (rd, x) not in NEAR_CORR}
         if not rn:
             continue
         ps = pubs.get(pd, ())
@@ -502,6 +529,8 @@ def pin_line(e):
     k = "func" if e["kind"] == "func" else "data"
     size = f"0x{e['size']:X}" if k == "func" and e["size"] else "-"
     via = e.get("via", "site-corr")
+    if via == "caller-xref":  # 4.2 T10: pin_rows TAGS has no caller-xref tag; the name rests on a site correspondence
+        via = "site-corr"     # (proto_map rows, C0059); --apply keeps it only checked and replant-passing (apply_replant)
     if e["evidence"] == "checked" and e["kind"] in SRC_CHECK:  # data has no byte check (3.2 T4): never disasm-verified
         src, st = f"proto-pdb-public+{via}+{SRC_CHECK[e['kind']]}", "disasm-verified"
     else:
@@ -681,6 +710,18 @@ def write_doc(rows, residue, examined, pinned, kept=None):
         out += [f"- {r}: {kr[r]}" for r in PROMO_REASONS if kr[r]]
         out += ["", "`VA · name · kind · reason`.", ""]
         out += [f"- {e['va']} · {safe(e['name'])} · {e['kind']} · {e['reason']}" for e in kept]
+    if CORR.is_file():
+        cs = load_jsonl(CORR)
+        cf = [e for e in cs if e["verdict"] == "fail"]
+        rv = Counter((e["route"], e["verdict"]) for e in cs)
+        cr = Counter(e["reason"] for e in cf)
+        out += ["", "## Pins not promoted (4.2 T7, for T11)", "",
+                f"`--promote-corr` route (pin_rows corr-verified check, D113): {len(cs)} candidate(s), {len(cf)} not"
+                " promoted.", ""]
+        out += [f"- {r}: pass {rv[(r, 'pass')]}, fail {rv[(r, 'fail')]}" for r in CORR_ROUTES]
+        out += [""] + [f"- {r}: {cr[r]}" for r in sorted(cr)]
+        out += ["", "`VA · name · kind · route · reason`.", ""]
+        out += [f"- {e['va']} · {safe(e['name'])} · {e['kind']} · {e['route']} · {e['reason']}" for e in cf]
     DOC.write_bytes(("\n".join(out) + "\n").encode("utf-8"))
 
 
@@ -723,9 +764,34 @@ def write_dup_doc(residue):
     DUP_DOC.write_bytes(("\n".join(out) + "\n").encode("utf-8"))
 
 
+# 4.4 T18: accepted `neither pinned nor residue` sites, keyed (row VA, site offset, target VA) -> reason key; reason ->
+# (reason, pointer). A listed site that no longer fails that way is STALE (exit 1); any other site at a listed target fails.
+ACCEPTED_REASONS = {
+    "puddle": ("Puddle _Tidy pin disabled (4.4 T6.1, commit 6bdf5e1c)", "config/retail/symbols_pin.txt:3274"),
+    "whammy": ("Whammy _Tree::insert pin disabled (4.4 T7.1 B1)", "config/retail/symbols_pin.txt:3421"),
+    "union": ("SwampFireFlyNode AABox::Union pin disabled (4.4 T7.1 B1)", "config/retail/symbols_pin.txt:3547"),
+    "font": ("FontManager nested-map insert pin disabled, name over Ghidra's 2000-char limit (4.4 T7.1 B3)",
+             "config/retail/symbols_pin.txt:3678"),
+    "sethealth": ("?SetHealth@Critter@@QAEXH@Z second-pass site-only name dropped at the T7.1 B1 replant, not pinned"
+                  " (site-only evidence is not a pin route)", "docs/ops/validation.md:1976"),
+    "indexdata": ("_D3D__IndexData caller-xref second-pass pin not applied (4.4 T7.1 B3)", "docs/ops/validation.md:2002"),
+}
+ACCEPTED_SITES = {
+    (0x0012BC8C, 0x7, 0x0012B64E): "puddle",
+    (0x000D3ABA, 0x15, 0x001672D4): "indexdata",
+    (0x000C86FF, 0x14F, 0x000DDEF3): "union",
+    (0x000FF37C, 0xF0, 0x000FEF28): "font",
+    **{(0x00135939, o, 0x000380F3): "whammy" for o in (0x90, 0xF0, 0x14D, 0x1AA, 0x207, 0x264, 0x2C1, 0x31E, 0x37B,
+                                                       0x3D8, 0x435, 0x492, 0x4EF, 0x54C)},
+    (0x000196CA, 0x156, 0x00018110): "sethealth",
+    (0x000F151C, 0x19E, 0x00018110): "sethealth",
+    (0x000F1933, 0x1A1, 0x00018110): "sethealth",
+}
+
+
 def check_cut(rows):
     """Every pool site whose target is pinned in symbols_pin.txt, resolved or not (3.2 T4): the cut object has a relocation
-    at the site naming one of the target's table names; every other unresolved site: residue."""
+    at the site naming one of the target's table names; every other unresolved site: residue, or ACCEPTED_SITES (4.4 T18)."""
     try:
         pin = byte_compare.setup(argparse.Namespace(symbols=None, xbe=None, config=None))[0]
     except byte_compare.Refuse as e:
@@ -738,6 +804,7 @@ def check_cut(rows):
             pinned.add(int(ln.split()[0], 16))
     res_t = {int(x["target"], 16) for x in load_jsonl(need(OUT / "residue.jsonl"))}
     cut, objs, fails, npin, nres = byte_compare.cut_dir(pin), {}, [], 0, 0
+    acc = defaultdict(list)
     for r in rows:
         for s in r["sites"]:
             t, where = s["target"], f"{r['symbol']} 0x{r['va']:08X} +0x{s['off']:X} -> 0x{s['target']:08X}"
@@ -751,10 +818,18 @@ def check_cut(rows):
                 continue
             elif t in res_t:
                 nres += 1
+            elif (r["va"], s["off"], t) in ACCEPTED_SITES:
+                acc[ACCEPTED_SITES[(r["va"], s["off"], t)]].append((r["va"], s["off"], t))
             else:
                 fails.append(f"FAIL {where}: neither pinned nor residue")
+    seen = {k for ks in acc.values() for k in ks}
+    for k in sorted(set(ACCEPTED_SITES) - seen):
+        fails.append(f"STALE 0x{k[0]:08X} +0x{k[1]:X} -> 0x{k[2]:08X}: {ACCEPTED_REASONS[ACCEPTED_SITES[k]][0]}")
     print(f"name_sites --check-cut: {len(rows)} pool rows; pinned sites cut-named {npin}, unresolved residue {nres}, "
-          f"FAIL {len(fails)}")
+          f"accepted {len(seen)}, FAIL {len(fails)}")
+    for key in ACCEPTED_REASONS:
+        if acc[key]:
+            print(f"  accepted {len(acc[key])}: {ACCEPTED_REASONS[key][0]} ({ACCEPTED_REASONS[key][1]})")
     for ln in fails[:200]:
         print(f"  {ln}")
     return 1 if fails else 0
@@ -1064,7 +1139,236 @@ def run_planted_data(img, pubs):
     return 0 if ok else 1
 
 
-NEAR_SRC = "proto-pdb-public+anchor-window+caller-xref"  # 3.4 T2 near-corr pin source
+CORR = OUT / "corr.jsonl"  # 4.2 T7 --promote-corr
+CORR_TMP = byte_compare._phase_run_dir() / "promote_corr"  # was REPO / ".run" / "4.2" / "t7" (4.2 T13)
+CORR_ROUTES = ("slots", "bundle", "func", "near")  # was ("slots", "bundle", "func"); 4.2 T9 adds near (D115)
+CORR_SRC = {"slots": "proto-pdb-public+site-corr+slot-bytes corr-verified",  # D113 (pin_rows TAGS)
+            "bundle": "proto-pdb-public+site-corr+site-bundle corr-verified",
+            "func": "proto-pdb-public+site-corr+callee-bytes disasm-verified",
+            "near": "proto-pdb-public+anchor-window+caller-xref near-corr"}  # D115 (= NEAR_SRC)
+
+
+def corr_near(st):
+    """4.2 T9 (D115): {va: size} of site-corr func rows where near_check(one of the row's proto VAs, va) passes and the
+    Ghidra function at va is contiguous with no table start inside (as --near's extent gates); size = its Ghidra size."""
+    table = load_table()
+    img, pubs, procs = load()
+    ctx = near_ctx(img, pubs, procs)
+    gf = {int(g["entry"], 16): (g["size"], int(g["bodyMax"], 16)) for g in load_jsonl(need(
+        REPO / "derived" / "ghidra" / f"retail-{img.pin[:8]}" / "applied" / "functions.jsonl"))}
+    tstarts = sorted({va for va, *_ in table})
+    out = {}
+    for r in st.rows:
+        if r.get("status") != "site-corr" or r.get("kind") != "func" or r.get("tag") != "proto-pdb-public+site-corr":
+            continue
+        va, g = r["va"], gf.get(r["va"])
+        if not any(near_check(ctx, p, va)["verdict"] == "pass" for p in r.get("protos", ())) or g is None \
+                or g[0] != g[1] - va + 1 or any(va < s < va + g[0] for s in tstarts):
+            continue
+        out[va] = g[0]
+    return out
+
+
+def corr_state():
+    """4.2 T7: pin_rows' state over SYMS_PIN, its lines, and the site-corr candidates (bss included, kind "bss")."""
+    import pin_rows
+    try:
+        st = pin_rows.state()
+        if SYMS_PIN.resolve() != pin_rows.PIN.resolve():
+            st = st.replant(SYMS_PIN)
+    except pin_rows.Refuse as e:
+        raise Refuse(f"pin_rows: {e}")
+    lines = SYMS_PIN.read_bytes().decode("utf-8").split("\n")
+    near = corr_near(st)  # 4.2 T9 (D115)
+    cands = []
+    for r in st.rows:
+        if r["status"] != "site-corr" or r["tag"] != "proto-pdb-public+site-corr":
+            continue
+        n, va, size = r["name"], r["va"], None
+        if r["kind"] == "func" and va in near:  # 4.2 T9: near_check evidence -> near-corr, pin_rows decides
+            route, kind, size = "near", "func", near[va]
+        elif r["kind"] == "func":
+            route, kind = "func", "func"
+            size = next((st.procs[p] for p in r["protos"] if st.procs.get(p)), None)
+        elif n.startswith(("??_C@", "__real@")):
+            continue
+        else:
+            route = "slots" if n.startswith("??_7") else "bundle"
+            kind = ("bss" if st.img.rbytes(va, 1) is None else "vtable" if route == "slots"
+                    else "typeinfo" if n.startswith("__TI") else "global")
+        f = lines[r["line"] - 1].split()
+        if not f or int(f[0], 16) != va or f[3] != n:
+            raise Refuse(f"--promote-corr: pin line {r['line']} is not 0x{va:08X} {n}")
+        cands.append({"va": va, "name": n, "kind": kind, "route": route, "line": r["line"], "rk": r["kind"],
+                      "size": size})
+    return st, lines, cands
+
+
+def corr_text(c, name=None):
+    sz = f"0x{c['size']:X}" if c["size"] else "-"
+    return f"0x{c['va']:08X} {c['rk']} {sz} {name or c['name']} {CORR_SRC[c['route']]}"
+
+
+def corr_key(r):
+    return (r.get("va"), r.get("name"), r.get("kind"), r.get("status"), r.get("tag"), tuple(r["fails"]),
+            tuple(r["notes"]), r.get("site"))
+
+
+def corr_replant(st, lines, texts, tag, strict=True):
+    """Copy of the pin file with {line: text} retagged, replanted through pin_rows -> {line: row}. Refuse when a row
+    not in texts differs from the real file's state (strict; a planted name may legitimately move other rows' results:
+    then the count is printed)."""
+    import pin_rows
+    out = list(lines)
+    for i, t in texts.items():
+        out[i - 1] = t
+    CORR_TMP.mkdir(parents=True, exist_ok=True)
+    p = CORR_TMP / f"{tag}.txt"
+    p.write_bytes("\n".join(out).encode("utf-8"))
+    try:
+        s = st.replant(p)
+    except pin_rows.Refuse as e:
+        raise Refuse(f"pin_rows: {e}")
+    finally:
+        p.unlink()
+        try:
+            CORR_TMP.rmdir()
+        except OSError:
+            pass
+    by = {r["line"]: r for r in s.rows}
+    diff = [r["line"] for r in st.rows if r["line"] not in texts and (r["line"] not in by
+                                                                      or corr_key(r) != corr_key(by[r["line"]]))]
+    if not strict and len(by) == len(st.rows):
+        print(f"  {len(diff)} non-candidate row(s) changed by the plants")
+    elif diff or len(by) != len(st.rows):
+        raise Refuse(f"--promote-corr: {len(diff)} non-candidate row(s) changed by the retag, e.g. lines "
+                     + ", ".join(map(str, diff[:4])))
+    return by
+
+
+def apply_replant(pins, lines):
+    """4.2 T10 (C0193, C0194): the new pin lines appended to a copy of the pin file, replanted through pin_rows (the
+    locked checker decides). A line is kept when its row has no fails and, for a caller-xref pin, its byte check passed
+    (site-only: no byte route, T10 brief); repeated until the kept set is stable. Refuse when any existing row's fails
+    change. -> (kept lines, {line: why})."""
+    import pin_rows
+    try:
+        st = pin_rows.state()
+        if SYMS_PIN.resolve() != pin_rows.PIN.resolve():
+            st = st.replant(SYMS_PIN)
+    except pin_rows.Refuse as e:
+        raise Refuse(f"pin_rows: {e}")
+    base = SYMS_PIN.read_bytes().decode("utf-8")
+    base += "" if not base or base.endswith("\n") else "\n"
+    nb = len(base.split("\n")) - 1  # the appended lines start at nb + 1
+    drop = {ln: "site-only (no byte check)" for e, ln in zip(pins, lines)
+            if e.get("via") == "caller-xref" and e["evidence"] != "checked"}
+    while True:
+        keep = [ln for ln in lines if ln not in drop]
+        if not keep:
+            return [], drop
+        CORR_TMP.mkdir(parents=True, exist_ok=True)
+        p = CORR_TMP / "apply.txt"
+        p.write_bytes((base + "".join(ln + "\n" for ln in keep)).encode("utf-8"))
+        try:
+            s = st.replant(p)
+        except pin_rows.Refuse as e:
+            raise Refuse(f"pin_rows: {e}")
+        finally:
+            p.unlink()
+            try:
+                CORR_TMP.rmdir()
+            except OSError:
+                pass
+        by = {r["line"]: r for r in s.rows}
+        moved = [r["line"] for r in st.rows if r["line"] not in by or r["fails"] != by[r["line"]]["fails"]]
+        if moved:
+            raise Refuse(f"--apply: {len(moved)} existing pin row(s) change result, e.g. lines "
+                         + ", ".join(map(str, moved[:4])))
+        bad = {}
+        for i, ln in enumerate(keep, nb + 1):
+            r = by.get(i)
+            if r is None or r.get("va") != int(ln.split()[0], 16):
+                raise Refuse(f"--apply: replanted line {i} is not {ln.split()[0]}")
+            if r["fails"]:
+                bad[ln] = ";".join(r["fails"])
+        if not bad:
+            return keep, drop
+        drop.update(bad)
+
+
+def run_promote_corr(bss, apply, task=None):
+    st, lines, cands = corr_state()
+    cands = [c for c in cands if bss or c["kind"] != "bss"]
+    by = corr_replant(st, lines, {c["line"]: corr_text(c) for c in cands}, "promote")
+    ents = []
+    for c in cands:
+        r = by[c["line"]]
+        if r.get("va") != c["va"] or r.get("name") != c["name"]:
+            raise Refuse(f"--promote-corr: replanted line {c['line']} is not 0x{c['va']:08X}")
+        ents.append({"va": f"0x{c['va']:08X}", "name": c["name"], "kind": c["kind"], "route": c["route"],
+                     "verdict": "fail" if r["fails"] else "pass", "reason": ";".join(r["fails"]) or None})
+    OUT.mkdir(parents=True, exist_ok=True)
+    with open(CORR, "w", encoding="utf-8", newline="\n") as f:
+        for e in ents:
+            f.write(json.dumps(e, sort_keys=True) + "\n")
+    rv = Counter((e["route"], e["verdict"]) for e in ents)
+    rc = Counter((e["route"], e["reason"]) for e in ents if e["reason"])
+    print(f"name_sites --promote-corr{' --bss' if bss else ''}: {len(ents)} candidate(s); pass "
+          f"{sum(rv[(r, 'pass')] for r in CORR_ROUTES)}, fail {sum(rv[(r, 'fail')] for r in CORR_ROUTES)}")
+    print("  routes: " + ", ".join(f"{r} pass {rv[(r, 'pass')]} fail {rv[(r, 'fail')]}" for r in CORR_ROUTES))
+    for (r, why), k in sorted(rc.items()):
+        print(f"  reason {r}: {why} {k}")
+    print(f"  wrote {CORR.relative_to(REPO).as_posix()}")
+    if apply:
+        good = [c for c, e in zip(cands, ents) if e["verdict"] == "pass"]
+        if good:
+            out = list(lines)
+            for c in good:
+                out[c["line"] - 1] = corr_text(c)
+            text = "\n".join(out)
+            sep = "" if text.endswith("\n") else "\n"
+            run = f"{byte_compare._phase_run_dir().name} {task}"  # was the literal `# 4.2 T7` (4.3 T15): the run's phase, --task
+            text += (sep + f"# {run} name_sites --promote-corr{' --bss' if bss else ''}: {len(good)} lines promoted in "
+                     "place; checker tools/pin_rows.py corr-verified / callee route (D113), near route (D115, 4.2 T9)\n")
+            SYMS_PIN.write_bytes(text.encode("utf-8"))
+        print(f"  promoted {len(good)} line(s) in place in {SYMS_PIN}")
+    return 0
+
+
+def run_planted_corr(bss=False):
+    st, lines, cands = corr_state()
+    cands = [c for c in cands if bss or c["kind"] != "bss"]  # 4.2 T8: --bss plants the bss bundle route too
+    texts = {c["line"]: corr_text(c) for c in cands}
+    by = corr_replant(st, lines, texts, "planted-base")
+    good = [c for c in cands if not by[c["line"]]["fails"]]
+    plants = []
+    for route in CORR_ROUTES:
+        g = [c for c in good if c["route"] == route]
+        if len(g) < 2:
+            print(f"  {route}: {len(g)} passing row(s), no pair planted")
+            continue
+        a, b = g[0], g[1]
+        plants += [(a, b["name"]), (b, a["name"])]
+    if not plants:
+        print("name_sites --control planted-corr: no pair to plant -> FAIL")
+        return 1
+    for c, n in plants:
+        texts[c["line"]] = corr_text(c, n)
+    by = corr_replant(st, lines, texts, "planted", strict=False)
+    leaks = 0
+    for c, n in plants:
+        r = by[c["line"]]
+        leaks += not r["fails"]
+        print(f"  {c['route']}: VA 0x{c['va']:08X} ({safe(c['name'])}) planted {safe(n)}: "
+              + (";".join(r["fails"]) or "NOT REFUSED"))
+    ok = leaks == 0
+    print(f"name_sites --control planted-corr: {len(plants)} planted row(s), {leaks} not refused -> "
+          f"{'PASS' if ok else 'FAIL'}")
+    return 0 if ok else 1
+
+
+NEAR_SRC ="proto-pdb-public+anchor-window+caller-xref"  # 3.4 T2 near-corr pin source
 NEAR_POS_FLOOR = 10  # 3.4 T2 ruling: near-positive needs >= 10 named (judged) rows
 NEAR_REASONS = ("new", "upgrade", "already", "no-public", "multi-public", "not-func", "outside-window", "similarity-below",
                 "similarity-drift", "no-xref", "xref-conflict", "fold", "va-two-rows", "named-differently",
@@ -1377,23 +1681,523 @@ def run_near_planted(img, pubs, procs, unit):
     return 0 if ok else 1
 
 
+def run_near_callee_planted(img, pubs, procs):
+    """4.2 T1 --control near-callee-planted (3.5 T7's missing control; near-planted never reaches the caller piece): wrong
+    names on called functions, all near rows. Truth = a near row near_check passes (accepted callers agree on it).
+    look-alike: another public of the row's proto gap at the row's VA; those that clear window and similarity must be
+    refused by the caller piece alone. sibling: a different callee of the same accepted caller at the row's VA. forged:
+    one conflicting caller injected in memory on each side. moved: every real site whose masked-equal caller's proto
+    target public differs from the accepted names at the retail target (not a fold; `_X@4` and `X` are one name: library
+    rows of symbols.txt are undecorated). forged agree: a caller claiming a look-alike at a VA that has a true caller.
+    Exit 0 iff look-alike, sibling and forged are non-empty and every case is refused (look-alike at no-xref or
+    xref-conflict; forged and forged agree at xref-conflict). Limit, by reading: a callee whose only accepted caller's
+    retail target moved has nothing left to conflict with; `moved` counts how often that shape exists in the tree."""
+    import candidates
+    import units_seed
+    ctx = near_ctx(img, pubs, procs)
+    folds = {int(e["retailVA"], 16) for e in load_jsonl(need(FOLDS))}
+    aprotos = ctx["aprotos"]
+    passing = [(rva, pva) for rva, pva, _r in near_rows(ctx) if near_check(ctx, pva, rva)["verdict"] == "pass"]
+    pvas = sorted(p for p in procs if len(pubs.get(p, ())) == 1)
+    by_caller = defaultdict(set)
+    for pd, sites in ctx["by_pd"].items():
+        for rd, cva in sites:
+            by_caller[cva].add((pd, rd))
+    k, leaks = Counter(), []
+
+    def plant(kind, pva, rva, want=None):
+        c = near_check(ctx, pva, rva)
+        k[f"{kind} {c['reason']}"] += 1
+        bad = c["verdict"] == "pass" or (want is not None and c["reason"] not in want)
+        if bad:
+            leaks.append(f"{kind}: proto 0x{pva:08X} ({safe(c['name'] or '-')}) -> retail 0x{rva:08X}: {c['verdict']} "
+                         f"{c['reason']}, sim {c['sim']}, agree {c['agree']}, conflicts {c['conflicts']}")
+        return c
+    XREF = ("no-xref", "xref-conflict")
+    n_look = n_sib = 0
+    forged_at = None
+    for rva, pva in passing:
+        g = bisect.bisect_left(aprotos, pva)
+        lo, hi = aprotos[g - 1] if g else 0, aprotos[g] if g < len(aprotos) else 1 << 32
+        n = procs[pva]
+        for w in pvas[bisect.bisect_right(pvas, lo):bisect.bisect_left(pvas, hi)]:
+            if w == pva or not 0.4 * n <= procs[w] <= 2.5 * n:
+                continue
+            c = near_check(ctx, w, rva)
+            if c["reason"] in ("similarity-below", "outside-window", "not-func"):
+                k["look-alike screened"] += 1
+                continue
+            n_look += 1
+            plant("look-alike", w, rva, XREF)
+            if forged_at is None:
+                forged_at = (w, rva, next(c for _pd, c in ctx["by_rd"][rva] if c != rva))
+        for _pd, cva in ctx["by_rd"].get(rva, ()):
+            for pd2, rd2 in sorted(by_caller[cva]):
+                if pd2 != pva and rd2 != rva and len(pubs.get(pd2, ())) == 1:
+                    n_sib += 1
+                    plant("sibling", pd2, rva)
+    forged = 0
+    if passing:
+        rva, pva = passing[0]
+        cva = next(c for _rd, c in ctx["by_pd"][pva] if c != rva)
+        for key, side, val in (("by_pd", pva, (rva + 0x10, cva)), ("by_rd", rva, (pva + 0x10, cva))):
+            by = dict(ctx[key])
+            by[side] = list(by.get(side, ())) + [val]
+            c = near_check(dict(ctx, **{key: by}), pva, rva)
+            forged += c["reason"] == "xref-conflict"
+            print(f"  forged conflict {key}: proto 0x{pva:08X} -> retail 0x{rva:08X}: {c['verdict']} {c['reason']}, "
+                  f"agree {c['agree']}, conflicts {c['conflicts']}")
+    if forged_at:
+        w, rva, cva = forged_at
+        by = dict(ctx["by_pd"])
+        by[w] = list(by.get(w, ())) + [(rva, cva)]
+        c = near_check(dict(ctx, by_pd=by), w, rva)
+        forged += c["reason"] == "xref-conflict"
+        print(f"  forged agree: proto 0x{w:08X} -> retail 0x{rva:08X}: {c['verdict']} {c['reason']}, agree {c['agree']}, "
+              f"conflicts {c['conflicts']}")
+
+    def bare(n):
+        return re.sub(r"@\d+$", "", n).lstrip("_")
+    names = defaultdict(set)
+    for tab, ok in ((SYMS, units_seed.STATUSES), (SYMS_PIN, candidates.PIN_STATUSES)):
+        for ln in need(tab).read_text(encoding="utf-8").splitlines():
+            if ln.strip() and not ln.startswith("#"):
+                f = ln.split()
+                if f[1] == "func" and f[-1] in ok:
+                    names[int(f[0], 16)].add(bare(" ".join(f[3:-2])))
+    agree, moved = 0, set()
+    for pd, sites in ctx["by_pd"].items():
+        ns = pubs.get(pd, set())
+        for rd, _c in sites:
+            if len(ns) != 1 or not names.get(rd):
+                continue
+            if bare(next(iter(ns))) in names[rd]:
+                agree += 1
+            elif rd in folds:
+                k["moved fold-excluded"] += 1
+            else:
+                moved.add((pd, rd))
+    for pd, rd in sorted(moved):
+        plant("moved", pd, rd)
+    for t in sorted(k):
+        print(f"  {t}: {k[t]}")
+    for ln in leaks[:40]:
+        print(f"  LEAK {ln}")
+    ok = n_look > 0 and n_sib > 0 and forged == 3 and not leaks
+    print(f"name_sites --control near-callee-planted: {len(passing)} passing callee row(s); caller sites naming the "
+          f"accepted name {agree}, moved {len(moved)}; planted look-alike {n_look}, sibling {n_sib}, forged {forged} of 3, "
+          f"moved {len(moved)}; {len(leaks)} not refused -> {'PASS' if ok else 'FAIL'}")
+    return 0 if ok else 1
+
+
+PROV_START = REPO / "docs" / "matching" / "provisional_start.md"  # 4.2 T2 frozen start set (484 rows)
+PROV_DOC = REPO / "docs" / "matching" / "provisional_residue.md"  # 4.2 T11 --provisional
+PROV_ROW = re.compile(r"^\s*- (\d+) (0x[0-9A-F]{8}) ")
+T2_SUPPLY = (585, 142473)  # 4.2 T2: reloc-provisional 484 + reloc-data 93 + reloc-code 8, bytes
+T2_BLOCKED = 719  # 4.2 T2: census "Rows blocked" pool
+NAME_ONLY = ("reloc-provisional", "reloc-data", "reloc-code")
+
+
+def prov_start():
+    """-> [(rank, va, name, [(target, owner, off, status, cls)])] from the frozen start set; owner as written there."""
+    out = []
+    for ln in need(PROV_START).read_text(encoding="utf-8").splitlines():
+        if not re.match(r"^- \d+ 0x", ln):
+            continue
+        head, _, rest = ln[2:].partition(" | ")
+        rk, va, name = head.split(" ", 2)
+        ts = []
+        for e in rest.split("; "):
+            p = e.split(" ")
+            owner = " ".join(p[1:-2])
+            m = re.search(r"\+0x([0-9A-F]+)$", owner)
+            ts.append((int(p[0], 16), owner, int(m.group(1), 16) if m else 0, p[-2], p[-1]))
+        out.append((int(rk), int(va, 16), name, ts))
+    if len(out) != 484 or len({(r[0], r[1]) for r in out}) != 484:
+        raise Refuse(f"{PROV_START.name}: {len(out)} rows, expected 484 distinct")
+    return out
+
+
+def prov_table():
+    """-> ({va: (kind, status, line)} symbols.txt then symbols_pin.txt (pin wins, as candidates.load_symbols), sorted VAs)."""
+    tab = {}
+    for p in (SYMS, SYMS_PIN):
+        for ln in need(p).read_text(encoding="utf-8").splitlines():
+            if ln.strip() and not ln.startswith("#"):
+                f = ln.split()
+                tab[int(f[0], 16)] = (f[1], f[-1], ln)
+    return tab, sorted(tab)
+
+
+def prov_target(t, off, tab, vas, funcs, accepted):
+    """-> (accepted bool, pin line | None, status | None): a func-table VA, else the data line at t - off with no pinned
+    VA in (t - off, t] (the start set's owner extent, 3.4 T16 members); status through candidates.accepted."""
+    if t in funcs:
+        k, st, ln = tab[t]
+        return accepted(st, t, funcs), ln, st
+    g = t - off
+    if g in tab and tab[g][0] != "func" and bisect.bisect_right(vas, t) - 1 == bisect.bisect_left(vas, g):
+        k, st, ln = tab[g]
+        return accepted(st, t, funcs), ln, st
+    return False, None, None
+
+
+def prov_accept():
+    import candidates
+    funcs = candidates.load_symbols()[0]
+    tab, vas = prov_table()
+    return lambda t, off: prov_target(t, off, tab, vas, funcs, candidates.accepted)
+
+
+def prov_parse(text):
+    """-> (unblocked [(rank, va)], blocked [(rank, va)]) from the doc's ## Unblocked and ## Blocked sections."""
+    sec, u, b = None, [], []
+    for ln in text.splitlines():
+        if ln.startswith("## "):
+            sec = ln[3:].strip()
+            continue
+        m = PROV_ROW.match(ln)
+        if m and sec in ("Unblocked", "Blocked"):
+            (u if sec == "Unblocked" else b).append((int(m.group(1)), int(m.group(2), 16)))
+    return u, b
+
+
+def prov_check(start, u, b, acc):
+    """-> FAIL lines: a start row in neither or both sections (or twice), a doc row outside the start set, an Unblocked
+    row with a target not accepted now, a Blocked row with every target accepted."""
+    fails = []
+    cu, cb = Counter(u), Counter(b)
+    keys = {(r[0], r[1]): r for r in start}
+    for k in sorted(set(cu) | set(cb)):
+        if k not in keys:
+            fails.append(f"rank {k[0]} 0x{k[1]:08X}: not a start row")
+    for k, r in sorted(keys.items()):
+        n = cu[k] + cb[k]
+        if n != 1:
+            fails.append(f"rank {k[0]} 0x{k[1]:08X}: in {n} places (Unblocked {cu[k]}, Blocked {cb[k]})")
+            continue
+        bad = [t for t, _o, off, _s, _c in r[3] if not acc(t, off)[0]]
+        if cu[k] and bad:
+            fails.append(f"rank {k[0]} 0x{k[1]:08X}: Unblocked with target(s) not accepted "
+                         + ", ".join(f"0x{t:08X}" for t in bad))
+        if cb[k] and not bad:
+            fails.append(f"rank {k[0]} 0x{k[1]:08X}: Blocked with every target accepted")
+    return fails
+
+
+def run_prov_check(control=None):
+    """--provisional --check, --control prov-drop|prov-false-unblocked (exit 0 only when the planted doc fails)."""
+    start = prov_start()
+    acc = prov_accept()
+    u, b = prov_parse(need(PROV_DOC).read_text(encoding="utf-8"))
+    if control == "prov-drop":
+        if not u and not b:
+            raise Refuse("prov-drop: no row to drop")
+        k = (u or b).pop(0)
+        print(f"name_sites --control prov-drop: dropped rank {k[0]} 0x{k[1]:08X}")
+    elif control == "prov-false-unblocked":
+        if not b:
+            raise Refuse("prov-false-unblocked: no Blocked row to move")
+        k = b.pop(0)
+        u.append(k)
+        print(f"name_sites --control prov-false-unblocked: moved rank {k[0]} 0x{k[1]:08X} to Unblocked")
+    fails = prov_check(start, u, b, acc)
+    for f in fails[:20]:
+        print(f"  FAIL {f}")
+    print(f"name_sites --provisional --check{' (' + control + ')' if control else ''}: start {len(start)}, "
+          f"Unblocked {len(u)}, Blocked {len(b)}, FAIL {len(fails)}")
+    if control:
+        ok = bool(fails)
+        print(f"  control {control}: {'PASS (check failed as planted)' if ok else 'FAIL (check passed a planted doc)'}")
+        return 0 if ok else 1
+    return 1 if fails else 0
+
+
+def prov_buckets():
+    """-> ({va: bucket | "matched"} identical lane, {va: size}, {bucket: [size]} identical lane) via pool_buckets.assign
+    with pool_buckets.main's inputs."""
+    import coff_info
+    import pool_buckets as pb
+    pin = coff_info.pinned_sha() or ""
+    cut = byte_compare.cut_dir(pin)
+    why = byte_compare.cut_check(cut)
+    if why:
+        raise Refuse(why)
+    rows = [r for r in load_jsonl(need(CAND)) if r.get("lane", "identical") == "identical"]
+    ms = tomllib.loads(need(MATCHED).read_text(encoding="utf-8"))
+    matched = {(f["symbol"], pb.as_int(f["va"])) for f in ms.get("function", [])}
+    maxsize = max((f["size"] for f in ms.get("function", [])), default=0)
+    opt = {u["name"]: u.get("opt", "unknown") for u in tomllib.loads(pb.UNITS.read_text(encoding="utf-8"))["unit"]}
+    led = defaultdict(list)
+    for x in pb.match_one.load_ledger([need(pb.LEDGER)] + pb.match_one.ledger_paths()[1:]):
+        if x.get("va") not in (None, "None"):
+            led[pb.as_int(x["va"])].append(x)
+        led[x["symbol"]].append(x)
+    _u, out, _e, _t = pb.assign(rows, matched, opt, pin, cut, led, maxsize, {}, set())
+    bk = {r["va"]: "matched" for r in rows}
+    for b, rs in out.items():
+        for r in rs:
+            bk[r["va"]] = b
+    return bk, {r["va"]: r["size"] for r in rows}, {b: [r["size"] for r in rs] for b, rs in out.items()}
+
+
+def prov_ev(x):
+    ev = x.get("evidence")
+    if ev:
+        xr = ev["xref"]
+        return (f"xref {xr['result'] or 'one public'} (sites {xr['sites']}, names {names_txt(xr['names'])}), cut-sym "
+                f"{names_txt(ev['cutSym'])}, strings {ev['strings']}")
+    if x["reason"] == "constant":
+        return "constant, not an address"
+    return "second pass did not examine it (target named or no unnamed residue)"
+
+
+def run_provisional():
+    """--provisional (4.2 T11): docs/matching/provisional_residue.md from the start set; see the doc's header."""
+    start = prov_start()
+    acc = prov_accept()
+    bk, size, bsz = prov_buckets()
+    residue = load_jsonl(need(OUT / "residue.jsonl"))
+    res_t, res_r = defaultdict(list), defaultdict(list)
+    for x in residue:
+        res_t[int(x["target"], 16)].append(x)
+        res_r[int(x["rowVA"], 16)].append(x)
+    corr = defaultdict(list)
+    for e in load_jsonl(CORR) if CORR.is_file() else []:
+        corr[int(e["va"], 16)].append(e)
+    near = defaultdict(list)
+    for e in load_jsonl(OUT / "near.jsonl") if (OUT / "near.jsonl").is_file() else []:
+        near[int(e["va"], 16)].append(e)
+    appl = defaultdict(list)
+    for e in load_jsonl(OUT / "apply.jsonl") if (OUT / "apply.jsonl").is_file() else []:
+        appl[int(e["line"].split()[0], 16)].append(e)
+    unexamined = sum(1 for x in residue if x["reason"] != "constant" and not x.get("evidence"))
+    # candidates.jsonl's own verdict per start target (cross-check of the pin-table re-derivation)
+    import candidates
+    funcs = candidates.load_symbols()[0]
+    cand = {r["va"]: r for r in load_jsonl(CAND) if r.get("lane", "identical") == "identical"}
+    disagree = []
+    verdict = {}
+    for rk, va, name, ts in start:
+        for t, _o, off, _s, _c in ts:
+            v = acc(t, off)
+            verdict[(va, t)] = v
+            cs = {s["resolved"] for s in cand.get(va, {}).get("sites", []) if s["target"] == t}
+            if cs and any(candidates.accepted(s, t, funcs) != v[0] for s in cs):
+                disagree.append(f"rank {rk} 0x{va:08X} target 0x{t:08X}: pin tables {v[0]}, candidates.jsonl {sorted(cs)}")
+
+    dry = {int(e["va"], 16): e for e in load_jsonl(OUT / "names.jsonl")} if (OUT / "names.jsonl").is_file() else {}
+
+    def other(va):  # this row's unresolved sites in candidates.jsonl (not start targets), with the evidence on file
+        ts = sorted({s["target"] for s in cand.get(va, {}).get("sites", []) if s["resolved"] is None})
+        out = []
+        for t in ts:
+            xs = [x for x in res_r.get(va, []) if int(x["target"], 16) == t]
+            if xs:
+                out.append(f"0x{t:08X} {xs[0]['reason']} ({prov_ev(xs[0])})")
+            elif t in dry:
+                ap = appl.get(t, [])
+                out.append(f"0x{t:08X} second pass names {safe(dry[t]['name'])} ({dry[t]['via']}, {dry[t]['evidence']}),"
+                           " not pinned: " + ("; ".join(f"T10 replant kept {e['kept']} {e['why'] or ''}".rstrip()
+                                                        for e in ap) or "no T10 apply line"))
+            else:
+                out.append(f"0x{t:08X} not in residue.jsonl or names.jsonl")
+        return ("; unresolved: " + "; ".join(out)) if out else ""
+
+    unb, blk = [], []
+    nblock = Counter()
+    for r in start:
+        bad = [t for t, *_ in r[3] if not verdict[(r[1], t)][0]]
+        (blk if bad else unb).append(r)
+        nblock.update(bad)
+    owners = {t: (o, off, s, c) for r in start for t, o, off, s, c in r[3]}
+    groups = defaultdict(list)
+    for r in blk:
+        bad = sorted((t for t, *_ in r[3] if not verdict[(r[1], t)][0]), key=lambda t: (-nblock[t], t))
+        groups[bad[0]].append((r, bad[1:]))
+
+    def mb(n):
+        return f"{n:,} B"
+
+    def sz(rs):
+        return sum(size.get(r[1], 0) for r in rs)
+
+    absent = [r for r in start if r[1] not in size]
+    left = [r for r in start if bk.get(r[1]) != "reloc-provisional"]
+    lb = Counter(bk.get(r[1], "not in candidates.jsonl") for r in left)
+    sup = sum(len(bsz.get(b, [])) for b in NAME_ONLY), sum(sum(bsz.get(b, [])) for b in NAME_ONLY)
+    cen = None
+    cdoc = REPO / "docs" / "matching" / "family_census.md"
+    if cdoc.is_file():
+        m = re.search(r"^Rows blocked: (\d+) of (\d+) pool", cdoc.read_text(encoding="utf-8"), re.M)
+        cen = (int(m.group(1)), int(m.group(2))) if m else None
+    L = ["# Provisional residue (generated)", "",
+         "Generated by `PY tools/name_sites.py --provisional` (4.2 T11) from the frozen start set"
+         " docs/matching/provisional_start.md, config/retail/symbols.txt + symbols_pin.txt (`candidates.accepted`),"
+         " derived/candidates/candidates.jsonl (`pool_buckets.assign`) and derived/name_sites/{residue,corr,near,apply}"
+         ".jsonl; never hand-edited. Addresses, names and counts only (D46): `??_C@` names masked. Checked by"
+         " `--provisional --check` (each start row in exactly one section; Unblocked targets all accepted).", "",
+         "Acceptance per target: a func-table VA's status, else the data line at target minus the start set's member"
+         " offset with no pinned VA in between; `candidates.accepted` (self, constant, units_seed.STATUSES,"
+         " PIN_STATUSES, near-corr for func-table VAs). Buckets: identical lane, `matched` when in matched_set.toml.", "",
+         "## Figures", "",
+         f"- Start set: {len(start)} rows, {mb(sz(start))} (start rows x candidates.jsonl sizes; T2 docs carry no start"
+         f" bytes){f'; {len(absent)} start rows not in candidates.jsonl' if absent else ''}.",
+         f"- Of the 484: unblocked {len(unb)} rows, {mb(sz(unb))}; still blocked {len(blk)} rows, {mb(sz(blk))},"
+         f" by {len(groups)} primary targets ({len(nblock)} blocking targets in all).",
+         f"- Of the 484: left `reloc-provisional` {len(left)} rows, {mb(sz(left))}: "
+         + ", ".join(f"{b} {n}" for b, n in sorted(lb.items(), key=lambda kv: (-kv[1], kv[0])))
+         + f"; still `reloc-provisional` {len(start) - len(left)} rows, {mb(sz(start) - sz(left))}.",
+         f"- Name-only supply (reloc-provisional + reloc-data + reloc-code, identical lane): T2 {T2_SUPPLY[0]} rows,"
+         f" {mb(T2_SUPPLY[1])}; now {sup[0]} rows, {mb(sup[1])}; freed {T2_SUPPLY[0] - sup[0]} rows,"
+         f" {mb(T2_SUPPLY[1] - sup[1])} (" + ", ".join(f"{b} {len(bsz.get(b, []))}" for b in NAME_ONLY) + ").",
+         (f"- Census \"Rows blocked\" pool: T2 {T2_BLOCKED}; now {cen[0]} of {cen[1]} pool"
+          f" (docs/matching/family_census.md); freed {T2_BLOCKED - cen[0]} rows (T2 recorded rows only, no bytes)."
+          if cen else "- Census \"Rows blocked\": docs/matching/family_census.md absent or without the line."),
+         f"- Cross-check: start targets where candidates.jsonl's verdict differs from the pin tables: {len(disagree)}.",
+         f"- Residue evidence: {len(residue)} residue sites, {unexamined} non-constant without second-pass evidence"
+         " (residue.jsonl of the last name_sites run; T11 runs it with `--min-rows 1`).", "",
+         "## Unblocked", "",
+         f"{len(unb)} rows. `rank VA name | bucket | target = pin line` per start target; `unresolved:` the row's"
+         " unresolved sites in candidates.jsonl (not start targets) with residue.jsonl's reason and second-pass"
+         " evidence, or the second pass's name (names.jsonl) and the T10 replant verdict (apply.jsonl).", ""]
+    for rk, va, name, ts in unb:
+        tl = "; ".join(f"0x{t:08X} = {safe_line(verdict[(va, t)][1])}" for t, *_x in ts)
+        L.append(f"- {rk} 0x{va:08X} {name} | {bk.get(va, 'not in candidates.jsonl')} | {tl}{other(va)}")
+    L += ["", "## Blocked", "",
+          f"{len(blk)} rows, {len(nblock)} blocking targets, one section each; a row is listed once, under its primary"
+          f" target (its blocking target that blocks most start rows, then VA; {len(groups)} targets are primary);"
+          " `also:` the row's other blocking targets. Per target: the pin line now, why it is not accepted,"
+          " and the evidence searched: corr.jsonl (--promote-corr verdict), near_check (near.jsonl, corr route near),"
+          " residue.jsonl (reason, second-pass evidence), apply.jsonl (T10 replant).", ""]
+    nctx = None
+    elsewhere = defaultdict(list)
+    for t0, rs in groups.items():
+        for r, also in rs:
+            for x in also:
+                elsewhere[x].append(r)
+    for t in sorted(nblock, key=lambda t: (-nblock[t], t)):
+        o, off, s, c = owners[t]
+        ok, ln, st = acc(t, off)
+        L += [f"### 0x{t:08X} {safe(o) if ' ' not in o else o} · blocks {nblock[t]} start rows, primary for"
+              f" {len(groups[t])} · start {s} {c}", ""]
+        L.append(f"- pin: {safe_line(ln)}")
+        if ln is None:
+            why = "no pin line covers the target now"
+        elif st in ("near-corr",) and t not in funcs:
+            why = f"status {st} is accepted for func-table VAs only (D115); this target is data"
+        else:
+            why = f"status {st} is not an accepted status"
+        cs = corr.get(t - off, [])
+        L.append("- corr.jsonl: " + ("; ".join(f"route {e['route']} {e['verdict']} {e['reason'] or ''}".rstrip()
+                                                for e in cs) if cs else "no candidate at this VA (not routed)"))
+        nc = near.get(t, []) + [e for e in cs if e["route"] == "near"]
+        if t in funcs:  # near_check now, at each proto VA of the pin's PDB public (T9's corr_near pair)
+            if nctx is None:
+                img, pubs, procs = load()
+                nctx = (near_ctx(img, pubs, procs), defaultdict(list))
+                for pv, ns in pubs.items():
+                    for n in ns:
+                        nctx[1][n].append(pv)
+            nm = funcs[t]["name"]
+            nc += [dict(near_check(nctx[0], pv, t), now=f"0x{pv:08X}") for pv in sorted(nctx[1].get(nm, ()))] or                 [{"verdict": "fail", "reason": "no PDB public of this name", "now": "-"}]
+        L.append("- near_check: " + ("; ".join(
+            (f"now proto {e['now']}: " if "now" in e else "near.jsonl: " if "sim" in e and e.get("route") is None
+             else f"corr route {e.get('route')}: ") + f"{e['verdict']} {e['reason'] or ''}".rstrip()
+            + (f" (sim {e['sim']})" if e.get("sim") is not None else "") for e in nc)
+            if nc else "not applicable (data target, not a near row)"))
+        xs = res_t.get(t, [])
+        L.append("- residue.jsonl: " + ("; ".join(f"{x['reason']} ({prov_ev(x)})" for x in xs[:3])
+                                         + (f"; +{len(xs) - 3} sites" if len(xs) > 3 else "")
+                                         if xs else "no site at this target (a pinned name, not residue)"))
+        ap = appl.get(t - off, [])
+        L.append("- apply.jsonl: " + ("; ".join(f"kept {e['kept']} {e['why'] or ''}".rstrip() for e in ap)
+                                       if ap else "no T10 line at this VA"))
+        L.append(f"- stays blocked: {why}" + (f"; corr {cs[0]['reason']}" if cs and cs[0]["verdict"] == "fail" else
+                                               "; --promote-corr never routes ??_C@/__real@ (T7)"
+                                               if not cs and ln and ln.split()[3].startswith(("??_C@", "__real@"))
+                                               else ""))
+        if elsewhere[t]:
+            L.append("- also blocks (listed under their primary): "
+                     + ", ".join(f"{r[0]} 0x{r[1]:08X}" for r in sorted(elsewhere[t])))
+        L.append("- rows:" if groups[t] else "- rows: none primary here")
+        for (rk, va, name, _ts), also in groups[t]:
+            al = (" | also: " + ", ".join(f"0x{x:08X}" for x in also)) if also else ""
+            L.append(f"  - {rk} 0x{va:08X} {name} | {bk.get(va, 'not in candidates.jsonl')}{al}{other(va)}")
+        L.append("")
+    PROV_DOC.write_bytes(("\n".join(L).rstrip("\n") + "\n").encode("utf-8"))
+    for d in disagree[:10]:
+        print(f"  WARN {d}")
+    print(f"name_sites --provisional: start {len(start)}; unblocked {len(unb)} ({sz(unb)} B), blocked {len(blk)} "
+          f"({sz(blk)} B), {len(nblock)} blocking targets, {sum(1 for v in groups.values() if v)} primary; left reloc-provisional {len(left)} ({sz(left)} B); "
+          f"name-only supply {sup[0]} ({sup[1]} B); census blocked {cen[0] if cen else '?'}; "
+          f"cross-check disagreements {len(disagree)}; wrote {PROV_DOC.relative_to(REPO).as_posix()}")
+    return 0
+
+
+def safe_line(ln):
+    """D46: a pin line with its name field masked (safe())."""
+    if ln is None:
+        return "no pin line"
+    f = ln.split()
+    return " ".join(f[:3] + [safe(" ".join(f[3:-2]))] + f[-2:])
+
+
 def main(argv):
+    global MIN_ROWS
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--unit", help="one units.toml unit name (exact, or the .obj basename)")
     ap.add_argument("--apply", action="store_true", help="append pins.txt lines to config/retail/symbols_pin.txt")
     ap.add_argument("--rows", default=str(CAND), help="candidates jsonl (default derived/candidates/candidates.jsonl)")
-    ap.add_argument("--control", choices=("positive", "planted", "planted-data", "near-positive", "near-planted"))
+    ap.add_argument("--control", choices=("positive", "planted", "planted-data", "near-positive", "near-planted",
+                                                 "near-callee-planted", "planted-corr", "prov-drop",
+                                                 "prov-false-unblocked"))
     ap.add_argument("--near", action="store_true",
                     help="3.4 T2: name proto_map near-identical rows (near_check + gates); --apply appends near_pins.txt")
     ap.add_argument("--doc", action="store_true", help="also write docs/matching/naming_residue.md (all rows)")
     ap.add_argument("--check-cut", action="store_true",
-                    help="every pinned pool site: cut relocation at its offset names the pin; other unresolved: residue; exit 0/1")
+                    help="every pinned pool site: cut relocation at its offset names the pin; other unresolved: residue or"
+                         " ACCEPTED_SITES (STALE if a listed site no longer fails); exit 0/1")
     ap.add_argument("--promote-data", action="store_true",
                     help="3.3 T8 data byte route over site-corr data pins; --apply rewrites the passing lines in place")
+    ap.add_argument("--promote-corr", action="store_true",
+                    help="4.2 T7 site-corr pins through pin_rows' corr/callee routes; --apply rewrites passing lines")
+    ap.add_argument("--task", help="T<n>, required with --promote-corr --apply: names the run in the pin file's comment line (4.3 T15)")
+    ap.add_argument("--bss", action="store_true", help="--promote-corr, --control planted-corr: include bss data rows (off by default)")
+    ap.add_argument("--min-rows", type=int, default=MIN_ROWS, metavar="N",
+                    help=f"4.2 T10: second pass over residue targets blocking >= N pool rows (default {MIN_ROWS})")
+    ap.add_argument("--provisional", action="store_true",
+                    help="4.2 T11: write docs/matching/provisional_residue.md from the frozen start set")
+    ap.add_argument("--check", action="store_true", help="with --provisional: parse the doc back and re-derive; exit 0/1")
     try:
         a = ap.parse_args(argv)
     except SystemExit as e:
         return 0 if e.code == 0 else 2
+    if a.min_rows < 1:
+        print("name_sites: REFUSED --min-rows takes N >= 1")
+        return 2
+    MIN_ROWS = a.min_rows
+    prov_ctl = a.control in ("prov-drop", "prov-false-unblocked")
+    if a.check and not a.provisional or (a.provisional or prov_ctl) and (
+            a.apply or a.unit or a.doc or a.near or a.check_cut or a.promote_data or a.promote_corr or a.bss
+            or a.control and not prov_ctl or prov_ctl and a.check):
+        print("name_sites: REFUSED --provisional takes only --check; --control prov-* runs alone (or with --provisional)")
+        return 2
+    if a.provisional or prov_ctl:
+        try:
+            return run_prov_check(a.control) if a.check or prov_ctl else run_provisional()
+        except Refuse as e:
+            print(f"name_sites: REFUSED {e}")
+            return 2
+    if a.promote_corr and (a.control or a.check_cut or a.unit or a.near or a.promote_data or a.doc):
+        print("name_sites: REFUSED --promote-corr takes no --control/--check-cut/--unit/--near/--promote-data/--doc")
+        return 2
+    if a.promote_corr and a.apply and not re.fullmatch(r"T\d+(\.c\d+)?", a.task or "") or a.task and not (a.promote_corr and a.apply):
+        print(f"name_sites: REFUSED --task T<n> goes with --promote-corr --apply, and that needs it (got {a.task!r})")
+        return 2
+    if a.bss and not (a.promote_corr or a.control == "planted-corr"):
+        print("name_sites: REFUSED --bss goes with --promote-corr or --control planted-corr")
+        return 2
     if a.promote_data and (a.control or a.check_cut or a.doc):
         print("name_sites: REFUSED --promote-data takes no --control/--check-cut/--doc")
         return 2
@@ -1422,6 +2226,10 @@ def main(argv):
             unit = hit[0]
         if a.check_cut:
             return check_cut(rows)
+        if a.promote_corr:
+            return run_promote_corr(a.bss, a.apply, a.task)
+        if a.control == "planted-corr":
+            return run_planted_corr(a.bss)
         table = load_table()
         img, pubs, procs = load()
         if a.control == "positive":
@@ -1434,6 +2242,8 @@ def main(argv):
             return run_near_positive(img, pubs, procs, unit, Path(a.rows))
         if a.control == "near-planted":
             return run_near_planted(img, pubs, procs, unit)
+        if a.control == "near-callee-planted":
+            return run_near_callee_planted(img, pubs, procs)
         if a.near:
             return run_near(img, pubs, procs, table, a.apply)
         if a.promote_data:
@@ -1497,9 +2307,24 @@ def main(argv):
         if dup:
             print(f"name_sites: REFUSED --apply: {len(dup)} VA(s) already named, e.g. {', '.join(dup[:4])}")
             return 2
+        try:  # 4.2 T10: pin_rows replant decides every new line (C0193)
+            kept, dropped = apply_replant(pins, lines)
+        except Refuse as e:
+            print(f"name_sites: REFUSED {e}")
+            return 2
+        with open(OUT / "apply.jsonl", "w", encoding="utf-8", newline="\n") as f:
+            for ln in lines:
+                f.write(json.dumps({"line": ln, "kept": ln in kept, "why": dropped.get(ln)}, sort_keys=True) + "\n")
+        print(f"  replant: kept {len(kept)} of {len(lines)}; dropped "
+              + (", ".join(f"{w} {k}" for w, k in sorted(Counter(w.split(";")[0] for w in dropped.values()).items()))
+                 or "0") + f" (wrote {OUT.relative_to(REPO).as_posix()}/apply.jsonl)")
+        lines = kept
+        if not lines:
+            return 0
         old = SYMS_PIN.read_bytes().decode("utf-8")
         hdr = (f"# 3.1 T6 name_sites{' --unit ' + unit if unit else ''}: {len(lines)} lines; evidence "
-               f"docs/evidence/correspondence.md \"## Site-correspondence naming (3.1 T5)\"")
+               f"docs/evidence/correspondence.md \"## Site-correspondence naming (3.1 T5)\"; 4.2 T10: pin_rows replant "
+               f"kept, --min-rows {MIN_ROWS}")
         sep = "" if not old or old.endswith("\n") else "\n"
         SYMS_PIN.write_bytes((old + sep + hdr + "\n" + "".join(ln + "\n" for ln in lines)).encode("utf-8"))
         print(f"  applied {len(lines)} line(s) to {SYMS_PIN}")

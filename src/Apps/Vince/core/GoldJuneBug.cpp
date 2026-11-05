@@ -9,16 +9,31 @@ public:
     basic_string();
     basic_string(const E* ptr);
     ~basic_string() { _Tidy(true); }
+    const E* c_str() const { return _Myptr(); } // src proto-pdb:default.pdb c_str
+    basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
+    basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
+    static const unsigned int npos = (unsigned int)(-1);
+    const E* _Myptr() const { return _BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf; }
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    unsigned int _pad00[7];
+    enum { _BUF_SIZE = 16 / sizeof(E) < 1 ? 1 : 16 / sizeof(E) };
+    char _Alval;                       // 0x00
+    union {
+        E _Buf[_BUF_SIZE];
+        E* _Ptr;
+    } _Bx;                             // 0x04
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
 };
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
-class BeepTDF;               // NAME: proto-pdb:default.pdb
+class BeepTDF { // NAME: proto-pdb:default.pdb
+public:
+    const SwampString GetStringRecord(const SwampString& id, const SwampString& def) const;
+};
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
@@ -31,6 +46,8 @@ public:
     };
 
     void SetOption(unsigned int option, bool value, bool recursive);
+    void RemoveNodeFromScene();
+    void AddChild(SwampSceneNode*);
 };
 
 class FireFlyNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
@@ -39,7 +56,9 @@ public:
 
     char field_0[0xCE];                // 0x00
     bool _deleteWhenDone;              // 0xCE
-    char field_CF[0xE8 - 0xCF];        // 0xCF
+    char field_CF[0xD4 - 0xCF];        // 0xCF
+    int _useParentBoneIndex;           // 0xD4
+    char field_D8[0xE8 - 0xD8];        // 0xD8
 };
 
 class CollidableCylinder : public SwampSceneNode { // NAME: proto-pdb:default.pdb
@@ -133,6 +152,7 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     CritterMain(SwampSceneNode* node);
+    virtual void Message(SwampScript*, int, void*);
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -166,8 +186,59 @@ public:
     FireFlyNode* _drips;               // 0xC4
     FireFlyNode* _sparks;              // 0xC8
     SwampString _animName;             // 0xCC
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(GoldenJuneBugMain, 0xE8);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+    void NotifyMatchingCritters(const char*, SwampScript*, unsigned int, void*);
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
+class Level { // NAME: proto-pdb:default.pdb
+public:
+    const SwampString& GetAreaName() const { return _areaName; }
+
+    char field_0[0xC8];                // 0x00
+    SwampString _areaName;             // 0xC8
+    char field_E4[0x140 - 0xE4];       // 0xE4
+};
+DECOMP_SIZE_ASSERT(Level, 0x140);
+
+class LevelLoader { // NAME: proto-pdb:default.pdb
+public:
+    static LevelLoader& Instance();
+    Level* GetCurLevel() { return _curLevel; }
+
+    char field_0[0x4];                 // 0x00
+    Level* _curLevel;                  // 0x04
+};
+
+const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x00131605
+// PROTOTYPE: PREVIEW 0x0051A038 identical
+// NAME: proto-pdb:default.pdb
+void GoldenJuneBugMain::Message(SwampScript* source, int message, void* data)
+{
+    switch (message) {
+    case 2:
+        CritterMain::Message(source, message, data);
+        if (_state != STATE_HIDDEN) {
+            SetState(STATE_HIDDEN);
+            pManager->NotifyMatchingCritters("MysteryBox", this, 0x15, 0); // src proto-pdb:default.pdb MESSAGE_CLOSE
+        }
+        break;
+    default:
+        CritterMain::Message(source, message, data);
+    }
+}
 
 // FUNCTION: USA 0x00131655
 // PROTOTYPE: PREVIEW 0x0051A088 identical
@@ -218,3 +289,42 @@ GoldenJuneBugMain::GoldenJuneBugMain(SwampSceneNode* node)
     SetState(STATE_HIDDEN);
 }
 #endif
+
+// FUNCTION: USA 0x00131A35
+// PROTOTYPE: PREVIEW 0x0051A458 identical
+// NAME: proto-pdb:default.pdb
+void GoldenJuneBugMain::AnimationFinished()
+{
+    if (_drips) {
+        // !FAKE: c2 register allocation; neutral stand-in local; retail keeps the Find result in edi (no PDB local)
+        Critter* v0 = pManager->Find("mysterybox");
+        if (v0) {
+            _drips->RemoveNodeFromScene();
+            v0->AddChild(_drips);
+            _drips->_useParentBoneIndex = v0->_model->GetBoneIndex("root", false);
+        }
+        _drips->StopSpawning();
+        _drips->_deleteWhenDone = true;
+        _drips = 0;
+    }
+    SetState(STATE_HIDDEN);
+    pManager->NotifyMatchingCritters("MysteryBox", this, 0x15, 0); // src proto-pdb:default.pdb MESSAGE_CLOSE
+}
+
+// FUNCTION: USA 0x00131C8C
+// PROTOTYPE: PREVIEW 0x0051A6AF identical
+// NAME: proto-pdb:default.pdb
+SwampScript* GoldenJuneBugMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("scripts\\common\\GoldJuneBug.cpp", 27) GoldenJuneBugMain(node);
+}
+
+// FUNCTION: USA 0x00131CEF
+// PROTOTYPE: PREVIEW 0x0051A712 identical
+// NAME: proto-pdb:default.pdb
+void GoldenJuneBugMain::Load(const BeepTDF& tdf)
+{
+    SwampString defaultname = format("goldenjunebug_%s_path", LevelLoader::Instance().GetCurLevel()->GetAreaName().c_str());
+    _animName = tdf.GetStringRecord("animname", defaultname);
+}

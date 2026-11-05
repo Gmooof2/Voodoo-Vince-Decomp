@@ -27,7 +27,12 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string(const E* _Ptr);
+    ~basic_string() { _Tidy(true); }
     int compare(const E* ptr) const; // src proto-pdb:default.pdb compare
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
     char _pad00[0x1C];
@@ -41,35 +46,75 @@ inline bool operator==(const basic_string<E, T, A>& left, const E* right)
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 class BeepTDF;               // NAME: proto-pdb:default.pdb
-struct Vector3;              // NAME: proto-pdb:default.pdb
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    Vector3() {}
+    Vector3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
+
+struct Vector4 { // NAME: proto-pdb:default.pdb
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Vector4, 0x10);
+
 struct Quaternion;           // NAME: proto-pdb:default.pdb
 struct Matrix;               // NAME: proto-pdb:default.pdb
 struct AABox;                // NAME: proto-pdb:default.pdb
 class ModelResource;         // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
 
-// src proto-pdb:default.pdb BSPQueryResultObject base DumbBase at 0x0, not modelled
-class BSPQueryResultObject { // NAME: proto-pdb:default.pdb
+class DumbBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { --_RefCount; }
+
+    int _RefCount;                     // 0x00
+};
+DECOMP_SIZE_ASSERT(DumbBase, 0x4);
+
+class BSPQueryResultObject : public DumbBase { // NAME: proto-pdb:default.pdb
 public:
     unsigned int HitTag() const { return _tag; }
+    const Vector4& ImpactPlane() const { return _plane; }
 
-    char field_0[0x4];                 // 0x00
     unsigned int _tag;                 // 0x04
-    char field_8[0x40 - 0x8];          // 0x08
+    char field_8[0x10 - 0x8];          // 0x08
+    Vector4 _plane;                    // 0x10
+    char field_20[0x40 - 0x20];        // 0x20
 };
 DECOMP_SIZE_ASSERT(BSPQueryResultObject, 0x40);
 
 class CollisionResultObject : public BSPQueryResultObject { // NAME: proto-pdb:default.pdb
+public:
+    bool HitSomething() const { return _tag != 0; }
 };
 DECOMP_SIZE_ASSERT(CollisionResultObject, 0x40);
 
 template <class T>
 class Ptr { // NAME: proto-pdb:default.pdb
 public:
+    ~Ptr()
+    {
+        if (_Object)
+            _Object->SubRef();
+    }
     const T* operator->() const { return _Object; }
 
     T* _Object;                        // 0x00
 };
+
+class CritterCollision { // NAME: proto-pdb:default.pdb
+public:
+    Ptr<CollisionResultObject> _wall;  // 0x00
+    Ptr<CollisionResultObject> _floor; // 0x04
+};
+DECOMP_SIZE_ASSERT(CritterCollision, 0x8);
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -95,8 +140,11 @@ public:
     virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
     virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
     virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
+    void SetCollidable(bool b) { _collidable = b; }
 
-    char field_A4[0xAC - 0xA4];        // 0xA4
+    float _sphereRadius;               // 0xA4
+    bool _collidable;                  // 0xA8
+    char field_A9[0xAC - 0xA9];        // 0xA9
 };
 DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
 
@@ -122,10 +170,41 @@ public:
     virtual void Stun(float);                                      // vtable+0x3C
     virtual float GetGravity();                                    // vtable+0x40
     virtual void ReturnToHome();                                   // vtable+0x44
+    const Vector3& GetVelocity() const { return _Velocity; }
+    void SetVelocity(const Vector3& v) { _Velocity = v; }
+    bool IsOnFloor() const { return _OnFloor; }
+    CritterCollision MoveMyFatAss(float, unsigned int);
 
-    char field_200[0x2C8 - 0x200];     // 0x200
+    char field_200[0x20C - 0x200];     // 0x200
+    Vector3 _Velocity;                 // 0x20C
+    char field_218[0x250 - 0x218];     // 0x218
+    bool _OnFloor;                     // 0x250
+    char field_251[0x2C8 - 0x251];     // 0x251
 };
 DECOMP_SIZE_ASSERT(Critter, 0x2C8);
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+};
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
+class SwampCollide { // NAME: proto-pdb:default.pdb
+public:
+    static Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float, const GatorNode*, unsigned int);
+};
+
+class SoundManager { // NAME: proto-pdb:default.pdb
+public:
+    static void PlaySound(const SwampString&, unsigned int, SwampSceneNode*, bool, float, float);
+};
+
+class FireFlyNode; // NAME: proto-pdb:default.pdb
+class SwampParticleManager { // NAME: proto-pdb:default.pdb
+public:
+    FireFlyNode* AddOneShot(const SwampString&, const Vector3&);
+};
+extern SwampParticleManager* g_particleManager; // NAME: proto-pdb:default.pdb
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -160,6 +239,8 @@ public:
     virtual void InvalidateScript();                               // vtable+0x60
 
     SwampSceneNode* GetNode() { return _node; }
+    void RegisterFrameTick();
+    void UnRegisterFrameTick();
 
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
@@ -189,6 +270,7 @@ DECOMP_SIZE_ASSERT(CarriedObjectMain, 0xF8);
 
 class HeavyObjectMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
+    virtual void FrameTick();
 };
 DECOMP_SIZE_ASSERT(HeavyObjectMain, 0xF8);
 
@@ -230,8 +312,14 @@ public:
         STATE_ONSCALE = 7
     };
 
+    FlourSackMain(SwampSceneNode* node);
     virtual void Activate();
+    virtual void FrameTick();
     virtual void CollidedWith(CollisionType type, SwampSceneNode* critterhit, const Ptr<CollisionResultObject>& cr);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+public:
 
     ResourceHandle<AnimationResource> _animStuck; // 0xF8
     ResourceHandle<AnimationResource> _animFall;  // 0xFC
@@ -267,4 +355,60 @@ void FlourSackMain::Activate()
         GetCritter()->StartAnimation(_animFall, false, false);
         SetState(STATE_FALLING);
     }
+}
+
+// FUNCTION: USA 0x000798EE
+// PROTOTYPE: PREVIEW 0x00465902 identical
+// NAME: proto-pdb:default.pdb
+void FlourSackMain::FrameTick()
+{
+    bool wasonfloor = GetCritter()->IsOnFloor();
+    Vector3 oldvel = GetCritter()->GetVelocity();
+    if (_state == STATE_ONSCALE) {
+        GetCritter()->MoveMyFatAss(GetCritter()->GetGravity(), 5);
+        return;
+    }
+    HeavyObjectMain::FrameTick();
+    bool isonfloor = GetCritter()->IsOnFloor();
+    Vector3 loc = GetCritter()->GetWorldPosition();
+    Ptr<CollisionResultObject> cr1 = SwampCollide::CheckLine(loc, Vector3(loc.x, loc.y - 0.01f, loc.z), 0.01f, GetCritter(), 0);
+    if (cr1->HitSomething()) {
+        float up = cr1->ImpactPlane().y;
+        Vector3 flourpos = GetCritter()->GetWorldPosition();
+        float safestopy = flourpos.y;
+        // !FAKE: c1xx front end; stand-in local; the PDB records no local for the found blender (esi in retail)
+        Critter* p = pManager->Find("blender");
+        if (p)
+            safestopy = p->GetWorldPosition().y;
+        if ((cr1->HitTag() & 0x10000) || (up > 0.96f && flourpos.y <= safestopy)) {
+            Vector3 vel = GetCritter()->GetVelocity();
+            vel.x = vel.z = 0.0f;
+            isonfloor = true;
+            wasonfloor = false;
+            GetCritter()->SetVelocity(vel);
+            UnRegisterFrameTick();
+        }
+    }
+    if (isonfloor && !wasonfloor && oldvel.y <= 0.0f) {
+        SoundManager::PlaySound("qb_sackvinc", 0x20, GetNode(), true, 0.0f, 0.0f);
+        // !FAKE: c2 register allocation; stand-in local v1; retail loads g_particleManager before GetWorldPosition and keeps it in esi
+        SwampParticleManager* v1;
+        (v1 = g_particleManager)->AddOneShot("dustburstlarge", GetNode()->GetWorldPosition());
+        if (_destroyOnImpact) {
+            GetCritter()->ReturnToHome();
+            return;
+        }
+        GetCritter()->SetCollidable(true);
+        if (_state == STATE_ONSCALE)
+            RegisterFrameTick();
+    }
+}
+
+// FUNCTION: USA 0x0007A02E
+// PROTOTYPE: PREVIEW 0x0046602E identical
+// NAME: proto-pdb:default.pdb
+SwampScript* FlourSackMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\FlourSack.h", 14) FlourSackMain(node);
 }

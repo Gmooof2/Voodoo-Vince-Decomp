@@ -1,7 +1,6 @@
 // UNIT: src/Libs/FireFlyLib/Xbox/Official_Release/FFlyForce.cpp OBJ: Xbox\Official_Release\FFlyForce.obj OPT: /O1 /Oy
 #include "../../../../include/decomp.h"
 
-class FFlyEmitter; // NAME: proto-pdb:default.pdb
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
     void Zero() { x = 0.0f; y = 0.0f; z = 0.0f; }
@@ -13,11 +12,25 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
+float FastReciprocalSquareRoot(float); // NAME: proto-pdb:default.pdb
+void* operator new(unsigned int size, const char* file, int line);
+
+class FFlyEmitter { // NAME: proto-pdb:default.pdb
+public:
+    float GetTimeStep() const { return _timeStep; }
+
+    char field_0[0x4];                 // 0x00
+    float _timeStep;                   // 0x04
+    char field_8[0x260 - 0x8];         // 0x08
+};
+DECOMP_SIZE_ASSERT(FFlyEmitter, 0x260);
+
 struct FFlyParticle { // NAME: proto-pdb:default.pdb
     char field_0[0x8];                 // 0x00
     Vector3 _position;                 // 0x08
     Vector3 _lastPosition;             // 0x14
-    char field_20[0x20];               // 0x20
+    Vector3 _acceleration;             // 0x20
+    char field_2C[0x14];               // 0x2C
 };
 DECOMP_SIZE_ASSERT(FFlyParticle, 0x40);
 
@@ -33,7 +46,7 @@ public:
         ATTRACTOR = 4
     };
 
-    virtual ~FFlyForce();                                                     // vtable+0x00
+    virtual ~FFlyForce() {}                                                   // vtable+0x00
     virtual void Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count) = 0; // vtable+0x04
     static FFlyForce* Create(const FFlyForceData& data);
     static FFlyForce* Create(unsigned int type);
@@ -47,8 +60,9 @@ public:
         float height; // 0x04
     };
 
+    FFlyFloor() { _data.height = 0.0f; _data.coeff = 1.0f; }
     virtual void Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count);
-    virtual ~FFlyFloor();
+    virtual ~FFlyFloor() {}
 
     Params _data;                      // 0x04
 };
@@ -63,7 +77,7 @@ public:
 
     FFlyWind();
     virtual void Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count);
-    virtual ~FFlyWind();
+    virtual ~FFlyWind() {}
 
     Params _data;                      // 0x04
 };
@@ -79,6 +93,8 @@ public:
     };
 
     FFlyVortex();
+    virtual void Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count);
+    virtual ~FFlyVortex() {}
 
     Params _data;                      // 0x04
 };
@@ -95,7 +111,7 @@ public:
 
     FFlyAttractor();
     virtual void Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count);
-    virtual ~FFlyAttractor();
+    virtual ~FFlyAttractor() {}
 
     Params _data;                      // 0x04
 };
@@ -124,20 +140,41 @@ void FFlyFloor::Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count)
     }
 }
 
+// FUNCTION: USA 0x0014F365
+// PROTOTYPE: PREVIEW 0x00538A2D identical
+// NAME: proto-pdb:default.pdb
+void FFlyWind::Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count)
+{
+    float maxSpeed = emitter.GetTimeStep() * _data.maxSpeed;
+    for (unsigned int i = 0; i < count; i++, p++) {
+        // !FAKE: inliner; pointer locals + hand form of retail's inlined (p->_position - p->_lastPosition).Length();
+        // the two operand pointers fix esi at p+0x18 (scalar form: p+0x14, match_one 97.85 -> 100.0, C0191)
+        const Vector3* v3 = &p->_position;
+        const Vector3* v4 = &p->_lastPosition;
+        float v0 = v3->x - v4->x;
+        float v1 = v3->y - v4->y;
+        float v2 = v3->z - v4->z;
+        float tmp = v0 * v0 + v1 * v1 + v2 * v2;
+        if (tmp * FastReciprocalSquareRoot(tmp) < maxSpeed) {
+            // !FAKE: inliner; hand form of retail's inlined Vector3::operator+= (out of line in our /O1 build)
+            p->_acceleration.x += _data.wind.x;
+            p->_acceleration.y += _data.wind.y;
+            p->_acceleration.z += _data.wind.z;
+        }
+    }
+}
+
 // FUNCTION: USA 0x0014F54F
 // PROTOTYPE: PREVIEW 0x00538C17 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
 FFlyWind::FFlyWind()
 {
     _data.wind.Zero();
     _data.maxSpeed = 1.0f;
 }
-#endif
 
 // FUNCTION: USA 0x0014F56C
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
 FFlyVortex::FFlyVortex()
 {
     _data.angle = 0.785398163f;
@@ -145,12 +182,10 @@ FFlyVortex::FFlyVortex()
     _data.axis.Set(0.0f, 1.0f, 0.0f);
     _data.apex.Zero();
 }
-#endif
 
 // FUNCTION: USA 0x0014F5BE
 // PROTOTYPE: PREVIEW 0x00538C69 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
 FFlyAttractor::FFlyAttractor()
 {
     _data.accel = 10.0f;
@@ -158,7 +193,25 @@ FFlyAttractor::FFlyAttractor()
     _data.outer = 1000.0f;
     _data.loc.Zero();
 }
-#endif
+
+// FUNCTION: USA 0x0014F5E9
+// PROTOTYPE: PREVIEW 0x00538C94 identical
+// NAME: proto-pdb:default.pdb
+FFlyForce* FFlyForce::Create(unsigned int type)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    switch (type) {
+    case WIND:
+        return new("FFlyForce.cpp", 21) FFlyWind;
+    case FLOOR:
+        return new("FFlyForce.cpp", 24) FFlyFloor;
+    case VORTEX:
+        return new("FFlyForce.cpp", 27) FFlyVortex;
+    case ATTRACTOR:
+        return new("FFlyForce.cpp", 30) FFlyAttractor;
+    }
+    return 0;
+}
 
 // FUNCTION: USA 0x0014F676
 // PROTOTYPE: PREVIEW 0x00538D21 identical

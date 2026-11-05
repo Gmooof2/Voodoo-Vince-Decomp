@@ -19,6 +19,26 @@ typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > S
 
 class SwampSceneNode;        // NAME: proto-pdb:default.pdb
 
+namespace BeepLib { // NAME: proto-pdb:default.pdb
+double RandomFloat(float, float);
+}
+
+template <class T> class SwampShuffleQueue { // NAME: proto-pdb:default.pdb
+public:
+    T Fetch();
+
+    char field_0[0x14];                // 0x00
+};
+
+// Retail layout: Critter byte proto 0x252 read at retail 0x260.
+class Critter { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x260];               // 0x00
+    bool field_260;                    // 0x260
+
+    void PlaySound(const SwampString& name, unsigned int flags, bool bAttach, float minDist3D, float maxDist3D);
+};
+
 void* operator new(unsigned int size, const char* file, int line);
 
 class SwampScript { // NAME: proto-pdb:default.pdb
@@ -26,6 +46,11 @@ public:
     virtual ~SwampScript();                                        // vtable+0x00
     virtual bool TestActivate() const;                             // vtable+0x04
     virtual void Activate();                                       // vtable+0x08
+    virtual void Deactivate();                                     // vtable+0x0C
+    virtual void FrameTick();                                      // vtable+0x10
+    virtual void TimerEvent(unsigned int);                         // vtable+0x14
+
+    void RegisterTimerEvent(unsigned int id, float deltaTime, bool looped);
 
 protected:
     void RegisterSaveLoadVar(const SwampString&, bool*, bool);
@@ -56,6 +81,7 @@ public:
 
 private:
     static int _numFrogs; // NAME: proto-pdb:default.pdb
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(TrailerFrogMain, 0x3A0);
 
@@ -73,17 +99,42 @@ private:
 };
 DECOMP_SIZE_ASSERT(Switch_TrailerFrogsMain, 0x13C);
 
-class BasicDoorMain : public SwampScript { // NAME: proto-pdb:default.pdb
+class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
-    char field_4C[0x110 - 0x4C];       // 0x4C
+    Critter* GetCritter() { return (Critter*)_node; }
+
+    int _state;                        // 0x4C
+    char field_50[0xBC - 0x50];        // 0x50
+};
+DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    void ActivateMatching(const SwampString&, unsigned int);
+
+    char field_0[0x2C];                // 0x00
+};
+DECOMP_SIZE_ASSERT(CritterManager, 0x2C);
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
+class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void Message(SwampScript*, int, void*);
+
+    char field_BC[0x110 - 0xBC];       // 0xBC
 };
 DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 
 class TrailerFrogsMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
+    enum Timers { // NAME: proto-pdb:default.pdb
+        TIMER_FROGNOISE = 1
+    };
     TrailerFrogsMain(SwampSceneNode* node);
+    virtual void Message(SwampScript*, int, void*);
+    virtual void TimerEvent(unsigned int id);
 
-    char field_110[0x124 - 0x110];     // 0x110
+    SwampShuffleQueue<SwampString> _frogNoises; // 0x110
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -98,6 +149,20 @@ void TrailerFrogMain::Activate()
     _sleeping = false;
 }
 
+// FUNCTION: USA 0x0003DBFF
+// PROTOTYPE: PREVIEW 0x0042C0C6 identical
+// NAME: proto-pdb:default.pdb
+void TrailerFrogsMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message == 6) {
+        if (_state)
+            pManager->ActivateMatching("trailerfrog", 0);
+        else
+            RegisterTimerEvent(TIMER_FROGNOISE, 1.0f, false);
+    }
+    BasicDoorMain::Message(source, message, data);
+}
+
 // FUNCTION: USA 0x0003DC66
 // PROTOTYPE: PREVIEW 0x0042C12D identical
 // NAME: proto-pdb:default.pdb
@@ -106,6 +171,27 @@ SwampScript* Switch_TrailerFrogsMain::creationFunc(SwampSceneNode* node)
     // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\TrailerFrogs.cpp", 10) Switch_TrailerFrogsMain(node);
 }
+
+// FUNCTION: USA 0x0003DC8D
+// PROTOTYPE: PREVIEW 0x0042C154 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 96.73, bytes mismatch (retail passes Fetch's eax, not a re-lea of a named temp; 8 drafts)
+// 4.3 T16.c12 also tried: const-ref bound Fetch temp, const named temp (96.73); functional-cast temp, declared
+// basic_string copy ctor with the plain call (78.35)
+void TrailerFrogsMain::TimerEvent(unsigned int id)
+{
+    if (id == TIMER_FROGNOISE && _state == 0) {
+        {
+            // !FAKE: c2 block layout; dummy locals; hoist node load and Fetch before the pushes (match_one 78.35 -> 96.73)
+            Critter* critter = GetCritter();
+            SwampString tmp = _frogNoises.Fetch();
+            critter->PlaySound(tmp, 0x28, true, 0.0f, 0.0f);
+        }
+        RegisterTimerEvent(TIMER_FROGNOISE, BeepLib::RandomFloat(0.5f, 2.0f), false);
+    }
+}
+#endif
 
 // FUNCTION: USA 0x0003DDFA
 // PROTOTYPE: PREVIEW 0x0042C2C1 identical
@@ -116,12 +202,14 @@ SwampScript* TrailerFrogsMain::creationFunc(SwampSceneNode* node)
     return new("Midway\\TrailerFrogs.cpp", 93) TrailerFrogsMain(node);
 }
 
-// Retail layout: Critter byte proto 0x252 read at retail 0x260.
-class Critter { // NAME: proto-pdb:default.pdb
-public:
-    char field_0[0x260];               // 0x00
-    bool field_260;                    // 0x260
-};
+// FUNCTION: USA 0x0003DF11
+// PROTOTYPE: PREVIEW 0x0042C3BC identical
+// NAME: proto-pdb:default.pdb
+SwampScript* TrailerFrogMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("Midway\\TrailerFrogs.cpp", 21) TrailerFrogMain(node);
+}
 
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store, literal)

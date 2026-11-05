@@ -4,7 +4,18 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    int compare(const E* _Ptr) const;
+
+private:
+    unsigned int _pad00[0x1C / 4];
+};
+template <class E, class T, class A>
+inline bool operator==(const basic_string<E, T, A>& _Left, const E* _Right)
+{
+    return _Left.compare(_Right) == 0;
+}
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -14,6 +25,62 @@ template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
 struct AABox;                // NAME: proto-pdb:default.pdb
 struct Quaternion;           // NAME: proto-pdb:default.pdb
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x8];                // 0x24
+    float _length;                     // 0x2C
+    char field_30[0x4];                // 0x30
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    T& operator()() { return *_Resource; }
+
+    T* _Resource;                      // 0x00
+};
+
+class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef();
+    void SetAnimationTime(float time) { _time = time; }
+    float GetAnimationLength() const { return _anim._Resource->_length; }
+
+    ResourceHandle<AnimationResource> _anim; // 0x24
+    char field_28[0x10];               // 0x28
+    float _time;                       // 0x38
+    char field_3C[0x68 - 0x3C];        // 0x3C
+};
+DECOMP_SIZE_ASSERT(AnimationControl, 0x68);
+
+template <class T> class SwampShuffleQueue { // NAME: proto-pdb:default.pdb
+public:
+    T Fetch();
+
+    char field_0[0x14];                // 0x00
+};
+
+class MultiAnimation { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<AnimationResource> FetchAnim() { return _animQueue.Fetch(); }
+
+    SwampShuffleQueue<ResourceHandle<AnimationResource> > _animQueue; // 0x00
+};
+DECOMP_SIZE_ASSERT(MultiAnimation, 0x14);
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -71,9 +138,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class Critter; // NAME: proto-pdb:default.pdb
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    Critter* GetCritter();
     virtual ~CritterMain();
+    virtual void Message(SwampScript*, int, void*);                // vtable+0x34
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -83,8 +154,25 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
+// src proto-pdb:default.pdb GatorNode base CollidableCylinder (SwampSceneNode at 0x0), not modelled
+class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+    void SetAnimSpeed(float);
+};
+
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+public:
+    void MakeDead(bool);
+};
+
+inline Critter* CritterMain::GetCritter() { return (Critter*)_node; }
+
 class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_MONSTER_KILLED = 0x14
+    };
     virtual ~MonsterMain();
     virtual void DeathFX();                                        // vtable+0x70
 
@@ -101,15 +189,23 @@ public:
         STATE_DISAPPEAR = 3,
         STATE_GOAWAY = 4
     };
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_GOAWAY = 0x14,
+        MESSAGE_APPEAR = 0x15,
+        MESSAGE_APPEAR_INSTANT = 0x16,
+        MESSAGE_DISAPPEAR = 0x17
+    };
 
     MondoMoundMain(SwampSceneNode* node);
+    virtual void Message(SwampScript* source, int message, void* data);
     virtual void AnimationFinished();
     virtual void SetState(int);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
 
-    char field_BC[0x28];               // 0xBC
+    MultiAnimation _multiAnimMoundAppear;    // 0xBC
+    MultiAnimation _multiAnimMoundDisappear; // 0xD0
 };
 DECOMP_SIZE_ASSERT(MondoMoundMain, 0xE4);
 
@@ -121,10 +217,19 @@ public:
         STATE_IDLE_LAUGH = 2,
         STATE_HIDE_REST = 3,
         STATE_HIDE_READY = 4,
+        STATE_WINDUP = 5,
+        STATE_ATTACK = 6,
+        STATE_ATTACK_DANGEROUS = 7,
+        STATE_ATTACK_FINISH = 8,
+        STATE_DAMAGE = 9,
         STATE_APPEAR1 = 0xA,
         STATE_APPEAR2 = 0xB,
         STATE_DISAPPEAR = 0xC,
-        STATE_BLOCK_END = 0xF
+        STATE_BLOCK_START = 0xD,
+        STATE_BLOCK_HOLD = 0xE,
+        STATE_BLOCK_END = 0xF,
+        STATE_CELEBRATE = 0x10,
+        STATE_DEAD = 0x11
     };
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_HIDE_REST = 0,
@@ -135,12 +240,18 @@ public:
         TIMER_BLOCK_HOLD = 5
     };
 
+    MondoMoleMain(SwampSceneNode* node);
     virtual void Activate();
     virtual void Deactivate();
     virtual void TimerEvent(unsigned int timerId);
+    virtual void AnimationFinished();
+    virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
     virtual void SetState(int);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
 
-    bool _active;                      // 0x240
+    bool _active;                    // 0x240
     char field_241[0xFF];              // 0x241
 };
 DECOMP_SIZE_ASSERT(MondoMoleMain, 0x340);
@@ -163,6 +274,30 @@ void MondoMoleMain::Activate()
     }
 }
 
+// FUNCTION: USA 0x0011FC71
+// PROTOTYPE: PREVIEW 0x0050896D identical
+// NAME: proto-pdb:default.pdb
+void MondoMoundMain::Message(SwampScript* source, int message, void* data)
+{
+    switch (message) {
+    case MESSAGE_GOAWAY:
+        SetState(STATE_GOAWAY);
+        break;
+    case MESSAGE_APPEAR:
+        SetState(STATE_APPEAR);
+        break;
+    case MESSAGE_APPEAR_INSTANT:
+        SetState(STATE_APPEAR_INSTANT);
+        break;
+    case MESSAGE_DISAPPEAR:
+        SetState(STATE_DISAPPEAR);
+        break;
+    default:
+        CritterMain::Message(source, message, data);
+        break;
+    }
+}
+
 // FUNCTION: USA 0x0011FC9E
 // PROTOTYPE: PREVIEW 0x0050899A identical
 // NAME: proto-pdb:default.pdb
@@ -172,6 +307,45 @@ void MondoMoleMain::Deactivate()
         _active = false;
         UnRegisterFrameTick();
         _node->SetOption(SwampSceneNode::DontDraw, true, false);
+    }
+}
+
+// FUNCTION: USA 0x0011FE29
+// PROTOTYPE: PREVIEW 0x00508B25 identical
+// NAME: proto-pdb:default.pdb
+void MondoMoleMain::AnimationFinished()
+{
+    switch (_state) {
+    case STATE_IDLE_LAUGH:
+    case STATE_DAMAGE:
+        SetState(STATE_DISAPPEAR);
+        break;
+    case STATE_WINDUP:
+        SetState(STATE_ATTACK);
+        break;
+    case STATE_ATTACK:
+    case STATE_ATTACK_DANGEROUS:
+    case STATE_ATTACK_FINISH:
+        SetState(STATE_IDLE_REST);
+        break;
+    case STATE_APPEAR1:
+    case STATE_APPEAR2:
+        SetState(STATE_IDLE_READY);
+        break;
+    case STATE_DISAPPEAR:
+        SetState(STATE_HIDE_REST);
+        break;
+    case STATE_BLOCK_START:
+        SetState(STATE_BLOCK_HOLD);
+        break;
+    case STATE_BLOCK_END:
+        SetState(STATE_WINDUP);
+        break;
+    case STATE_DEAD:
+        Message(this, MESSAGE_MONSTER_KILLED, 0);
+        GetCritter()->MakeDead(true);
+        DeathFX();
+        break;
     }
 }
 
@@ -211,6 +385,23 @@ void MondoMoleMain::TimerEvent(unsigned int timerId)
     }
 }
 
+// FUNCTION: USA 0x0011FF33
+// PROTOTYPE: PREVIEW 0x00508C2F identical
+// NAME: proto-pdb:default.pdb
+void MondoMoleMain::AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone)
+{
+    switch (_state) {
+    case STATE_ATTACK:
+        if (value > prev && name == "attack")
+            SetState(STATE_ATTACK_DANGEROUS);
+        break;
+    case STATE_ATTACK_DANGEROUS:
+        if (value < prev && name == "attack")
+            SetState(STATE_ATTACK_FINISH);
+        break;
+    }
+}
+
 // FUNCTION: USA 0x0011FF18
 // PROTOTYPE: PREVIEW 0x00508C14 identical
 // NAME: proto-pdb:default.pdb
@@ -226,6 +417,36 @@ void MondoMoundMain::AnimationFinished()
     }
 }
 
+// FUNCTION: USA 0x001208DD
+// PROTOTYPE: PREVIEW 0x005095D9 identical
+// NAME: proto-pdb:default.pdb
+void MondoMoundMain::SetState(int state)
+{
+    _state = state;
+    switch (state) {
+    case STATE_HIDDEN:
+        _node->SetOption(SwampSceneNode::DontDraw, true, false);
+        break;
+    case STATE_APPEAR:
+        _node->SetOption(SwampSceneNode::DontDraw, false, false);
+        GetCritter()->StartAnimation(_multiAnimMoundAppear.FetchAnim(), false, false);
+        GetCritter()->SetAnimSpeed(3.0f);
+        break;
+    case STATE_APPEAR_INSTANT: {
+        _node->SetOption(SwampSceneNode::DontDraw, false, false);
+        // !FAKE: c1xx front end; temporary; the AddRef/SubRef copy needs a named handle, no PDB local (stand-in)
+        ResourceHandle<AnimationControl> tmp = GetCritter()->StartAnimation(_multiAnimMoundAppear.FetchAnim(), false, false);
+        tmp().SetAnimationTime(tmp().GetAnimationLength());
+        break;
+    }
+    case STATE_DISAPPEAR:
+    case STATE_GOAWAY:
+        GetCritter()->StartAnimation(_multiAnimMoundDisappear.FetchAnim(), false, false);
+        GetCritter()->SetAnimSpeed(1.0f);
+        break;
+    }
+}
+
 // FUNCTION: USA 0x00120AD7
 // PROTOTYPE: PREVIEW 0x005097B7 identical
 // NAME: proto-pdb:default.pdb
@@ -233,4 +454,13 @@ SwampScript* MondoMoundMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\MondoMole.h", 104) MondoMoundMain(node);
+}
+
+// FUNCTION: USA 0x0012130A
+// PROTOTYPE: PREVIEW 0x00509FCE identical
+// NAME: proto-pdb:default.pdb
+SwampScript* MondoMoleMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\common\\MondoMole.h", 17) MondoMoleMain(node);
 }

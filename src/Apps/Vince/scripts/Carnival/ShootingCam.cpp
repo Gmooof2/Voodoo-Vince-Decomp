@@ -2,9 +2,52 @@
 #include "../../../../include/decomp.h"
 
 struct AABox;      // NAME: proto-pdb:default.pdb
-struct Matrix;     // NAME: proto-pdb:default.pdb
-struct Quaternion; // NAME: proto-pdb:default.pdb
-struct Vector3;    // NAME: proto-pdb:default.pdb
+
+float FastReciprocalSquareRoot(float); // NAME: proto-pdb:default.pdb
+
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    Vector3() {}
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
+
+struct Vector4 { // NAME: proto-pdb:default.pdb
+    // !FAKE: c1xx front end; ctors dropped; an inline Vector4() keeps Matrix() out of line (vector ctor iterator)
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Vector4, 0x10);
+
+struct Matrix { // NAME: proto-pdb:default.pdb
+    Matrix() {}
+    Vector4& operator[](int i) { return row[i]; }
+
+    Vector4 row[4];                    // 0x00
+};
+DECOMP_SIZE_ASSERT(Matrix, 0x40);
+
+struct Quaternion { // NAME: proto-pdb:default.pdb
+    Quaternion() {}
+    Quaternion(float x, float y, float z, float w_)
+    {
+        v.x = x;
+        v.y = y;
+        v.z = z;
+        w = w_;
+    }
+    void Apply(const Vector3&, Vector3&) const;
+    void Matrix(::Matrix&) const;
+
+    Vector3 v;                         // 0x00
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Quaternion, 0x10);
 
 extern "C" void __stdcall D3DDevice_SetVertexShader(unsigned long); // src proto-pdb:default.pdb D3DDevice_SetVertexShader
 
@@ -110,6 +153,14 @@ public:
     char field_10C[0x11C - 0x10C];     // 0x10C
 };
 DECOMP_SIZE_ASSERT(GameCam, 0x11C);
+
+class AirplaneCam : public GameCam { // NAME: proto-pdb:default.pdb
+public:
+    virtual ::Matrix GetViewMatrix() const;
+
+    char field_11C[0x138 - 0x11C];     // 0x11C
+};
+DECOMP_SIZE_ASSERT(AirplaneCam, 0x138);
 
 class UINode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -217,7 +268,6 @@ void ShootingCam::AimCenter()
         _ui->SetAimPosition(_x, _y);
 }
 
-#ifdef NON_MATCHING
 template <class T> ResourceHandle<T>& ResourceHandle<T>::operator=(const ResourceHandle& h)
 {
     if (_Resource)
@@ -237,5 +287,38 @@ long SwampRenderer::SetVertexShader(unsigned long handle)
     _CurrentVertexDeclaration = 0;
     D3DDevice_SetVertexShader(handle);
     return 0;
+}
+
+// FUNCTION: USA 0x000573CD
+// PROTOTYPE: PREVIEW 0x00505256 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 97.73, bytes mismatch (return copy: lea esi before mov eax,[ebp+8]; 14 drafts)
+Matrix AirplaneCam::GetViewMatrix() const
+{
+    Matrix matView;
+    Quaternion q = GetWorldRotation();
+    Vector3 row3;
+    // !FAKE: inliner; hand form of the by-value Quaternion::Inverse and Norm, which /O1 keeps out of line (C0125)
+    float tmp = FastReciprocalSquareRoot(q.v.x * q.v.x + q.w * q.w + q.v.y * q.v.y + q.v.z * q.v.z);
+    Quaternion qinv(-(q.v.x * tmp), -(q.v.y * tmp), -(q.v.z * tmp), q.w * tmp);
+    qinv.Matrix(matView);
+    // !FAKE: inliner; hand form of the by-value Quaternion::Apply, which /O1 keeps out of line (C0191)
+    {
+        const Vector3* p = &GetWorldPosition();
+        Vector3 v0;
+        qinv.Apply(*p, v0);
+        row3 = v0;
+    }
+    {
+        // !FAKE: inliner; hand form of the Vector4 ctor (dropped above)
+        Vector4 v1;
+        v1.x = -row3.x;
+        v1.y = -row3.y;
+        v1.z = -row3.z;
+        v1.w = 1.0f;
+        matView[3] = v1;
+    }
+    return matView;
 }
 #endif

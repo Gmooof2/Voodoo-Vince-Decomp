@@ -1,7 +1,20 @@
 // UNIT: src/Libs/Swamp/Xbox/Official_Release/SwampRenderer.cpp OBJ: Xbox\Official_Release\SwampRenderer.obj OPT: /O1 /Oy
 #include "../../../../include/decomp.h"
 
+namespace std { // NAME: proto-pdb:default.pdb
+template <class E> struct char_traits;
+template <class T> class allocator;
+template <class E, class T, class A> class basic_string {
+private:
+    char _pad00[0x1C];
+};
+}
+typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
+
 struct D3DSurface; // NAME: proto-pdb:default.pdb
+struct Direct3D; // NAME: proto-pdb:default.pdb
+struct D3DDevice; // NAME: proto-pdb:default.pdb
+struct HWND__; // NAME: proto-pdb:default.pdb
 struct D3DBaseTexture { }; // NAME: proto-pdb:default.pdb
 struct D3DTexture : D3DBaseTexture { }; // NAME: proto-pdb:default.pdb
 struct D3DCubeTexture : D3DBaseTexture { }; // NAME: proto-pdb:default.pdb
@@ -23,6 +36,44 @@ struct _D3DGAMMARAMP { // NAME: proto-pdb:default.pdb
     unsigned char blue[256];           // 0x200
 };
 DECOMP_SIZE_ASSERT(_D3DGAMMARAMP, 0x300);
+
+enum _D3DFORMAT { // NAME: proto-pdb:default.pdb
+    D3DFMT_X8R8G8B8 = 0x7,
+    D3DFMT_D24S8 = 0x2A
+};
+
+enum _D3DSWAPEFFECT { // NAME: proto-pdb:default.pdb
+    D3DSWAPEFFECT_DISCARD = 0x1
+};
+
+enum _D3DDEVTYPE { // NAME: proto-pdb:default.pdb
+    D3DDEVTYPE_HAL = 0x1
+};
+
+struct _D3DPRESENT_PARAMETERS_ { // NAME: proto-pdb:default.pdb
+    unsigned int BackBufferWidth;      // 0x00
+    unsigned int BackBufferHeight;     // 0x04
+    _D3DFORMAT BackBufferFormat;       // 0x08
+    unsigned int BackBufferCount;      // 0x0C
+    unsigned long MultiSampleType;     // 0x10
+    _D3DSWAPEFFECT SwapEffect;         // 0x14
+    HWND__* hDeviceWindow;             // 0x18
+    int Windowed;                      // 0x1C
+    int EnableAutoDepthStencil;        // 0x20
+    _D3DFORMAT AutoDepthStencilFormat; // 0x24
+    unsigned long Flags;               // 0x28
+    unsigned int FullScreen_RefreshRateInHz; // 0x2C
+    unsigned int FullScreen_PresentationInterval; // 0x30
+    D3DSurface* BufferSurfaces[3];     // 0x34
+    D3DSurface* DepthStencilSurface;   // 0x40
+};
+DECOMP_SIZE_ASSERT(_D3DPRESENT_PARAMETERS_, 0x44);
+
+extern "C" Direct3D* __stdcall Direct3DCreate8(unsigned int); // NAME: proto-pdb:default.pdb
+extern "C" void __stdcall Direct3D_SetPushBufferSize(unsigned long, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall Direct3D_CreateDevice(unsigned int, _D3DDEVTYPE, HWND__*, unsigned long, _D3DPRESENT_PARAMETERS_*, D3DDevice**); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall D3DXGetErrorStringA(long hr, char* buffer, unsigned int size); // NAME: proto-pdb:default.pdb
+extern "C" void __stdcall D3DDevice_GetGammaRamp(_D3DGAMMARAMP*); // NAME: proto-pdb:default.pdb
 
 enum _D3DTRANSFORMSTATETYPE { // NAME: proto-pdb:default.pdb
     D3DTS_VIEW = 0,
@@ -124,6 +175,8 @@ extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
 class SwampRenderer { // NAME: proto-pdb:default.pdb
 public:
+    void InitDirect3D(HWND__* hwnd, const SwampString& renderswitches);
+    void SetPresentationParameters(const SwampString&, bool);
     void ClearScreen(unsigned int color, bool clearColor, bool clearZ, bool clearStencil) const;
     void RenderToScreen();
     void RenderToTexture(const ResourceHandle<TextureResource>& color, D3DTexture* depth, unsigned int cubeFace);
@@ -148,10 +201,14 @@ protected:
     void ClearStateCache();
 public:
 
-    char field_0[0x24];                // 0x00
+    char field_0[0x1C];                // 0x00
+    Direct3D* _D3D;                    // 0x1C
+    D3DDevice* _D3DDevice;             // 0x20
     D3DSurface* _ColorBuffer;          // 0x24
     D3DSurface* _DepthBuffer;          // 0x28
-    char field_2C[0x44 - 0x2C];        // 0x2C
+    int _screenWidth;                  // 0x2C
+    int _screenHeight;                 // 0x30
+    char field_34[0x44 - 0x34];        // 0x34
     D3DVertexBuffer* _CurrentVB;       // 0x44
     D3DIndexBuffer* _CurrentIB;        // 0x48
     ResourceHandle<VertexShaderResource> _CurrentVertexShader; // 0x4C
@@ -198,12 +255,16 @@ struct Direct3D { // NAME: proto-pdb:default.pdb
 };
 template void RELEASE<Direct3D>(Direct3D*&);
 #endif
+#ifndef NON_MATCHING
+// !FAKE: declaration-only explicit specialization (C0132); RELEASE<Direct3D> is held out above, InitDirect3D calls it by name
+template <> void RELEASE<Direct3D>(Direct3D*&);
+#endif
 
 // FUNCTION: USA 0x000CA39B
 // PROTOTYPE: PREVIEW 0x004B55E4 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1)
+// best: match_one objdiff 100.0, bytes provisional (masked 1); wall: D3DDevice_Clear named only undecorated (C0192, C0138)
 void SwampRenderer::ClearScreen(unsigned int color, bool clearColor, bool clearZ, bool clearStencil) const
 {
     D3DDevice_Clear(0, 0, (clearColor ? 0xF0 : 0) | (clearZ ? 1 : 0) | (clearStencil ? 2 : 0), color, 1.0f, 0);
@@ -219,8 +280,6 @@ void SwampRenderer::RenderToScreen()
 }
 
 template <> void RELEASE<D3DSurface>(D3DSurface*& p);
-
-template <> ResourceHandle<VertexShaderResource>& ResourceHandle<VertexShaderResource>::operator=(const ResourceHandle& h);
 
 template <class T> ResourceHandle<T>& ResourceHandle<T>::operator=(const ResourceHandle& h)
 {
@@ -419,13 +478,10 @@ void SwampRenderer::SetTexture(unsigned long stage, const ResourceHandle<Texture
 // FUNCTION: USA 0x000CA6FE
 // PROTOTYPE: PREVIEW 0x004B5947 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 83.8, bytes mismatch
 void SwampRenderer::SetDefaultTexture(unsigned long stage)
 {
     SetTexture(stage, g_swamp->GetTextureManager().GetDefaultTexture());
 }
-#endif
 
 // FUNCTION: USA 0x000CA730
 // PROTOTYPE: PREVIEW 0x004B5979 identical
@@ -444,8 +500,8 @@ long SwampRenderer::SetVertexShader(const ResourceHandle<VertexShaderResource>& 
     return 0;
 }
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x000CA770
+// PROTOTYPE: PREVIEW 0x004B59B9 identical
 // NAME: proto-pdb:default.pdb
 void SwampRenderer::ClearStateCache()
 {
@@ -459,7 +515,6 @@ void SwampRenderer::ClearStateCache()
     for (unsigned int i = 0; i < 16; i++)
         D3DDevice_SetStreamSource(i, 0, 0);
 }
-#endif
 
 // FUNCTION: USA 0x000CA7BB
 // PROTOTYPE: PREVIEW 0x004B5A04 identical
@@ -484,3 +539,33 @@ long SwampRenderer::SetVertexShader(const ResourceHandle<VertexShaderResource>& 
     }
     return SetVertexShader(handle, handle().GetDeclaration());
 }
+
+// FUNCTION: USA 0x000CA9BA
+// PROTOTYPE: PREVIEW 0x004B5C03 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 99.92, bytes match (masked 0); wall: the delinked cut carries a DIR32 reloc on the immediate 0x80000000 (C0155, C0232)
+void SwampRenderer::InitDirect3D(HWND__* hwnd, const SwampString& renderswitches)
+{
+    char buff[0x80];
+    RELEASE(_D3DDevice);
+    RELEASE(_D3D);
+    _D3D = Direct3DCreate8(0);
+    Direct3D_SetPushBufferSize(0x100000, 0x8000);
+    _D3DPRESENT_PARAMETERS_ pp = { 0 };
+    pp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+    pp.EnableAutoDepthStencil = 1;
+    pp.AutoDepthStencilFormat = D3DFMT_D24S8;
+    pp.BackBufferFormat = D3DFMT_X8R8G8B8;
+    pp.FullScreen_RefreshRateInHz = 0;
+    pp.FullScreen_PresentationInterval = 0x80000000;
+    pp.BackBufferWidth = _screenWidth;
+    pp.BackBufferHeight = _screenHeight;
+    // !FAKE: c1xx front end; stand-in local for the XDK inline CreateDevice wrapper's HRESULT; no PDB local
+    long v0 = Direct3D_CreateDevice(0, D3DDEVTYPE_HAL, hwnd, 0x50, &pp, &_D3DDevice);
+    if (v0 < 0)
+        D3DXGetErrorStringA(v0, buff, sizeof(buff));
+    SetPresentationParameters(renderswitches, false);
+    D3DDevice_GetGammaRamp(&_gammaRamp);
+}
+#endif

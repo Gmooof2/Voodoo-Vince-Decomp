@@ -15,8 +15,12 @@ protected:
 private:
     char _pad00[0x1C];
 };
+template <class E, class T, class A>
+basic_string<E, T, A> operator+(const basic_string<E, T, A>& _Left, const basic_string<E, T, A>& _Right);
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
+
+const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
 
 class BeepTDF { // NAME: proto-pdb:default.pdb
 public:
@@ -26,8 +30,11 @@ public:
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 class SwampScript;           // NAME: proto-pdb:default.pdb
+struct AABox;                // NAME: proto-pdb:default.pdb
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
+    void Normalize();
+
     float x;                           // 0x00
     float y;                           // 0x04
     float z;                           // 0x08
@@ -41,6 +48,10 @@ DECOMP_SIZE_ASSERT(Quaternion, 0x10);
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    Vector3 GetFacing() const;
     SwampScript* GetScript() const;
     const Vector3& SetLocation(const Vector3& location);
     const Quaternion& SetRotation(const Quaternion& rotation);
@@ -120,7 +131,7 @@ enum CritterType { // NAME: proto-pdb:default.pdb
 // Retail layout: Critter _CritterType 0x258 -> 0x268 (+0x10).
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
-    char field_0[0x268];               // 0x00
+    char field_4[0x268 - 0x4];         // 0x04
     CritterType _CritterType;          // 0x268
 };
 
@@ -128,7 +139,7 @@ class LightBeam : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     LightBeam();
 
-    char field_0[0xB0];                // 0x00
+    char field_4[0xB0 - 0x4];          // 0x04
 };
 DECOMP_SIZE_ASSERT(LightBeam, 0xB0);
 
@@ -151,7 +162,12 @@ public:
     MirrorUrnMain(SwampSceneNode* node);
     virtual bool TestActivate() const;
     virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
     bool IsPuzzleDone() const;
+    void TestForAim();
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
 
     GameCam* _mirrorCam;               // 0xBC
     Critter* _bell;                    // 0xC0
@@ -179,6 +195,32 @@ bool MirrorUrnMain::IsPuzzleDone() const
     bool b;
     _bell->GetScript()->Message(0, BellMain::MESSAGE_ISPUZZLEDONE, &b);
     return b;
+}
+
+// FUNCTION: USA 0x0006B8ED
+// PROTOTYPE: PREVIEW 0x00457CB0 identical
+// NAME: proto-pdb:default.pdb
+void MirrorUrnMain::TestForAim()
+{
+    // !FAKE: c2 scheduling; dummy local; retail reads _onBell into bl before the calls; the proto PDB lists no such local
+    bool tmp = _onBell;
+    // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference (no free operator in the PDB, C0191)
+    const Vector3* v0 = &_node->GetWorldPosition();
+    const Vector3* v1 = &_bell->GetWorldPosition();
+    Vector3 diff;
+    diff.x = v1->x - v0->x;
+    diff.y = v1->y - v0->y;
+    diff.z = v1->z - v0->z;
+    diff.Normalize();
+    // !FAKE: inliner; pointer local + hand form of retail's inlined dot product (C0191)
+    const Vector3* p = &_node->GetFacing();
+    _onBell = diff.z * p->z + diff.y * p->y + diff.x * p->x > 0.99f;
+    if (_onBell) {
+        if (!tmp)
+            _bell->GetScript()->Message(this, BellMain::MESSAGE_ADDMIRROR, 0);
+    } else if (tmp) {
+        _bell->GetScript()->Message(this, BellMain::MESSAGE_SUBTRACTMIRROR, 0);
+    }
 }
 
 #ifdef NON_MATCHING
@@ -221,4 +263,23 @@ void MirrorUrnMain::Load(const BeepTDF& tdf)
     int state = tdf.GetIntRecord("state", 0);
     _wasMoved = tdf.GetBoolRecord("wasmoved", false);
     SetState(state);
+}
+
+// FUNCTION: USA 0x0006BF50
+// PROTOTYPE: PREVIEW 0x0045823C identical
+// NAME: proto-pdb:default.pdb
+SwampString MirrorUrnMain::Save()
+{
+    // !FAKE: c2 register allocation; dummy local; retail loads _state into esi before the first format call (no PDB local; match_one 86.57 -> 100.0)
+    int v0 = _state;
+    return format("\tstate = %d;\n", v0) + format("\twasmoved = %d;\n", _wasMoved);
+}
+
+// FUNCTION: USA 0x0006BFB2
+// PROTOTYPE: PREVIEW 0x0045829E identical
+// NAME: proto-pdb:default.pdb
+SwampScript* MirrorUrnMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Mirror.h", 12) MirrorUrnMain(node);
 }

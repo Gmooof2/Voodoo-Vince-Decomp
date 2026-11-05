@@ -56,7 +56,7 @@ CLI: relink.py link | check --originals   (no --section, T5: whole image from or
   -> link/all/relinked.xbe. Prints every section digest OK/FAIL, the image sha1 vs config/check.retail_xbe.sha,
   xbe_write.compare() names on a difference, and (info) our .reloc dir size and HIGHLOW count vs retail.
   Exit 0 all digests and the sha1 equal, 1 any differ, 2 refusal.
-CLI: relink.py check [--control one-function|rdata-unsorted|entry|literal]   (no --section, no --originals, T6: every matched
+CLI: relink.py check [--control one-function|rdata-unsorted|entry|literal|fold|samename|weak]   (no --section, no --originals, T6: every matched
   function substituted)
   Builds our objects with build.build (units.toml, src; the gate's function) into .run/<phase>/relink/build (wiped
   first), then the whole-image link above with T4's swap route (as --units) for every config/matched_set.toml unit
@@ -87,14 +87,26 @@ Folded members and shared literals (3.4 T6.1, C0136/C0135): a kept plain `.text`
   any other external in a hole still refused. Two of our objects' holes at one VA with the same COMDAT name, section,
   Selection (not NODUPLICATES/associative), bytes and relocs (to externals, by name) -> one hole, the copy rides it
   (T12 renames both); any other overlap still refused. Printed `identical duplicate holes ...; weak fold aliases ...`.
+  4.3 T2: also two different names at one VA when both are func pins there (C0130 fold aliases): the dup's name
+  renamed `<name>@fold_<va8>` in every copy of ours, weak to the kept name; relocs compared by target VA.
   --control entry: our first .text function moved to the head of /ORDER; must exit 2 at the PE-entry check.
   --control literal: two synthetic objects (.run/<phase>/relink/control/literal_{a,b}.obj), the first `__real@<16 hex>`
   name with one VA as a COMDAT (Selection ANY) literal at it (bytes from the name), b with byte 0 flipped; must exit 2
-  `our ranges overlap`. Both ld dir link/all=<tag>-<control>/.
+  `our ranges overlap`.
+  --control fold: two synthetic objects (control/fold_{a,b}.obj), one COMDAT (Selection ANY) .text copy each under
+  two fold-alias func pin names at the first such VA none of ours covers; one byte 0 flipped; must exit 2
+  `our ranges overlap`.
+  4.4 T3 (C0215): a same-name pair may have one matched row (its section from its defs). (C0217) a weak external
+  (class 105) reloc target -> its default by aux TagIndex in the kept walk, the referenced set and reloc-site placement.
+  --control samename: a copy of the object of the first matched row in a plain COMDAT .text (control/samename_<obj>),
+  that section a code hole at the row's VA, one non-reloc byte flipped; must exit 2 `our ranges overlap`.
+  --control weak: in a copy of a matched row's object, its first DIR32/REL32 to another symbol -> a new weak external
+  `__weak_control` whose TagIndex names the row itself (a wrong body); must fail. All ld dir link/all=<tag>-<control>/.
 Evidence: docs/evidence/relink.md "One section relinked (T3)", "Two real sections, ordered COMDAT originals (T4.c1)",
 "Whole image from originals (T5)", "Every matched function substituted (T6)", "C++ EH substitution (T7)", "3.4 T6.1".
 """
 import argparse
+import bisect
 import hashlib
 import json
 import re
@@ -658,6 +670,21 @@ def _obj_load(data):
     return {"ts": ts, "chars": ch, "secs": secs, "syms": ents, "strtab": strtab}
 
 
+def _weak_tag(o, e):
+    """4.4 T3 (C0217): a weak external entry (class 105) -> its default's entry (aux TagIndex, a raw symbol table
+    index), else e itself (`??_E` vtable slot -> `??_G`)."""
+    if e[4] != 105:
+        return e
+    if len(e[5]) < 4:
+        refuse(f"weak external {_obj_name(o, e[0])} without an aux record")
+    k, n = struct.unpack_from("<I", e[5], 0)[0], 0
+    for f in o["syms"]:
+        if n == k:
+            return f
+        n += 1 + len(f[5]) // 18
+    refuse(f"weak external {_obj_name(o, e[0])}: TagIndex {k} is no symbol entry")
+
+
 def _obj_name(o, name8):
     if name8[:4] == b"\0\0\0\0":
         off = struct.unpack_from("<I", name8, 4)[0]
@@ -801,15 +828,17 @@ def _ours(units, cfg_path, layout, bdir=None, list_path=None):
         todo = list(kept)  # relocs; /OPT:REF keeps no other COMDAT of ours unless something else references it)
         while todo:
             for _off, k, _t in o["secs"][todo.pop() - 1]["relocs"]:
-                e = o["syms"][k]
+                e = _weak_tag(o, o["syms"][k])  # 4.4 T3: a weak external -> its default (C0217 `??_E` -> `??_G`)
                 s = e[2] if e[2] > 0 else defs.get(_obj_name(o, e[0]), (0,))[0]
                 if s > 0 and s not in kept:
                     kept.add(s)
                     todo.append(s)
         rowsec = {defs[r["symbol"]][0] for r in mine}
         data, code, pending = [], [], {}  # pending: kept sections no symbol name places (T7: reloc sites do)
-        refd = {o["syms"][r[1]][2] for t in o["secs"] if not _obj_name(o, t["name8"]).startswith(".debug")
-                for r in t["relocs"]}  # sections some reloc targets
+        refd = {o["syms"][r[1]][2] if o["syms"][r[1]][4] != 105 else  # sections some reloc targets; 4.4 T3: a weak
+                (lambda f: f[2] if f[2] > 0 else defs.get(_obj_name(o, f[0]), (0,))[0])(_weak_tag(o, o["syms"][r[1]]))
+                for t in o["secs"] if not _obj_name(o, t["name8"]).startswith(".debug")
+                for r in t["relocs"]}  # one's default (C0217: `??_E` -> an undefined `??_G` entry, defined by name)
         nunref = 0
         for num, t in enumerate(o["secs"], 1):
             sname = _obj_name(o, t["name8"])
@@ -845,7 +874,7 @@ def _ours(units, cfg_path, layout, bdir=None, list_path=None):
                 for p, pva in sorted(secva.items()):
                     t = o["secs"][p - 1]
                     for off, k, typ in t["relocs"]:
-                        e = o["syms"][k]
+                        e = _weak_tag(o, o["syms"][k])  # 4.4 T3: a weak external -> its default (C0217)
                         s, v = (e[2], e[1]) if e[2] > 0 else defs.get(_obj_name(o, e[0]), (0, 0))
                         if s != num:
                             continue
@@ -897,18 +926,21 @@ def _split(c, holes):
     pieces = list(zip(bounds, bounds[1:]))
     hole = {(h["lo"], h["hi"]) for h in holes}
 
-    def owner(va):
-        return next((p for p in pieces if p[0] <= va < p[1]), pieces[-1] if va == b else None)
+    def owner(va):  # 4.4 T3: bisect over the contiguous pieces (was a linear scan; same result)
+        i = bisect.bisect_right(bounds, va) - 1
+        return pieces[i] if 0 <= i < len(pieces) else pieces[-1] if va == b else None
 
     def va_of(k):
         return a + o["syms"][k][1]
+    sown = {k: owner(va_of(k)) for k, e in enumerate(o["syms"]) if e[2] == num}  # 4.4 T3: owner per symbol, once
     crossing = set()  # VAs of statics referenced from another piece
     for off, k, _t in sec["relocs"]:
         e = o["syms"][k]
-        if e[2] == num and e[4] != 2 and owner(va_of(k)) != owner(a + off):
+        if e[2] == num and e[4] != 2 and sown[k] != owner(a + off):
             crossing.add(va_of(k))
         if e[2] == num and k == ssym and owner(a + off) != pieces[0]:
             crossing.add(a)
+    cown = {v: owner(v) for v in crossing}
     out = []
     for lo, hi in pieces:
         if (lo, hi) in hole:
@@ -916,13 +948,13 @@ def _split(c, holes):
         p = {"ts": o["ts"], "chars": o["chars"], "strtab": bytearray(o["strtab"]), "syms": [], "secs": []}
         new = {}
         for k, e in enumerate(o["syms"]):
-            if e[2] == num and k != ssym and owner(va_of(k)) != (lo, hi):
+            if e[2] == num and k != ssym and sown[k] != (lo, hi):
                 continue
             new[k] = len(p["syms"])
             p["syms"].append([e[0], e[1] - (lo - a) if e[2] == num and k != ssym else e[1], *e[2:]])
         k0 = new[ssym]
         aux = bytearray(p["syms"][k0][5][:18].ljust(18, b"\0"))
-        for va in sorted(v for v in crossing if owner(v) == (lo, hi)):
+        for va in sorted(v for v in crossing if cown[v] == (lo, hi)):
             p["syms"].append([_obj_name8(p, f"rl_s_{va:08X}"), va - lo, num, 0, 2, b""])
         ext = {}
         relocs = []
@@ -930,7 +962,7 @@ def _split(c, holes):
             if not lo <= a + off < hi:
                 continue
             e = o["syms"][k]
-            if e[2] == num and (k == ssym and lo != a or k != ssym and owner(va_of(k)) != (lo, hi)):
+            if e[2] == num and (k == ssym and lo != a or k != ssym and sown[k] != (lo, hi)):
                 nm = _obj_name(o, e[0]) if e[4] == 2 else f"rl_s_{va_of(k) if k != ssym else a:08X}"
                 if nm not in ext:
                     ext[nm] = len(p["syms"])
@@ -1002,32 +1034,67 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
             ext = [nm for nm, (num, v) in ob["defs"].items() if num == dd["num"] and v == 0]
             holes.append({"lo": dd["va"], "hi": dd["va"] + dd["size"], "sec": dd["rsec"], "sym": ext[0] if ext else None,
                           "ob": ob, "data": dd in ob["data"], "grp": dd["sec"], "num": dd["num"]})
-    holes.sort(key=lambda h: h["lo"])
+    holes.sort(key=lambda h: (h["lo"], "num" in h))  # 4.3 T2: a matched row first at one VA (the kept fold copy)
 
-    def same(h, g):  # 3.4 T6.1 (C0135): one COMDAT of two of our objects at one VA, same name, bytes and relocs
-        if "num" not in h or "num" not in g or h["ob"] is g["ob"] or h["sym"] is None or any(
-                h[k] != g[k] for k in ("lo", "hi", "sec", "grp", "sym", "data")):
+    fpins = set()  # 4.3 T2: (VA, name) of every func pin (C0130 fold aliases share one VA)
+    with open(PINS, encoding="utf-8") as f:
+        for line in f:
+            p = line.split()
+            if len(p) > 3 and not p[0].startswith("#") and p[1] == "func":
+                fpins.add((int(p[0], 16), p[3]))
+
+    def tva(nm):  # 4.3 T2: a reloc target's VA by name (byname, then pins), else the name itself
+        v = byte_compare.unique_va(sub["byname"], nm)
+        v = byte_compare.unique_va(sub["pins"], nm) if v is None else v
+        return nm if v is None else v
+
+    def same(h, g):  # 3.4 T6.1 (C0135): one COMDAT of two of our objects at one VA, same name, bytes and relocs;
+        # 4.3 T2: or two fold-alias names (each a func pin at that VA, one object or two; one may be a matched row:
+        # its section from its defs), relocs by target VA; 4.4 T3 (C0215): a same-name pair may have one matched row too
+        if h["sym"] is None or g["sym"] is None:
+            return False
+        fold = h["sym"] != g["sym"]
+        num = {id(x): x.get("num") or (x["ob"]["defs"].get(x["sym"], (None, 1))[1] == 0
+                                       and x["ob"]["defs"][x["sym"]][0]) or None for x in (h, g)}
+        if None in num.values() or any(h.get(k, d) != g.get(k, d) for k, d in (("lo", 0), ("hi", 0), ("sec", 0),
+                                                                                ("grp", ".text"), ("data", False))):
+            return False
+        if (not fold and (h["ob"] is g["ob"] or "num" not in h and "num" not in g)) \
+                or (fold and ("num" not in g or h.get("data") or not {(h["lo"], h["sym"]), (g["lo"], g["sym"])} <= fpins)):
             return False
         sel = []
         for x in (h, g):
             o = x["ob"]["o"]
-            s = o["secs"][x["num"] - 1]
-            sk = next((e for e in o["syms"] if e[2] == x["num"] and e[4] == 3 and e[1] == 0
-                       and _obj_name(o, e[0]) == x["grp"]), None)
+            s = o["secs"][num[id(x)] - 1]
+            sk = next((e for e in o["syms"] if e[2] == num[id(x)] and e[4] == 3 and e[1] == 0
+                       and _obj_name(o, e[0]) == x.get("grp", ".text")), None)
             if not s["chars"] & 0x1000 or sk is None or len(sk[5]) < 18 or sk[5][14] in (1, 5) \
                     or any(o["syms"][k][4] != 2 for _off, k, _t in s["relocs"]):
                 return False  # not a COMDAT, NODUPLICATES/associative, or a reloc to a static
             sel.append((sk[5][14], bytes(s["raw"]), s["size"],
-                        [(off, typ, _obj_name(o, o["syms"][k][0])) for off, k, typ in s["relocs"]]))
+                        [(off, typ, (tva if fold else str)(_obj_name(o, o["syms"][k][0])))
+                         for off, k, typ in s["relocs"]]))
         return sel[0] == sel[1]
-    kept_h, ndup = [], []
+    if control == "fold":  # 4.3 T2: a planted copy, one fold-alias copy with its byte 0 flipped -> overlap refusal
+        pf = next(((h, g) for h in holes for g in holes if g["lo"] == h["lo"] and g["sym"] != h["sym"] and same(g, h)),
+                  None)
+        if pf is None:
+            refuse("control fold: no two fold-alias copies of ours at one VA")
+        t = pf[0]["ob"]["o"]["secs"][pf[0]["num"] - 1]
+        t["raw"] = bytes([t["raw"][0] ^ 0xFF]) + bytes(t["raw"][1:])
+        print(f"control fold: {pf[0]['sym']} 0x{pf[0]['lo']:08X} {pf[0]['ob']['path'].name} byte 0 flipped "
+              f"(vs {pf[1]['sym']})")
+    kept_h, ndup, folds = [], [], []
     for h in holes:  # an identical duplicate rides the first copy's hole (`dups`); LINK keeps one COMDAT copy
         g = next((g for g in kept_h if g["lo"] == h["lo"] and same(g, h)), None)
         if g is None:
             kept_h.append(h)
         else:
             g.setdefault("dups", []).append(h)
-            ndup.append(f"{h['sym']} 0x{h['lo']:08X} {h['ob']['path'].name} = {g['ob']['path'].name}")
+            ndup.append(f"{h['sym']} 0x{h['lo']:08X} {h['ob']['path'].name} = {g['ob']['path'].name}"
+                        + (f" {g['sym']}" if h["sym"] != g["sym"] else ""))
+            if h["sym"] != g["sym"]:  # 4.3 T2: another name -> its copy renamed unused, the name weak to the kept
+                folds.append((h, g))
     holes = kept_h
     for h, g in zip(holes, holes[1:]):
         if g["lo"] < h["hi"]:
@@ -1084,8 +1151,11 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
         sst_grouped.append(f".rdata VA order (T12): {len(rsort)} sections of ours, "
                            f"{nrs} cut pieces -> .rdata$<va8>")
 
-    def hole_at(va):
-        return next((h for h in holes if h["lo"] <= va < h["hi"]), None)
+    hlos = [h["lo"] for h in holes]  # 4.4 T3: sorted and disjoint after the dedupe (overlap refusal above)
+
+    def hole_at(va):  # bisect: the last hole starting at or before va (an earlier one ends at or before its lo)
+        i = bisect.bisect_right(hlos, va) - 1
+        return holes[i] if i >= 0 and va < holes[i]["hi"] else None
 
     def slotted(h):  # 3.4 T6.1: a code hole of ours in plain `.text`, a COMDAT with its symbol at 0 -> an /ORDER slot
         return (h.get("grp") == ".text" and not h.get("data") and h["sym"] is not None
@@ -1172,7 +1242,7 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
             c["dirty"] = True
     sst = {"split": nsplit, "pieces": npieces, "holes": len(holes), "retargeted": 0, "neutralized": 0, "hole aliases": 0,
            "by name": 0, "our aliases": 0,
-           "grouped": sst_grouped, "dups": ndup, "weak": {}}
+           "grouped": sst_grouped, "dups": ndup, "weak": {h["sym"]: g["sym"] for h, g in folds}}
     if holes:  # T4.c2: references into a hole -> our symbol there (+offset patched into the original's field)
         def_va = {}
         for c in cuts:
@@ -1313,6 +1383,21 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
         if p not in ocopy:
             ocopy[p] = (_obj_load(p.read_bytes()), od / "ours" / p.name)
         rename(ocopy[p][0], h["num"], f".rdata${h['lo']:08X}")
+    for nm, lo in sorted({(h["sym"], h["lo"]) for h, _g in folds}):  # 4.3 T2: every COMDAT copy of ours of an extra
+        for ob in [ob for ob in sub["objs"] if nm in ob["defs"]]:  # name -> `<name>@fold_<va8>` (unreferenced:
+            p = ob["path"]  # /OPT:REF drops it); its object's references -> a new undefined `<name>`, weak to the kept
+            if p not in ocopy:
+                ocopy[p] = (_obj_load(p.read_bytes()), od / "ours" / p.name)
+            o = ocopy[p][0]
+            k = next(i for i, e in enumerate(o["syms"]) if e[4] == 2 and e[2] > 0 and _obj_name(o, e[0]) == nm)
+            if not o["secs"][o["syms"][k][2] - 1]["chars"] & 0x1000:
+                refuse(f"our {p.name}: fold alias {nm} 0x{lo:08X} defined outside a COMDAT")
+            o["syms"][k][0] = _obj_name8(o, f"{nm}@fold_{lo:08X}")
+            o["syms"].append([_obj_name8(o, nm), 0, 0, 0x20, 2, b""])
+            for t in o["secs"]:
+                for r in t["relocs"]:
+                    if r[1] == k and r[2] in (REL_DIR32, REL_REL32):
+                        r[1] = len(o["syms"]) - 1
     for o, q in ocopy.values():
         q.parent.mkdir(exist_ok=True)
         q.write_bytes(_obj_dump(o))
@@ -1322,14 +1407,24 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
     objs, run, nf = [], [], 0
     placed_ours = {}  # our object path -> section it is placed in (by command-line order between data pieces)
 
-    def ours_before(sec, va):
-        for h in holes:
-            if h.get("data") and h["sec"] == sec and h["lo"] < va and h["ob"]["path"] not in objs \
-                    and id(h) not in rsorted:
+    inobjs = set()  # 4.4 T3: every path in objs (membership was a list scan)
+    dholes, dnext = {}, {}  # 4.4 T3: section -> its data holes (not .rdata-sorted) in holes order; next unvisited one
+    for h in holes:
+        if h.get("data") and id(h) not in rsorted:
+            dholes.setdefault(h["sec"], []).append(h)
+
+    def ours_before(sec, va):  # holes ascend by lo, objs only grows: a hole visited once is skipped on every later call
+        hs, i = dholes.get(sec, []), dnext.get(sec, 0)
+        while i < len(hs) and hs[i]["lo"] < va:
+            h = hs[i]
+            i += 1
+            if h["ob"]["path"] not in inobjs:
                 if h["ob"]["path"] in placed_ours:
                     refuse(f"{h['ob']['path'].name}: data in two places ({placed_ours[h['ob']['path']]}, {sec})")
                 placed_ours[h["ob"]["path"]] = sec
                 objs.append(h["ob"]["path"])
+                inobjs.add(h["ob"]["path"])
+        dnext[sec] = i
 
     def filler(rng):
         nonlocal nf
@@ -1349,6 +1444,7 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
             continue
         if run:
             objs.append(filler(run))
+            inobjs.add(objs[-1])
             run = []
         mine = [c for c in cuts if c["sec"] == s["name"]]
         if reverse_text and s["name"] == ".text":
@@ -1361,6 +1457,7 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
                 objs.append(q)
             else:
                 objs.append(c["path"])
+            inobjs.add(objs[-1])
         ours_before(s["name"], 1 << 32)
     if run:
         objs.append(filler(run))
@@ -1581,6 +1678,94 @@ def _all_ours(cfg_path, layout, control=None, list_path=None, bdir=None):
                                 "kept": {1}})
         print(f"control literal: {nm} 0x{va:08X} in literal_a.obj and literal_b.obj (byte 0 flipped), "
               f"{cd.relative_to(REPO).as_posix()}")
+    if control == "fold":  # 4.3 T3: two synthetic objects, one COMDAT (Selection ANY) .text copy each under another
+        fp, used = {}, set()  # fold-alias func pin name at the first such VA none of ours covers; _link flips one
+        with open(PINS, encoding="utf-8") as f:
+            for line in f:
+                p = line.split()
+                if len(p) > 3 and not p[0].startswith("#") and p[1] == "func":
+                    fp.setdefault(int(p[0], 16), []).append(p[3])
+        for ob in sub["objs"]:
+            used |= {r["va"] for r in ob["rows"]} | {d["va"] for d in ob["data"] + ob.get("code", [])}
+        va = next((v for v in sorted(fp) if len(set(fp[v])) > 1 and v not in used), None)
+        if va is None:
+            refuse("control fold: no VA with two fold-alias func pins free of ours")
+        cd = rd / "control"
+        if cd.exists():
+            shutil.rmtree(cd)
+        cd.mkdir(parents=True)
+        for tag, nm in zip("ab", sorted(set(fp[va]))[:2]):
+            o = _obj_load(_coff([(".text", 0x60301020, 1)], [(nm, 0, 1, 0x20)]))
+            o["secs"][0]["raw"] = b"\xC3"
+            o["syms"][0][5] = struct.pack("<IHHIHB", 1, 0, 0, 0, 0, 2).ljust(18, b"\0")
+            q = cd / f"fold_{tag}.obj"
+            q.write_bytes(_obj_dump(o))
+            sub["objs"].append({"unit": q.name, "path": q, "o": o, "rows": [], "defs": {nm: (1, 0)}, "und": [],
+                                "data": [], "code": [_placed(q, layout, ".text", va, o["secs"][0], 1)], "unref": 0,
+                                "kept": {1}})
+        print(f"control fold: 0x{va:08X} two fold-alias names in fold_a.obj and fold_b.obj, "
+              f"{cd.relative_to(REPO).as_posix()}")
+    if control == "samename":  # 4.4 T3 (C0215): a copy of our object holding a matched row's plain COMDAT .text; that
+        pick = None  # section a code hole of the copy at the row's VA (same name), one byte (no reloc field) flipped
+        for ob in sub["objs"]:
+            o = ob["o"]
+            for r in ob["rows"]:
+                num = ob["defs"][r["symbol"]][0]
+                t = o["secs"][num - 1]
+                sk = next((e for e in o["syms"] if e[2] == num and e[4] == 3 and e[1] == 0
+                           and _obj_name(o, e[0]) == ".text"), None)
+                off = next((i for i in range(t["size"]) if not any(ro <= i < ro + 4 for ro, _k, _t in t["relocs"])),
+                           None)
+                if sk is not None and len(sk[5]) >= 18 and sk[5][14] not in (1, 5) and off is not None \
+                        and all(o["syms"][k][4] == 2 for _ro, k, _t in t["relocs"]) \
+                        and [n for n, (s, v) in ob["defs"].items() if s == num and v == 0] == [r["symbol"]]:
+                    pick = pick or (ob, r, num, off)
+        if pick is None:
+            refuse("control samename: no matched row in a plain COMDAT .text section of ours")
+        ob, r, num, off = pick
+        cd = rd / "control"
+        if cd.exists():
+            shutil.rmtree(cd)
+        cd.mkdir(parents=True)
+        o = _obj_load(ob["path"].read_bytes())
+        t = o["secs"][num - 1]
+        t["raw"] = t["raw"][:off] + bytes([t["raw"][off] ^ 0xFF]) + t["raw"][off + 1:]
+        q = cd / f"samename_{ob['path'].name}"
+        q.write_bytes(_obj_dump(o))
+        sub["objs"].append({"unit": q.name, "path": q, "o": o, "rows": [], "defs": {r["symbol"]: (num, 0)}, "und": [],
+                            "data": [], "code": [_placed(q, layout, ".text", r["va"], t, num)], "unref": 0,
+                            "kept": {num}})
+        print(f"control samename: {r['symbol']} 0x{r['va']:08X} copy {q.name} (+0x{off:X} flipped), "
+              f"{cd.relative_to(REPO).as_posix()}")
+    if control == "weak":  # 4.4 T3 (C0217): in a copy of our object, one matched row's DIR32/REL32 to an external ->
+        for ob in sub["objs"]:  # a new weak external (class 105, SEARCH_ALIAS) whose TagIndex names the row's own
+            o = ob["o"]  # symbol: a wrong body
+            for r in ob["rows"]:
+                num = ob["defs"][r["symbol"]][0]
+                ks = [i for i, e in enumerate(o["syms"]) if e[4] == 2 and e[2] == num and e[1] == 0
+                      and _obj_name(o, e[0]) == r["symbol"]]
+                ri = next((i for i, x in enumerate(o["secs"][num - 1]["relocs"]) if x[2] in (REL_DIR32, REL_REL32)
+                           and o["syms"][x[1]][4] == 2 and _obj_name(o, o["syms"][x[1]][0]) != r["symbol"]), None)
+                if len(ks) != 1 or ri is None:
+                    continue
+                cd = rd / "control"
+                if cd.exists():
+                    shutil.rmtree(cd)
+                cd.mkdir(parents=True)
+                o = _obj_load(ob["path"].read_bytes())
+                rl = o["secs"][num - 1]["relocs"][ri]
+                old = _obj_name(o, o["syms"][rl[1]][0])
+                tag = sum(1 + len(e[5]) // 18 for e in o["syms"][:ks[0]])
+                o["syms"].append([_obj_name8(o, "__weak_control"), 0, 0, 0x20, 105,
+                                  struct.pack("<II", tag, 3).ljust(18, b"\0")])
+                rl[1] = len(o["syms"]) - 1
+                q = cd / ob["path"].name
+                q.write_bytes(_obj_dump(o))
+                ob["path"], ob["o"] = q, o
+                print(f"control weak: {r['symbol']} +0x{rl[0]:X} reloc to {old} -> weak __weak_control, TagIndex "
+                      f"{tag} = {r['symbol']} (wrong body), object {q.relative_to(REPO).as_posix()}")
+                return sub
+        refuse("control weak: no matched row with a DIR32/REL32 reloc to another symbol")
     if control != "one-function":
         return sub
     for ob in sub["objs"]:
@@ -1718,7 +1903,7 @@ def gate_check(list_path, bdir, cfg_path=None, control=None):
     return rc, buf.getvalue().splitlines()
 
 
-WHOLE_CONTROLS = ("one-function", "rdata-unsorted", "entry", "literal")
+WHOLE_CONTROLS = ("one-function", "rdata-unsorted", "entry", "literal", "fold", "samename", "weak")
 
 
 def check_section(args):
@@ -1726,7 +1911,8 @@ def check_section(args):
         if args.units:
             refuse("--units needs --section")
         if args.control and (args.originals or args.control not in WHOLE_CONTROLS):
-            refuse("whole image: only --control one-function|rdata-unsorted|entry|literal, without --originals")
+            refuse("whole image: only --control one-function|rdata-unsorted|entry|literal|fold|samename|weak, "
+                   "without --originals")
         cfg = vv_inputs.load_config(args.config)
         x, sha1 = load_xbe(args.config)
         rx = vv_inputs.input_path("retail_xbe", cfg=cfg).read_bytes()

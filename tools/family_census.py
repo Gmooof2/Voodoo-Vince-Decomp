@@ -29,7 +29,6 @@ import name_sites  # noqa: E402
 import pdb_info  # noqa: E402
 import pe_info  # noqa: E402
 import proto_map  # noqa: E402
-import units_seed  # noqa: E402
 import vv_inputs  # noqa: E402
 import xbe_info  # noqa: E402
 
@@ -281,7 +280,7 @@ def make_row(env, pop, va, size, names, sites):
         k = site_kind(env, va, s)
         kinds[k] += 1
         st = s["resolved"]
-        if st is None or (st not in ("self", "constant") and st not in units_seed.STATUSES + candidates.PIN_STATUSES):
+        if not candidates.accepted(st, s["target"], env["funcs"]):  # 4.2 T9: candidates.py's one rule (D115)
             blockers.append((s["target"], k, st))
         if k == "call":
             f = env["funcs"].get(s["target"])
@@ -510,7 +509,7 @@ def render(env, rows, n):
     ordered = sorted(CLASSES, key=lambda c: lever_key(groups[c], c))
     L += ["## 4.2 levers, ordered", "",
           "Blockers = sites whose resolved is none or a status outside the accepted ones (self, constant never block; "
-          "as candidates.py:410-413). By status class: rows whose every blocker is that class, ordered pool rows freed, "
+          "as candidates.accepted: near-corr on a func-table target accepted, D115). By status class: rows whose every blocker is that class, ordered pool rows freed, "
           "pool bytes, uncut rows, class; then mixed and not blocked.", ""]
     L += table(["status class"] + col, [[c] + cells(groups[c]) for c in ordered + ["mixed", "not blocked"]]) + [""]
     reasons = defaultdict(set)

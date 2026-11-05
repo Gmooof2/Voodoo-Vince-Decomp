@@ -10,7 +10,17 @@ struct IDirectSoundStream { // NAME: proto-pdb:default.pdb
     virtual unsigned long __stdcall Release() = 0;                 // vtable+0x04
     virtual long __stdcall GetInfo(struct _XMEDIAINFO*) = 0;       // vtable+0x08 // src proto-pdb:default.pdb _XMEDIAINFO
     virtual long __stdcall GetStatus(unsigned long*) = 0;          // vtable+0x0C
+
+    long __stdcall SetPosition(float x, float y, float z, unsigned long dwApply);
 };
+
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
+struct AABox; // NAME: proto-pdb:default.pdb
 
 template <class T>
 void RELEASE(T*& obj) // NAME: proto-pdb:default.pdb
@@ -75,6 +85,10 @@ public:
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~SwampSceneNode();                         // vtable+0x00
+    virtual const AABox& GetBounds() const;            // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;          // vtable+0x08
+
     SwampScript* GetScript() const;
 };
 
@@ -99,11 +113,25 @@ std::string StripExtension(const std::string&);
 
 class SoundStreamer { // NAME: proto-pdb:default.pdb
 public:
+    enum { // NAME: proto-pdb:default.pdb
+        LOOPED = 0x1,
+        PLAYNOW = 0x4,
+        USE3D = 0x8,
+        NOTIFY = 0x20,
+        PRELOAD = 0x40,
+        MUSIC_OVERLAY = 0x100,
+        OVERLAY = 0x200,
+        CINEMATIC = 0x400,
+        NOAUTOPAUSE = 0x1000,
+        DEFAULT_FLAGS = 0x1004
+    };
+
     ~SoundStreamer();
     bool Set(const std::string&, unsigned int);
     void Play();
     void Pause();
     void Stop();
+    void UpdatePosition();
 
     static int _streamerCount; // NAME: proto-pdb:default.pdb
 
@@ -147,6 +175,17 @@ void SoundStreamer::Pause()
         if (_stream) {
             IDirectSoundStream_Pause(_stream, 1);
         }
+    }
+}
+
+// FUNCTION: USA 0x000D8CD4
+// PROTOTYPE: PREVIEW 0x004C42D0 identical
+// NAME: proto-pdb:default.pdb
+void SoundStreamer::UpdatePosition()
+{
+    if (_stream && (_flags & USE3D) && _node) {
+        Vector3 pos = _node->GetWorldPosition();
+        _stream->SetPosition(pos.x, pos.y, pos.z, 1);
     }
 }
 

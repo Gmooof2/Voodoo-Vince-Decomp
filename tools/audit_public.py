@@ -59,7 +59,8 @@ PUBLIC_FLAG = "--public-ci"  # the public repo's run with no local config; see p
 USER_PATH = re.compile(rb"""(?:(?<![A-Za-z0-9_])[A-Za-z]:[\\/]+|/[A-Za-z]/+)Users[\\/]+[^\s\\/:*?"<>|]""", re.I)
 OVERSIZE = 1_572_864  # 1.5 MiB: largest history blob 857,215 (journal); retail XBE 2,453,504
 INDEX_RE = re.compile(r"\.claude-state/journal/INDEX-[^/]*\.md")  # address: link field dropped (T8 phase 2.4)
-OVERSIZE_EXEMPT = ".claude-state/journal/"  # repo-relative prefix; only the oversize class is skipped (1.7 T7)
+OVERSIZE_EXEMPT = (".claude-state/journal/", ".claude-state/ledger/")  # repo-relative prefixes; only the oversize
+# class is skipped (journal 1.7 T7, ledger slices 4.4 T1); was: ".claude-state/journal/"
 TOOL_SUFFIXES = {".exe", ".dll", ".lib", ".obj", ".pdb", ".xbe", ".iso", ".bin",
                  ".ilk", ".exp", ".pch", ".idb"}
 MSF7 = b"Microsoft C/C++ MSF 7.00\r\n\x1a"
@@ -570,6 +571,10 @@ def _fixtures():
         "named.pdb": (b"plain text with a toolchain suffix\n", {"toolchain"}),
         "big.dat": (big, {"oversize"}),
         ".claude-state/journal/big.md": (big + b"journal", set()),  # distinct blob for history
+        ".claude-state/ledger/big.gz": (big + b"ledger", set()),  # distinct blob for history (C0047)
+        ".claude-state/ledger-held/big.gz": (big + b"held", {"oversize"}),  # near prefix still flags
+        "x/.claude-state/ledger/big.gz": (big + b"nested", {"oversize"}),  # prefix anchored at repo root
+        ".claude-state/ledger/xbeh.gz": (b"XBEH" + b"ledger" + b"\0" * 60, {"magic", "toolchain"}),
         ".claude-state/journal/xbeh.md": (b"XBEH" + b"journal" + b"\0" * 60, {"magic", "toolchain"}),
         "asm.txt": (asm.encode(), {"text-run"}),
         "hexdump.txt": (hexd.encode(), {"text-run"}),

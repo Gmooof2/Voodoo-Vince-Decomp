@@ -75,7 +75,7 @@ int LocString_GetStringID(...)
 - Only what a function uses; a struct is written out to the members the function reaches, the rest stay
   `field_<offset>` (D78), the size assert still holds the PDB size.
 
-## 4. `!FAKE` marker (D66, D33) and the forbidden list (D79)
+## 4. `!FAKE` marker (D66, D33) and the forbidden list (D116, was D79)
 - Spelling, on the line above the construct: `// !FAKE: <compiler pass>; <instrument>; <reason>`.
   pass = what cl 13.10 does that the construct steers (c1xx front end, c2 register allocation, c2 block layout,
   inliner, EH state); instrument = the source construct used (dummy local, temporary, reordered statement, cast,
@@ -83,10 +83,13 @@ int LocString_GetStringID(...)
   `// !FAKE: c2 register allocation; dummy local; esi/edi swapped without it (match_one 97.1 -> 100.0)`
 - Marks every match-only construct the original author would not have written (D66: dummy locals, volatile locals).
   A `!FAKE` names a lever; it is never a cookbook reference (D33).
-- Forbidden, `!FAKE` or not (D79; Halo 2 "Do not" list): `__declspec(noinline)`, `__forceinline` or any attribute the
+- Forbidden, `!FAKE` or not (D116, was D79; Halo 2 "Do not" list): `__declspec(noinline)`, `__forceinline` or any attribute the
   original lacks; `#pragma` inside a function body (`#pragma optimize` included); `volatile` on a global; global address
   or offset tricks; volatile function pointers; `__asm`/`_asm` (also refused by the gate's `asm` verdict); per-function
   flags (build.py has none: a unit has one `opt`).
+- A call retail inlined that /O1 keeps out of line (D117): no `__forceinline`, no helper the prototype PDB does not
+  record. Allowed: a pointer local to the call (`const T* p = &f();`) or hand forms of the body (C0191), each stand-in
+  local neutral ("Locals" below) and marked `!FAKE`. A row no allowed form matches is a question for the developer.
 
 ## 5. NON_MATCHING (D41, G4)
 ```

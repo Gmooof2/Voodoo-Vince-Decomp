@@ -98,6 +98,12 @@ class DoorStorageRoom : public Critter { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(DoorStorageRoom, 0x2C8);
 
+class SoundManager { // NAME: proto-pdb:default.pdb
+public:
+    static void PlaySound(const SwampString& name, unsigned int flags, SwampSceneNode* parent, bool bAttach,
+                          float minDist3D, float maxDist3D);
+};
+
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
     enum CollisionType { // NAME: proto-pdb:default.pdb
@@ -129,6 +135,7 @@ public:
     virtual SwampString Save();                                    // vtable+0x58
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
+    void RegisterTimerEvent(unsigned int, float, bool);
 
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
@@ -157,9 +164,15 @@ public:
         Closing = 3,
         Cracked = 4
     };
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_DOOR_CRACK = 0x14,
+        MESSAGE_DOOR_OPEN = 0x15,
+        MESSAGE_DOOR_CLOSE = 0x16
+    };
 
     virtual void Activate();
     virtual void TimerEvent(unsigned int);
+    virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
     ResourceHandle<AnimationResource> _open; // 0xBC
 private:
@@ -189,6 +202,35 @@ void DoorStorageRoomMain::TimerEvent(unsigned int)
 {
     GetDoor()->SetAnimSpeed(0.0f);
 }
+
+// FUNCTION: USA 0x00079418
+// PROTOTYPE: PREVIEW 0x0046542C identical
+// NAME: proto-pdb:default.pdb
+void DoorStorageRoomMain::Message(SwampScript* source, int message, void* data)
+{
+    switch (message) {
+    case MESSAGE_DOOR_CRACK:
+        if (_state == Closed) {
+            RegisterTimerEvent(1, 0.5f, false);
+            Activate();
+            SetState(Cracked);
+            SoundManager::PlaySound("qb_doorpartial", 0x20, _node, true, 0.0f, 0.0f);
+        }
+        break;
+    case MESSAGE_DOOR_OPEN:
+        Activate();
+        SoundManager::PlaySound("qb_doorOpen", 0x20, _node, true, 0.0f, 0.0f);
+        break;
+    case MESSAGE_DOOR_CLOSE:
+        if (_state != Closed) {
+            SoundManager::PlaySound("qb_doorpartial", 0x20, _node, true, 0.0f, 0.0f);
+            GetDoor()->SetAnimSpeed(-1.0f);
+            SetState(Closing);
+        }
+        break;
+    }
+}
+
 // FUNCTION: USA 0x00079539
 // PROTOTYPE: PREVIEW 0x0046554D identical
 // NAME: proto-pdb:default.pdb

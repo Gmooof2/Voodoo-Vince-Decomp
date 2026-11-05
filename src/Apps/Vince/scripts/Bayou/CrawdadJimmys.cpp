@@ -2,16 +2,88 @@
 #include "../../../../include/decomp.h"
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
-template <class T> class allocator;
+struct _Nonscalar_ptr_iterator_tag {
+};
+template <class T> inline void _Destroy(T* _Ptr)
+{
+    (_Ptr)->~T();
+}
+template <class T> class allocator {
+public:
+    void destroy(T* _Ptr) { _Destroy(_Ptr); }
+};
+template <class T, class A> inline void _Destroy_range(T* _First, T* _Last, A& _Al, _Nonscalar_ptr_iterator_tag)
+{
+    for (; _First != _Last; ++_First)
+        _Al.destroy(_First);
+}
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
+    unsigned int size() const { return _Mysize; }
+    int compare(const basic_string& _Right) const { return compare(0, _Mysize, _Right._Myptr(), _Right.size()); }
+    int compare(unsigned int _Off, unsigned int _N0, const E* _Ptr, unsigned int _Count) const;
+    const E* _Myptr() const { return _BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf; }
 
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    char _pad00[0x1C];
+    enum { _BUF_SIZE = 16 / sizeof(E) < 1 ? 1 : 16 / sizeof(E) };
+    A _Alval;                          // 0x00
+    union {
+        E _Buf[_BUF_SIZE];
+        E* _Ptr;
+    } _Bx;                             // 0x04
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
+};
+template <class E, class T, class A> inline bool operator<(const basic_string<E, T, A>& _Left, const basic_string<E, T, A>& _Right)
+{
+    return (_Left.compare(_Right) < 0);
+}
+template <class T> struct less; // src proto-pdb:default.pdb less
+template <class T1, class T2> struct pair { // src proto-pdb:default.pdb pair
+    T1 first;                          // 0x00 // src proto-pdb:default.pdb first
+    T2 second; // src proto-pdb:default.pdb second
+};
+template <class K, class T, class Pr, class A, bool Mfl> class _Tmap_traits { // src proto-pdb:default.pdb _Tmap_traits
+public:
+    typedef K key_type; // src proto-pdb:default.pdb key_type
+    typedef pair<const K, T> value_type;
+};
+template <class Tr> class _Tree { // src proto-pdb:default.pdb _Tree
+    struct _Node {
+        _Node* _Left;                  // 0x00
+        _Node* _Parent;                // 0x04
+        _Node* _Right;                 // 0x08
+        typename Tr::value_type _Myval; // 0x0C
+    };
+public:
+    class const_iterator {
+    public:
+        const_iterator(_Node* _Pnode) : _Ptr(_Pnode) {}
+        bool operator==(const const_iterator& _Right) const { return _Ptr == _Right._Ptr; }
+        bool operator!=(const const_iterator& _Right) const { return (!(*this == _Right)); }
+        const typename Tr::value_type* operator->() const { return &this->_Ptr->_Myval; }
+        _Node* _Ptr;
+    };
+    class iterator : public const_iterator {
+    public:
+        iterator(_Node* _Pnode) : const_iterator(_Pnode) {}
+        typename Tr::value_type* operator->() const { return &this->_Ptr->_Myval; }
+    };
+    iterator end() { return iterator(_Myhead); }
+    iterator find(const typename Tr::key_type& _Keyval); // src proto-pdb:default.pdb find
+
+private:
+    char _Alval;                       // 0x00 // src proto-pdb:default.pdb _Alval
+    _Node* _Myhead;                    // 0x04
+    unsigned int _Mysize;              // 0x08
+};
+template <class K, class T, class Pr = less<K>, class A = allocator<pair<const K, T> > > class multimap // src proto-pdb:default.pdb multimap
+    : public _Tree<_Tmap_traits<K, T, Pr, A, true> > {
 };
 template <class T, class A> class vector {
 public:
@@ -25,6 +97,21 @@ private:
 };
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
+
+// FUNCTION: USA 0x00019E98
+// PROTOTYPE: PREVIEW 0x004090F9 identical
+// NAME: proto-pdb:default.pdb
+template int std::basic_string<char,std::char_traits<char>,std::allocator<char> >::compare(std::basic_string<char,std::char_traits<char>,std::allocator<char> > const &)const;
+
+// FUNCTION: USA 0x00019EBC
+// PROTOTYPE: PREVIEW 0x0040911D identical
+// NAME: proto-pdb:default.pdb
+template bool std::operator< <char,std::char_traits<char>,std::allocator<char> >(std::basic_string<char,std::char_traits<char>,std::allocator<char> > const &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > const &);
+
+// FUNCTION: USA 0x0001A50A
+// PROTOTYPE: PREVIEW 0x00409787 identical
+// NAME: proto-pdb:default.pdb
+template void std::_Destroy_range<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::allocator<std::basic_string<char,std::char_traits<char>,std::allocator<char> > > >(std::basic_string<char,std::char_traits<char>,std::allocator<char> > *,std::basic_string<char,std::char_traits<char>,std::allocator<char> > *,std::allocator<std::basic_string<char,std::char_traits<char>,std::allocator<char> > > &,std::_Nonscalar_ptr_iterator_tag);
 
 class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
@@ -44,15 +131,24 @@ DECOMP_SIZE_ASSERT(Quaternion, 0x10);
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    enum NodeOptions { // NAME: proto-pdb:default.pdb
+        Invalid = 0x1
+    };
     const Quaternion& SetRotation(const Quaternion& q);
     void SetVisible(bool b, bool r);
     void SetOption(unsigned int, bool, bool);
+    bool GetRenderingOption(unsigned int option) const { return (_RenderingOptions & option) != 0; }
+    bool IsValid() const { return !GetRenderingOption(Invalid); }
 protected:
     void InvalidateCachedWorldPos();
 public:
     char field_0[0x40];                // 0x00
     Quaternion _Rotation;              // 0x40
+    char field_50[0x88 - 0x50];        // 0x50
+    unsigned int _RenderingOptions;    // 0x88
+    char field_8C[0xA4 - 0x8C];        // 0x8C
 };
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 void* operator new(unsigned int size, const char* file, int line);
 
@@ -105,7 +201,11 @@ public:
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
 
-    char field_4[0x48];                // 0x04
+    SwampSceneNode* GetNode() { return _node; }
+
+    char field_4[0x20 - 0x4];          // 0x04
+    SwampSceneNode* _node;             // 0x20
+    char field_24[0x4C - 0x24];        // 0x24
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
@@ -134,6 +234,7 @@ public:
     };
 
     CrawdadJimmyMain(SwampSceneNode* node);
+    virtual bool TestActivate() const;
     virtual void GainingControl(SwampScript*);
     virtual void SetState(int);
 
@@ -144,6 +245,7 @@ public:
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void ResetAmbients();
+    void GiveHint(int item);
 };
 DECOMP_SIZE_ASSERT(CrawdadJimmyMain, 0xC4);
 
@@ -224,6 +326,8 @@ public:
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) ++_Resource->_RefCount; }
     ~ResourceHandle() { if (_Resource) --_Resource->_RefCount; }
     ResourceHandle& operator=(const ResourceHandle&);
+    bool IsValid() const { return _Resource != 0; }
+    T& operator()() { return *_Resource; }
     T* _Resource;                      // 0x00
 };
 
@@ -251,6 +355,107 @@ void Critter::SetDefaultIdleAnim(ResourceHandle<AnimationResource> ah)
 ResourceHandle<AnimationResource> Critter::GetDefaultIdleAnim() const
 {
     return _defaultIdleAnim;
+}
+
+class RegionTrigger; // NAME: proto-pdb:default.pdb
+
+namespace BeepLib { // NAME: proto-pdb:default.pdb
+SwampString MakeLower(const SwampString& s); // src proto-pdb:default.pdb MakeLower
+}
+
+class RegionManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef std::multimap<SwampString, RegionTrigger*> RegionMap; // NAME: proto-pdb:default.pdb
+    RegionTrigger* Find(const SwampString& name);
+
+    RegionMap _regions;                // 0x00
+};
+DECOMP_SIZE_ASSERT(RegionManager, 0xC);
+
+// FUNCTION: USA 0x0001A04C
+// NAME: proto-pdb:default.pdb
+RegionTrigger* RegionManager::Find(const SwampString& name)
+{
+    RegionMap::const_iterator tmp = _regions.find(BeepLib::MakeLower(name));
+    return tmp != _regions.end() ? tmp->second : 0;
+}
+
+class SoundResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    float GetPlaybackTime() const { return _playbackTime; }
+
+    char field_24[0x38 - 0x24];        // 0x24
+    float _playbackTime;               // 0x38
+};
+DECOMP_SIZE_ASSERT(SoundResource, 0x3C);
+
+class SoundNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    void Play();
+    ResourceHandle<SoundResource> GetSound() const { return _sound; }
+
+    char field_A4[0xC4 - 0xA4];        // 0xA4
+    ResourceHandle<SoundResource> _sound; // 0xC4
+    char field_C8[0xD0 - 0xC8];        // 0xC8
+};
+DECOMP_SIZE_ASSERT(SoundNode, 0xD0);
+
+class SoundManager { // NAME: proto-pdb:default.pdb
+public:
+    static SoundNode* CreateSound(const SwampString&, unsigned int, SwampSceneNode*, bool);
+};
+
+class LocalizedStrings { // NAME: proto-pdb:default.pdb
+public:
+    static LocalizedStrings& Instance();
+    const unsigned short* GetGameString(const SwampString&);
+};
+
+class HUDUI { // NAME: proto-pdb:default.pdb
+public:
+    static HUDUI& Instance() { return *_self; }
+    void SetSubtitle(const unsigned short*, float);
+private:
+    static HUDUI* _self;
+};
+
+class AnimCam { // NAME: proto-pdb:default.pdb
+public:
+    static AnimCam* SwitchTo(const SwampString&, float, bool, float);
+};
+
+// FUNCTION: USA 0x0001A386
+// PROTOTYPE: PREVIEW 0x00409603 identical
+// NAME: proto-pdb:default.pdb
+void CrawdadJimmyMain::GiveHint(int item)
+{
+    // !FAKE: c2 register allocation; stand-in local; the PDB records no local for the sound name (edi in retail)
+    const char* v0 = 0;
+    const char* camname = 0;
+    switch (item) {
+    case 0:
+        v0 = "jimmy_b_cj_06";
+        camname = "camera_hintOnion";
+        break;
+    case 1:
+        v0 = "jimmy_b_cj_07";
+        camname = "camera_hintsausage";
+        break;
+    case 2:
+        v0 = "jimmy_b_cj_08";
+        camname = "camera_hintcrawdad";
+        break;
+    }
+    // !FAKE: c2 register allocation; stand-in local; the PDB records no local for the sound node (esi in retail)
+    SoundNode* v1 = SoundManager::CreateSound(v0, 0x120, GetNode(), true);
+    if (v1->IsValid()) {
+        v1->Play();
+        // !FAKE: c2 register allocation; stand-in local; the PDB records no local for the sound handle (esi in retail)
+        ResourceHandle<SoundResource> v2 = v1->GetSound();
+        if (v2.IsValid())
+            HUDUI::Instance().SetSubtitle(LocalizedStrings::Instance().GetGameString(v0), v2().GetPlaybackTime());
+    }
+    AnimCam::SwitchTo(camname, 0.0f, false, 0.0f);
 }
 
 // FUNCTION: USA 0x0001A48C
@@ -342,4 +547,45 @@ SwampScript* TimberGateMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("CrawdadJimmys\\CrawdadJimmys.cpp", 521) TimberGateMain(node);
+}
+
+class Level { // NAME: proto-pdb:default.pdb
+public:
+    SwampScript* GetScript() { return _script; }
+
+    char field_0[0xC];                 // 0x00
+    SwampScript* _script;              // 0x0C
+    char field_10[0x140 - 0x10];       // 0x10
+};
+DECOMP_SIZE_ASSERT(Level, 0x140);
+
+class LevelLoader { // NAME: proto-pdb:default.pdb
+public:
+    static LevelLoader& Instance();
+    Level* GetCurLevel() { return _curLevel; }
+
+    char field_0[0x4];                 // 0x00
+    Level* _curLevel;                  // 0x04
+    char field_8[0x1CC - 0x8];         // 0x08
+};
+DECOMP_SIZE_ASSERT(LevelLoader, 0x1CC);
+
+// FUNCTION: USA 0x0001A939
+// PROTOTYPE: PREVIEW 0x00409BC8 identical
+// NAME: proto-pdb:default.pdb
+bool CrawdadJimmyMain::TestActivate() const
+{
+    // !FAKE: c2 register allocation; pointer local; retail calls Instance() once and keeps the script in esi
+    SwampScript* v0 = LevelLoader::Instance().GetCurLevel()->GetScript();
+    bool racewon = false;
+    v0->Message(0, 0x1F, &racewon);
+    bool onion = false;
+    v0->Message(0, 0x17, &onion);
+    bool sausage = false;
+    v0->Message(0, 0x19, &sausage);
+    bool crawdad = false;
+    v0->Message(0, 0x1B, &crawdad);
+    bool pending = false;
+    v0->Message(0, 0x1D, &pending);
+    return !onion || !sausage || !crawdad || pending || racewon;
 }

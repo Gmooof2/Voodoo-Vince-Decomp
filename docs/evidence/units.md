@@ -91,6 +91,12 @@ equal retail bytes there. Status note: names/VAs only (D46).
   - `chain-neighbour`: a `chain` whose end equals the retail start of an LIS anchor owned by the adjacent unit, or of
     a `disasm-verified` pin of an adjacent unit's proc (end side; symmetric for a start): the cut is closed from both
     sides.
+  - `neighbour-fixed` (4.4 T8): the adjacent run in proto link order (the main run before, for a start; after, for an
+    end) belongs to another unit whose facing edge is already fixed in `units.toml` (edge class in EDGE_OK, not itself
+    `neighbour-fixed`), and that VA lies in our own anchor gap (no other unit's LIS anchor between). The seed's
+    `neighbour` rule with the neighbour's fixed edge in place of its LIS anchor: the bytes between our last anchor and
+    the neighbour's fixed edge have no third owner. Tried after `pin` and `chain`; the C0020 widened-bytes check and the
+    outside-proc check run on the result as for every edge. Released 13 units at 4.4 T8 (validation.md "4.4 Cuts").
   - Pins: a `disasm-verified` pin (3.1 T5/T7, byte-checked) whose name is the PDB public of the edge proc fixes the
     edge as an anchor would (pin VA, pin VA + proc len). A `boundary` pin proves a function start only: it may close
     a chain as the far side, never assign ownership alone. `site-corr` and `unverified` pins never fix an edge.

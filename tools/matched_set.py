@@ -11,7 +11,7 @@ text_start <= va < text_end (edge_start/edge_end refuse only when both are ints;
 appends to the file text (header kept). Refuses an XBE whose sha1 differs from the pin, duplicates, missing file.
 3.4 T6.1: a name with no symbols.txt row falls back (add and check, _func_row) to config/retail/symbols_pin.txt:
 exactly one sized `func` pin line, status disasm-verified with another func name at its VA (a fold alias, C0130) or
-near-corr; else refused with the reason. add of a near-corr pin also needs a `"lane": "near"` row of the symbol at
+whose pin row passes tools/pin_rows.py (D118, 4.2 T5), or near-corr; else refused with the reason. add of a near-corr pin also needs a `"lane": "near"` row of the symbol at
 that VA in derived/candidates/candidates.jsonl (add-time only; check never reads it). One row per retail VA.
 check: per function `xbe_sha1`, `size`, `body_sha1`, `defined`, `asm`; global `"*objects*"` -> `extra` (rules
 eh-funclet, local-label, inline-copy). Every layer reported (D51). `built` reconstructed from --src + --objs with
@@ -128,7 +128,8 @@ def _pins():
 
 def _pin_row(rows, pins, symbol):
     """3.4 T6.1: -> (va, size, status) of `symbol`'s one sized func pin line, status near-corr, or disasm-verified with
-    another func name at the same VA in symbols.txt or the pins (a fold alias, C0130); else a reason string."""
+    another func name at the same VA in symbols.txt or the pins (a fold alias, C0130), or (D118, 4.2 T5) disasm-verified
+    sole name whose pin row passes the pin-row check (pin_rows.row_ok is True); else a reason string."""
     fs = [r for r in pins.get(symbol, []) if r["kind"] == "func"]
     if not fs:
         return f"{symbol} not in symbols.txt or symbols_pin.txt"
@@ -142,7 +143,11 @@ def _pin_row(rows, pins, symbol):
     if r["status"] == "disasm-verified" and not any(
             n != symbol and any(x["kind"] == "func" and x["va"] == r["va"] for x in xs)
             for tab in (rows, pins) for n, xs in tab.items()):
-        return f"{symbol} pin disasm-verified with no other func name at 0x{r['va']:08X}: not a fold alias"
+        import pin_rows  # noqa: PLC0415  D118 (4.2 T5): lazy, pin_rows imports this module
+        ok = pin_rows.row_ok(symbol)
+        if ok is not True:  # D118: the pin-row check (D119) guards the sole name; an unruled pin stays refused
+            return (f"{symbol} pin disasm-verified with no other func name at 0x{r['va']:08X}: not a fold alias, "
+                    f"pin-row check: {ok}")
     return r["va"], r["size"], r["status"]
 
 
