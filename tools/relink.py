@@ -100,8 +100,10 @@ Folded members and shared literals (3.4 T6.1, C0136/C0135): a kept plain `.text`
   (class 105) reloc target -> its default by aux TagIndex in the kept walk, the referenced set and reloc-site placement.
   --control samename: a copy of the object of the first matched row in a plain COMDAT .text (control/samename_<obj>),
   that section a code hole at the row's VA, one non-reloc byte flipped; must exit 2 `our ranges overlap`.
-  --control weak: in a copy of a matched row's object, its first DIR32/REL32 to another symbol -> a new weak external
-  `__weak_control` whose TagIndex names the row itself (a wrong body); must fail. All ld dir link/all=<tag>-<control>/.
+  --control weak: in a copy of a matched row's object, its first DIR32/REL32 to another external -> a new weak external
+  `__weak_control` whose TagIndex names a non-row COMDAT .text no reloc reaches (a wrong body), planted in _ours before
+  the kept walk so _weak_tag must follow it (4.5 T16.2.c4; was: after _ours, TagIndex the row itself); must fail.
+  All ld dir link/all=<tag>-<control>/.
 Evidence: docs/evidence/relink.md "One section relinked (T3)", "Two real sections, ordered COMDAT originals (T4.c1)",
 "Whole image from originals (T5)", "Every matched function substituted (T6)", "C++ EH substitution (T7)", "3.4 T6.1".
 """
@@ -787,10 +789,50 @@ def _placed(path, layout, sname, va, t, num):
     return {"sec": sname, "rsec": sec["name"], "va": va, "size": t["size"], "num": num}
 
 
-def _ours(units, cfg_path, layout, bdir=None, list_path=None):
+def _weak_plant(o, path, mine, defs):
+    """4.5 T16.2.c4 control weak (C0217): one matched row's DIR32/REL32 to another external -> a new weak external
+    `__weak_control` (class 105) whose TagIndex names a non-row COMDAT .text of the same object that no reloc
+    reaches (kept only if _weak_tag follows the weak; the call then lands on a wrong body). Copy written to
+    .run/<phase>/relink/control/ -> its path, or None (no such row and section in this object)."""
+    rowsec = {defs[r["symbol"]][0] for r in mine}
+    hit = {o["syms"][k][2] for t in o["secs"] if not _obj_name(o, t["name8"]).startswith(".debug")
+           for _f, k, _t in t["relocs"]}
+    cand = [(i, e) for i, e in enumerate(o["syms"]) if e[4] == 2 and e[2] > 0 and e[1] == 0
+            and e[2] not in rowsec and e[2] not in hit and o["secs"][e[2] - 1]["chars"] & 0x1000
+            and _obj_name(o, o["secs"][e[2] - 1]["name8"]) == ".text"
+            and not any(f[2] == e[2] for f in o["syms"] if f is not e and f[4] == 2)]
+    for r in mine:
+        num = defs[r["symbol"]][0]
+        ri = next((i for i, x in enumerate(o["secs"][num - 1]["relocs"]) if x[2] in (REL_DIR32, REL_REL32)
+                   and o["syms"][x[1]][4] == 2 and o["syms"][x[1]][2] == 0
+                   and _obj_name(o, o["syms"][x[1]][0]) != r["symbol"]), None)
+        if ri is None or not cand:
+            continue
+        cd = byte_compare._phase_run_dir() / "relink" / "control"
+        if cd.exists():
+            shutil.rmtree(cd)
+        cd.mkdir(parents=True)
+        k, de = cand[0]
+        rl = o["secs"][num - 1]["relocs"][ri]
+        old = _obj_name(o, o["syms"][rl[1]][0])
+        tag = sum(1 + len(e[5]) // 18 for e in o["syms"][:k])
+        o["syms"].append([_obj_name8(o, "__weak_control"), 0, 0, 0x20, 105,
+                          struct.pack("<II", tag, 3).ljust(18, b"\0")])
+        rl[1] = len(o["syms"]) - 1
+        q = cd / path.name
+        q.write_bytes(_obj_dump(o))
+        print(f"control weak: {r['symbol']} +0x{rl[0]:X} reloc to {old} -> weak __weak_control, TagIndex {tag} = "
+              f"{_obj_name(o, de[0])} (section #{de[2]}, no reloc reaches it; wrong body), object "
+              f"{q.relative_to(REPO).as_posix()}")
+        return q
+    return None
+
+
+def _ours(units, cfg_path, layout, bdir=None, list_path=None, control=None):
     """--units U[,V..] -> our compiled objects (bdir or .run/<phase>/build/<basename of the matched-set unit>) with
     their matched rows, undefined externals and image data sections ({sec, va, size, num}: VA from a symbol in the
-    section by name, byname then config/retail/symbols_pin.txt). list_path: matched list (default MATCHED; T7 gate)."""
+    section by name, byname then config/retail/symbols_pin.txt). list_path: matched list (default MATCHED; T7 gate).
+    control weak (4.5 T16.2.c4): _weak_plant on the first object that allows it, before the kept walk."""
     import coff_info
     from pathlib import PureWindowsPath
     rows = tomllib.loads(Path(list_path or MATCHED).read_text(encoding="utf-8")).get("function", [])
@@ -799,7 +841,7 @@ def _ours(units, cfg_path, layout, bdir=None, list_path=None):
         stems.setdefault(PureWindowsPath(r["unit"]).stem, set()).add(r["unit"])
     byname = _our_names(cfg_path)
     pins = coff_info.load_names([PINS])[0]
-    objs, rx = [], None  # rx: (x, retail bytes), read on the first section only a reloc site places (T7)
+    objs, rx, planted = [], None, False  # rx: (x, retail bytes), read on the first section only a reloc site places (T7)
     for u in units.split(","):
         s = stems.get(u, set())
         if len(s) != 1:
@@ -824,6 +866,10 @@ def _ours(units, cfg_path, layout, bdir=None, list_path=None):
             if t is None or v != 0 or not t["chars"] & 0x1000 or t["size"] != r["size"] \
                     or _obj_name(o, t["name8"]) != ".text":
                 refuse(f"{path.name}: {r['symbol']} is not a COMDAT .text section of 0x{r['size']:X} bytes at 0")
+        if control == "weak" and not planted:  # 4.5 T16.2.c4: planted before the kept walk, so _weak_tag sees it
+            q = _weak_plant(o, path, mine, defs)
+            if q is not None:
+                path, o, planted = q, _obj_load(q.read_bytes()), True
         kept = {defs[r["symbol"]][0] for r in mine}  # T6: sections reachable from our matched functions (in-object
         todo = list(kept)  # relocs; /OPT:REF keeps no other COMDAT of ours unless something else references it)
         while todo:
@@ -1650,7 +1696,10 @@ def _all_ours(cfg_path, layout, control=None, list_path=None, bdir=None):
             refuse(f"build: {len(e.failures)} unit(s) failed: {', '.join(sorted(f['unit'] for f in e.failures))}")
     rows = tomllib.loads(Path(list_path or MATCHED).read_text(encoding="utf-8")).get("function", [])
     stems = sorted({PureWindowsPath(r["unit"]).stem for r in rows})
-    sub = _ours(",".join(stems), cfg_path, layout, bdir, list_path)
+    sub = _ours(",".join(stems), cfg_path, layout, bdir, list_path, control)
+    if control == "weak" and not any("relink/control/" in ob["path"].as_posix() for ob in sub["objs"]):
+        refuse("control weak: no matched row with a DIR32/REL32 reloc to an external beside a non-row COMDAT .text "
+               "no reloc reaches")
     sub["units"] = "all"
     how = "built" if bdir == rd / "build" else "found built"  # T7: the gate's own build dir
     print(f"ours: {how} {len(built)} objects into {bdir.relative_to(REPO).as_posix()}; matched-set units "
@@ -1737,35 +1786,8 @@ def _all_ours(cfg_path, layout, control=None, list_path=None, bdir=None):
                             "kept": {num}})
         print(f"control samename: {r['symbol']} 0x{r['va']:08X} copy {q.name} (+0x{off:X} flipped), "
               f"{cd.relative_to(REPO).as_posix()}")
-    if control == "weak":  # 4.4 T3 (C0217): in a copy of our object, one matched row's DIR32/REL32 to an external ->
-        for ob in sub["objs"]:  # a new weak external (class 105, SEARCH_ALIAS) whose TagIndex names the row's own
-            o = ob["o"]  # symbol: a wrong body
-            for r in ob["rows"]:
-                num = ob["defs"][r["symbol"]][0]
-                ks = [i for i, e in enumerate(o["syms"]) if e[4] == 2 and e[2] == num and e[1] == 0
-                      and _obj_name(o, e[0]) == r["symbol"]]
-                ri = next((i for i, x in enumerate(o["secs"][num - 1]["relocs"]) if x[2] in (REL_DIR32, REL_REL32)
-                           and o["syms"][x[1]][4] == 2 and _obj_name(o, o["syms"][x[1]][0]) != r["symbol"]), None)
-                if len(ks) != 1 or ri is None:
-                    continue
-                cd = rd / "control"
-                if cd.exists():
-                    shutil.rmtree(cd)
-                cd.mkdir(parents=True)
-                o = _obj_load(ob["path"].read_bytes())
-                rl = o["secs"][num - 1]["relocs"][ri]
-                old = _obj_name(o, o["syms"][rl[1]][0])
-                tag = sum(1 + len(e[5]) // 18 for e in o["syms"][:ks[0]])
-                o["syms"].append([_obj_name8(o, "__weak_control"), 0, 0, 0x20, 105,
-                                  struct.pack("<II", tag, 3).ljust(18, b"\0")])
-                rl[1] = len(o["syms"]) - 1
-                q = cd / ob["path"].name
-                q.write_bytes(_obj_dump(o))
-                ob["path"], ob["o"] = q, o
-                print(f"control weak: {r['symbol']} +0x{rl[0]:X} reloc to {old} -> weak __weak_control, TagIndex "
-                      f"{tag} = {r['symbol']} (wrong body), object {q.relative_to(REPO).as_posix()}")
-                return sub
-        refuse("control weak: no matched row with a DIR32/REL32 reloc to another symbol")
+    # was (4.4 T3): control weak planted here, after _ours (TagIndex = the row itself), so its _weak_tag walk never
+    # saw the weak reloc; 4.5 T16.2.c4 plants it in _ours before the kept walk (_weak_plant)
     if control != "one-function":
         return sub
     for ob in sub["objs"]:
@@ -1885,7 +1907,8 @@ def check_whole(cfg, sha1, x, rx, ours=False, control=None, cfg_path=None, list_
 def gate_check(list_path, bdir, cfg_path=None, control=None):
     """T7 (the gate's relink layer): the T6 whole-image check substituting every function of list_path from the
     objects ALREADY built in bdir (no build, bdir untouched) -> link/all=gate[-<control>]/. -> (rc, output lines):
-    rc 0 all digests and the sha1 equal, 1 any differ, 2 refusal (refuse()'s SystemExit code); stdout + stderr
+    rc 0 all digests and the sha1 equal, 1 any differ, 2 refusal (refuse()'s SystemExit code; any other exit, code 0
+    and None included, is 2: 4.5 T16.2 G12); stdout + stderr
     captured into the lines (text for the message only, the verdict is the rc, D26)."""
     import contextlib
     import io
@@ -1899,7 +1922,8 @@ def gate_check(list_path, bdir, cfg_path=None, control=None):
                              bdir=bdir, tag="gate")
     except SystemExit as e:
         # 3.5 T4 W1: a bare/non-int SystemExit is a refusal; was: (0 if e.code is None else 2) (bare exit -> pass)
-        rc = e.code if isinstance(e.code, int) and not isinstance(e.code, bool) else 2
+        # 4.5 T16.2 G12: code 0 is a refusal too (an exit is never a verdict); was: e.code if int and not bool, else 2
+        rc = e.code if isinstance(e.code, int) and not isinstance(e.code, bool) and e.code != 0 else 2
     return rc, buf.getvalue().splitlines()
 
 

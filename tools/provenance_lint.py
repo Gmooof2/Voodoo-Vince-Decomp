@@ -27,9 +27,15 @@ Checks (each failure `FAIL <id> <file>:<line>: <why>`):
   name-retail  each `NAME: retail` identifier has a retail XBE string naming it: equal, `.?AV<Class>@@`, or a
                NUL-terminated string holding it as a whole token
   d66          `volatile`, `#pragma optimize`, `__asm` in a matched function body has `// !FAKE:` on the line or
-               heading the comment block directly above
+               heading the comment block directly above; so does each on a `#define` line (and its backslash continuations)
+               of any file of DIR (4.5 T16.2 G18)
   forceinline  (4.2 T5) `__forceinline` in code (comments aside) in any file of DIR, with or without `// !FAKE:` (D116,
                D117: a call retail inlined is matched by a pointer local or a hand form, C0191)
+  noinline     (4.5 T16.2 G9) `noinline` in code in any file of DIR, with or without `// !FAKE:` (D116)
+  pragma       (4.5 T16.2 G9) a `#pragma` line inside a function body (in a FUNCTION extent at a brace depth above the
+               FUNCTION line's; comments and literals skipped) in any file of DIR, with or without `// !FAKE:` (D116)
+NAME tags (proto-pdb, name-retail) and placeholder run on every file of DIR (4.5 T16.2 G18; was: scoped files only);
+src-pdb, src-retail, d66 bodies and locals on scoped files.
   locals      (T6.c2) each S_BPREL32/S_REGREL32/S_REGISTER local (params included) of a matched function's proc in
                its /Z7 obj is a local of the PDB proc at its `// PROTOTYPE: PREVIEW 0x<VA>` (no PROTOTYPE line: of the
                PDB procs named exactly as the obj proc) or neutral (`v<N>`, `tmp`, `i`, `p`); line = first whole-word
@@ -81,7 +87,7 @@ UPSTREAM = "@{u}"  # fake-diff rev: the merge-base of HEAD and its upstream (3.5
 EXTS = annotations.EXTS
 FUNC = annotations.FUNC
 CHECKS = ("proto-pdb", "placeholder", "src-pdb", "src-retail", "hedge", "fake-diff", "name-retail", "d66", "locals",
-          "accepted", "forceinline")
+          "accepted", "forceinline", "noinline", "pragma")
 
 ID = r"~?[A-Za-z_]\w*"
 QUAL = rf"{ID}(?:\s*<[^()]*?>)?(?:::{ID}(?:\s*<[^()]*?>)?)*"
@@ -94,6 +100,9 @@ OFF_COMMENT = re.compile(r"//\s*0x([0-9A-Fa-f]+)\b")
 HEDGE = re.compile(r"\b(probably|likely|seems|maybe|perhaps|presumably|appears\s+to|guess)\b", re.I)
 D66 = re.compile(r"\bvolatile\b|#\s*pragma\s+optimize\b|\b__asm\b")
 FORCEINLINE = re.compile(r"\b__forceinline\b")  # D116, D117: refused, `!FAKE` or not
+NOINLINE = re.compile(r"\bnoinline\b")  # 4.5 T16.2 G9, D116: refused, `!FAKE` or not; was: only `__forceinline`
+PRAGMA = re.compile(r"^\s*#\s*pragma\b")  # 4.5 T16.2 G9, D116: in a function body refused, `!FAKE` or not
+DEFINE = re.compile(r"^\s*#\s*define\b")  # 4.5 T16.2 G18: d66 on every file's `#define` lines
 KEYWORD_DECL = re.compile(rf"^(?:typedef\s+)?(?:class|struct|union|enum|namespace)\s+(?:__declspec\([^)]*\)\s+)?({QUAL})")
 ANON = re.compile(r"^\s*(?:typedef\s+)?enum\s*\{")
 CALL_NAME = re.compile(rf"({QUAL}|{ID}::operator\s*[^\s(]+|operator\s*[^\s(]+)\s*\(")
@@ -405,6 +414,36 @@ def bodies(lines):
     return [(va, i, marks[k + 1][0] if k + 1 < len(marks) else len(lines)) for k, (i, va) in enumerate(marks)]
 
 
+def code_depths(lines):
+    """-> [(brace depth before the line, the line's code with comments and string/char literals blanked)] per line
+    (4.5 T16.2 G9: `#pragma` in a function body = its line at a depth above its FUNCTION line's, inside the extent)."""
+    out, depth, inblock = [], 0, False
+    for line in lines:
+        start, buf, j = depth, [], 0
+        while j < len(line):
+            if inblock:
+                e = line.find("*/", j)
+                inblock, j = (True, len(line)) if e < 0 else (False, e + 2)
+                continue
+            ch = line[j]
+            if ch in "\"'":
+                k = j + 1
+                while k < len(line) and line[k] != ch:
+                    k += 2 if line[k] == "\\" else 1
+                buf.append(ch + ch)
+                j = k + 1
+            elif line.startswith("//", j):
+                break
+            elif line.startswith("/*", j):
+                inblock, j = True, j + 2
+            else:
+                depth += (ch == "{") - (ch == "}")
+                buf.append(ch)
+                j += 1
+        out.append((start, "".join(buf)))
+    return out
+
+
 def func_at(bs, i):
     for va, s, e in bs:
         if s <= i < e:
@@ -540,11 +579,34 @@ def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED
             if FORCEINLINE.search(code_part(line)):
                 fails.append(f"FAIL forceinline src/{rel}:{i + 1}: `__forceinline` is refused, `// !FAKE:` or not "
                              f"(D116, D117)")
-    for p, ls in scoped:
+            if NOINLINE.search(code_part(line)):  # 4.5 T16.2 G9: every file, `// !FAKE:` or not (D116)
+                fails.append(f"FAIL noinline src/{rel}:{i + 1}: `noinline` is refused, `// !FAKE:` or not (D116)")
+    in_scope = {p for p, _ls in scoped}
+    # 4.5 T16.2 G18: NAME, placeholder, d66 `#define` lines and (G9) in-body `#pragma` on every file; src-pdb,
+    # src-retail and d66 bodies stay on scoped files. was: `for p, ls in scoped:` (all of them scoped only)
+    for p in files:
+        ls = lines_of(p)
+        scoped_file = p in in_scope
         rel = "src/" + p.relative_to(src).as_posix()
         bs = bodies(ls)
         file_vas = {va for va, _s, _e in bs}
         comments = comment_spans(ls)
+        cd = code_depths(ls)
+        for _va, s, e in bs:  # G9: `#pragma` inside a function body, `// !FAKE:` or not (D116)
+            for i in range(s, e):
+                if cd[i][0] > cd[s][0] and PRAGMA.match(cd[i][1]):
+                    fails.append(f"FAIL pragma {rel}:{i + 1}: `#pragma` inside a function "
+                                 f"body is refused, `// !FAKE:` or not (D116)")
+        in_body = {i for va, s, e in bs if va in matched for i in range(s, e)}
+        cont = False
+        for i, (_dp, code) in enumerate(cd):  # G18: d66 on `#define` lines (and their `\` continuations) of every file
+            is_def = cont or bool(DEFINE.match(code))
+            cont = is_def and ls[i].rstrip().endswith("\\")
+            if is_def and i not in in_body:
+                w = D66.search(code)
+                if w and not has_fake(ls, i):
+                    fails.append(f"FAIL d66 {rel}:{i + 1}: `{w.group(0)}` in a `#define` without `// !FAKE:` on or "
+                                 f"above the line")
         for i, line in enumerate(ls):
             tag = NAME_TAG.search(line)
             if tag:
@@ -584,6 +646,8 @@ def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED
                 if not oc or int(oc.group(1), 16) != int(d.group(1), 16):
                     fails.append(f"FAIL placeholder {rel}:{i + 1}: `field_{d.group(1)}` does not equal its offset "
                                  f"comment")
+            if not scoped_file:
+                continue
             m = SRC_PDB.search(line)
             if m and not pdb.resolves(m.group(1)):
                 fails.append(f"FAIL src-pdb {rel}:{i + 1}: `{m.group(1)}` not in default.pdb names")
@@ -843,6 +907,7 @@ def self_test(src, pdb, xbe, matched, list_path=MATCHED, accepted=ACCEPTED):
         va, s, _e = next(b for b in bodies(ls) if b[0] in matched)
         ls = list(ls)
         k = next(i for v, s2, e2 in bodies(ls) if v in matched for i in range(s2, e2) if ls[i].strip() == "{")
+        ls.insert(k + 1, "#pragma warning(disable:4100)")  # 4.5 T16.2: an in-body pragma (pragma control)
         ls.insert(k + 1, "    volatile int zz_selftest_local = 0;")  # a free-named stack local (locals control)
         ls.insert(s + 1, "volatile int zz_selftest_d66;")
         ls += ["struct ZzSelftestNotInPdb; // NAME: proto-pdb:default.pdb",
@@ -852,7 +917,8 @@ def self_test(src, pdb, xbe, matched, list_path=MATCHED, accepted=ACCEPTED):
                "// this is probably a planted hedge",
                "struct ZzSelftestNotInXbe; // NAME: retail",
                "// !FAKE: inliner; __forceinline; planted",
-               "__forceinline int zz_selftest_forceinline() { return 0; }"]
+               "__forceinline int zz_selftest_forceinline() { return 0; }",
+               "__declspec(noinline) int zz_selftest_noinline();"]  # 4.5 T16.2 (noinline control)
         p.write_text("\n".join(ls) + "\n", encoding="utf-8", newline="\n")
         acc = SCRATCH / "accepted.txt"  # accepted control: a real line widened by a hedge word
         acc.write_text((Path(accepted).read_text(encoding="utf-8") if Path(accepted).is_file() else "")

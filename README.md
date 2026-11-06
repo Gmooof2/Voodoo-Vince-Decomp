@@ -36,7 +36,7 @@ git clone https://github.com/Gmooof2/Voodoo-Vince-Decomp.git && cd Voodoo-Vince-
 git config core.hooksPath githooks
 python -m pip install --require-hashes -r requirements.txt
 cp config/local_paths.example.json config/local_paths.json   # then fill in where your files are
-python tools/manifest.py verify           # about 20 seconds
+python tools/manifest.py verify           # about 30 seconds
 python tools/check_env.py
 python tools/proto_map.py --target retail-xbe
 python tools/dup_report.py
@@ -48,7 +48,7 @@ bash tools/run.sh gate -- python tools/gate.py   # about 60 seconds
                                           # -> "1776 passed, 0 failed of 1776"
 ```
 
-[`SETUP.md`](SETUP.md) gives every step's details and expected result. Passing means exit code 0 and that final line. `python tools/gate.py --self-test` plants known errors and proves the gate catches each one: `controls: 109 failed as expected of 109`.
+[`SETUP.md`](SETUP.md) gives every step's details and expected result. Passing means exit code 0 and that final line. `python tools/gate.py --self-test` plants known errors and proves the gate catches each one: `controls: 138 failed as expected of 138`.
 
 ## What is in the repository
 
@@ -82,7 +82,7 @@ The reverse-engineering side runs on Ghidra, with objdiff comparing each functio
 
 **Accuracy.** A function is matched only when objdiff scores it 100% against the retail object and its bytes equal retail's, register allocation included. The gate re-checks every matched function on every run, and relinks the executable. Its checking tools are locked by fingerprint, and changing one needs the maintainer's review.
 
-**Readability.** The code is matched, but it isn't finished. Placeholder names such as `field_1C` stay until there's evidence for a real name. 1115 `!FAKE` labels mark tricks kept to steer the compiler toward retail's output. A cleanup pass tried to remove them: it removed a few, could not test 11 of those left, and most of the others failed the trial. The results are in [`docs/evidence/readability.md`](docs/evidence/readability.md). `python tools/annotations.py --check` is part of the gate and passes. It also lists 132 functions out of address order in their files, which stop compiling if moved or can't be moved; those are reported and don't fail it.
+**Readability.** The code is matched, but it isn't finished. Placeholder names such as `field_1C` stay until there's evidence for a real name. 899 `!FAKE` labels mark tricks kept to steer the compiler toward retail's output, and another 216 mark text copied from retail's own strings. An earlier cleanup pass tried to remove the roughly 190 trick labels there were then: it removed a few, could not test 11 of those left, and most of the others failed the trial. Labels added since were not part of it. The results are in [`docs/evidence/readability.md`](docs/evidence/readability.md). `python tools/annotations.py --check` is part of the gate and passes. It also lists 132 functions out of address order in their files, which stop compiling if moved or can't be moved; those are reported and don't fail it.
 
 **How the AI was used.** Agents wrote the code, the tools and the docs. The maintainer set the scope, approved every change to the checking tools, and ran the Xbox test. The gate, not the model, decides what counts as matched. Names and structure come only from recorded evidence, never from a guess. This README was also drafted by an AI agent, from a checked list of facts, and approved by the maintainer. Anything sent to other projects is written by the maintainer, and no tool here contacts community services.
 

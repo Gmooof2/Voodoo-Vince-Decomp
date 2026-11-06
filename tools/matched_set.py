@@ -33,6 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build  # noqa: E402
+import byte_compare  # noqa: E402  4.5 T16.2.c4: _phase_run_dir (no cycle: it imports neither)
 import coff_info  # noqa: E402
 import msvc71  # noqa: E402
 import vv_inputs  # noqa: E402
@@ -43,7 +44,7 @@ SYMBOLS = REPO / "config" / "retail" / "symbols.txt"
 PINS = REPO / "config" / "retail" / "symbols_pin.txt"
 CANDIDATES = REPO / "derived" / "candidates" / "candidates.jsonl"
 UNITS = build.UNITS
-SCRATCH = REPO / ".run" / "1.5"
+SCRATCH = byte_compare._phase_run_dir()  # 4.5 T16.2.c4 (G15); was: REPO / ".run" / "1.5"
 REQUIRED = ("xbe_sha1", "size", "body_sha1", "defined", "asm")
 OBJECTS = "*objects*"
 SCN_CNT_CODE, SCN_LNK_COMDAT, SEL_ANY = 0x20, 0x1000, 2
@@ -126,10 +127,11 @@ def _pins():
     return rows
 
 
-def _pin_row(rows, pins, symbol):
+def _pin_row(rows, pins, symbol, cfg=None):
     """3.4 T6.1: -> (va, size, status) of `symbol`'s one sized func pin line, status near-corr, or disasm-verified with
     another func name at the same VA in symbols.txt or the pins (a fold alias, C0130), or (D118, 4.2 T5) disasm-verified
-    sole name whose pin row passes the pin-row check (pin_rows.row_ok is True); else a reason string."""
+    sole name whose pin row passes the pin-row check (pin_rows.row_ok is True, under cfg: the gate's config, 4.5
+    T16.2.c4); else a reason string."""
     fs = [r for r in pins.get(symbol, []) if r["kind"] == "func"]
     if not fs:
         return f"{symbol} not in symbols.txt or symbols_pin.txt"
@@ -144,20 +146,20 @@ def _pin_row(rows, pins, symbol):
             n != symbol and any(x["kind"] == "func" and x["va"] == r["va"] for x in xs)
             for tab in (rows, pins) for n, xs in tab.items()):
         import pin_rows  # noqa: PLC0415  D118 (4.2 T5): lazy, pin_rows imports this module
-        ok = pin_rows.row_ok(symbol)
+        ok = pin_rows.row_ok(symbol, cfg)  # 4.5 T16.2.c4 (G15); was: row_ok(symbol), the default config
         if ok is not True:  # D118: the pin-row check (D119) guards the sole name; an unruled pin stays refused
             return (f"{symbol} pin disasm-verified with no other func name at 0x{r['va']:08X}: not a fold alias, "
                     f"pin-row check: {ok}")
     return r["va"], r["size"], r["status"]
 
 
-def _func_row(rows, symbol, pins=None):
+def _func_row(rows, symbol, pins=None, cfg=None):
     """-> (va, size, status) of the unique func row of `symbol` (status "symbols.txt" for a symbols.txt row; else
     the symbols_pin.txt fallback, _pin_row), or a reason string."""
     rs = rows.get(symbol, [])
     fs = [r for r in rs if r["kind"] == "func"]
     if not rs:
-        return _pin_row(rows, _pins() if pins is None else pins, symbol)
+        return _pin_row(rows, _pins() if pins is None else pins, symbol, cfg)
     if len(rs) != 1 or len(fs) != 1:
         return f"{symbol} has {len(rs)} symbols.txt rows ({len(fs)} func)"
     if fs[0]["size"] is None:
@@ -312,7 +314,7 @@ def check(entries, built, src_root, config=None):
     for e in funcs:
         v, s = {}, e["symbol"]
         v["xbe_sha1"] = "pass" if e["xbe_sha1"] == pin else f"fail: xbe_sha1 {e['xbe_sha1']} != pin {pin}"
-        r = _func_row(rows, s, pins)
+        r = _func_row(rows, s, pins, config)
         if isinstance(r, str):
             v["size"] = v["body_sha1"] = f"fail: {r}"
         else:

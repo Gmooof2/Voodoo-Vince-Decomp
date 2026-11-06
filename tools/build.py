@@ -8,7 +8,7 @@ Each source: msvc71.compile_one(<msvc71_dir>, src, <unit opt split>, <out>/<objn
 No per-function flag override. msvc71_dir from vv_inputs.load_config(--config).
 Exit: 0 built (0 units allowed; prints counts); 1 any compile failure or any C/D/L message code (D26);
 2 refusal (stderr `build: REFUSED ...`): a source maps to no unit (or to two), unit opt "unknown" or not a flags
-string, duplicate obj name, out dir not under REPO/.run/, missing src root/units/msvc71_dir.
+string, an opt token steering includes or macros (`/FI /I /X /u /D /U`, `-` forms too; 4.5 T16.2), duplicate obj name, out dir not under REPO/.run/, missing src root/units/msvc71_dir.
 The out dir is wiped and recreated each run (after the refusal checks).
 Library: build(src_root, out_dir, units_path=UNITS, config=None) -> [{unit, source, obj, flags}] in source order;
 raises Refuse (exit 2) or BuildFailed (exit 1, after every source was tried).
@@ -29,6 +29,7 @@ RUN = REPO / ".run"
 PREFIX = "d:\\beep\\"
 MIDDLE = "\\xbox\\officialrelease\\"
 EXT = {"c": ".c", "c++": ".cpp"}
+STEER = ("FI", "I", "X", "u", "D", "U")  # opt tokens refused after `/` or `-` (4.5 T16.2 G18), case-sensitive
 
 
 class Refuse(Exception):
@@ -70,6 +71,10 @@ def flags_of(unit):
     toks = opt.split() if isinstance(opt, str) else []
     if not toks or opt == "unknown" or not all(t[0] in "/-" for t in toks):
         raise Refuse(f"unit {unit.get('name')}: opt {opt!r} is not a flags string")
+    for t in toks:  # 4.5 T16.2 G18: a force-include, include path or macro the lint never reads; was: any `/` token
+        if t[1:].startswith(STEER):
+            raise Refuse(f"unit {unit.get('name')}: opt token {t!r} steers includes or macros (refused: "
+                         f"{' '.join('/' + s for s in STEER)})")
     return toks
 
 

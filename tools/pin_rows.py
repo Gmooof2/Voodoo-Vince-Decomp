@@ -9,26 +9,41 @@ Library: check(cfg, build_dir, list_path=MATCHED) -> [fail line] (the gate; I10 
 Per row: grammar; status against tag (TAGS); the name a PDB public where the tag claims one; VA on the image, func VA
   with raw bytes; proto and retail section names equal; duplicates (same row twice, name at two VAs here or in
   symbols.txt, a second name at the VA that is neither a fold alias nor the undecorated library name); byte route by tag:
-  callee and fold masked bytes plus the callee name rule, vtable slots, string and `__real@` bytes, label = VA, hand
+  callee and fold masked bytes plus the callee name rule, vtable slots (4.5 T16.2.c4: the retail slot count too,
+  `slot-count-differs`), string and `__real@` bytes, label = VA, hand
   rows named in docs/evidence/compiler_pin.md, corr-verified `+site-bundle` and `+slot-bytes` re-derived (D113);
   site test on every row with a public.
 Site index (locked): each symbols.txt func whose name is one PDB public P, PDB proc length n, prototype and retail
   masked-equal over n; each outgoing mask -> (proto dest, retail dest, caller P). Agree: (P(name), VA). Conflict: P(name)
   reaching another VA, or VA reached from a proto dest whose publics exclude the name.
 I10: every pin row a matched function's built object relocates through (function text relocations) has an accepted
-  status (ACCEPTED; site-corr never, D102) and passes; a relocation name in neither table fails.
+  status (ACCEPTED; site-corr never, D102) and passes; a relocation name in neither table fails. A same-section
+  static is skipped only where byte_compare.resolve falls back: in no table, inside the function's extent (4.5 T16.2.c4).
 Dispositions (D119): fold case: a proto dest with 2+ publics agrees when the retail name is one of them; fold site
   (4.2 T5.c4): a conflicting site from the row's proto dest with 2+ publics whose retail dest has no table name does
   not count (the site cannot say which member it calls) while the row has 1+ agreeing site; an undecorated
   library name in symbols.txt equal to the row's (`_F@N` -> `F`, `?M@C@...` -> `C_M`) is one name; a literal copy's site
-  conflict is waived only by a row of config/pin_accepted.txt (`0x<VA><TAB><name><TAB><reason>`).
-Not re-derived here: near_check (near-corr and `+retail-xref` rows rest on the site test), the data-bytes record route
-  (its rows: name kind and site test). Limits (docs/ops/validation.md "4.2 Pin-row check"): a byte twin with no site
+  conflict is waived only by a row of config/pin_accepted.txt (`0x<VA><TAB><name><TAB><reason>`); a waiver no
+  conflict uses fails `accepted-stale ... unused` (4.5 T16.2.c4).
+Near rows (4.5 T16.1, D115): 1+ agreeing site, else `route-near:no-agreeing-site`, except NEAR_NO_SITE (va, name)
+  rows; a listed row with an agreeing site, or no near row of that (va, name), fails `route-near:stale-exception`.
+  Not re-derived here: near_check (`+retail-xref` rows rest on the site test). Data-bytes route (4.5 T16.1): proto and
+  retail bytes equal, proto `.reloc` dwords masked both sides, over min(next proto public - P capped EXT_CAP, next
+  retail table name - VA, the PDB S_GDATA32/S_LDATA32 type size at P when one size), else `route-global:data-differs`.
+  Limits (docs/ops/validation.md "4.2 Pin-row check"): a byte twin with no site
   and a wrong name no site reaches pass; a pass cannot prove a name true.
 Inputs: provenance_lint.inputs (PDB, EXE, XBE pinned to the manifest; the two prototype files re-read for raw publics,
-  proc lengths and section flags), symbols.txt, the pin file, the evidence doc, config/pin_accepted.txt,
-  config/matched_set.toml. No derived/. Output: names, VAs, counts only; `??_C@` names masked (D46).
+  proc lengths, section flags, data symbols and TPI type sizes (pdb_types)), symbols.txt, the pin file, the evidence
+  doc, config/pin_accepted.txt, config/matched_set.toml. No derived/. Output: names, VAs, counts only; `??_C@` names
+  masked (D46).
 """
+# was (docstring before 4.5 T16.1):
+# Not re-derived here: near_check (near-corr and `+retail-xref` rows rest on the site test), the data-bytes record route
+#   (its rows: name kind and site test). Limits (docs/ops/validation.md "4.2 Pin-row check"): a byte twin with no site
+#   and a wrong name no site reaches pass; a pass cannot prove a name true.
+# Inputs: provenance_lint.inputs (PDB, EXE, XBE pinned to the manifest; the two prototype files re-read for raw publics,
+#   proc lengths and section flags), symbols.txt, the pin file, the evidence doc, config/pin_accepted.txt,
+#   config/matched_set.toml. No derived/. Output: names, VAs, counts only; `??_C@` names masked (D46).
 import argparse
 import bisect
 import copy
@@ -48,6 +63,7 @@ import byte_compare  # noqa: E402
 import coff_info  # noqa: E402
 import matched_set  # noqa: E402
 import pdb_info  # noqa: E402
+import pdb_types  # noqa: E402
 import pe_info  # noqa: E402
 import provenance_lint  # noqa: E402
 import vv_inputs  # noqa: E402
@@ -94,6 +110,14 @@ TAGS = {
     ("data", PP + "retail-disasm"): ("disasm-verified", "hand", True),
     ("data", PP + "retail-data"): ("disasm-verified", "hand", True),
 }
+# 4.5 T16.1 (G2, D115): near rows with no agreeing site, allowed by (va, name). The list only shrinks (C0286).
+_NNS = "virtual Init, no rel32 caller in pin_rows' site index; D115 evidence is name_sites near_check; re-check gen 5"
+NEAR_NO_SITE = {
+    (0x000688EA, "?Init@RatRacePreludeCutscene@@MAEXXZ"): _NNS,
+    (0x00068E09, "?Init@RatRaceDeathCutscene@@MAEXXZ"): _NNS,
+    (0x000A8405, "?Init@VinceDropsInCutscene@@MAEXXZ"): _NNS,
+}
+PDB_DATA = (0x110C, 0x110D, 0x1007, 0x1008)  # S_LDATA32, S_GDATA32 and their _ST forms: typind u32, off u32, seg u16
 
 
 class Refuse(Exception):
@@ -258,7 +282,13 @@ class State:
         try:  # the files inputs() just pinned; Pdb keeps no raw publics nor EXE sections
             exe = vv_inputs.input_path("prototype_dir", "default.exe", c).read_bytes()
             pe = pe_info.parse_pe(exe)
-            pdb = pdb_info.parse_pdb(vv_inputs.input_path("prototype_dir", "default.pdb", c).read_bytes())
+            raw = vv_inputs.input_path("prototype_dir", "default.pdb", c).read_bytes()
+            pdb = pdb_info.parse_pdb(raw)
+            st = pdb_info.read_streams(raw)["streams"]  # 4.5 T16.1: data symbols (DBI symrec) and TPI for type sizes
+            pdb_types.load_tpi(st)
+            symrec = struct.unpack_from("<H", st[3], 20)[0]
+            dsyms = [struct.unpack_from("<IIH", p, 0) for k, p in pdb_info.iter_records(st[symrec])
+                     if k in PDB_DATA] if symrec < len(st) and st[symrec] else []
         except (OSError, pe_info.NotPe, pdb_info.NotPdb, struct.error) as e:
             raise Refuse(f"default.exe/default.pdb unreadable: {e}")
         self.img = img = Images(exe, pe, xbe.data, xbe.x)
@@ -276,6 +306,10 @@ class State:
                     v = img.base + secs[x["seg"] - 1]["va"] + x["off"]
                     self.procs[v] = max(self.procs.get(v, 0), x["length"])
         self.pub_vas = sorted(self.pubs)
+        self.dtypes = defaultdict(set)  # proto VA -> PDB data symbol type indices
+        for ti, off, seg in dsyms:
+            if 1 <= seg <= len(secs):
+                self.dtypes[img.base + secs[seg - 1]["va"] + off].add(ti)
         self.evid = EVID.read_text(encoding="utf-8")
         self.sy_name, self.sy_va = defaultdict(set), defaultdict(set)
         self.sy_func = []
@@ -401,11 +435,30 @@ class State:
             return "float"
         return "func" if self.img.pexec(pt) else "data"
 
+    def rt_slots(self, va):
+        """Retail vtable slot count at VA: dwords into a section executable in the proto, up to the next table name
+        or VT_CAP (corr_route's count, 4.5 T16.2.c4 shared with literal)."""
+        img = self.img
+        pexec = {s["name"] for s in img.psecs if s["exec"]}
+        nxt = min((v for v in self.tab_va if v > va), default=va + 4 * VT_CAP)
+        k = 0
+        while k < VT_CAP and va + 4 * k < nxt:
+            b = img.rbytes(va + 4 * k, 4)
+            s = img.rsec(struct.unpack("<I", b)[0]) if b else None
+            if s is None or s["name"] not in pexec:
+                break
+            k += 1
+        return k
+
     def literal(self, route, n, p, va):
+        """-> True, False, or a fail reason (vtable: `slot-count-differs`)."""
         img = self.img
         if route == "vtable":
             slots = self.vt_slots(p, va)
-            return bool(slots) and all(pv in self.procs and not self.callee(pv, rv, self.procs[pv]) for pv, rv in slots)
+            # was: the proto's slots a prefix of retail's passed (no retail slot count)
+            if not (bool(slots) and all(pv in self.procs and not self.callee(pv, rv, self.procs[pv]) for pv, rv in slots)):
+                return False
+            return True if self.rt_slots(va) == len(slots) else "slot-count-differs"  # 4.5 T16.2.c4 (G14)
         if route == "string":
             step, nul = (2, b"\0\0") if n.startswith("??_C@_1") else (1, b"\0")
             k = 0
@@ -425,6 +478,34 @@ class State:
             return False
         return img.rbytes(va, len(h) // 2) == bytes.fromhex(h)[::-1]
 
+    def data_equal(self, p, va):
+        """4.5 T16.1 (G3): proto P and retail VA bytes equal, proto `.reloc` dwords masked both sides, over min(next
+        proto public - P capped EXT_CAP, next retail table name - VA, the PDB data type size at P when one size)."""
+        img = self.img
+        i = bisect.bisect_right(self.pub_vas, p)
+        bounds = [min(self.pub_vas[i] - p, EXT_CAP) if i < len(self.pub_vas) else EXT_CAP]
+        j = bisect.bisect_right(self.tab_sorted, va)
+        if j < len(self.tab_sorted):
+            bounds.append(self.tab_sorted[j] - va)
+        sizes = set()
+        for ti in self.dtypes.get(p, ()):
+            try:
+                sizes |= pdb_types.tsize(ti)
+            except pdb_types.TypeSizeError:
+                pass
+        if len(sizes) == 1:
+            bounds += sizes
+        ext = min(bounds)
+        pb, rb = img.pbytes(p, ext), img.rbytes(va, ext)
+        if pb is None or rb is None:
+            return False
+        pb, rb = bytearray(pb), bytearray(rb)
+        for k in range(-3, ext):
+            if p + k in img.prelocs:
+                for q in range(max(k, 0), min(k + 4, ext)):
+                    pb[q] = rb[q] = 0
+        return pb == rb
+
     # -- per-row tests
     def run_rows(self):
         img, rows = self.img, self.rows
@@ -440,6 +521,7 @@ class State:
             by_name[r["name"]].add(r["va"])
             by_va[r["va"]].add(r["name"])
             pairs[(r["va"], r["name"])] += 1
+        self.tab_sorted = sorted(self.tab_va)  # 4.5 T16.1: next retail-side name (data_equal)
         self.by_row_name = defaultdict(list)
         for r in rows:
             self.by_row_name[r.get("name", "")].append(r)
@@ -479,6 +561,16 @@ class State:
             self.route(r)
         for r in live:
             self.site_test(r)
+        self.near_listed = set()  # 4.5 T16.1 (G2, D115): near rows need 1+ agreeing site, NEAR_NO_SITE aside
+        for r in live:
+            if r.get("cls") and r["cls"][1] == "near":
+                key, agree = (r["va"], r["name"]), (r.get("site") or (0,))[0]
+                if key in NEAR_NO_SITE:
+                    self.near_listed.add(key)
+                    if agree:
+                        r["fails"].append("route-near:stale-exception")
+                elif not agree:
+                    r["fails"].append("route-near:no-agreeing-site")
         for r in live:
             if r.get("cls") and r["cls"][1] in ("bundle", "slots"):
                 self.corr_route(r)
@@ -510,14 +602,17 @@ class State:
         elif route in ("string", "float", "vtable"):
             why = "proto-name"
             for p in r["protos"]:
-                why = None if self.literal(route, n, p, va) else route + "-differs"
+                ok = self.literal(route, n, p, va)  # 4.5 T16.2.c4: a str is its own reason
+                why = None if ok is True else ok or route + "-differs"
                 if why is None:
                     break
             if r["protos"] and route != self.kind_of(n, r["protos"][0]):
                 why = why or "name-kind-vs-tag"
-        elif route == "global":  # the record route is not re-derived (module doc); the name kind is
+        elif route == "global":  # was: the record route is not re-derived (module doc); the name kind is
             if r["protos"] and self.kind_of(n, r["protos"][0]) != "data":
                 why = "name-kind-vs-tag"
+            elif r["protos"] and not any(self.data_equal(p, va) for p in r["protos"]):  # 4.5 T16.1 (G3)
+                why = "data-differs"
         if why:
             r["fails"].append(f"route-{route}:{why}")
 
@@ -565,15 +660,7 @@ class State:
                          for pv, rv in slots):
                 why = "slot-bytes-differ"
             else:
-                pexec = {s["name"] for s in img.psecs if s["exec"]}
-                nxt = min((v for v in self.tab_va if v > va), default=va + 4 * VT_CAP)
-                k = 0
-                while k < VT_CAP and va + 4 * k < nxt:
-                    b = img.rbytes(va + 4 * k, 4)
-                    s = img.rsec(struct.unpack("<I", b)[0]) if b else None
-                    if s is None or s["name"] not in pexec:
-                        break
-                    k += 1
+                k = self.rt_slots(va)  # 4.5 T16.2.c4: the count moved to rt_slots (shared with literal), same rule
                 if k != len(slots):
                     why = "slot-count-differs"
                 elif not r.get("site") or r["site"][0] < 1:
@@ -602,9 +689,16 @@ class State:
         if not self.header or self.xbe_sha1 not in self.header[0]:
             out.append(f"FAIL pin-row header-sha1 {self.pin.name}:1: retail default.xbe sha1 {self.xbe_sha1} not in the header")
         live = {(r.get("va"), r.get("name")) for r in self.rows}
+        used = {(r.get("va"), r.get("name")) for r in self.rows if "literal-copy-accepted" in r.get("notes", ())}
         for (va, n), i in sorted(self.accepted.items()):
             if (va, n) not in live or not n.startswith(("??_C@", "__real@")):
                 out.append(f"FAIL pin-row accepted-stale 0x{va:08X} {mask(n)} {self.acc_path.name}:{i}: no such literal row")
+            elif (va, n) not in used:  # 4.5 T16.2.c4 (G14); was: a live literal row's waiver passed, conflict or not
+                out.append(f"FAIL pin-row accepted-stale 0x{va:08X} {mask(n)} {self.acc_path.name}:{i}: unused "
+                           f"(no site conflict at the row to waive)")
+        for va, n in sorted(set(NEAR_NO_SITE) - self.near_listed):  # 4.5 T16.1: renamed, moved or re-routed
+            out.append(f"FAIL pin-row route-near 0x{va:08X} {mask(n)} pin_rows.NEAR_NO_SITE: "
+                       f"route-near:stale-exception (no near row of that va and name)")
         for r in self.rows:
             for f in r["fails"]:
                 va = f"0x{r['va']:08X}" if r.get("va") is not None else "-"
@@ -640,10 +734,14 @@ class State:
                 if not lo <= rl["offset"] < hi:
                     continue
                 y = c["symbols"][rl["symbol"]]
-                if y["class"] == coff_info.SC_STATIC and y["section"] > 0 and (
-                        (y["value"] == 0 and y["name"] == secnames.get(y["section"])) or y["section"] == fsym["section"]):
-                    continue
                 n = y["name"]
+                # 4.5 T16.2.c4 (G14): skip a same-section static only where byte_compare.resolve falls back (in no
+                # table, inside the function's own extent); was: `... or y["section"] == fsym["section"]` (every one)
+                if y["class"] == coff_info.SC_STATIC and y["section"] > 0 and (
+                        (y["value"] == 0 and n == secnames.get(y["section"])) or (
+                            y["section"] == fsym["section"] and n not in self.sy_name and n not in self.by_row_name
+                            and lo <= y["value"] < hi)):
+                    continue
                 if n in self.sy_name:
                     continue
                 if n in self.by_row_name:

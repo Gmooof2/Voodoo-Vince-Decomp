@@ -288,3 +288,14 @@ C0283 | x87: float stand-in for a double param, float loop temp; emit uncalled t
 C0284 | Large /O1 render loops: shared tail via continue; stand-in root pointer; address-as-pointer tell | msvc,cl,o1,loop,continue,tail,stand-in,pointer,lnk2005,stl,headers,matching | 2026-11-05 | 4.4/T13 | T13.c1 SwampWorld
 C0285 | A verifier-locked file must also ship, or the public export's re-pin refuses | public,export,verifier_lock,allowlist,re-cut | 2026-11-05 | 4.4/T15 | T15.c1 export test on HEAD
 C0286 | Account for known check failures by exact site, with a stale check | check,accept-list,stale,name_sites,walk,public | 2026-11-05 | 4.4/T18 | T18.c2 name_sites check_cut
+C0287 | Find which output lines one input feeds: re-run main with that reader cut, diff | python,monkeypatch,ledger,naming_levers,trace,generated | 2026-11-05 | 4.5/T2 | T2 naming_levers ledger scratch
+C0288 | recut_cmp plant: update the copy's hashes.txt line or nothing is compared | recut_cmp,recut,control,plant,hashes,D121,negative-control | 2026-11-05 | 4.5/T5 | T5.c2 stale-hash plant passed rc 0
+C0289 | Audit plants in a private clone need the PUBLIC_TREE marker and a marker-only baseline | audit,plant,public-ci,PUBLIC_TREE,user-path,control,clone | 2026-11-05 | 4.5/T5 | T5.c1 F1-F2
+C0290 | Cast census diff by content; class rows by PDB base chain; pun dependence by trial | cast,census,pdb_types,base,hierarchy,pun,d117,trial | 2026-11-05 | 4.5/T14 | T14 + T14.c1
+C0291 | Grade many reviewer citations against the code: dump the cited ranges into chunked scratch files, Read each whole | review,citations,outline,m24,gate-review,scratch | 2026-11-05 | 4.5/T15 | T15 merged D107 review
+C0292 | Control a git stream reader's short read (fake Popen) and audit gzip blobs decompressed with a cap | audit,control,negative-control,gzip,git,cat-file,d46,self-test | 2026-11-05 | 4.5/T16.1 | T16.1.c1 G7/G8
+C0293 | Size an unsized data pin from the PDB: S_GDATA32/S_LDATA32 by address, tpi tsize; min with next public | pin,pdb,data,size,pin_rows,route,extent,control | 2026-11-05 | 4.5/T16.1 | T16.1.c3 G3
+C0294 | Every path of a history blob: rev-list --objects lists one; add git log --raw paths | git,history,audit,rev-list,control | 2026-11-05 | 4.5/T16.2 | T16.2.c1 G10 audit-renamed-blob
+C0295 | bodies() extents run past the closing brace: test in-body by brace depth | provenance,lint,pragma,d116,body | 2026-11-05 | 4.5/T16.2 | T16.2.c2 G9 prov-pragma
+C0296 | A relink control must plant before _ours, or it skips what _ours computes | relink,control,weak,self-test,negative-control | 2026-11-06 | 4.5/T16.2 | T16.2.c4 relink-weak
+C0297 | Wrapper checks compare each rc with its want; prove by injected rcs on the old copy | walk,public,control,monkeypatch,rc,wrapper | 2026-11-06 | 4.5/T18.1 | T18.1.c1 public_walk G1

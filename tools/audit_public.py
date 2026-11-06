@@ -27,7 +27,8 @@ regex being lookarounds around a required literal (_literal_rx builds them and r
 case-insensitive rule, on re.I over bytes folding as bytes.lower() does (self-test: all 65,536 byte pairs). _route_pin
 checks the two line tests and both regex builders first thing in main: a cause is exit 2. user-path has no prefilter.
 Exit: 0 clean; 1 offenders; 2 refusal (manifest/config/accept list missing, empty or uninterpretable; manifest
-stale; a listed blob id missing from the object store).
+stale; a listed blob id missing from the object store; 4.5 T16.2: the history scope on a shallow clone, `--paths`
+with no file). A history blob tracked under several paths is classified under each (4.5 T16.2).
 Prints paths, oids, sizes and counts only, never file content.
 Test overrides (env): AUDIT_PUBLIC_MANIFEST, AUDIT_PUBLIC_CONFIG (check.*.sha are read beside the manifest).
 """
@@ -41,6 +42,7 @@ import stat
 import struct
 import subprocess
 import sys
+import zlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -58,6 +60,9 @@ PUBLIC_FLAG = "--public-ci"  # the public repo's run with no local config; see p
 # drive or MSYS root, 'Users', separator, one character a Windows name may hold; a '<you>' placeholder holds none
 USER_PATH = re.compile(rb"""(?:(?<![A-Za-z0-9_])[A-Za-z]:[\\/]+|/[A-Za-z]/+)Users[\\/]+[^\s\\/:*?"<>|]""", re.I)
 OVERSIZE = 1_572_864  # 1.5 MiB: largest history blob 857,215 (journal); retail XBE 2,453,504
+GZ_MAGIC = b"\x1f\x8b"  # 4.5 T16.1 G8: gzip blobs are audited on their decompressed bytes
+GZ_CAP = 64 << 20  # 64 MiB decompressed per blob: a gzip-bomb bound; largest tracked ledger 18,221,397 (4.5 T16.1);
+# over it, or not valid gzip = an oversize hit (fail closed, OVERSIZE_EXEMPT does not apply)
 INDEX_RE = re.compile(r"\.claude-state/journal/INDEX-[^/]*\.md")  # address: link field dropped (T8 phase 2.4)
 OVERSIZE_EXEMPT = (".claude-state/journal/", ".claude-state/ledger/")  # repo-relative prefixes; only the oversize
 # class is skipped (journal 1.7 T7, ledger slices 4.4 T1); was: ".claude-state/journal/"
@@ -139,6 +144,23 @@ def _magic(data):
     return False
 
 
+def _gunzip(data):
+    """(decompressed bytes, at most GZ_CAP, of every member; ok) for a gzip blob; not ok: over GZ_CAP or not valid gzip."""
+    out, n, rest = [], 0, data
+    while rest:
+        d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        try:
+            chunk = d.decompress(rest, GZ_CAP - n + 1)
+        except zlib.error:
+            return b"".join(out), False
+        out.append(chunk)
+        n += len(chunk)
+        if n > GZ_CAP or not d.eof:  # over the cap, or a truncated member
+            return b"".join(out)[:GZ_CAP], False
+        rest = d.unused_data
+    return b"".join(out), True
+
+
 def classify(path, data, forbidden):
     """(set of classes hit, is_text) for one blob."""
     hits = set()
@@ -184,25 +206,42 @@ def _cat_blobs(oids, cwd, env):
                 sys.exit(2)
             size = int(head[2])
             data = p.stdout.read(size)
-            p.stdout.read(1)
+            delim = p.stdout.read(1)
+            if len(data) != size or delim != b"\n":  # 4.5 T16.1 G7: a short stream refuses
+                print(f"audit_public: cat-file: short read of {oid} ({len(data)} of {size} bytes, delimiter "
+                      f"{delim!r})", file=sys.stderr)
+                sys.exit(2)
             yield oid, data
+        p.stdin.close()
+        if p.wait() != 0:  # 4.5 T16.1 G7: after a full run
+            print(f"audit_public: cat-file: rc {p.returncode}", file=sys.stderr)
+            sys.exit(2)
+        # was: data = p.stdout.read(size); p.stdout.read(1); yield oid, data  (length, delimiter and rc unchecked)
     finally:
         p.stdin.close()
         p.wait()
 
 
 def _objects_blobs(revargs, cwd, env):
-    """[(oid, path)] of blobs from `rev-list --objects <revargs>`, filtered with --batch-check."""
+    """[(oid, path)] of blobs from `rev-list --objects <revargs>`, filtered with --batch-check; one pair per path a
+    blob is tracked under (4.5 T16.2 G10: a blob at a.txt and b.exe is classified under both)."""
     lines = _git(["rev-list", "--objects", *revargs], cwd, env).decode("utf-8", "replace").splitlines()
     paths = {}
     for ln in lines:
         oid, _, path = ln.partition(" ")
-        paths.setdefault(oid, path)
+        paths.setdefault(oid, set()).add(path)  # was: paths.setdefault(oid, path) (first path only)
     if not paths:
         return []
+    # rev-list prints an object once (first path); every (blob, path) pair enters as an add/modify in a commit diff
+    raw = _git(["log", *revargs, "-m", "--root", "--raw", "--no-renames", "--no-abbrev", "-z", "--format="],
+               cwd, env).decode("utf-8", "replace").split("\0")
+    for i, tok in enumerate(raw[:-1]):
+        f = tok.lstrip("\n").split()
+        if len(f) == 5 and f[0].startswith(":") and f[4] != "D" and f[3] in paths:
+            paths[f[3]].add(raw[i + 1])
     out = _git(["cat-file", "--batch-check"], cwd, env, inp="\n".join(paths).encode() + b"\n").decode()
     blobs = [ln.split()[0] for ln in out.splitlines() if ln.split()[1:2] == ["blob"]]
-    return sorted((oid, paths[oid]) for oid in blobs)
+    return sorted((oid, p) for oid in blobs for p in paths[oid])
 
 
 def iter_scope(scope, cwd, env, arg=None):
@@ -230,10 +269,17 @@ def iter_scope(scope, cwd, env, arg=None):
         for path, oid in ents:
             yield path, oid, data[oid]
     else:  # history / range
+        if scope == "history" and _git(["rev-parse", "--is-shallow-repository"], cwd, env).strip() != b"false":
+            # 4.5 T16.2 G11: every history scope, not only --public-ci; was: no check here
+            _refuse("history scope refused: shallow clone, the history would be partial (fetch the full history)")
         blobs = _objects_blobs(["--all"] if scope == "history" else [arg], cwd, env)
-        paths = dict(blobs)
-        for oid, data in _cat_blobs([o for o, _ in blobs], cwd, env):
-            yield paths[oid], oid, data
+        paths = {}
+        for oid, path in blobs:
+            paths.setdefault(oid, []).append(path)
+        for oid, data in _cat_blobs(list(paths), cwd, env):  # each blob read once, yielded under every path
+            for path in paths[oid]:
+                yield path, oid, data
+        # was: paths = dict(blobs); for oid, data in _cat_blobs([o for o, _ in blobs], ...): yield paths[oid], oid, data
 
 
 def _blob_id(data):
@@ -358,7 +404,15 @@ def audit(scope, cwd, env, forbidden, arg=None, rules=None):
                 rel = Path(path).resolve().relative_to(Path(cwd).resolve()).as_posix()
             except ValueError:
                 pass
+        raw, gz = data, data[:2] == GZ_MAGIC
+        if gz:  # 4.5 T16.1 G8: every class below sees the decompressed bytes; was: the raw blob
+            data, gz_ok = _gunzip(raw)
         found, is_text = classify(rel, data, forbidden)
+        if gz:
+            if hashlib.sha1(raw).hexdigest() in forbidden:  # forbidden-hash on raw and decompressed
+                found.add("forbidden-hash")
+            if not gz_ok:
+                found.add("oversize")
         for c in VALUE_KEYS:
             if rules.get(c) is not None and address_hit(data, rules[c], rel):
                 found.add(c)
@@ -480,6 +534,8 @@ def parse(argv):
             i += 1
             scopes.append(("range", argv[i]))
         elif a == "--paths":
+            if i + 1 >= len(argv):  # 4.5 T16.2 G19; was: an empty scope, scanned nothing and printed OK
+                _refuse("--paths needs at least one file")
             scopes.append(("paths", argv[i + 1:]))
             break
         else:

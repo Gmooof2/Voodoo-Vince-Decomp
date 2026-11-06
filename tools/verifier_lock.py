@@ -9,8 +9,9 @@ Bytecode (3.5 T4, C0158): the lock hashes sources, so check also fails when a LI
   its `__spec__.cached` in a `__pycache__` under root, or sys.pycache_prefix is unset while one is loaded; gate.py sets
   a fresh prefix under .run/<phase>/gate/ before its tools imports and passes it to child Pythons.
   A module path under root/tools that resolves elsewhere (symlink/junction) is flagged by unlisted (3.5 T4 W7).
-Library: check(root=REPO, fp=None, modules=None) -> [causes] (empty = pass; modules only feeds unlisted, the bytecode
-  rule reads sys.modules); unlisted(root, modules) -> [causes]; pycache(root) -> [causes];
+Library: check(root=REPO, fp=None, modules=None, names=None) -> [causes] (empty = pass; modules and names only feed
+  unlisted, the bytecode rule reads sys.modules); unlisted(root, modules, names) -> [causes] (names, 4.5 T16.1 G5: a
+  top-level module name N with an unlisted root/tools/N.py -> `shadow module`); pycache(root) -> [causes];
   fingerprint(root) -> FP text; crlf(root) -> LISTED paths whose bytes hold b"\r\n";
   write(root=REPO, fp=None, mods=None) -> (rc, message), mods None = closure(); closure() -> sorted repo-relative tools/ modules the gate loads (gate imported in a
   child process, plus check_env and audit_public, which the gate runs as subprocesses).
@@ -28,7 +29,9 @@ LISTED = tuple(sorted([
     "config/audit_address_accepted.txt",
     "config/audit_private_accepted.txt",
     "config/check.retail_xbe.sha",
+    "config/delink_cut.sha256",  # 4.5 T16.2.c5 G17: the gate's cut layer pins hashes.txt to it
     "config/inputs.manifest.jsonl",  # 3.5 T4 F6: provenance_lint.inputs pins the PDB/EXE/XBE to its rows
+    "config/objdiff_cli.sha256",  # 4.5 T16.1 G4: check_env pins the objdiff-cli binary
     "config/pin_accepted.txt",  # 4.2 T5: pin_rows literal-copy waivers (D119)
     "config/provenance_accepted.txt",
     "config/retail/symbols.txt",  # 3.5 T4 F3: the name -> VA table the gate compares by (symbols_pin.txt not listed)
@@ -84,13 +87,20 @@ def crlf(root=REPO):
     return [p for p in LISTED if (root / p).is_file() and b"\r\n" in (root / p).read_bytes()]
 
 
-def unlisted(root=REPO, modules=None):
-    """modules: module file paths (default: every sys.modules __file__) -> causes for tools/ ones not in LISTED."""
+def unlisted(root=REPO, modules=None, names=None):
+    """modules: module file paths (default: every sys.modules __file__) -> causes for tools/ ones not in LISTED.
+    names (4.5 T16.1 G5): module names (default: sys.modules keys); a top-level one N (no dot) with root/tools/N.py
+    present and not LISTED -> `shadow module tools/N.py`, whatever that module's __file__ says (forged or deleted).
+    Was: __file__ paths only."""
     if modules is None:
         modules = [getattr(m, "__file__", None) for m in list(sys.modules.values())]
+    if names is None:
+        names = list(sys.modules)
     listed = {p.lower() for p in LISTED}
     bad = sorted({r for r in (_rel(f, root) for f in modules if f) if r and r.lower() not in listed})
-    return [f"unlisted module {r}" for r in bad]
+    shadow = sorted({f"tools/{n}.py" for n in names if "." not in n and (Path(root) / "tools" / f"{n}.py").is_file()
+                     and f"tools/{n}.py".lower() not in listed})
+    return [f"unlisted module {r}" for r in bad] + [f"shadow module {s}" for s in shadow]
 
 
 def pycache(root=REPO):
@@ -117,7 +127,7 @@ def pycache(root=REPO):
     return causes
 
 
-def check(root=REPO, fp=None, modules=None):
+def check(root=REPO, fp=None, modules=None, names=None):
     root = Path(root)
     fp = Path(fp) if fp else root / FP
     causes = []
@@ -137,7 +147,7 @@ def check(root=REPO, fp=None, modules=None):
             elif lines and hashlib.sha256(f.read_bytes()).hexdigest() != got[p]:
                 causes.append(f"{p} sha256 mismatch")
         causes += [f"fingerprint lists unlisted {p}" for p in sorted(set(got) - set(LISTED))]
-    return causes + unlisted(root, modules) + pycache(root)  # was: causes + unlisted(root, modules) (3.5 T4 F1)
+    return causes + unlisted(root, modules, names) + pycache(root)  # was: causes + unlisted(root, modules) (3.5 T4 F1)
 
 
 def closure():

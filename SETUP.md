@@ -86,7 +86,7 @@ stdout prints every value, so do not log it.
 
 ## 5. Inputs
 
-`PY tools/manifest.py verify` (about 20 s): every input file's sha1 and size against `config/inputs.manifest.jsonl`, and
+`PY tools/manifest.py verify` (about 30 s): every input file's sha1 and size against `config/inputs.manifest.jsonl`, and
 the retail pin. Exit 0 match; 1 mismatch, missing or extra file; 2 config or manifest missing. With `xbdm_dll` null its
 one record is not checked and that is no problem: it prints `xbdm_dll: 1 in manifest, not checked (key is null)` and exits
 0, last line `verify: OK — 0 problem(s) among 410 records; not checked: xbdm_dll 1`. A set `xbdm_dll` is checked like any
@@ -107,7 +107,7 @@ Each step refuses without the previous one's output. If a run stops with no outp
 2. `PY tools/dup_report.py`, about 3 s. Last line `classes: ... sum 19683/19683 ok`.
 3. `PY tools/delink.py ingest --fresh`, about 2 minutes. Exit 0.
 4. `PY tools/delink.py --fresh`, about 3 minutes. Last line `marker <path> objects 215`.
-5. `PY tools/xdk_report.py`, about 2 s. Prints `functions (applied): 8929 ...`, last line `sum checks: ok`.
+5. `PY tools/xdk_report.py`, about 2 s. Prints `functions (applied): 8988 ...`, last line `sum checks: ok`.
 6. `PY tools/relink.py cut`, about 5 minutes. Last line `cut derived/relink/retail-<sha8>/cut: 10 sections, 543 objects, ...`.
    Without it the gate prints `FAIL relink: fail: REFUSED ...`.
 
@@ -123,14 +123,14 @@ Steps 1, 3, 4 and 6 are what the gate reads. Step 5 and the next two feed the ot
   line `1776 passed, 0 failed of 1776` (N is the `[[function]]` rows of `config/matched_set.toml`). A failed global adds
   `; FAIL globals: <names>` and exits 1; a refusal exits 2. The exit code and that line are the only claim of a match.
 - `bash tools/run.sh selftest -- PY tools/gate.py --self-test`, up to about 2 minutes: plants known errors and proves the gate
-  catches each one. Last line `controls: 109 failed as expected of 109`, exit 0.
+  catches each one. Last line `controls: 138 failed as expected of 138`, exit 0.
 - When it fails: `FAIL lock` first (a file's bytes changed), `FAIL check_env` (step 6), `target missing` or
   `gate: REFUSED cut` (step 7), `FAIL relink: fail: REFUSED` (`relink.py cut`), `FAIL provenance: fail: REFUSED` (step 2's
   upstream, or the prototype inputs), then the named layer.
 
 ## 9. Optional
 
-- `PY tools/relink.py check`, about 20 s: `check all: digests 16/16 OK`; the relinked XBE's sha1 equals the retail pin.
+- `PY tools/relink.py check`, about 30 s: `check all: digests 16/16 OK`; the relinked XBE's sha1 equals the retail pin.
 - `PY tools/progress.py` regenerates `docs/progress.md` from step 5 and the last gate run.
 - `PY tools/match_one.py --help`: build one function's unit and compare it, a quick check while matching. Only the gate
   decides. Start with `docs/matching/START_HERE.md`.

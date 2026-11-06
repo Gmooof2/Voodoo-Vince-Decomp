@@ -4,7 +4,9 @@ Usage: check_env.py [--pin] [--pins FILE] [--msvc-dir DIR] [--config P]
 Prints one line per check (`ok <check>: ...` or `FAIL <check>: <cause>`), every failure reported.
 Checks: python 3.15; git core.hooksPath == githooks (in this script's repo); ghidra_dir, java_home,
 objdiff_cli exist; msvc71_dir set and exists (or --msvc-dir); pins file (default config/toolchain.sha256)
-exists, non-empty, each line `<sha256>  <relpath>` names a file under the msvc dir with that sha256.
+exists, non-empty, each line `<sha256>  <relpath>` names a file under the msvc dir with that sha256; then (4.5 T16.1)
+iced_x86: the imported module is a file of the iced-x86 ICED_X86 distribution; objdiff_cli: its basename and sha256
+== config/objdiff_cli.sha256 (`objdiff_cli: sha mismatch` / `pin missing`).
 --pin: hash the PIN_NAMES present directly in the msvc dir, write the pins file (sha256sum format,
 sorted by path, LF), then run every check.
 Exit: 0 every check passed; 1 any check failed.
@@ -25,6 +27,8 @@ PINS = REPO / "config" / "toolchain.sha256"
 PIN_NAMES = ("cl.exe", "c1.dll", "c1xx.dll", "c2.dll", "link.exe", "mspdb71.dll", "msobj71.dll",
              "msvcr71.dll", "msvcp71.dll")
 PIN_LINE = re.compile(r"^([0-9a-f]{64})  (\S.*)$")
+OBJDIFF_PIN = REPO / "config" / "objdiff_cli.sha256"  # 4.5 T16.1 G4: `<sha256>  <basename>` of the objdiff-cli binary
+ICED_X86 = "1.21.0"  # 4.5 T16.1 O15: the iced-x86 distribution requirements.txt pins
 
 
 def sha256(p):
@@ -68,6 +72,37 @@ def check_pins(msvc, pins):
         elif sha256(f) != m.group(1):
             out.append(f"{m.group(2)}: sha mismatch ({f})")
     return out
+
+
+def check_objdiff_pin(exe, pin=OBJDIFF_PIN):
+    """-> FAIL cause or None: exe's basename and sha256 against the one-line pin file (4.5 T16.1 G4)."""
+    if not pin.is_file():
+        return f"pin missing ({pin})"
+    lines = pin.read_bytes().decode("ascii", "replace").splitlines()
+    m = PIN_LINE.match(lines[0]) if len(lines) == 1 else None
+    if not m:
+        return f"pin file not one `<sha256>  <basename>` line: {pin}"
+    if m.group(2) != exe.name:
+        return f"pin names {m.group(2)}, config names {exe.name}"
+    if not exe.is_file():
+        return f"missing ({exe})"
+    return None if sha256(exe) == m.group(1) else f"sha mismatch ({exe})"
+
+
+def check_iced():
+    """-> FAIL cause or None: the imported iced_x86 is the pinned iced-x86 distribution (4.5 T16.1 O15)."""
+    try:
+        import importlib.metadata
+        import iced_x86
+        dist = importlib.metadata.distribution("iced-x86")
+    except (ImportError, importlib.metadata.PackageNotFoundError) as e:
+        return f"not importable: {e}"
+    if dist.version != ICED_X86:
+        return f"version {dist.version}, want {ICED_X86}"
+    f = Path(iced_x86.__file__).resolve()
+    if not any(Path(p.locate()).resolve() == f for p in dist.files or ()):
+        return f"imported {f} is not a file of the iced-x86 {dist.version} distribution"
+    return None
 
 
 def main(argv):
@@ -133,6 +168,10 @@ def main(argv):
         report("pins", c)
     if not causes:
         report("pins", None, f"{pins} holds")
+    # 4.5 T16.1 G4/O15: last, so a FAIL stays in the gate's 3-line check_env tail (was: no objdiff or iced pin)
+    report("iced_x86", check_iced(), ICED_X86)
+    report("objdiff_cli", "config not loaded" if cfg is None else check_objdiff_pin(cfg["objdiff_cli"]),
+           f"{OBJDIFF_PIN.name} holds")
     return 1 if fails else 0
 
 

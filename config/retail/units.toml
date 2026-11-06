@@ -3878,7 +3878,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "/O1 /Oy"  # was "unknown"; 4.4 T10: ?creationFunc@VinceListeningToKosmoMT@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z (cut-extent row, objdiff <100 by cut) control "/O1 /Oy" bytes match; /O2 control bytes mismatch (C0135)
+opt = "/O1 /Oy"  # was "unknown"; 4.4 T10: ?creationFunc@VinceListeningToKosmoMT@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z (cut-extent row, objdiff <100 by cut) control "/O1 /Oy" bytes match; /O2 control bytes mismatch (C0135); 4.5 T2: ?TimerEvent@VinceListeningToKosmoMT@@UAEXI@Z (matched row) control "/O2" FAIL objdiff 81.9 bytes mismatch, control "/O1 /Oy" PASS objdiff 100 bytes match: passing control pair
 
 [[unit]]
 name = "Xbox\\OfficialRelease\\BasketCase.obj"
@@ -4241,7 +4241,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "/O1 /Oy"  # was "unknown"; 4.4 T11.c11: ?Clean@BufferMgr@SoundManager@@QAEXXZ objdiff 100 (bytes provisional, masked 1); /O2 control fails (80.9); PlaySound /O1 /Oy 94.9 vs /O2 29.7
+opt = "/O1 /Oy"  # was "unknown"; 4.4 T11.c11: ?Clean@BufferMgr@SoundManager@@QAEXXZ objdiff 100 (bytes provisional, masked 1); /O2 control fails (80.9); PlaySound /O1 /Oy 94.9 vs /O2 29.7; 4.5 T2: ?PrepareSound@SoundManager@@ (matched row) control "/O2" FAIL objdiff 82.9 bytes mismatch, control "/O1 /Oy" PASS objdiff 100 bytes match: passing control pair
 
 [[unit]]
 name = "Xbox\\Official_Release\\SwampModelResource.obj"
