@@ -1,4 +1,4 @@
-// UNIT: src/Apps/Vince/scripts/french_quarter/GasPumps.cpp OBJ: Xbox\OfficialRelease\GasPumps.obj OPT: /O1 /Oy
+// UNIT: src/Apps/Vince/scripts/french_quarter/GasPumps.cpp OBJ: Xbox\OfficialRelease\GasPumps.obj OPT: /O1 /Oy /Ob1
 #include "../../../../include/decomp.h"
 inline void* operator new(unsigned int, void* _Where) { return _Where; }
 namespace std { // NAME: proto-pdb:default.pdb
@@ -20,6 +20,8 @@ protected:
 private:
     char _pad00[0x1C];
 };
+template <class E, class T, class A>
+basic_string<E, T, A> operator+(const basic_string<E, T, A>& _Left, const basic_string<E, T, A>& _Right);
 // VC 7.1 <xmemory>/<deque> bodies for the deque rows (C0132, VinceSpring.cpp form); deque::_Growmap is called
 // out of line at the named fold VA 0x0005CF1A (VinceSpring.cpp owns the ReggieTaunt-named row)
 template <class _T1, class _T2> inline void _Construct(_T1* _Ptr, const _T2& _Val)
@@ -44,6 +46,7 @@ public:
     pointer allocate(size_type _Count) { return (_Allocate(_Count, (pointer)0)); }
     void construct(pointer _Ptr, const _Ty& _Val) { _Construct(_Ptr, _Val); }
     void destroy(pointer _Ptr) { _Destroy(_Ptr); }
+    void deallocate(pointer _Ptr, size_type) { operator delete(_Ptr); }
 };
 template <class _Ty, class _Alloc> class _Deque_map {
 protected:
@@ -103,8 +106,21 @@ public:
     }
 
 protected:
-    // !FAKE: declared only; retail calls the named fold VA 0x0005CF1A out of line (row owned by VinceSpring.cpp)
+    // !FAKE: c1xx front end; declared only; retail calls the named fold VA 0x0005CF1A out of line (row owned by VinceSpring.cpp)
     void _Growmap(size_type _Count);
+    void _Tidy()
+    {
+        while (!empty())
+            pop_back();
+        for (size_type _Count = _Mapsize; 0 < _Count;) {
+            if (*(_Map + --_Count) != 0)
+                this->_Alval.deallocate(*(_Map + _Count), _DEQUESIZ);
+        }
+        if (_Map != 0)
+            this->_Almap.deallocate(_Map, _Mapsize);
+        _Mapsize = 0;
+        _Map = 0;
+    }
 
     _Mapptr _Map;                      // 0x04
     size_type _Mapsize;                // 0x08
@@ -114,8 +130,11 @@ protected:
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
-class BeepTDF;               // NAME: proto-pdb:default.pdb
-class AABox;                 // NAME: proto-pdb:default.pdb
+class BeepTDF { // NAME: proto-pdb:default.pdb
+public:
+    int GetIntRecord(const SwampString&, int) const;
+};
+class AABox;                // NAME: proto-pdb:default.pdb
 class ModelResource;         // NAME: proto-pdb:default.pdb
 class ModelManager;          // NAME: proto-pdb:default.pdb
 
@@ -138,7 +157,7 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 struct Vector4 { // NAME: proto-pdb:default.pdb
-    // !FAKE: inliner; hand form of the PDB inline conversion operator
+    // !FAKE: inliner; hand form of the PDB inline conversion operator; no before/after recorded
     operator Vector3() const { return *(const Vector3*)this; }
 
     float x;                           // 0x00
@@ -355,6 +374,7 @@ class Vince : public Critter { // NAME: proto-pdb:default.pdb
 class CritterManager { // NAME: proto-pdb:default.pdb
 public:
     Critter* Create(const SwampString&, const SwampString&, const char*, ResourceHandle<ModelResource>, const Vector3&, const Quaternion&, unsigned int);
+    Critter* Find(const SwampString&);
 
     char field_0[0x28];                // 0x00
     Vince* _vinceCache;                // 0x28
@@ -489,6 +509,8 @@ public:
 protected:
     void ResetDingTimer();
 
+    static int _hintCount;
+
 public:
     ResourceHandle<AnimationResource> _animThrow;  // 0xBC
     bool _vinceNear;                   // 0xC0
@@ -502,8 +524,10 @@ DECOMP_SIZE_ASSERT(GasPumpMain, 0xD0);
 class PrimoMain : public GasPumpMain { // NAME: proto-pdb:default.pdb
 public:
     PrimoMain(SwampSceneNode* node);
+    virtual void AnimationFinished();
     virtual void Message(SwampScript*, int, void*);
     virtual void TimerEvent(unsigned int);
+    virtual Critter* GetPartner();                                 // vtable+0x70
     Critter* GetPrimo() { return (Critter*)_node; }
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -514,6 +538,9 @@ class ReggieMain : public GasPumpMain { // NAME: proto-pdb:default.pdb
 public:
     ReggieMain(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int);
+    virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
+    virtual Critter* GetPartner();                                 // vtable+0x70
     Critter* GetReggie() { return (Critter*)_node; }
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -544,6 +571,10 @@ public:
 };
 DECOMP_SIZE_ASSERT(ReggieWreckageMain, 0xD0);
 
+// ??_GPrimoMain 0x0007FAE6, ??_GReggieWreckageMain 0x000810A8 unmatched, no draft (5.3 T6.c16): companion wall: a
+// virtual ??_G is emitted only with its class vtable; ??0PrimoMain 0x0008023B and ??0ReggieWreckageMain 0x00080967
+// are fail rows (provisional reloc), and neither class has an explicit dtor storing the vptr. Lift: match a ctor.
+
 // FUNCTION: USA 0x0007F1F1
 // PROTOTYPE: PREVIEW 0x0046B0FB identical
 // NAME: proto-pdb:default.pdb
@@ -566,6 +597,18 @@ void GasPumpMain::AnimationFinished()
         break;
     case STATE_DAMAGE:
         SetState(STATE_ATTACK);
+        break;
+    }
+}
+
+// FUNCTION: USA 0x0007F392
+// PROTOTYPE: PREVIEW 0x0046B2BF identical
+// NAME: proto-pdb:default.pdb
+void PrimoMain::AnimationFinished()
+{
+    switch (_state) {
+    case STATE_DAMAGE:
+        SetState(STATE_IDLE);
         break;
     }
 }
@@ -610,9 +653,9 @@ void GasPumpMain::SetState(int state)
 void ReggieWreckageMain::AnimationFinished()
 {
     RegisterTimerEvent(TIMER_TAUNT, (float)(BeepLib::RandomFloat(2.0) + 2.0), false);
-    // !FAKE: c2 register allocation; stand-in local (no PDB record): retail keeps _node in esi across both calls (C0267)
-    Critter* critter = (Critter*)_node;
-    critter->TransitionAnimation(critter->GetDefaultIdleAnim(), 0.25f, true, false);
+    // !FAKE: c2 register allocation; stand-in local (no PDB record); retail keeps _node in esi across both calls (C0267)
+    Critter* p = (Critter*)_node;
+    p->TransitionAnimation(p->GetDefaultIdleAnim(), 0.25f, true, false);
 }
 
 // FUNCTION: USA 0x0007F69E
@@ -631,9 +674,9 @@ void WrenchMain::FrameTick()
     float elapsed = g_swamp->GetInput().GetElapsedTime();
     _oldVel = GetCritter()->_Velocity;
     CritterCollision cr = GetCritter()->MoveMyFatAss(_gravity, 3);
-    // !FAKE: c2 register allocation; stand-in local (no PDB record): retail loads _node before the product
+    // !FAKE: c2 register allocation; stand-in local (no PDB record); retail loads _node before the product
     Critter* v2 = GetCritter();
-    // !FAKE: inliner; hand form of retail's inlined axis-angle Quaternion product (C0191)
+    // !FAKE: inliner; hand form of retail's inlined axis-angle Quaternion product; retail inlines it, no before/after recorded (C0191)
     Quaternion v0;
     v0.Set(_axis, elapsed * _dAngle);
     Quaternion v1(v0);
@@ -665,12 +708,18 @@ void pin_emit_GasPumpMain_dtor(GasPumpMain* p)
     p->GasPumpMain::~GasPumpMain();
 }
 
+// FUNCTION: USA 0x0007FA7B
+// NAME: proto-pdb:default.pdb
+// !FAKE: c1xx front end; explicit instantiation of a single member; retail emits it through a caller in this unit
+// (not matched yet); the instantiation emits it instead
+template void std::deque<ReggieWreckageMain::ReggieTaunt,std::allocator<ReggieWreckageMain::ReggieTaunt> >::_Tidy();
+
 // FUNCTION: USA 0x0007FABF
 // PROTOTYPE: PREVIEW 0x0046BA08 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* WrenchMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\GasPumps.h", 117) WrenchMain(node);
 }
 
@@ -678,9 +727,10 @@ SwampScript* WrenchMain::creationFunc(SwampSceneNode* node)
 // PROTOTYPE: PREVIEW 0x0046BCF0 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 88.36313, bytes mismatch (inliner wall: retail inlines Quaternion(0, 0, 0) after the
-// string temporaries, our /O1 keeps that ctor out of line (90.58 with it, an unresolved ??0Quaternion call);
-// the hand form runs Set first; newloc += scale keeps fadd-memory on y, z where retail reloads; 4.4 T13.c3)
+// best: match_one objdiff 93.74, bytes mismatch +0x19 (T12.c29: C0244 block, strings "Wrench" then "", _node local
+// before Set; retail's call is ?Set@Quaternion 0xDC99B). Left: newloc += v3 folds y, z as fadd-memory where retail
+// does fld newloc.c; fadd st(1) (+= split/commuted/Set/ctor forms unchanged); string ctors schedule into that block.
+// Earlier: 88.36 (4.4 T13.c3), 90.58 with an inline Quaternion(x,y,z) call; T12.c17 at-stop 20 (logs T12.c17, T12.c29)
 void GasPumpMain::TimerEvent(unsigned int timerId)
 {
     switch (timerId) {
@@ -691,17 +741,24 @@ void GasPumpMain::TimerEvent(unsigned int timerId)
         Matrix m = GetCritter()->GetBoneOrientation("wrench");
         ResourceHandle<ModelResource> wrenchModel = g_swamp->GetModelManager().Load("wrench_base");
         Vector3 diff = m[3];
-        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 sum, difference and scale (C0191)
+        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 sum, difference and scale; retail inlines them, no before/after recorded (C0191)
         Vector3 newloc(diff.x + _node->_Location.x, diff.y + _node->_Location.y, diff.z + _node->_Location.z);
         const Vector3* v1 = &pManager->_vinceCache->GetWorldPosition();
         diff.Set(v1->x - newloc.x, v1->y - newloc.y, v1->z - newloc.z);
         const Vector3* v2 = &Normalize(diff);
         const Vector3& v3 = Vector3(v2->x * 1.5f, v2->y * 1.5f, v2->z * 1.5f);
         newloc += v3;
-        // !FAKE: inliner; hand form of retail's inlined Quaternion(0, 0, 0) temporary (C0191)
-        Quaternion v4;
-        v4.Set(0.0f, 0.0f, 0.0f);
-        pManager->Create("", "Wrench", "Wrench", wrenchModel, newloc, v4, _node->GetZone());
+        {
+            // !FAKE: c1xx temporary order; string-argument temporaries as block locals, built right to left before the Quaternion as retail (T12.c29 probe)
+            SwampString v6("Wrench");
+            SwampString v5("");
+            // !FAKE: c2 register allocation; stand-in local; retail loads _node into edi before the Set call (T12.c29 probe)
+            SwampSceneNode* v7 = _node;
+            // !FAKE: inliner; hand form of retail's inlined Quaternion(0, 0, 0) temporary; retail inlines it, no before/after recorded (C0191)
+            Quaternion v4;
+            v4.Set(0.0f, 0.0f, 0.0f);
+            pManager->Create(v5, v6, "Wrench", wrenchModel, newloc, v4, v7->GetZone());
+        }
         GetCritter()->PlaySound("reggswoosh", 0x28, true, 0.0f, 0.0f);
         break;
     }
@@ -716,7 +773,7 @@ void GasPumpMain::HitBy(CollisionType type, SwampSceneNode* critterHit, const Pt
 {
     if (critterHit == pManager->_vinceCache && !((Critter*)critterHit)->IsStunned()) {
         SoundManager::PlaySound("vbounce", 0x20, _node, true, 0.0f, 0.0f);
-        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference (C0191)
+        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference; retail inlines it, no before/after recorded (C0191)
         const Vector3* v0 = &_node->GetWorldPosition();
         const Vector3* v1 = &critterHit->GetWorldPosition();
         Vector3 v2;
@@ -755,6 +812,29 @@ void ReggieMain::TimerEvent(unsigned int timerId)
     }
 }
 
+// FUNCTION: USA 0x00080177
+// NAME: proto-pdb:default.pdb
+Critter* ReggieMain::GetPartner()
+{
+    return pManager->Find("Primo");
+}
+
+// FUNCTION: USA 0x000801AD
+// PROTOTYPE: PREVIEW 0x0046C0F6 identical
+// NAME: proto-pdb:default.pdb
+void ReggieMain::Load(const BeepTDF& tdf)
+{
+    _hintCount = tdf.GetIntRecord("hintcount", 0);
+}
+
+// FUNCTION: USA 0x000801E3
+// PROTOTYPE: PREVIEW 0x0046C12C identical
+// NAME: proto-pdb:default.pdb
+SwampString ReggieMain::Save()
+{
+    return GasPumpMain::Save() + format("\t\thintcount = %i;\n", _hintCount);
+}
+
 // FUNCTION: USA 0x00080333
 // PROTOTYPE: PREVIEW 0x0046C27C identical
 // NAME: proto-pdb:default.pdb
@@ -785,6 +865,13 @@ void PrimoMain::TimerEvent(unsigned int timerId)
     }
 }
 
+// FUNCTION: USA 0x0008039C
+// NAME: proto-pdb:default.pdb
+Critter* PrimoMain::GetPartner()
+{
+    return pManager->Find("Reggie");
+}
+
 // FUNCTION: USA 0x00080534
 // PROTOTYPE: PREVIEW 0x0046C47D identical
 // NAME: proto-pdb:default.pdb
@@ -793,7 +880,7 @@ void PrimoMain::TimerEvent(unsigned int timerId)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* PrimoMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\GasPumps.h", 84) PrimoMain(node);
 }
 #endif
@@ -820,7 +907,7 @@ template void SwampShuffleQueue<ReggieWreckageMain::ReggieTaunt>::PushBack(Reggi
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* ReggieMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\GasPumps.h", 64) ReggieMain(node);
 }
 #endif

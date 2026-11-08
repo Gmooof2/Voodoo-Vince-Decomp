@@ -30,7 +30,7 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 struct Vector4 { // NAME: proto-pdb:default.pdb
-    // !FAKE: inliner; hand form of the PDB inline conversion operator
+    // !FAKE: inliner; hand form of the PDB inline conversion operator; no before/after recorded
     operator Vector3() const { return *(const Vector3*)this; }
 
     float x; // 0x00
@@ -217,6 +217,7 @@ DECOMP_SIZE_ASSERT(RocketMain, 0xCC);
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 96.19, radius copied by mov (retail fld/fst feeding radius + diameter); rocket/radius slot -4 vs -0x10
+// 5.2 T12.c19 at-stop 20: radius int-copy vs retail fld/fst survives every decl/stand-in/chain form (cl copy-propagates them)
 void RocketMain::FrameTick()
 {
     Critter* rocket = GetCritter();
@@ -231,7 +232,7 @@ void RocketMain::FrameTick()
         float RocketRange = gSettings.GetMainstreetFlameRange();
         Quaternion q = rocket->GetWorldRotation();
         Vector3 v = rocket->GetWorldPosition();
-        // !FAKE: inliner; hand form of the by-value Quaternion::Apply and the Vector3 sum, difference, scale and
+        // !FAKE: inliner; hand form of the by-value Quaternion::Apply and the Vector3 operators; no before/after recorded; the operators: sum, difference, scale and
         // LengthSquared (out of line in our /O1 build; no free operator in the PDB): stand-ins v1..v6
         {
             Vector3 v1;
@@ -277,6 +278,6 @@ void RocketMain::Activate()
 // NAME: proto-pdb:default.pdb
 SwampScript* RocketMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("mainstreet\\Rocket.cpp", 12) RocketMain(node);
 }

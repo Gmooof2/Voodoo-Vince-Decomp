@@ -18,7 +18,10 @@ private:
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
-class BeepTDF;               // NAME: proto-pdb:default.pdb
+class BeepTDF { // NAME: proto-pdb:default.pdb
+public:
+    int GetIntRecord(const SwampString&, int) const;
+};
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 class Matrix;                // NAME: proto-pdb:default.pdb
@@ -126,6 +129,7 @@ public:
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
+    virtual void Load(const BeepTDF&);
 
     int _state;                        // 0x4C
     char field_50[0x6C];               // 0x50
@@ -134,22 +138,64 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line);
 
-class AnimationResource; // NAME: proto-pdb:default.pdb
-class AnimationControl;  // NAME: proto-pdb:default.pdb
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x8];                // 0x24
+    float _length;                     // 0x2C
+    char field_30[0x4];                // 0x30
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    T& operator()() { return *_Resource; }
+
     T* _Resource;                      // 0x00
 };
 
+class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef();
+    void SetAnimationTime(float time) { _time = time; }
+    float GetAnimationLength() const { return _anim._Resource->_length; }
+
+    ResourceHandle<AnimationResource> _anim; // 0x24
+    char field_28[0x10];               // 0x28
+    float _time;                       // 0x38
+    char field_3C[0x68 - 0x3C];        // 0x3C
+};
+DECOMP_SIZE_ASSERT(AnimationControl, 0x68);
+
+class Critter; // NAME: proto-pdb:default.pdb
+
 class SwitchCryptMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum State { // NAME: proto-pdb:default.pdb
+        Off = 0x0,
+        TurningOn = 0x1,
+        On = 0x2
+    };
     SwitchCryptMain(SwampSceneNode* node);
     virtual bool TestActivate() const;
     virtual void Activate();
     virtual void TimerEvent(unsigned int id);
+    virtual void Load(const BeepTDF& tdf);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+    Critter* GetSwitch();
 
     ResourceHandle<AnimationResource> _turnOn; // 0xBC
     int _id;                           // 0xC0
@@ -163,6 +209,8 @@ public:
 
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 };
+
+inline Critter* SwitchCryptMain::GetSwitch() { return (Critter*)_node; }
 
 class Vince : public Critter { // NAME: proto-pdb:default.pdb
 public:
@@ -298,7 +346,7 @@ void SwitchCryptMain::Activate()
         // !FAKE: c2 register allocation; neutral stand-in locals (no PDB local); retail keeps the node in edi, radius at [ebp-4]
         SwampSceneNode* v0 = _node;
         float v1 = ((CollidableCylinder*)v0)->GetRadius();
-        // !FAKE: inliner; hand form of the vector scale and sum (no PDB inline operator), pointer locals to the returned temps,
+        // !FAKE: inliner; hand form of the vector scale and sum, pointer locals to the returned temps; no PDB inline operator,
         // one comma expression so the Normalize temp keeps its own slot (frame 0x50 -> 0x5C; T8.c1 draft 6 100.0)
         Vector3 v3;
         const Vector3* v2;
@@ -324,12 +372,26 @@ void SwitchCryptMain::TimerEvent(unsigned int id)
     p->GetScript()->Activate();
 }
 
+// FUNCTION: USA 0x0005E691
+// PROTOTYPE: PREVIEW 0x0044AAD0 identical
+// NAME: proto-pdb:default.pdb
+void SwitchCryptMain::Load(const BeepTDF& tdf)
+{
+    CritterMain::Load(tdf);
+    _state = tdf.GetIntRecord("state", 0);
+    if (_state == On) {
+        // !FAKE: c1xx front end; temporary; the AddRef/SubRef copy needs a named handle, no PDB local (stand-in)
+        ResourceHandle<AnimationControl> tmp = GetSwitch()->StartAnimation(_turnOn, false, false);
+        tmp().SetAnimationTime(tmp().GetAnimationLength());
+    }
+}
+
 // FUNCTION: USA 0x0005E756
 // PROTOTYPE: PREVIEW 0x0044AB95 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* SwitchCryptMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 15) SwitchCryptMain(node);
 }
 
@@ -338,7 +400,7 @@ SwampScript* SwitchCryptMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlockMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 48) CryptBlockMain(node);
 }
 
@@ -347,7 +409,7 @@ SwampScript* CryptBlockMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_AaMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 255) CryptBlock_AaMain(node);
 }
 
@@ -356,7 +418,7 @@ SwampScript* CryptBlock_AaMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_AbMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 256) CryptBlock_AbMain(node);
 }
 
@@ -365,7 +427,7 @@ SwampScript* CryptBlock_AbMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_BaMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 257) CryptBlock_BaMain(node);
 }
 
@@ -374,7 +436,7 @@ SwampScript* CryptBlock_BaMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_BbMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 258) CryptBlock_BbMain(node);
 }
 
@@ -383,7 +445,7 @@ SwampScript* CryptBlock_BbMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_CaMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 259) CryptBlock_CaMain(node);
 }
 
@@ -392,7 +454,7 @@ SwampScript* CryptBlock_CaMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_CbMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 260) CryptBlock_CbMain(node);
 }
 
@@ -401,7 +463,7 @@ SwampScript* CryptBlock_CbMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_DaMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 261) CryptBlock_DaMain(node);
 }
 
@@ -410,6 +472,6 @@ SwampScript* CryptBlock_DaMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBlock_DbMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 262) CryptBlock_DbMain(node);
 }

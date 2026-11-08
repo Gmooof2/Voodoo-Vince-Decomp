@@ -477,8 +477,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampWaterNode, 0xF8);
 
+// FUNCTION: USA 0x0012A5A7
+// PROTOTYPE: PREVIEW 0x00512FCC identical
+// NAME: proto-pdb:default.pdb
 class WaterRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    WaterRegionMain(SwampSceneNode* node);
+    virtual void LeavingRegion(SwampSceneNode* node);
     RegionTrigger* GetRegion();
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
@@ -496,6 +501,18 @@ inline RegionTrigger* WaterRegionMain::GetRegion()
 {
     return (RegionTrigger*)_node;
 }
+
+// FUNCTION: USA 0x0012A563
+// PROTOTYPE: PREVIEW 0x00512FA8 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match, and with it ??_GWaterRegionMain 100.0 bytes match (T9.c2); wall: relink
+// refuses: vtable slot +0x3C 0x0012AC83 (?LeavingRegion@WaterRegionMain, proto PDB) has no symbols/pin row:
+// `external ?LeavingRegion@WaterRegionMain@@UAEXPAVSwampSceneNode@@@Z does not resolve by name`
+WaterRegionMain::WaterRegionMain(SwampSceneNode* node) : SwampScript(node), _water(0)
+{
+}
+#endif
 
 // FUNCTION: USA 0x0012A5F8
 // PROTOTYPE: PREVIEW 0x0051301D identical

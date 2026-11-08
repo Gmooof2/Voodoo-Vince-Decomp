@@ -136,7 +136,6 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 class VinceZapHat : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     VinceZapHat(SwampSceneNode* node);
-    virtual ~VinceZapHat();
     virtual void AnimationFinished();
     Vince* GetVince() { return (Vince*)_node; }
 
@@ -167,5 +166,18 @@ VinceZapHat::VinceZapHat(SwampSceneNode* node) : SwampScript(node)
     GetVince()->StartAnimation(_animSpell, false, false);
     GetVince()->SetCurSpeed(0.0f);
     AnimCam::SwitchTo("camera_vinceLightning", 0.0f, false, 0.0f);
+}
+#endif
+
+#ifdef NON_MATCHING
+// best: ??1VinceZapHat (0x0008C43B) match_one objdiff 27.78, bytes match (masked 0); cut-extent wall (C0085): the
+// delink cut's ??1VinceZapHat spans the unsymboled LAB_0008c44a..0x0008C46E after it; lift = a symbol at 0x0008C44A
+// in the cut (re-cut)
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1VinceZapHat@@UAE@XZ in this unit (no vptr
+// store, so no declared dtor: declared form 21.06 with the vptr store; the ctor that odr-uses it is guarded); this
+// qualified call odr-uses it instead ([[emitter]] row)
+void pin_emit_VinceZapHat_dtor(VinceZapHat* p)
+{
+    p->VinceZapHat::~VinceZapHat();
 }
 #endif

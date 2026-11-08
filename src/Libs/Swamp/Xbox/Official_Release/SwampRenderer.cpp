@@ -99,6 +99,7 @@ extern "C" void __stdcall D3DDevice_SetTexture(unsigned long, D3DBaseTexture*); 
 extern "C" long __stdcall D3DDevice_LoadVertexShaderProgram(const unsigned long*, unsigned long); // src proto-pdb:default.pdb D3DDevice_LoadVertexShaderProgram
 extern "C" long __stdcall D3DDevice_SelectVertexShaderDirect(const _D3DVERTEXATTRIBUTEFORMAT*, unsigned long); // src proto-pdb:default.pdb D3DDevice_SelectVertexShaderDirect
 extern "C" void __stdcall D3DDevice_SetStreamSource(unsigned int, D3DVertexBuffer*, unsigned int);
+extern "C" unsigned long __stdcall D3DDevice_Swap(unsigned long); // NAME: proto-pdb:default.pdb
 struct _D3DRECT; // NAME: proto-pdb:default.pdb
 extern "C" void __stdcall D3DDevice_Clear(unsigned long, const _D3DRECT*, unsigned long, unsigned long, float, unsigned long); // NAME: proto-pdb:default.pdb
 
@@ -197,6 +198,7 @@ public:
     bool EnableDepthBuffering(bool enable);
     bool UseWBuffering(bool useW);
     void SetEmptyTexture(unsigned long stage);
+    void EndScene();
 protected:
     void ClearStateCache();
 public:
@@ -256,7 +258,7 @@ struct Direct3D { // NAME: proto-pdb:default.pdb
 template void RELEASE<Direct3D>(Direct3D*&);
 #endif
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132); RELEASE<Direct3D> is held out above, InitDirect3D calls it by name
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132); RELEASE<Direct3D> is held out above, InitDirect3D calls it by name
 template <> void RELEASE<Direct3D>(Direct3D*&);
 #endif
 
@@ -538,6 +540,14 @@ long SwampRenderer::SetVertexShader(const ResourceHandle<VertexShaderResource>& 
         return 0;
     }
     return SetVertexShader(handle, handle().GetDeclaration());
+}
+
+// FUNCTION: USA 0x000CA88D
+// NAME: proto-pdb:default.pdb
+void SwampRenderer::EndScene()
+{
+    ClearStateCache();
+    D3DDevice_Swap(0);
 }
 
 // FUNCTION: USA 0x000CA9BA

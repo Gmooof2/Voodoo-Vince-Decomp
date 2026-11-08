@@ -6,6 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string();
     basic_string(const E* ptr);
     ~basic_string() { _Tidy(true); }
 
@@ -221,8 +222,11 @@ DECOMP_SIZE_ASSERT(BcboStartBattleRegionMain, 0x4C);
 // NAME: proto-pdb:default.pdb
 class AreaLoadRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    AreaLoadRegionMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
+    virtual void LeavingRegion(SwampSceneNode* node);
 
     SwampString _nextLevel;            // 0x4C
     SwampString _nextArea;             // 0x68
@@ -261,6 +265,13 @@ BcboStartBattleRegionMain::BcboStartBattleRegionMain(SwampSceneNode* node)
     : SwampScript(node)
 {
     _started = false;
+}
+
+// FUNCTION: USA 0x0004DE90
+// NAME: proto-pdb:default.pdb
+AreaLoadRegionMain::AreaLoadRegionMain(SwampSceneNode* node)
+    : SwampScript(node)
+{
 }
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1AreaLoadRegionMain@@UAE@XZ in this unit (no

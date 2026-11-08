@@ -324,7 +324,7 @@ void DollyMain::InvalidateScript()
 // NAME: proto-pdb:default.pdb
 SwampScript* ButlerStartRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\manorhouse\\captainsroom\\CaptainsRoom.h", 81) ButlerStartRegionMain(node);
 }
 
@@ -333,7 +333,7 @@ SwampScript* ButlerStartRegionMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* ButlerResetRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\manorhouse\\captainsroom\\CaptainsRoom.h", 97) ButlerResetRegionMain(node);
 }
 
@@ -380,7 +380,7 @@ void ButlerStartRegionMain::EnteringRegion(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CaptainBrusqueMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\manorhouse\\captainsroom\\CaptainsRoom.h", 31) CaptainBrusqueMain(node);
 }
 
@@ -403,7 +403,7 @@ void DollyMain::AnimationTrigger(const SwampString& name, float value, float pre
 // NAME: proto-pdb:default.pdb
 SwampScript* PassageExitMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\manorhouse\\captainsroom\\CaptainsRoom.h", 68) PassageExitMain(node);
 }
 
@@ -412,7 +412,7 @@ SwampScript* PassageExitMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* DollyMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\manorhouse\\captainsroom\\CaptainsRoom.h", 111) DollyMain(node);
 }
 

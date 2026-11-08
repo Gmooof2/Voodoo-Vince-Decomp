@@ -29,6 +29,7 @@ template <class E> struct char_traits;
 template <class E, class T = char_traits<E>, class A = allocator<E> > class basic_string {
 public:
     basic_string() { _Myres = 15; _Eos(0); }
+    basic_string(const basic_string& _Right);
     basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, (unsigned int)-1); }
@@ -70,6 +71,9 @@ public:
         bool operator!=(const iterator& _Right) const { return _Myptr != _Right._Myptr; }
         T* _Myptr;
     };
+    vector() : _Myfirst(0), _Mylast(0), _Myend(0) {}
+    vector(const vector& _Right);
+    ~vector() { _Tidy(); }
     iterator begin() { return iterator(_Myfirst); }
     iterator end() { return iterator(_Mylast); }
     unsigned int size() const;
@@ -321,6 +325,8 @@ public:
 
 class ChaptersMenu : public FrontEndMenu { // NAME: proto-pdb:default.pdb
 public:
+    // FUNCTION: USA 0x0013DEFD
+    // NAME: proto-pdb:default.pdb
     class LevelEntry { // NAME: proto-pdb:default.pdb
     public:
         LevelEntry();
@@ -347,7 +353,7 @@ private:
 };
 DECOMP_SIZE_ASSERT(ChaptersMenu, 0x254);
 
-// !FAKE: VC 7.1 vector::size body verbatim for this alias only (C0233 Fix 1): the COMDAT lands at the fold VA
+// !FAKE: linker COMDAT folding; VC 7.1 vector::size body verbatim for this alias only (C0233 Fix 1); the COMDAT lands at the fold VA
 // 0x000D39FF and relink merges it into the SwampDebugGeometry vector<LevelStats>::size row
 namespace std {
 template <> inline unsigned int vector<ChaptersMenu::LevelEntry>::size() const
@@ -487,6 +493,18 @@ void ChaptersMenu::UpdatePic()
 }
 #endif
 
+inline void *__cdecl operator new(unsigned int, void *_Where)
+{
+    return (_Where);
+}
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??0LevelEntry@ChaptersMenu@@QAE@ABV01@@Z through
+// a caller in this unit (not matched yet); this placement new odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_LevelEntry_copy(void* p, const ChaptersMenu::LevelEntry& src)
+{
+    new (p) ChaptersMenu::LevelEntry(src);
+}
+
 // FUNCTION: USA 0x0013DF1E
 // PROTOTYPE: PREVIEW 0x00526876 identical
 // NAME: proto-pdb:default.pdb
@@ -498,6 +516,40 @@ template std::vector<std::basic_string<char,std::char_traits<char>,std::allocato
 void FrontEndMenu::Invalidate()
 {
     _valid = false;
+}
+
+// ??_GFrontEndMenu 0x0013E05D, ??_GExtrasMenu 0x0013E46E, ??_GChaptersMenu 0x0013EC13 unmatched, no draft (5.3 T6.c11):
+// companion wall: a virtual ??_G is emitted only with its class vtable; ??0/??1 of FrontEndMenu (0x0013E079/0x0013E01B),
+// ExtrasMenu (0x0013E119/0x0013E1F9), ChaptersMenu (0x0013F0F1/0x0013EB82) are not passing rows. Lift: match a ctor or dtor.
+
+class MoviePlayer;                      // NAME: proto-pdb:default.pdb
+
+class AttractMode : public FrontEndMenu { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~AttractMode();
+    virtual void Update();
+    virtual void Render(const Matrix&) const;
+
+    bool _stopping;                    // 0xFC
+    bool _stopped;                     // 0xFD
+    char field_FE[0x100 - 0xFE];       // 0xFE
+    MoviePlayer* _player;              // 0x100
+};
+DECOMP_SIZE_ASSERT(AttractMode, 0x104);
+
+// FUNCTION: USA 0x0013E10E
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1: vptr store ??_7AttractMode 0x001FB1D8 unnamed; code bytes equal)
+AttractMode::~AttractMode()
+{
+}
+#endif
+
+// FUNCTION: USA 0x0013E21E
+// NAME: proto-pdb:default.pdb
+ChaptersMenu::LevelEntry::~LevelEntry()
+{
 }
 
 // FUNCTION: USA 0x0013E236

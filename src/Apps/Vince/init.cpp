@@ -5,7 +5,7 @@
 #include <xstring>
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0231 lever 1); the string rows call these out of line (named VAs
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0231 lever 1); the string rows call these out of line (named VAs
 // 0x000112F5, 0x00011289, 0x00011779); _Copy's body would emit an __ehhandler$ funclet; declared after <xstring>,
 // before <stdexcept> instantiates them (C2908 otherwise)
 template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Copy(unsigned int,
@@ -84,6 +84,16 @@ private:
 };
 DECOMP_SIZE_ASSERT(VoodooShopLevelMain, 0x98);
 
+class FrenchquarterLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    FrenchquarterLevelMain(SwampSceneNode* node);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_64[0x68 - 0x64];        // 0x64 (not reached)
+};
+DECOMP_SIZE_ASSERT(FrenchquarterLevelMain, 0x68);
+
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
 class SwampScriptManager { // NAME: proto-pdb:default.pdb
@@ -115,10 +125,6 @@ private:
 DECOMP_SIZE_ASSERT(SwampScriptManager, 0x48);
 DECOMP_SIZE_ASSERT(SwampScriptManager::ScriptTimerEvent, 0x14);
 
-#ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls _Init, the list ctor and _Tidy out of
-// line (named VAs); their header bodies would emit _Buynode/_Copy __ehhandler$ funclets here (gate objects extra,
-// relink .text$x interleave refusal)
 typedef std::_Tree<std::_Tmap_traits<std::string, SwampScriptManager::CreationFunc, std::less<std::string>,
                                      std::allocator<std::pair<const std::string, SwampScriptManager::CreationFunc> >,
                                      false> >
@@ -127,6 +133,10 @@ typedef std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,
                                      std::less<SwampScriptManager::ScriptTimerEvent>,
                                      std::allocator<SwampScriptManager::ScriptTimerEvent>, true> >
     TimerTree;
+#ifndef NON_MATCHING
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls _Init, the list ctor and _Tidy out of
+// line (named VAs); their header bodies would emit _Buynode/_Copy __ehhandler$ funclets here (gate objects extra,
+// relink .text$x interleave refusal)
 template <> void ScriptTree::_Init();
 template <> void TimerTree::_Init();
 template <> std::list<SwampScriptManager::ScriptTimerEvent>::list();
@@ -136,20 +146,47 @@ template <> void std::list<SwampScriptManager::ScriptTimerEvent>::_Tidy();
 template <> void std::deque<SwampScript*>::_Tidy();
 #endif
 
-// !FAKE: explicit instantiation of the header static member (C0096); retail emits it through callers in this unit
+// !FAKE: c1xx front end; explicit instantiation of the header static member (C0096); retail emits it through callers in this unit
 // (not matched yet)
 // FUNCTION: USA 0x00011000
 // NAME: proto-pdb:default.pdb
 template char* std::char_traits<char>::copy(char*, const char*, size_t); // needs unit opt /Oi (C0231)
+
+namespace std {
+// FUNCTION: USA 0x00011023
+// PROTOTYPE: PREVIEW 0x00400423 identical
+// NAME: proto-pdb:default.pdb
+// !FAKE: provenance; repeated forward declaration; the class whose array below makes cl emit the row, as a class
+// declaration carries a compiler-generated row (CONVENTIONS §1)
+template <class T> class allocator;
+}
+
+// !FAKE: c1xx front end; scaffold local array; retail Init.obj defines the compiler-generated vector constructor iterator
+// ??_H@YGXPAXIHP6EPAX0@Z@Z with no caller left in the unit; this array makes cl emit it (matched_set [[emitter]] row)
+void pin_emit_vector_ctor_iterator()
+{
+    std::allocator<char> v[2];
+}
 
 // FUNCTION: USA 0x00011045
 // PROTOTYPE: PREVIEW 0x00400445 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* VoodooShopLevelMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts/voodooShop/voodooShop.h", 22) VoodooShopLevelMain(node);
 }
+
+// FUNCTION: USA 0x0001106C
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 16.666666, bytes match (masked 0); cut-extent wall C0093/C0140: retail cut symbol 0xD8 vs row 0x24 (5.3 T5.c2)
+SwampScript* FrenchquarterLevelMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts/french_Quarter/frenchQuarter.h", 13) FrenchquarterLevelMain(node);
+}
+#endif
 
 // FUNCTION: USA 0x00011144
 // PROTOTYPE: PREVIEW 0x00400544 identical
@@ -165,6 +202,27 @@ template void std::basic_string<char,std::char_traits<char>,std::allocator<char>
 // PROTOTYPE: PREVIEW 0x0040060C identical
 // NAME: proto-pdb:default.pdb
 template void std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Tidy(bool,unsigned int);
+
+// FUNCTION: USA 0x0001121F
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1): only masked target is its own __ehhandler$ funclet (retail 0x00152ACE), unnamed; needs the funclet pinned (C0331), not a source lever
+template std::list<SwampScriptManager::ScriptTimerEvent>::_Nodeptr std::list<SwampScriptManager::ScriptTimerEvent>::_Buynode();
+#endif
+
+// FUNCTION: USA 0x000113EB
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1): only masked target is its own __ehhandler$ funclet (retail 0x00152AE2), unnamed; needs the funclet pinned (C0331), not a source lever
+template std::_Tree<std::_Tmap_traits<std::string, SwampScriptManager::CreationFunc, std::less<std::string>, std::allocator<std::pair<const std::string, SwampScriptManager::CreationFunc> >, false> >::_Nodeptr std::_Tree<std::_Tmap_traits<std::string, SwampScriptManager::CreationFunc, std::less<std::string>, std::allocator<std::pair<const std::string, SwampScriptManager::CreationFunc> >, false> >::_Buynode();
+#endif
+
+// FUNCTION: USA 0x00011473
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1): only masked target is its own __ehhandler$ funclet (retail 0x00152AEC), unnamed; needs the funclet pinned (C0331), not a source lever
+template std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent, std::less<SwampScriptManager::ScriptTimerEvent>, std::allocator<SwampScriptManager::ScriptTimerEvent>, true> >::_Nodeptr std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent, std::less<SwampScriptManager::ScriptTimerEvent>, std::allocator<SwampScriptManager::ScriptTimerEvent>, true> >::_Buynode();
+#endif
 
 // FUNCTION: USA 0x0001152D
 // PROTOTYPE: PREVIEW 0x0040099A identical
@@ -196,44 +254,39 @@ template std::basic_string<char,std::char_traits<char>,std::allocator<char> >::b
 // NAME: proto-pdb:default.pdb
 template void std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::_Lrotate(std::_Tree_nod<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::_Node *);
 
+// logic_error's inline members (0x000115FB, 0x00011618 tagged here; 0x0001179C, 0x00011A7B below, split so each NAME
+// tag finds code within the lint's window) are emitted through a use: erase's out_of_range throw (its ctor calls the
+// logic_error ctor; vtable: dtor, what; throw-info: copy ctor); retail Init.obj has no length_error (C0302)
 // FUNCTION: USA 0x000114FB
 // PROTOTYPE: PREVIEW 0x0040095E identical
 // NAME: proto-pdb:default.pdb
-template void std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::_Erase(std::_Tree_nod<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::_Node *);
-
-// FUNCTION: USA 0x00011800
-// PROTOTYPE: PREVIEW 0x00400C6D identical
-// NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // best: match_one 100, bytes match (masked 0) (4.4 T4.c5; throw-info now pinned); wall: relink refuses `.rdata 0x001FCF30..0x001FD8A8: retail bytes between two of our .xdata$x sections (one LINK group cannot interleave with them)` (the out_of_range throw-info in .xdata$x); with HUDUI _Incsize live, ??_7logic_error COMDAT overlap 0x001C77E8
-template std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::iterator std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::erase(std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::iterator);
-#endif
-
-// FUNCTION: USA 0x00011B38
-// PROTOTYPE: PREVIEW 0x004A925C identical
-// NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // best: match_one 100, bytes match (masked 0) (4.4 T4.c5); wall: as 0x00011800 (.xdata$x interleave; logic_error data overlap), and CameraManager calls the GameCam alias of this fold VA (C0233)
-template std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,void *,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,void *> >,0> >::iterator std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,void *,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,void *> >,0> >::erase(std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,void *,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,void *> >,0> >::iterator);
-#endif
-
-// !FAKE: logic_error is no template; its inline members are emitted through a use: the real caller chain
-// deque<SwampScript*>::_Xlen (pinned 0x0001D5C2) -> length_error ctor -> logic_error ctor, vtable (dtor, what)
 // FUNCTION: USA 0x000115FB
 // NAME: proto-pdb:default.pdb
 // FUNCTION: USA 0x00011618
 // NAME: proto-pdb:default.pdb
+template void std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::_Erase(std::_Tree_nod<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::_Node *);
+
 // FUNCTION: USA 0x0001179C
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // best: match_one 100, bytes match (masked 0) all 3 (4.4 T4.c5); throw-info and vtable data pinned (4.4 T4); wall: relink refuses Init.obj .rdata: the _Xlen message string literal has no pin (0 VAs from its symbols by name; retail 0x001C94D4, the push in _Xlen 0x0001D5C2)
-template void std::deque<SwampScript*>::_Xlen() const;
-#endif
+// FUNCTION: USA 0x00011800
+// PROTOTYPE: PREVIEW 0x00400C6D identical
+// NAME: proto-pdb:default.pdb
+template std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::iterator std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::erase(std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::iterator);
 
 // FUNCTION: USA 0x00011A7B
 // PROTOTYPE: PREVIEW 0x00400EE8 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // wall as the block above: the implicit logic_error copy ctor comes only from _Xlen's throw-info
-// best: match_one objdiff 100, bytes match (masked 0) with the _Xlen instantiation enabled (4.4 T4.c5); repeated here
-// as this row's emitter (cl 13.10 accepts the repeat silently)
-template void std::deque<SwampScript*>::_Xlen() const;
+// FUNCTION: USA 0x00011B38
+// PROTOTYPE: PREVIEW 0x004A925C identical
+// NAME: proto-pdb:default.pdb
+// best: match_one 100, bytes match (masked 0) (4.4 T4.c5); was walled (5.1 T5.c2): relink refuses `our cameramanager.obj: external ?erase@...GameCam... 0x00011B38 lies in a replaced range`: CameraManager calls the GameCam alias of this fold VA (C0233; lift: CameraManager emits its alias body) -- lifted 5.2 T13.c1: callers emit their alias inline (C0233, C0270)
+template std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,void *,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,void *> >,0> >::iterator std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,void *,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,void *> >,0> >::erase(std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,void *,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,void *> >,0> >::iterator);
+
+// FUNCTION: USA 0x00011DEC
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1): callee ScriptTree::_Erase at retail 0x00011DB1 has no symbol; needs that pin (also emits _Erase here, C0132)
+template void std::_Tree<std::_Tmap_traits<std::string, SwampScriptManager::CreationFunc, std::less<std::string>, std::allocator<std::pair<const std::string, SwampScriptManager::CreationFunc> >, false> >::clear();
 #endif
 
 // FUNCTION: USA 0x00011E90

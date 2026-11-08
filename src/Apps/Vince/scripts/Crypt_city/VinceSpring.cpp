@@ -132,7 +132,7 @@ public:
     }
 
 protected:
-    // !FAKE: c2 noreturn; retail 0x0001D5C2 (named fold alias) is called out of line and _Growmap does not reload
+    // !FAKE: c2 noreturn; declaration-only __declspec(noreturn) _Xlen; retail 0x0001D5C2 (named fold alias) is called out of line and _Growmap does not reload
     // eax after it; the VC 7.1 body (throw length_error) gives that but emits unnamed throw-info data (C0236)
     __declspec(noreturn) void _Xlen() const;
     void _Growmap(size_type _Count)
@@ -444,12 +444,12 @@ void VinceSpring::CacheAnims()
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceSpring::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\sarcophagushustle\\VinceSpring.h", 11) VinceSpring(node);
 }
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132, C0154); push_back calls the named fold VA 0x0005CF1A
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132, C0154); push_back calls the named fold VA 0x0005CF1A
 // out of line; the body would emit a second copy of the ReggieTaunt-named row here (fill_n stays visible:
 // declared only, _Growmap's register allocation changes, 67.6)
 namespace std {

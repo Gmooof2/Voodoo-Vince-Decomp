@@ -1,5 +1,6 @@
 // UNIT: src/Libs/Swamp/Xbox/Official_Release/SwampFireFlyNode.cpp OBJ: Xbox\Official_Release\SwampFireFlyNode.obj OPT: /O1 /Oy
 #include "../../../../include/decomp.h"
+#include <xmmintrin.h>
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
     float x;                           // 0x00
@@ -7,6 +8,17 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
     float z;                           // 0x08
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
+
+struct Vector4 { // NAME: proto-pdb:default.pdb
+    void Set(unsigned int argb);
+    unsigned int GetARGB() const;
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Vector4, 0x10);
 
 struct Quaternion { // NAME: proto-pdb:default.pdb
     Vector3 v;                         // 0x00
@@ -48,16 +60,59 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
+struct FFlyParticle { // NAME: proto-pdb:default.pdb
+    enum { ALIVE = 0x1, SPAWNING = 0x2 };
+
+    unsigned int _flags;               // 0x00
+    float _life;                       // 0x04
+    Vector3 _position;                 // 0x08
+    Vector3 _lastPosition;             // 0x14
+    Vector3 _acceleration;             // 0x20
+    unsigned int _color;               // 0x2C
+    unsigned int _texId;               // 0x30
+    float _size;                       // 0x34
+    unsigned int _pad[2];              // 0x38
+};
+DECOMP_SIZE_ASSERT(FFlyParticle, 0x40);
+
+struct FFlyData { // NAME: proto-pdb:default.pdb
+    enum { // NAME: proto-pdb:default.pdb
+        EFFECT_NONE = 0x0,
+        EFFECT_INTERP_COLOR = 0x1,
+        EFFECT_INTERP_ALPHA = 0x2,
+        EFFECT_INTERP_TEXID = 0x4,
+        EFFECT_Z_WRITES = 0x8,
+        EFFECT_ADDITIVE = 0x10,
+        EFFECT_SUBTRACTIVE = 0x20,
+        EFFECT_BILLBOARDS = 0x40,
+        EFFECT_INTERP_SIZE = 0x80,
+        EFFECT_FIXED_NORMAL = 0x100,
+        EFFECT_WORLD_EMITTER = 0x200
+    };
+
+    char field_0[0x50];                // 0x00
+    unsigned int _renderEffects;       // 0x50
+    char field_54[0x14C - 0x54];       // 0x54
+};
+DECOMP_SIZE_ASSERT(FFlyData, 0x14C);
+
 class FFlyEmitter { // NAME: proto-pdb:default.pdb
 public:
     void Reset();
     void StartSpawning() { _spawning = true; }
+    void StopSpawning() { _spawning = false; }
     void UpdateReset(double t) { _lastTime = t; }
+    const FFlyData& GetData() const { return _data; }
+    void GetRenderColor(float life, Vector3& color) const;
+    float GetRenderAlpha(float life, float alpha) const;
+    unsigned int GetRenderTex(float life, unsigned int tex) const;
+    float GetRenderSize(float life, float size) const;
 
     bool _spawning;                    // 0x00
     char field_1[0x20 - 0x1];          // 0x01
     double _lastTime;                  // 0x20
-    char field_28[0x260 - 0x28];       // 0x28
+    char field_28[0x114 - 0x28];       // 0x28
+    FFlyData _data;                    // 0x114
 };
 DECOMP_SIZE_ASSERT(FFlyEmitter, 0x260);
 
@@ -124,6 +179,7 @@ public:
     vector& operator=(const vector& _Right);
     iterator begin() { return iterator(_Myfirst); }
     iterator end() { return iterator(_Mylast); }
+    const T& operator[](unsigned int _Pos) const { return *(_Myfirst + _Pos); }
     void resize(unsigned int _Newsize) { resize(_Newsize, T()); }
     void resize(unsigned int _Newsize, T _Val)
     {
@@ -166,10 +222,37 @@ public:
 DECOMP_SIZE_ASSERT(FFlyEffect::Entry, 0x14);
 DECOMP_SIZE_ASSERT(FFlyEffect, 0x18);
 
-class TextureResource; // NAME: proto-pdb:default.pdb
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class TextureResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
+
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+
     T* _Resource;                      // 0x00
 };
+
+class TextureManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<TextureResource> GetDefaultTexture() const { return _defaultTexture; }
+
+    char field_0[0x58];                // 0x00
+    ResourceHandle<TextureResource> _defaultTexture; // 0x58
+    char field_5C[0x28];               // 0x5C
+};
+DECOMP_SIZE_ASSERT(TextureManager, 0x84);
 
 class FireFlyNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -181,6 +264,7 @@ public:
     void Pause();
     void Reset();
     void StartSpawning();
+    void StopSpawning();
 
 protected:
     void FollowParentBone();
@@ -238,14 +322,89 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampInput, 0x120);
 
+class SwampRenderer; // NAME: proto-pdb:default.pdb
+
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
     SwampInput& GetInput() { return *_input; }
+    SwampRenderer& GetRenderer() const { return *_renderer; }
+    TextureManager& GetTextureManager() const { return *_textureManager; }
 
     char field_0[0x4];                 // 0x00
     SwampInput* _input;                // 0x04
+    SwampRenderer* _renderer;          // 0x08
+    char field_C[0x38 - 0xC];          // 0x0C
+    TextureManager* _textureManager;   // 0x38
+    char field_3C[0x68 - 0x3C];        // 0x3C
 };
+DECOMP_SIZE_ASSERT(Swamp, 0x68);
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
+enum _D3DPRIMITIVETYPE { D3DPT_POINTLIST = 1, D3DPT_TRIANGLELIST = 5, D3DPT_MAX = 11 }; // NAME: proto-pdb:default.pdb
+extern "C" const unsigned int D3DPRIMITIVETOVERTEXCOUNT[11][2]; // NAME: proto-pdb:default.pdb
+extern "C" void __stdcall D3DDevice_DrawVerticesUP(_D3DPRIMITIVETYPE, unsigned int, const void*, unsigned int); // NAME: proto-pdb:default.pdb
+
+class SwampRenderer { // NAME: proto-pdb:default.pdb
+public:
+    void DrawPrimitiveUP(_D3DPRIMITIVETYPE PrimitiveType, unsigned int PrimitiveCount, const void* pVertexStreamZeroData, unsigned int VertexStreamZeroStride) const;
+    void SetTexture(unsigned long stage, const ResourceHandle<TextureResource>& texture);
+    float GetProjectionScaleFactor() const { return _projectionScaleFactor; }
+
+    char field_0[0x74];                // 0x00
+    float _projectionScaleFactor;      // 0x74
+    char field_78[0x388 - 0x78];       // 0x78
+    // !FAKE: mutable: the const DrawPrimitiveUP adds to it (retail 0x000C629A); the PDB records no mutable flag
+    mutable unsigned int _primitivesDrawn; // 0x388
+};
+DECOMP_SIZE_ASSERT(SwampRenderer, 0x38C);
+
+struct ParticleVertex { // NAME: proto-pdb:default.pdb
+    Vector3 loc;                       // 0x00
+    unsigned int color;                // 0x0C
+    float size;                        // 0x10
+    float sinRot;                      // 0x14
+    float cosRot;                      // 0x18
+    short texU;                        // 0x1C
+    short texV;                        // 0x1E
+};
+DECOMP_SIZE_ASSERT(ParticleVertex, 0x20);
+
+extern ParticleVertex* g_verts; // NAME: proto-pdb:default.pdb
+
+class FFlyRenderer { // NAME: proto-pdb:default.pdb
+public:
+    virtual void Render(const FFlyEmitter& emitter, const FFlyParticle* startp, unsigned int count) = 0; // vtable+0x00
+};
+DECOMP_SIZE_ASSERT(FFlyRenderer, 0x4);
+
+class ParticleRenderer : public FFlyRenderer { // NAME: proto-pdb:default.pdb
+public:
+    ParticleRenderer(const FireFlyNode& ffNode, const FireFlyNode::TextureList& txts, const Matrix* mats, float fogFactor);
+    virtual void Render(const FFlyEmitter& emitter, const FFlyParticle* startp, unsigned int count);
+
+private:
+    void RenderPointSprites(const FFlyEmitter& emitter, const FFlyParticle* startp, unsigned int count);
+    void RenderBillboards(const FFlyEmitter& emitter, const FFlyParticle* startp, unsigned int count);
+    void RenderFixedNormalBB(const FFlyEmitter& emitter, const FFlyParticle* startp, unsigned int count);
+
+    const FireFlyNode& _ffNode;        // 0x04
+    const FireFlyNode::TextureList& _txts; // 0x08
+    const Matrix* _mats;               // 0x0C
+    float _fogFactor;                  // 0x10
+    bool _applyFog;                    // 0x14
+};
+DECOMP_SIZE_ASSERT(ParticleRenderer, 0x18);
+
+// FUNCTION: USA 0x000C6296
+// PROTOTYPE: PREVIEW 0x004B1592 identical
+// NAME: proto-pdb:default.pdb
+void SwampRenderer::DrawPrimitiveUP(_D3DPRIMITIVETYPE PrimitiveType, unsigned int PrimitiveCount, const void* pVertexStreamZeroData, unsigned int VertexStreamZeroStride) const
+{
+    _primitivesDrawn += PrimitiveCount;
+    D3DDevice_DrawVerticesUP(PrimitiveType,
+        D3DPRIMITIVETOVERTEXCOUNT[PrimitiveType][0] * PrimitiveCount + D3DPRIMITIVETOVERTEXCOUNT[PrimitiveType][1],
+        pVertexStreamZeroData, VertexStreamZeroStride);
+}
 
 // FUNCTION: USA 0x000C6274
 // PROTOTYPE: PREVIEW 0x004B155A identical
@@ -338,6 +497,215 @@ void FireFlyNode::StartSpawning()
         _spawning = true;
         for (FFlyEffect::EmitterList::iterator it = _effect._emitters.begin(); it != _effect._emitters.end(); ++it) {
             it->emitter->StartSpawning();
+        }
+    }
+}
+
+// FUNCTION: USA 0x000C6465
+// PROTOTYPE: PREVIEW 0x004B17AF identical
+// NAME: proto-pdb:default.pdb
+void FireFlyNode::StopSpawning()
+{
+    if (_spawning) {
+        _spawning = false;
+        for (FFlyEffect::EmitterList::iterator it = _effect._emitters.begin(); it != _effect._emitters.end(); ++it) {
+            it->emitter->StopSpawning();
+        }
+    }
+}
+
+// FUNCTION: USA 0x000C6782
+// PROTOTYPE: PREVIEW 0x004B1A97 identical
+// NAME: proto-pdb:default.pdb
+void ParticleRenderer::RenderPointSprites(const FFlyEmitter& emitter, const FFlyParticle* startp, unsigned int count)
+{
+    SwampRenderer& renderer = g_swamp->GetRenderer();
+    const float projectionScaleFactor = renderer.GetProjectionScaleFactor();
+    const int maxid = _txts.size();
+    for (unsigned int id = 0; id < maxid + 1; id++) {
+        int index = 0;
+        // !FAKE: c2 regalloc; stand-in local p for the particle pointer retail keeps in ebx; no PDB local here
+        const FFlyParticle* p = startp;
+        while (index < count) {
+            ParticleVertex* vert = g_verts;
+            int numPrims = 0;
+            for (int i = 0; i < 0x1000; i++, index++, p++) {
+                if (id >= maxid) {
+                    for (; index < count; index++, p++) {
+                        if (p->_flags & FFlyParticle::ALIVE) {
+                            // !FAKE: c2 x87 code; stand-in local tex; no PDB local
+                            unsigned int tex = p->_texId;
+                            if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_TEXID)
+                                tex = emitter.GetRenderTex(p->_life, tex);
+                            if (tex >= maxid)
+                                break;
+                        }
+                    }
+                } else {
+                    for (; index < count; index++, p++) {
+                        if (p->_flags & FFlyParticle::ALIVE) {
+                            unsigned int tex = p->_texId;
+                            if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_TEXID)
+                                tex = emitter.GetRenderTex(p->_life, tex);
+                            if (tex == id)
+                                break;
+                        }
+                    }
+                }
+                if (index >= count)
+                    break;
+                unsigned int color = p->_color;
+                if (emitter.GetData()._renderEffects & (FFlyData::EFFECT_INTERP_COLOR | FFlyData::EFFECT_INTERP_ALPHA)) {
+                    Vector4 clr;
+                    clr.Set(color);
+                    if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_COLOR)
+                        emitter.GetRenderColor(p->_life, (Vector3&)clr);
+                    if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_ALPHA)
+                        clr.w = emitter.GetRenderAlpha(p->_life, clr.w);
+                    clr.w *= _fogFactor;
+                    color = clr.GetARGB();
+                } else if (_applyFog) {
+                    // !FAKE: c2 float conversion; stand-in local for the cvttss2si operand; no PDB local
+                    float v0 = (color >> 24) * _fogFactor;
+                    color = (_mm_cvtt_ss2si(_mm_load_ss(&v0)) << 24) | (color & 0xFFFFFF);
+                }
+                // !FAKE: c2 x87 code; stand-in local size; x87-held, no PDB local
+                float size = p->_size;
+                if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_SIZE)
+                    size = emitter.GetRenderSize(p->_life, size);
+                vert->loc = p->_position;
+                vert->size = size * projectionScaleFactor;
+                vert->color = color;
+                vert++;
+                numPrims++;
+            }
+            if (numPrims == 0)
+                break;
+            if (id < maxid)
+                renderer.SetTexture(3, _txts[id]);
+            else
+                renderer.SetTexture(3, g_swamp->GetTextureManager().GetDefaultTexture());
+            renderer.DrawPrimitiveUP(D3DPT_POINTLIST, numPrims, g_verts, sizeof(ParticleVertex));
+        }
+    }
+}
+
+// FUNCTION: USA 0x000C6A3B
+// PROTOTYPE: PREVIEW 0x004B1D50 identical
+// NAME: proto-pdb:default.pdb
+void ParticleRenderer::RenderBillboards(const FFlyEmitter& emitter, const FFlyParticle* startp, unsigned int count)
+{
+    SwampRenderer& renderer = g_swamp->GetRenderer();
+    const int maxid = _txts.size();
+    for (unsigned int id = 0; id < maxid + 1; id++) {
+        const FFlyParticle* p = startp;
+        int index = 0;
+        while (index < count) {
+            int numPrims = 0;
+            // !FAKE: c2 regalloc; stand-in local vert for the vertex pointer retail keeps in ebx; no PDB local here
+            ParticleVertex* vert = g_verts;
+            for (int i = 0; i < 0xFFB; i++, index++, p++) {
+                if (id >= maxid) {
+                    for (; index < count; index++, p++) {
+                        if (p->_flags & FFlyParticle::ALIVE) {
+                            // !FAKE: c2 x87 code; stand-in local tex; no PDB local
+                            unsigned int tex = p->_texId;
+                            if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_TEXID)
+                                tex = emitter.GetRenderTex(p->_life, tex);
+                            if (tex >= maxid)
+                                break;
+                        }
+                    }
+                } else {
+                    for (; index < count; index++, p++) {
+                        if (p->_flags & FFlyParticle::ALIVE) {
+                            unsigned int tex = p->_texId;
+                            if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_TEXID)
+                                tex = emitter.GetRenderTex(p->_life, tex);
+                            if (tex == id)
+                                break;
+                        }
+                    }
+                }
+                if (index >= count)
+                    break;
+                unsigned int color = p->_color;
+                if (emitter.GetData()._renderEffects & (FFlyData::EFFECT_INTERP_COLOR | FFlyData::EFFECT_INTERP_ALPHA)) {
+                    Vector4 clr;
+                    clr.Set(color);
+                    if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_COLOR)
+                        emitter.GetRenderColor(p->_life, (Vector3&)clr);
+                    if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_ALPHA)
+                        clr.w = emitter.GetRenderAlpha(p->_life, clr.w);
+                    clr.w *= _fogFactor;
+                    color = clr.GetARGB();
+                } else if (_applyFog) {
+                    // !FAKE: c2 float conversion; stand-in local for the cvttss2si operand; no PDB local
+                    float v0 = (color >> 24) * _fogFactor;
+                    color = (_mm_cvtt_ss2si(_mm_load_ss(&v0)) << 24) | (color & 0xFFFFFF);
+                }
+                // !FAKE: c2 x87 code; stand-in local size; x87-held, no PDB local
+                float size = p->_size;
+                if (emitter.GetData()._renderEffects & FFlyData::EFFECT_INTERP_SIZE)
+                    size = emitter.GetRenderSize(p->_life, size);
+                vert->loc = p->_position;
+                vert->color = color;
+                vert->size = size;
+                vert->sinRot = 0.0f;
+                vert->cosRot = 1.0f;
+                vert->texU = 1;
+                vert->texV = 1;
+                vert++;
+                vert->loc = p->_position;
+                vert->color = color;
+                vert->size = size;
+                vert->sinRot = 0.0f;
+                vert->cosRot = 1.0f;
+                vert->texU = 0;
+                vert->texV = 1;
+                vert++;
+                vert->loc = p->_position;
+                vert->color = color;
+                vert->size = size;
+                vert->sinRot = 0.0f;
+                vert->cosRot = 1.0f;
+                vert->texU = 0;
+                vert->texV = 0;
+                vert++;
+                vert->loc = p->_position;
+                vert->color = color;
+                vert->size = size;
+                vert->sinRot = 0.0f;
+                vert->cosRot = 1.0f;
+                vert->texU = 1;
+                vert->texV = 1;
+                vert++;
+                vert->loc = p->_position;
+                vert->color = color;
+                vert->size = size;
+                vert->sinRot = 0.0f;
+                vert->cosRot = 1.0f;
+                vert->texU = 0;
+                vert->texV = 0;
+                vert++;
+                vert->loc = p->_position;
+                vert->color = color;
+                vert->size = size;
+                vert->sinRot = 0.0f;
+                vert->cosRot = 1.0f;
+                vert->texU = 1;
+                vert->texV = 0;
+                vert++;
+                numPrims += 2;
+                i += 6;
+            }
+            if (numPrims == 0)
+                break;
+            if (id < maxid)
+                renderer.SetTexture(0, _txts[id]);
+            else
+                renderer.SetTexture(0, g_swamp->GetTextureManager().GetDefaultTexture());
+            renderer.DrawPrimitiveUP(D3DPT_TRIANGLELIST, numPrims, g_verts, sizeof(ParticleVertex));
         }
     }
 }

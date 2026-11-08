@@ -672,7 +672,9 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
     float z;                           // 0x08
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
+#ifdef NON_MATCHING // D78, D117: default.pdb records no free Vector3 operator (5.2 T20)
 inline Vector3 operator-(const Vector3& a, const Vector3& b) { return Vector3(a.x - b.x, a.y - b.y, a.z - b.z); }
+#endif
 
 struct AABox; // NAME: proto-pdb:default.pdb
 struct Quaternion; // NAME: proto-pdb:default.pdb
@@ -793,6 +795,17 @@ public:
 };
 DECOMP_SIZE_ASSERT(ResourceHandle<TextureResource>, 0x4);
 
+// visible body: cl 13.10 /O1 keeps a handle local unescaped across operator= only with it (C0136; as LevelLoader.cpp)
+template <class T> ResourceHandle<T>& ResourceHandle<T>::operator=(const ResourceHandle& h)
+{
+    if (_Resource)
+        _Resource->SubRef();
+    _Resource = h._Resource;
+    if (_Resource)
+        _Resource->AddRef();
+    return *this;
+}
+
 template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<T> Load(const SwampString& name);
@@ -854,10 +867,6 @@ DECOMP_SIZE_ASSERT(LocInfo, 0x54);
 // NAME: proto-pdb:default.pdb
 template std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Node::_Node(std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Node *,std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Node *,std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Node *,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> const &,char);
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; relink wall (4.4 T4.c6): throw data now pinned, but ??_7logic_error/??_7out_of_range
-// (and ??_7length_error) are also emitted by BeepDebug.obj/SwampScript.obj; relink same() refuses to merge identical copies
-// whose relocs name a weak ??_E slot (relink.py:1071-1073): "our ranges overlap at 0x001C77E8"
 // FUNCTION: USA 0x0012DAE8
 // PROTOTYPE: PREVIEW 0x0051647A identical
 // NAME: proto-pdb:default.pdb
@@ -867,15 +876,6 @@ template std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<ch
 // PROTOTYPE: PREVIEW 0x00516D0F identical
 // NAME: proto-pdb:default.pdb
 template std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::iterator std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Insert(bool,std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Node *,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> const &);
-#endif
-
-#ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132, C0154); retail calls _Insert out of line from insert;
-// the header body would emit it here with its length_error throw info that relink refuses (C0212)
-namespace std {
-template <> std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::iterator _Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Insert(bool,std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,LocInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> >,0> >::_Node *,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,LocInfo> const &);
-}
-#endif
 
 // FUNCTION: USA 0x0012CEBF
 // PROTOTYPE: PREVIEW 0x005158EE identical
@@ -1309,7 +1309,7 @@ void pin_emit_MapInfo_assign(TrolleyScreen::MapInfo* p, const TrolleyScreen::Map
 // NAME: proto-pdb:default.pdb
 SwampScript* SignTrolleyMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\SignTrolley.h", 23) SignTrolleyMain(node);
 }
 
@@ -1449,23 +1449,20 @@ void SignTrolleyMain::Message(SwampScript* source, int message, void* data)
 // FUNCTION: USA 0x0012F65C
 // PROTOTYPE: PREVIEW 0x0051808F identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 96.62, bytes mismatch (retail hoists ac's zero store above the jne, keeps ac in ecx; ours eax + reload)
 void SignTrolleyMain::Load(const BeepTDF& tdf)
 {
     CritterMain::Load(tdf);
     _tagged = tdf.GetBoolRecord("tagged", false);
     _stopName = BeepLib::MakeLower(LevelLoader::Instance().GetCurLevel()->_areaName);
     _trolleyName = tdf.GetStringRecord("trolleyname", "trolley");
+    ResourceHandle<AnimationControl> ac;
     if (!_tagged) {
         RegisterFrameTick();
     } else {
-        ResourceHandle<AnimationControl> ac;
         ac = GetCritter()->StartAnimation(_animActive, true, false);
         ac().SetAnimationTime(ac().GetAnimationLength());
     }
 }
-#endif
 
 // FUNCTION: USA 0x00130354
 // PROTOTYPE: PREVIEW 0x00518D87 identical

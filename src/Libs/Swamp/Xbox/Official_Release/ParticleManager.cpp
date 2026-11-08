@@ -6,17 +6,20 @@
 #include <xstring>
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132, C0090); the string copy ctor stays visible (retail RemoveAll
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132, C0090); the string copy ctor stays visible (retail RemoveAll
 // keeps the iterator in esi across it) and calls assign out of line (named VA), whose body would emit the _Copy
 // __ehhandler$ funclet; declared after <xstring>, before <stdexcept> instantiates it (C2908 otherwise)
 template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >&
 std::basic_string<char, std::char_traits<char>, std::allocator<char> >::assign(
     const std::basic_string<char, std::char_traits<char>, std::allocator<char> >&, unsigned int, unsigned int);
-// !FAKE: declaration-only (C0231 lever 1, C0235 same-name wall): Init.obj defines these as matched rows
+// !FAKE: c1xx front end; declaration-only (C0231 lever 1, C0235 same-name wall); Init.obj defines these as matched rows
 template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Eos(unsigned int);
 template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Tidy(bool, unsigned int);
 template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(
     const std::basic_string<char, std::char_traits<char>, std::allocator<char> >&);
+// !FAKE: c1xx front end; declaration-only (C0154, C0237 named callee); Init.obj defines it as a matched row (0x000117DE);
+// erase's out_of_range throw calls it out of line (retail ParticleManager.obj refs it); 5.2 T13.c1
+template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(const char*);
 #endif
 
 #include <string>
@@ -69,7 +72,7 @@ struct Vector2 { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(Vector2, 0x8);
 
-// !FAKE: c1xx front end; retail folds pair<const string, FireFlyNodeCloneInfo>::pair with this one at 0x000B8077 and
+// !FAKE: c1xx front end; LangInfo element type instantiation; retail folds pair<const string, FireFlyNodeCloneInfo>::pair with this one at 0x000B8077 and
 // the delinked object names the VA by the LangInfo alias, so the row instantiates the PDB LangInfo element type
 class FontManager { // NAME: proto-pdb:default.pdb
 public:
@@ -104,7 +107,7 @@ public:
 DECOMP_SIZE_ASSERT(SwampParticleManager, 0x2C);
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154, C0215); retail calls these out of line (named VAs);
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154, C0215); retail calls these out of line (named VAs);
 // their header bodies would emit _Buynode/_Copy __ehhandler$ funclets and _Xlen/_Xran RTTI .data here (gate objects
 // extra; relink: data section with no VA by name)
 typedef std::_Tree<std::_Tmap_traits<std::string, FireFlyNode*, std::less<std::string>,
@@ -118,13 +121,15 @@ template <> void CloneTree::_Init();
 template <> void NameTree::_Tidy();
 template <> void CloneTree::_Tidy();
 template <> void NameTree::clear();
-template <> NameTree::iterator NameTree::erase(NameTree::iterator);
+// was: template <> NameTree::iterator NameTree::erase(NameTree::iterator); (decl-only). 5.2 T13.c1: the <xtree> body
+// (in-class, so inline/pick-any) now emits this unit's FireFlyNode* alias of the fold 0x00011B38 (row: Init.cpp
+// _Tree<string,void*>::erase); relink merges it byte-equal into the row (C0233 Fix 1, C0270)
 template <> NameTree::iterator NameTree::find(const std::string&);
 template <> CloneTree::_Pairib CloneTree::insert(const CloneTree::value_type&);
 template <> void std::vector<FireFlyNode*>::_Tidy();
 template <> std::vector<FireFlyNode*>::size_type std::vector<FireFlyNode*>::size() const;
 template <> void std::vector<FireFlyNode*>::_Xlen() const;
-// !FAKE: erase calls copy out of line (named fold VA 0x000B7E9C); its body would emit _Copy_opt/_Ptr_cat (no VA by name)
+// !FAKE: c1xx front end; declaration-only explicit specialization of copy; erase calls copy out of line (named fold VA 0x000B7E9C), its body would emit _Copy_opt/_Ptr_cat (no VA by name)
 namespace std {
 template <> FireFlyNode** copy(FireFlyNode**, FireFlyNode**, FireFlyNode**);
 }
@@ -282,6 +287,8 @@ void SwampParticleManager::RemoveAll()
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 99.88, bytes mismatch (frame 0x5c vs 0x54: retail packs the insert result over the clone-info temp)
+// 5.2 T12.c21 (at 20): pair/clone-info/insert-result split into two statements gives retail's slots but moves the
+// MakeLower dtor before insert (95.36); pointer-to-temp, comma, block, ctor-body, decl-only pair ctor forms: no packing
 void SwampParticleManager::SetCloneEffect(const std::string& effectName)
 {
     ResourceHandle<FireFlyResource> ffly = g_swamp->_fireFlyManager->Load(effectName);

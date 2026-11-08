@@ -79,7 +79,7 @@ public:
 
     T* _Object; // 0x00
 };
-// !FAKE: explicit specialization with the retail body (C0233 Fix 1): emits this unit's alias of the fold-VA row
+// !FAKE: linker COMDAT selection; explicit specialization with the retail body (C0233 Fix 1); emits this unit's alias of the fold-VA row
 // ??4?$Ptr@VCollisionResultObject@@... 0x000B1EC6 (SwampCollide.cpp) as a byte-equal COMDAT; inline gives it pick-any selection (relink same() refuses NODUPLICATES)
 template <> inline Ptr<BSPQueryResultObject>& Ptr<BSPQueryResultObject>::operator=(const Ptr<BSPQueryResultObject>& p)
 {
@@ -176,11 +176,11 @@ bool BSPnode::PointInTriangle(const Vector3& pt, const Vector3& dir, const Vecto
                               const Vector3& v2) const
 {
     Vector3 spokes[3];
-    // !FAKE: inliner; hand form of the inlined Vector3 subtraction via the PDB ctor (no PDB record of the operator)
+    // !FAKE: inliner; hand form of the inlined Vector3 subtraction via the PDB ctor; no PDB record of the operator, no before/after recorded
     spokes[0] = Vector3(v0.x - pt.x, v0.y - pt.y, v0.z - pt.z);
     spokes[1] = Vector3(v1.x - pt.x, v1.y - pt.y, v1.z - pt.z);
     spokes[2] = Vector3(v2.x - pt.x, v2.y - pt.y, v2.z - pt.z);
-    // !FAKE: inliner; hand form of the inlined cross and dot products (no PDB record of the operators)
+    // !FAKE: inliner; hand form of the inlined cross and dot products; no PDB record of the operators, no before/after recorded
     {
         const Vector3& v4 = spokes[1];
         Vector3 v3(spokes[0].y * v4.z - spokes[0].z * v4.y,
@@ -268,8 +268,8 @@ unsigned int BSPnode::HitTag(const Vector3& loc, const CheckInfo& info) const
 // FUNCTION: USA 0x000DF873
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 99.31, bytes mismatch; two x87 term tie-breaks (edgePlane dot end: y before x; equation.z
-// terms swapped) and the 0x44-0x67 frame slots (pct, result, t, bInside, pctEdge) shifted by 4
+// best: match_one objdiff 99.90, bytes mismatch; the 0x44-0x67 frame slots (retail pct 0x44, inner-counter spill 0x48,
+// result 0x4c, t 0x54, pctEdge 0x60, bInside 0x67) and one x87 operand order (closest.y: retail equation.y * v10 load order)
 BSPnode::SphereHitResult BSPnode::SphereHitTag(const Vector3& start, const Vector3& end, const CheckInfo& info) const
 {
     SphereHitResult result;
@@ -295,7 +295,9 @@ BSPnode::SphereHitResult BSPnode::SphereHitTag(const Vector3& start, const Vecto
             Vector4 edgePlane = GetPlaneEquation(*v[v1], Vector3(v2.x + v[v1]->x, v2.y + v[v1]->y, v2.z + v[v1]->z),
                                                  *v[(v1 + 1) % 3]);
             const float startX = ((edgePlane.x * start.x + edgePlane.y * start.y) + edgePlane.z * start.z) + edgePlane.w;
-            float v3 = ((edgePlane.x * end.x + edgePlane.y * end.y) + edgePlane.z * end.z) + edgePlane.w;
+            // !FAKE: c2 x87 operand order; named first term v4; end dot x term first (match_one 99.31 -> 99.60)
+            float v4 = edgePlane.x * end.x;
+            float v3 = ((v4 + edgePlane.y * end.y) + edgePlane.z * end.z) + edgePlane.w;
             if (startX < -info.radius && v3 < -info.radius) {
                 pct = 3.402823466e+38f;
                 break;
@@ -303,8 +305,10 @@ BSPnode::SphereHitResult BSPnode::SphereHitTag(const Vector3& start, const Vecto
             Vector3 delta(v3 - startX, endY - startY, 0.0f);
             Vector3 dir = Normalize(delta);
             Vector3 equation(dir.y, -dir.x, 0.0f);
-            equation.z = -(equation.x * startX + equation.y * startY);
-            // !FAKE: inliner; stand-in v10 for the scalar argument of the inlined Vector3 * float
+            // !FAKE: c2 x87 operand order; named y term v5; equation.z y term first (match_one 99.60 -> 99.90)
+            float v5 = startY * equation.y;
+            equation.z = -(v5 + equation.x * startX);
+            // !FAKE: inliner; stand-in v10 for the scalar argument of the inlined Vector3 * float; no before/after recorded
             float v10 = -equation.z;
             Vector3 closest(equation.x * v10, equation.y * v10, equation.z * v10);
             float pctEdge;
@@ -400,7 +404,7 @@ Ptr<BSPQueryResultObject> BSPnode::CheckLine(const Vector3& start, const Vector3
         return GetBackNode(v0)->CheckLine(start, end, info);
     }
     float pct = v2 / v4;
-    // !FAKE: inliner; hand form of the inlined Vector3 operators via the PDB ctor
+    // !FAKE: inliner; hand form of the inlined Vector3 operators via the PDB ctor; no before/after recorded
     Vector3 v6(end.x - start.x, end.y - start.y, end.z - start.z);
     Vector3 v7(v6.x * pct, v6.y * pct, v6.z * pct);
     Vector3 crosspoint(start.x + v7.x, start.y + v7.y, start.z + v7.z);

@@ -14609,3 +14609,3201 @@ va = 0x000B9F6F
 size = 0x1E6
 xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
 body_sha1 = "c50221e52a2dba8badad75720a851d72cc137c7e"
+
+[[function]]
+symbol = "??1logic_error@std@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+va = 0x000115FB
+size = 0x1D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c089a198c6abfe4797570273049d41d6fefb1c22"
+
+[[function]]
+symbol = "?what@logic_error@std@@UBEPBDXZ"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+va = 0x00011618
+size = 0xE
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f9633f5b166f281998c4965f0e35e4c7b88a5784"
+
+[[function]]
+symbol = "??0logic_error@std@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@1@@Z"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+va = 0x0001179C
+size = 0x20
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "06b804f3d7587a659c209899b755c0ad6f246aaa"
+
+[[function]]
+symbol = "?erase@?$_Tree@V?$_Tset_traits@UScriptTimerEvent@SwampScriptManager@@U?$less@UScriptTimerEvent@SwampScriptManager@@@std@@V?$allocator@UScriptTimerEvent@SwampScriptManager@@@4@$00@std@@@std@@QAE?AViterator@12@V312@@Z"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+va = 0x00011800
+size = 0x270
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b1357eaff6557d9c351f3c90c7b04e5d06cababa"
+
+[[function]]
+symbol = "??0logic_error@std@@QAE@ABV01@@Z"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+va = 0x00011A7B
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1e548fecdc85d22efd78754d53bf7f1c805a8dde"
+
+[[function]]
+symbol = "?_Incsize@?$list@VQuickMessage@HUDUI@@V?$allocator@VQuickMessage@HUDUI@@@std@@@std@@IAEXI@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E6BCF
+size = 0x50
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c26e68e7f9efe38c683fe749d1ec6726fec1a267"
+
+[[function]]
+symbol = "?_Incsize@?$list@USubtitle@HUDUI@@V?$allocator@USubtitle@HUDUI@@@std@@@std@@IAEXI@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E6C1F
+size = 0x50
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2a91ab4eee44a2a25fa34585670c9cb762e563f8"
+
+[[function]]
+symbol = "?erase@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@ULocInfo@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@ULocInfo@@@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@V312@@Z"
+unit = "core\\XBox\\OfficialRelease\\SignTrolley.obj"
+va = 0x0012DAE8
+size = 0x279
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e1fda0dd0f220e54dd69a224a1cb726c066a3b51"
+
+[[function]]
+symbol = "?_Insert@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@ULocInfo@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@ULocInfo@@@std@@@2@$0A@@std@@@std@@IAE?AViterator@12@_NPAU_Node@?$_Tree_nod@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@ULocInfo@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@ULocInfo@@@std@@@2@$0A@@std@@@2@ABU?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@ULocInfo@@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\SignTrolley.obj"
+va = 0x0012E2D6
+size = 0x152
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "51445ac4819e6a655ccb52eeef627227d988a1ca"
+
+[[function]]
+symbol = "?erase@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UDiaryEntry@SwampDiary@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UDiaryEntry@SwampDiary@@@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@V312@@Z"
+unit = "Xbox\\Official_Release\\SwampDiary.obj"
+va = 0x00151E7D
+size = 0x279
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "50d1c5994f107c169fa45aafe2caa8b91a5214ce"
+
+[[function]]
+symbol = "?_Insert@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UDiaryEntry@SwampDiary@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UDiaryEntry@SwampDiary@@@std@@@2@$0A@@std@@@std@@IAE?AViterator@12@_NPAU_Node@?$_Tree_nod@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UDiaryEntry@SwampDiary@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UDiaryEntry@SwampDiary@@@std@@@2@$0A@@std@@@2@ABU?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UDiaryEntry@SwampDiary@@@2@@Z"
+unit = "Xbox\\Official_Release\\SwampDiary.obj"
+va = 0x001521C2
+size = 0x152
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1284d1d6cb84f34788ce73e9af952293ae214a04"
+
+[[function]]
+symbol = "?erase@?$_Tree@V?$_Tset_traits@_KU?$less@_K@std@@V?$allocator@_K@2@$0A@@std@@@std@@QAE?AViterator@12@V312@@Z"
+unit = "Xbox\\Official_Release\\BeepDebug.obj"
+va = 0x0003840A
+size = 0x270
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ccd4ec36ed1482f49ab075e1208cc84463b05bf3"
+
+[[function]]
+symbol = "?_Incsize@?$list@UQueuedMessage@SwampScript@@V?$allocator@UQueuedMessage@SwampScript@@@std@@@std@@IAEXI@Z"
+unit = "Xbox\\Official_Release\\SwampScript.obj"
+va = 0x000ABD81
+size = 0x50
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1fbaa08e5165bff672568dc9e91b9ebd529c7452"
+
+[[function]]
+symbol = "?_Buy@?$vector@USwampDeformation@@V?$allocator@USwampDeformation@@@std@@@std@@IAE_NI@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AF749
+size = 0x48
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2b5237eedf1039de88fec4824e6fcd5fdba976f7"
+
+[[function]]
+symbol = "?_Buy@?$vector@UMatrix@@V?$allocator@UMatrix@@@std@@@std@@IAE_NI@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AF791
+size = 0x47
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f55704ee7dbd04c2b4b840ab60f33651107931a2"
+
+[[function]]
+symbol = "?_Trim@?$vector@_NV?$allocator@_N@std@@@std@@IAEXI@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AF9AE
+size = 0x5D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "02ac40d08860aa09c778673cef49b2fbd4233d08"
+
+[[function]]
+symbol = "?_Insert_x@?$vector@_NV?$allocator@_N@std@@@std@@IAEIViterator@12@I@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AFFA7
+size = 0xA9
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "753a9bf871d6a92fb06b4102040128b5dd8e365f"
+
+[[function]]
+symbol = "?_Xlen@?$vector@_NV?$allocator@_N@std@@@std@@IBEXXZ"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AF3AD
+size = 0x35
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4171915344261374e03334a2988594eb8e64da91"
+
+[[function]]
+symbol = "?Load@SwitchMuseumMain@@UAEXABVBeepTDF@@@Z"
+unit = "Xbox\\OfficialRelease\\Switch.obj"
+va = 0x0008B96D
+size = 0x6D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c7b7650b2aeb08c7c2c650f8e348d39d5483c4ba"
+
+[[function]]
+symbol = "?NotifySwitches@BasicDoorMain@@IAEXH@Z"
+unit = "core\\XBox\\OfficialRelease\\BasicDoor.obj"
+va = 0x0010790D
+size = 0x5F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3ad4c8bea04db6a60e8d0450b98a085696e37b9b"
+
+[[function]]
+symbol = "?Activate@BasicDoorMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\BasicDoor.obj"
+va = 0x0010796C
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "291fb0beab0f132aee6748a4a52f5690922e91e9"
+
+[[function]]
+symbol = "?IsChapterFinished@Slot@LevelLoader@@QAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100BF4
+size = 0x51
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "749d517cbb4557fdeaaca33f24948748f0136a6a"
+
+[[function]]
+symbol = "?Reset@AnimCam@@SAXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100DA2
+size = 0x17
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "69ac62d4da28dc6f052f2c6e1cf1600612125e59"
+
+[[function]]
+symbol = "?SetLevelName@Level@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100DB9
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f4197c0e5a958b9f1b4ed1143dd459195bf96433"
+
+[[function]]
+symbol = "?SetAreaName@Level@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100DCF
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5d75c280f5589cf9c2ffcb69c68a9bf907377d0d"
+
+[[function]]
+symbol = "?SetSkyName@Level@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100DE5
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a4c408095e757de477c9c56e97d7f9c6e838d24f"
+
+[[function]]
+symbol = "?SetSkyEffect@Level@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100DFB
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "59822a40580ab21d06e1881fbed2d6c8cce2e233"
+
+[[function]]
+symbol = "?LoadAmbientSounds@LevelLoader@@AAEXPAVLevel@@ABVBeepTDF@@AAVLoadScreen@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010180A
+size = 0x58
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "268eddd29175ed584e563d2462148ea1fb24cba9"
+
+[[function]]
+symbol = "?RequestChapter@LevelLoader@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010203B
+size = 0x41
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c6960af0829166194b5ef690f4e8ed731076c490"
+
+[[function]]
+symbol = "?InitializeCurrentSave@LevelLoader@@QAEXPBG@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010207C
+size = 0x36
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "cbe789cb3bd5e8bc10af74056615c836338b81a2"
+
+[[function]]
+symbol = "?EnumerateSavedGames@LevelLoader@@SAXAAV?$vector@U_XGAME_FIND_DATA@@V?$allocator@U_XGAME_FIND_DATA@@@std@@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001042F2
+size = 0x4B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a7edd0bf37bf6221022746a237e4a0a93428b00c"
+
+[[function]]
+symbol = "??0LevelStats@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001046A3
+size = 0x17
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8f9dfc9afce25b2432ad057981a026eaa732e66a"
+
+[[function]]
+symbol = "??0Slot@LevelLoader@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001046BA
+size = 0x33
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "231654845d69db546f229ba862ccd6361dbb5ebf"
+
+[[function]]
+symbol = "?AddCluster@Level@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010049F
+size = 0x7
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b1ef90896ebdfb52475d3eff6b3348668c52e1bd"
+
+[[function]]
+symbol = "?ClearMasterStats@LevelLoader@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00105BE2
+size = 0xB
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "19bf5c01aeb3c3cfb7bd326b327ecfa3fb9b92b7"
+
+[[function]]
+symbol = "?FreeSpaceCheck@LevelLoader@@SA_NPAI0I@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100545
+size = 0x79
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ba89e8c439a4c869934d0232d81714543b35ea75"
+
+[[function]]
+symbol = "?GetAreaStats@LevelLoader@@QAEPAVAreaStats@@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00105CB3
+size = 0x94
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0d63c56c5fdfd16abdf3e7435ddd9f5c8109fde1"
+
+[[function]]
+symbol = "?FlushLocalStats@LevelLoader@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00105FA0
+size = 0x92
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "81d27a5b8c7bb85709ded25cc4c1676d6b12fab9"
+
+[[function]]
+symbol = "?CloneMasterStats@LevelLoader@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00106032
+size = 0x6A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "feae5a8fe8628c51b318c225d9defdc913b418bf"
+
+[[function]]
+symbol = "?LoadLevelStats@LevelLoader@@QAEXABVBeepTDF@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010676F
+size = 0x68
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f39a5efcbc030c7e856fff7834929f00b7dbee2e"
+
+[[function]]
+symbol = "?GenerateFileSignature@LevelLoader@@SA_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_N@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00102235
+size = 0x9A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1aa466520313d9cb477aa7f8cdb82c364f2041cb"
+
+[[function]]
+symbol = "?VerifyFileSignature@LevelLoader@@SA_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_N@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001022CF
+size = 0xCB
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1ae692cce53a068b88b2fb47c54c69a695e4ec2c"
+
+[[emitter]]
+symbol = "?pin_emit_AreaStats_assign@@YAXPAVAreaStats@@ABV1@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+reason = "odr-uses implicit ??4AreaStats (0x00102435) in LevelLoader.obj; no matched function uses it"
+
+[[function]]
+symbol = "??4AreaStats@@QAEAAV0@ABV0@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00102435
+size = 0x63
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9bbf6b739f9862ba2b55d3a87a30ca2d21700eaf"
+
+[[function]]
+symbol = "??1Level@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00104B0C
+size = 0x7F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c6b96aaebfc22d09836e408611297ebc9a445c67"
+
+[[function]]
+symbol = "?Save@Slot@LevelLoader@@QBEXAAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001010BC
+size = 0x129
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0a4899302f7ccd9e39ef79fb1a0cc9be2547991f"
+
+[[function]]
+symbol = "?capacity@?$vector@VAreaStats@@V?$allocator@VAreaStats@@@std@@@std@@QBEIXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001005D6
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ad3c31baeaea5da4a29d5ac797ea35739a5ed11f"
+
+[[function]]
+symbol = "?capacity@?$vector@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@V?$allocator@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@@2@@std@@QBEIXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001005EC
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2693a34ce6a7588c0381c34cc9043995cfd5b3f1"
+
+[[function]]
+symbol = "?size@?$vector@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@V?$allocator@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@@2@@std@@QBEIXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100602
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "51460782d2b5f3a0012ff00f2ced95c844769305"
+
+[[function]]
+symbol = "?capacity@?$vector@VLevelStats@@V?$allocator@VLevelStats@@@std@@@std@@QBEIXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100630
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "429409844c4744a48d4a92cd68e890fcaaab6d68"
+
+[[function]]
+symbol = "?capacity@?$vector@U_XGAME_FIND_DATA@@V?$allocator@U_XGAME_FIND_DATA@@@std@@@std@@QBEIXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100646
+size = 0x18
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3328c4230e43fe78b41afb3ca57e7c164c8dc72f"
+
+[[function]]
+symbol = "?size@?$vector@U_XGAME_FIND_DATA@@V?$allocator@U_XGAME_FIND_DATA@@@std@@@std@@QBEIXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010065E
+size = 0x18
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4864ad0030faccc98a5beab0f700f81f94d1f3b8"
+
+[[function]]
+symbol = "??$_Construct@U_XGAME_FIND_DATA@@U1@@std@@YAXPAU_XGAME_FIND_DATA@@ABU1@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001007BE
+size = 0x18
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5c9394835333de5b79cc5cbfe06a51b412ba3104"
+
+[[function]]
+symbol = "??1?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100C6A
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3f90716f1df523efc9cb448f9db3e7fe85dea8d1"
+
+[[function]]
+symbol = "??$fill@PAVAreaStats@@V1@@std@@YAXPAVAreaStats@@0ABV1@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001035F5
+size = 0x1D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "6ba5e9ed4c447822e5f13c160d7d90e9f736a1ed"
+
+[[function]]
+symbol = "??$fill@PAU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@U12@@std@@YAXPAU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@0@0ABU10@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010362C
+size = 0x1D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c09d0e1a757ae4e584c77215bcdf07c6064bde2c"
+
+[[function]]
+symbol = "?_Ufill@?$vector@VAreaStats@@V?$allocator@VAreaStats@@@std@@@std@@IAEPAVAreaStats@@PAV3@IABV3@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00103D11
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2aaf053b76ea5feb6cad92416212887b2e52955c"
+
+[[function]]
+symbol = "?_Ufill@?$vector@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@V?$allocator@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@@2@@std@@IAEPAU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@2@PAU32@IABU32@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00103D33
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1b9abcd211c5a0dc0ea54f7af4f7d06ae4383321"
+
+[[function]]
+symbol = "??$_Copy_opt@PAVAreaStats@@PAV1@@std@@YAPAVAreaStats@@PAV1@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001025FF
+size = 0x24
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2681ed122ea90ae287da4ab4026c4c49ca8b9287"
+
+[[function]]
+symbol = "??$_Copy_opt@PAU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@PAU12@@std@@YAPAU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@0@PAU10@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00102623
+size = 0x24
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "942aff1b56f3a3d760a4e887df22352b7871e5fe"
+
+[[function]]
+symbol = "?_Init@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@std@@IAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100B50
+size = 0x25
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3f0a0b33d545033a33a1cf238b4fbb27b9099fbf"
+
+[[function]]
+symbol = "?_Init@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@IAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100B75
+size = 0x25
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "16010989c17b788a2546e2ada4f8b4cb02a3b21b"
+
+[[function]]
+symbol = "?_Ufill@?$vector@U_XGAME_FIND_DATA@@V?$allocator@U_XGAME_FIND_DATA@@@std@@@std@@IAEPAU_XGAME_FIND_DATA@@PAU3@IABU3@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100C45
+size = 0x25
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7dc0da3bd9ac9502b80a64fd63d57221f5298231"
+
+[[function]]
+symbol = "??$fill@PAU_XGAME_FIND_DATA@@U1@@std@@YAXPAU_XGAME_FIND_DATA@@0ABU1@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100768
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "6fd1c779927918f5841bebf8a2fc82cf3e400846"
+
+[[function]]
+symbol = "??$_Copy_backward_opt@PAVAreaStats@@PAV1@@std@@YAPAVAreaStats@@PAV1@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001024C1
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "75e752044eed60200aeed54158abb96f5afdbd6b"
+
+[[function]]
+symbol = "??$_Copy_backward_opt@PAU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@PAU12@@std@@YAPAU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@0@PAU10@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001024E8
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "439dc00b9cf80acc4cfc0d549b0b1305b81016e2"
+
+[[function]]
+symbol = "??4?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@QAEAAU01@ABU01@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00102498
+size = 0x29
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5a30fa454f515bd8a573f303443ec57e4d6cf0df"
+
+[[function]]
+symbol = "??$_Copy_backward_opt@PAU_XGAME_FIND_DATA@@PAU1@@std@@YAPAU_XGAME_FIND_DATA@@PAU1@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010078F
+size = 0x2F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1e3528583afe55c83bc8aa7efce07b1a8dc4bca1"
+
+[[function]]
+symbol = "??$make_pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@YA?AU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@0@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@0@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00102405
+size = 0x30
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d57e26dbb98dff62879e62114e74c8cc02147ffc"
+
+[[function]]
+symbol = "??0_Node@?$_Tree_nod@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@QAE@PAU012@00ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@D@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100CC4
+size = 0x33
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "57f5530667e867011221e39d5954aa2be3d24014"
+
+[[function]]
+symbol = "?_Inc@const_iterator@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001006FC
+size = 0x36
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d72af89eea5cf26b08d987a0681a0a09ee1942c8"
+
+[[function]]
+symbol = "?_Inc@const_iterator@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@std@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100732
+size = 0x36
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "aa7d18e7fa1dffc08e1338997513e08f766b146a"
+
+[[function]]
+symbol = "?_Erase@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@IAEXPAU_Node@?$_Tree_nod@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001035BA
+size = 0x3B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2d161f418f28dfce44676a8ae8b7b10d137a8541"
+
+[[function]]
+symbol = "?_Erase@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@std@@IAEXPAU_Node@?$_Tree_nod@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00103B2C
+size = 0x3B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "21b399c9932c6949a2b59cab392c99c46f0cf691"
+
+[[function]]
+symbol = "?_Dec@const_iterator@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010085C
+size = 0x3F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0fc362132a9ca2a21f6e529c5142c65a24181dff"
+
+[[function]]
+symbol = "?_Lrotate@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@std@@IAEXPAU_Node@?$_Tree_nod@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100676
+size = 0x42
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e0779eaec422077605a99cb4872eb6ddf941fae4"
+
+[[function]]
+symbol = "?_Lrotate@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@IAEXPAU_Node@?$_Tree_nod@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001007D6
+size = 0x42
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d015466d6dc2372d2ded1bb93f6f248eaa9ffdb3"
+
+[[function]]
+symbol = "?insert@?$vector@VAreaStats@@V?$allocator@VAreaStats@@@std@@@std@@QAE?AViterator@12@V312@ABVAreaStats@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010433D
+size = 0x42
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f154b2fe42fe6c79e18a1bae3f1a618c1ccc9e15"
+
+[[function]]
+symbol = "?insert@?$vector@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@V?$allocator@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@@2@@std@@QAE?AViterator@12@V312@ABU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001043AA
+size = 0x42
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "508fb57acfc80e7f650bab8ca286ccdfef70451c"
+
+[[function]]
+symbol = "?_Rrotate@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@std@@IAEXPAU_Node@?$_Tree_nod@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001006B8
+size = 0x44
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "05f35ec2493814fc24bde9c29e39ee74aaaf2bbc"
+
+[[function]]
+symbol = "?_Rrotate@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@IAEXPAU_Node@?$_Tree_nod@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100818
+size = 0x44
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "16cddcb0c54a6bd78ef84b29f55ca3bb9b526071"
+
+[[function]]
+symbol = "?_Buy@?$vector@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@V?$allocator@U?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@@2@@std@@IAE_NI@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001030B2
+size = 0x46
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1966184a1e9b7c03c91e70717de76721bddff83e"
+
+[[function]]
+symbol = "?insert@?$vector@U_XGAME_FIND_DATA@@V?$allocator@U_XGAME_FIND_DATA@@@std@@@std@@QAE?AViterator@12@V312@ABU_XGAME_FIND_DATA@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00103846
+size = 0x47
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ec9b74e28fea6398ef1b4f73f8884132a058e632"
+
+[[function]]
+symbol = "?insert@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@QAE?AU?$pair@Viterator@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@_N@2@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001037A5
+size = 0xA1
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "be85de480b09712a5fa25c8748e5b6f3c5466e91"
+
+[[function]]
+symbol = "?_Insert@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@IAE?AViterator@12@_NPAU_Node@?$_Tree_nod@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@2@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00102F60
+size = 0x152
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e597465bc04ea36b151fc51228dd5fa04f3f9556"
+
+[[function]]
+symbol = "?erase@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@V312@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00103341
+size = 0x279
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3aae126e0e3b4b8468b4344dfa199dfef8093ef9"
+
+[[function]]
+symbol = "?erase@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VAreaStats@@@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@V312@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010388D
+size = 0x279
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "783aba364a530c18db84444cb5bfa0bd9011dfe5"
+
+[[function]]
+symbol = "?GenerateSaveGameName@LevelLoader@@QAE?AV?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@3@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001020B2
+size = 0x183
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9ddac83730ba8a9cace6f837db3c9babdeec57a8"
+
+[[function]]
+symbol = "?LoadParticles@LevelLoader@@AAEXPAVLevel@@ABVBeepTDF@@AAVLoadScreen@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00101556
+size = 0x2B4
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a95f4b1771c03f7bb9af492502b18a6931598414"
+
+[[function]]
+symbol = "?LoadSettings@LevelLoader@@AAEXPAVLevel@@ABVBeepTDF@@AAVLoadScreen@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001011E5
+size = 0x371
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5125048e31fc1fbe497e9081a9801fa31be7dd83"
+
+[[function]]
+symbol = "?creationFunc@Activator_FanBoatMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002FB8E
+size = 0x2A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d95ec9614ca80711e5d4b633b9cfa27ba70661f7"
+
+[[function]]
+symbol = "?creationFunc@VinceEnterBoat@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x00030561
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a2f148cb6fb2bc9acfa3a0787767965bc8601359"
+
+[[function]]
+symbol = "?creationFunc@FanBoatMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x00032F07
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "961e9c86e92d5908fb0a337a742e6763e85d8639"
+
+[[function]]
+symbol = "?creationFunc@DoorExitZGCMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x0005B9D9
+size = 0x2A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9e8b644ffa16a317177c91f6bd42926d856d54ae"
+
+[[function]]
+symbol = "?creationFunc@DoorPulleyBucketMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\DoorPulleyBucket.obj"
+va = 0x0003C61A
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2622f813e76b2fedd5d745bb61dfd2fef73bd0b2"
+
+[[emitter]]
+symbol = "?pin_emit_PotionOfKnowledgeMain_dtor@@YAXPAVPotionOfKnowledgeMain@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Boomerang.obj"
+reason = "odr-uses the implicit ??1PotionOfKnowledgeMain (0x00122728, no vptr store; C0029)"
+
+[[emitter]]
+symbol = "?pin_emit_SkeletonJazzGuyMain_dtor@@YAXPAVSkeletonJazzGuyMain@@@Z"
+unit = "Xbox\\OfficialRelease\\theSquare.obj"
+reason = "odr-uses the implicit ??1SkeletonJazzGuyMain (0x000743A5); retail emits it via its ??_G and ctor, not matched"
+
+[[emitter]]
+symbol = "?pin_emit_vector_ctor_iterator@@YAXXZ"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+reason = "array local makes cl emit ??_H 0x00011023; no retail caller left in Init.obj (139 callers elsewhere)"
+
+[[emitter]]
+symbol = "?pin_emit_vector_dtor_iterator@@YAXPAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "Xbox\\OfficialRelease\\SwampD3D.obj"
+reason = "delete[] makes cl emit ??_I 0x000120C1; no retail caller left in SwampD3D.obj"
+
+[[function]]
+symbol = "?Message@EvilVinceMirrorBrokenMain@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "Xbox\\OfficialRelease\\HouseOfMirrors.obj"
+va = 0x0004321D
+size = 0x11
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "92e9b617c877a14ab38107f8fbfa6d4893409305"
+
+[[function]]
+symbol = "??_H@YGXPAXIHP6EPAX0@Z@Z"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+va = 0x00011023
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "6246c280fc30aef537ffae28afd6bd70fcc0e7ca"
+
+[[function]]
+symbol = "??_I@YGXPAXIHP6EX0@Z@Z"
+unit = "Xbox\\OfficialRelease\\SwampD3D.obj"
+va = 0x000120C1
+size = 0x2A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "dc502343ceace4ebe00b197edbce6f7cf67dab19"
+
+[[function]]
+symbol = "?Load@GeneratorMain@@UAEXABVBeepTDF@@@Z"
+unit = "Xbox\\OfficialRelease\\Generator.obj"
+va = 0x0003B147
+size = 0x3F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "520e99d689769123f3c794a3049782c0ce6c66d8"
+
+[[function]]
+symbol = "??1PotionOfKnowledgeMain@@UAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\Boomerang.obj"
+va = 0x00122728
+size = 0x29
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0d17d0cc84e429d0cbb6c4f93ae4dc40aff9a984"
+
+[[function]]
+symbol = "?AnimationFinished@CarriedObjectMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\CarriedObject.obj"
+va = 0x0010E93E
+size = 0x32
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3269847455147960fc165af6a14ec997f3d4ad20"
+
+[[function]]
+symbol = "?FrameTick@VinceCutScene@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\VinceCutScene.obj"
+va = 0x001225F2
+size = 0x58
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8c9a3c9a9c3b35d88ac8bfbcae805998c70796ab"
+
+[[function]]
+symbol = "?FrameTick@HeavyObjectMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\HeavyObject.obj"
+va = 0x0010F12E
+size = 0x2C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2d6f0d46d6f9657d927de961c4541951bf153991"
+
+[[function]]
+symbol = "?Message@HeavyObjectMain@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "core\\XBox\\OfficialRelease\\HeavyObject.obj"
+va = 0x0010F15A
+size = 0x48
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "db5eaa54b4e5eb0a59080904675be0eecf631386"
+
+[[function]]
+symbol = "?size@?$vector@UFixupInfo@MaterialManager@@V?$allocator@UFixupInfo@MaterialManager@@@std@@@std@@QBEIXZ"
+unit = "Xbox\\Official_Release\\SwampMaterialResource.obj"
+va = 0x000D5147
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9281e29d9637446f8df8cd6cfe5eb1bbb6d6b493"
+
+[[function]]
+symbol = "?DrawPrimitive@SwampRenderer@@QBEXW4_D3DPRIMITIVETYPE@@II@Z"
+unit = "Xbox\\Official_Release\\SwampDebugGeometry.obj"
+va = 0x000D3AF3
+size = 0x2D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c031cc510ba3d49c52ae0527436c348130ada77c"
+
+[[function]]
+symbol = "?capacity@?$vector@V?$vector@V?$ResourceHandle@VTextureResource@@@@V?$allocator@V?$ResourceHandle@VTextureResource@@@@@std@@@std@@V?$allocator@V?$vector@V?$ResourceHandle@VTextureResource@@@@V?$allocator@V?$ResourceHandle@VTextureResource@@@@@std@@@std@@@2@@std@@QBEIXZ"
+unit = "Xbox\\Official_Release\\BeepState.obj"
+va = 0x00035E68
+size = 0x13
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2f5ef2024932c847799712abb07527f27b72833b"
+
+[[function]]
+symbol = "?size@?$vector@V?$vector@V?$ResourceHandle@VTextureResource@@@@V?$allocator@V?$ResourceHandle@VTextureResource@@@@@std@@@std@@V?$allocator@V?$vector@V?$ResourceHandle@VTextureResource@@@@V?$allocator@V?$ResourceHandle@VTextureResource@@@@@std@@@std@@@2@@std@@QBEIXZ"
+unit = "Xbox\\Official_Release\\BeepState.obj"
+va = 0x00035E7B
+size = 0x13
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0ac519f41afd78361003a682f406e19d97d24a58"
+
+[[function]]
+symbol = "?DrawPrimitiveUP@SwampRenderer@@QBEXW4_D3DPRIMITIVETYPE@@IPBXI@Z"
+unit = "Xbox\\Official_Release\\SwampFireFlyNode.obj"
+va = 0x000C6296
+size = 0x31
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5c876aee04a41a69d9911109bc4d0d594292b15d"
+
+[[function]]
+symbol = "?StopSpawning@FireFlyNode@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampFireFlyNode.obj"
+va = 0x000C6465
+size = 0x2C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2cb1a6dfe5139554fba58dfb3995be3d5a44743f"
+
+[[function]]
+symbol = "?Update@BumperCarHud@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\BumperCar.obj"
+va = 0x00046B3B
+size = 0x49
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b04bc4e37768f46d1465442c7569c12da5cdc18c"
+
+[[function]]
+symbol = "?CreateShadowBuffers@LightManager@@SAXXZ"
+unit = "Xbox\\Official_Release\\SwampLight.obj"
+va = 0x000CC2F5
+size = 0x5B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7300e505695fa34fbeb37f535e8313c15252c6ee"
+
+[[function]]
+symbol = "?AnimationFinished@WallSwitchMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\WallSwitch.obj"
+va = 0x0007C3F4
+size = 0x63
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7c7586ae6d1e79ca6141a844fe38f7d56315cdb1"
+
+[[function]]
+symbol = "?Load@DoorExitMain@@UAEXABVBeepTDF@@@Z"
+unit = "Xbox\\OfficialRelease\\Bell.obj"
+va = 0x0006C69D
+size = 0x70
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "224509709014fe89b5997739b3a955db41068fdd"
+
+[[function]]
+symbol = "?Load@SwitchCryptMain@@UAEXABVBeepTDF@@@Z"
+unit = "Xbox\\OfficialRelease\\switchCrypt.obj"
+va = 0x0005E691
+size = 0x70
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e24759b5bfd6ebb277a64c4dc5e82ea37bf4d7fc"
+
+[[function]]
+symbol = "?SetState@GateMoleMain@@UAEXH@Z"
+unit = "Xbox\\OfficialRelease\\MoleGatePuzzle.obj"
+va = 0x0005EE2D
+size = 0x45
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7f31d713551e05c6a2495a3465f33a3622edc4c6"
+
+[[function]]
+symbol = "?SetState@MuseumGateMain@@UAEXH@Z"
+unit = "Xbox\\OfficialRelease\\theSquare.obj"
+va = 0x00071426
+size = 0x4D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3d0e45b7d5d2ede21392e5b38a73d726ff4bcb0e"
+
+[[function]]
+symbol = "??1SkeletonJazzGuyMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\theSquare.obj"
+va = 0x000743A5
+size = 0x2E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "376274cb3813293be5c727c17fcb7c9b6b62286c"
+
+[[emitter]]
+symbol = "?pin_emit_WhammyResultScript_dtor@@YAXPAVWhammyResultScript@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+reason = "generates ??1WhammyResultScript before ??_G so ??_G inlines it as retail (C0320)"
+
+[[emitter]]
+symbol = "?pin_emit_CrawdadTrapMain_dtor@@YAXPAVCrawdadTrapMain@@@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+reason = "odr-uses the implicit ??1CrawdadTrapMain (0x0002D983); retail emits it via the unmatched ctor"
+
+[[emitter]]
+symbol = "?pin_emit_FanBoatWake_dtor@@YAXPAVFanBoatWake@@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+reason = "odr-uses the implicit ??1FanBoatWake (0x000307F3); retail emits it in this unit, not matched"
+
+[[emitter]]
+symbol = "?pin_emit_FireBugMain_dtor@@YAXPAVFireBugMain@@@Z"
+unit = "Xbox\\OfficialRelease\\HouseOfMirrors.obj"
+reason = "odr-uses the implicit ??1FireBugMain (0x00044022); retail emits it in this unit, no matched function odr-uses it"
+
+[[function]]
+symbol = "?Normalize@@YA?AUVector3@@ABU1@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002DEA0
+size = 0x4E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "69fb140a04111dc4622a0fd251a3a160f9daaf9a"
+
+[[function]]
+symbol = "?GetLeftStick@SwampGamePad@@QBE?AUVector2@@XZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002DEEE
+size = 0x48
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0a4bde5c741a58799068600f16024daf0676ec00"
+
+[[function]]
+symbol = "?IsInWater@FanBoatMain@@QAE_NXZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002E2E6
+size = 0x35
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "6115cca1b2b941d55bda4bdafd32440bac51237a"
+
+[[function]]
+symbol = "??$_Construct@UWakeSegment@FanBoatWake@@U12@@std@@YAXPAUWakeSegment@FanBoatWake@@ABU12@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002E52C
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e7e0f58eb094d3d9c09c4d20848d483796ccefb8"
+
+[[function]]
+symbol = "??$_Copy_backward_opt@Viterator@?$deque@UWakeSegment@FanBoatWake@@V?$allocator@UWakeSegment@FanBoatWake@@@std@@@std@@V123@@std@@YA?AViterator@?$deque@UWakeSegment@FanBoatWake@@V?$allocator@UWakeSegment@FanBoatWake@@@std@@@0@V120@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002E542
+size = 0x56
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "527d19312fb837a7392cf7ecfadface8331356c6"
+
+[[function]]
+symbol = "??$_Copy_opt@Viterator@?$deque@UWakeSegment@FanBoatWake@@V?$allocator@UWakeSegment@FanBoatWake@@@std@@@std@@V123@@std@@YA?AViterator@?$deque@UWakeSegment@FanBoatWake@@V?$allocator@UWakeSegment@FanBoatWake@@@std@@@0@V120@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002E598
+size = 0x56
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "90e7efa562ed0b3b95095ea542e54066945d1357"
+
+[[function]]
+symbol = "?pop_front@?$deque@VBSPQueryResultObject@@V?$allocator@VBSPQueryResultObject@@@std@@@std@@QAEXXZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002E6C6
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ab07ff8dcc9640351a4fec84d3c1cc07d31816b2"
+
+[[function]]
+symbol = "??$fill@PAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V12@@std@@YAXPAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@0ABV10@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x00030491
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b28523c7ce23b3bedc1abd4b874e6ec0faef36cf"
+
+[[function]]
+symbol = "??$_Copy_backward_opt@PAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PAV12@@std@@YAPAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@PAV10@00U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x000304B2
+size = 0x2B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "177dc81f89c72224fba25d434fc45b48687fcffa"
+
+[[function]]
+symbol = "??1FanBoatWake@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x000307F3
+size = 0x23
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "78b6f6dd35cd1ce3b3eb4ecbdc39e5b18e42c93f"
+
+[[function]]
+symbol = "?_Buy@?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@IAE_NI@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x000309CC
+size = 0x46
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fc9c198ea96950758f89afb674b057772135722a"
+
+[[function]]
+symbol = "?push_front@?$deque@UWakeSegment@FanBoatWake@@V?$allocator@UWakeSegment@FanBoatWake@@@std@@@std@@QAEXABUWakeSegment@FanBoatWake@@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x00030BB8
+size = 0x52
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b35de6b200cd9868b706d89c39316e1bbfd75510"
+
+[[function]]
+symbol = "?Update@Critter@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\Critter.obj"
+va = 0x000ED0CB
+size = 0x4A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7e13dabb8e83cf29e936fe9a45fbde6d5316ad67"
+
+[[function]]
+symbol = "?StopSounds@Critter@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\Critter.obj"
+va = 0x000ED891
+size = 0x25
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4f8933e37dd310037b47d74b51162568a7a1f47a"
+
+[[function]]
+symbol = "?IsStunned@Critter@@QBE_NXZ"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002BFC9
+size = 0x1A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a6e277d5efad5c91b8cf8cad0e2c4de6504fb77e"
+
+[[function]]
+symbol = "?Message@CrawdadTrapMain@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002C0B4
+size = 0x2D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "56002c9adb5b0f24072ff0e3a736eaaa4f6fef15"
+
+[[function]]
+symbol = "?CanJorgeCollideWithMe@Crawdaddy@@UBE_NPBVSwampSceneNode@@ABUVector3@@@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002C173
+size = 0x2E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4c07f1838cacbfd9f138f66d3cdd8e50af24b9d1"
+
+[[function]]
+symbol = "?HitBy@CrawdadTrapMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002C1A1
+size = 0x3B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "bad8c3a1e86c91cb9534346ef7fa071ce67039fe"
+
+[[function]]
+symbol = "?EnteringRegion@TheBogWallowRegionMain@@UAEXPAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002D107
+size = 0x42
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "adba0490282ce4768ae0f97a36270cf03148f0a0"
+
+[[function]]
+symbol = "?SetWanderChaseTarget@CritterMain@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002D331
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1e8d773c1ffad4cea4412980b9468dda6a51695a"
+
+[[function]]
+symbol = "??1CrawdadTrapMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002D983
+size = 0x12
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "907945c1766c4841d1cb1b4b38822d700582f451"
+
+[[function]]
+symbol = "?EnableMirrors@DrawLevel@@SAX_N@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C109C
+size = 0x15
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ad20c59a551341ef4ecfc13a0a6bcc3da312f7ea"
+
+[[function]]
+symbol = "?RasterCheckChunk@ZoneNode@@QAEXAAUFloodChunk@@@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C1686
+size = 0x7F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "67782372913f1ea76a1ab55e22b6a6f7c929c836"
+
+[[function]]
+symbol = "?InitMirrorStuff@DrawLevel@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C2351
+size = 0x39
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "71ab762531885d5b2b2ae9063ad3f3d10d570705"
+
+[[function]]
+symbol = "?RenderChunk@ZoneNode@@IBEXAAUFloodChunk@@@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C2F48
+size = 0x47
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a8c0d061e8035feda98edd1531f52751a92331bb"
+
+[[function]]
+symbol = "??1ZoneNode@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C4333
+size = 0x53
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e525e6e52f27ab84cea31f3997f453386df97274"
+
+[[function]]
+symbol = "?AddMirrorChunk@DrawLevel@@SAXPBVZoneNode@@PAUFloodChunk@@@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C4907
+size = 0x43
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b89f82c0f8568eb7f17e1052716790134f4e3dfc"
+
+[[function]]
+symbol = "?AnimationFinished@WhammyResultTwisterMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+va = 0x00133902
+size = 0x10
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "bc200f4235381276670649e279d362afa63bab08"
+
+[[function]]
+symbol = "??0WhammyResultScript@@QAE@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+va = 0x00133912
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "75fbeabada32e47f0e7f7d8f01bfefe810e53f3b"
+
+[[function]]
+symbol = "??_GWhammyResultScript@@UAEPAXI@Z"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+va = 0x00133D9D
+size = 0x28
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2c3151860c549da23e40624093f1fa30d67e7e47"
+
+[[function]]
+symbol = "?InvalidateScript@CarRideMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x0003F98A
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "437ce797a0170739a0ba0baf7b51d625aa91a3d5"
+
+[[function]]
+symbol = "??0LocatorMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x0003FDC9
+size = 0x2C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4d6ed147e0e5a2148b813bec52e647bf5d635c45"
+
+[[function]]
+symbol = "??0MonsterSpawnLocatorMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x000414C6
+size = 0x120
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c2d4b1035818099284837cef167690f2def28168"
+
+[[function]]
+symbol = "??_GMonsterSpawnLocatorMain@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x000415E6
+size = 0x2D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8156fb8aee1c95164fb11d67df4d3883e8ea3177"
+
+[[function]]
+symbol = "?AnimationFinished@PrimoMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\GasPumps.obj"
+va = 0x0007F392
+size = 0xF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "357183933ecf5416678d31f44feecde2d7eace01"
+
+[[function]]
+symbol = "?Load@ReggieMain@@UAEXABVBeepTDF@@@Z"
+unit = "Xbox\\OfficialRelease\\GasPumps.obj"
+va = 0x000801AD
+size = 0x36
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "191f7127f59d4ed30c983a28986d8c86b1e1919e"
+
+[[function]]
+symbol = "?Save@ReggieMain@@UAE?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ"
+unit = "Xbox\\OfficialRelease\\GasPumps.obj"
+va = 0x000801E3
+size = 0x58
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9e05661c54ff8947514f165c0313036c71291c39"
+
+[[function]]
+symbol = "?AnimationFinished@ZGCImpMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x00057AB7
+size = 0x13
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "67870af344cb4837ac9d490ffb75fd71733850c8"
+
+[[function]]
+symbol = "?AnimationFinished@ZombieCryptMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x00057CC5
+size = 0x14
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "dae9fd6bd190c7aaef6289e56e707491c81ce02a"
+
+[[function]]
+symbol = "?pop_front@?$deque@PAVSwampScript@@V?$allocator@PAVSwampScript@@@std@@@std@@QAEXXZ"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x00057F1D
+size = 0x28
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1f3f491a39a1c7f5cf8f9ac34da61f5a89a5ce1a"
+
+[[function]]
+symbol = "?push_back@?$deque@PAVSwampScript@@V?$allocator@PAVSwampScript@@@std@@@std@@QAEXABQAVSwampScript@@@Z"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x0005955B
+size = 0x77
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7ec7fc98b62ee6ce2911cc1c96d3d48b63690957"
+
+[[function]]
+symbol = "?capacity@?$vector@VSavedGameInfo@SavedGamesScreen@@V?$allocator@VSavedGameInfo@SavedGamesScreen@@@std@@@std@@QBEIXZ"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+va = 0x0013883C
+size = 0x16
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4e3d59b1f15e9b448f3be103d6c1281379431014"
+
+[[function]]
+symbol = "?Invalidate@SavedGamesScreen@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+va = 0x00139123
+size = 0x75
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e569d477936574ffaf679038842ccbe5735a67d0"
+
+[[function]]
+symbol = "?PushCaption@FrontEndMenu@@QAEXPBGI@Z"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+va = 0x0013A445
+size = 0x3A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "dc7b8bdeb4d1e436e8cb048497f28037e7542e57"
+
+[[function]]
+symbol = "?SetCaption@FrontEndMenu@@QAEXPBGI@Z"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+va = 0x0013A47F
+size = 0x41
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d10f72dace65161e414cdb0a8d1748b19c4130e3"
+
+[[function]]
+symbol = "?GetNearClipPlane@SwampCamera@@QBE?AUVector4@@XZ"
+unit = "Xbox\\Official_Release\\SwampCamera.obj"
+va = 0x000CAF63
+size = 0x8D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8a580064a0fb4eda36171dab816dcb9fbdfba620"
+
+[[function]]
+symbol = "??1FireBugMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\HouseOfMirrors.obj"
+va = 0x00044022
+size = 0x94
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e47961e80b5141944dcb9947ba5608b53bf721ea"
+
+[[function]]
+symbol = "?GenerateCubicCoeff@FFlyController@@SAXABV?$vector@UKey@FFlyCtrlData@@V?$allocator@UKey@FFlyCtrlData@@@std@@@std@@AAV?$vector@UFFlyCubicKey@@V?$allocator@UFFlyCubicKey@@@std@@@3@@Z"
+unit = "Xbox\\Official_Release\\FFlyController.obj"
+va = 0x0006EF40
+size = 0x96
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0c11c5f314785a3ef4e15b543f28e150407bee7a"
+
+[[function]]
+symbol = "??0ScareHouseTryAgainMenu@@QAE@PAVSwampScript@@@Z"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x000402AB
+size = 0x9C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b96ade9539e560001fcd87e50f81e7afe2c63f88"
+
+[[function]]
+symbol = "?QueueUnpackJob@SwampLoader@@IAEXAAV?$Ptr@VBundleWrapper@@@@PBUHottieFile@@0I_N@Z"
+unit = "Xbox\\Official_Release\\SwampLoader.obj"
+va = 0x000DB9F4
+size = 0xAC
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ff64bf06221d4e7d0e1e7046f60f0bb99a4a4cab"
+
+[[function]]
+symbol = "?Update@SwampLoader@@IAE_NXZ"
+unit = "Xbox\\Official_Release\\SwampLoader.obj"
+va = 0x000DBAA0
+size = 0x37F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d6cd07b843e999ba0fde8c16649cba820444dc87"
+
+[[function]]
+symbol = "?DamageVince@TerradactylMain@@AAEXPAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Terradactyl.obj"
+va = 0x0008BBA1
+size = 0xB1
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "89704081d1797b5e5c606be9ad09461d0d3ac89e"
+
+[[function]]
+symbol = "?FrameTick@UIPageMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E0F59
+size = 0xCA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "22109f725bff31f60ae2b86efd3a68977ebe6e54"
+
+[[function]]
+symbol = "??1WorldData@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C246B
+size = 0xB6
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0e6cea6a9b3974a0e2b92d16316ff78653b4b58c"
+
+[[function]]
+symbol = "?BeginGatorMirrorProcessing@DrawLevel@@SAPAUMirrorInfo@1@PBVGatorNode@@PBUGatorStrip@@@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C494A
+size = 0x86
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4c5646880184f49e0c5f41fe11e840b9185a8c44"
+
+[[function]]
+symbol = "?RegisterChunkBuffers@ZoneNode@@IAEXAAUFloodChunk@@PBUFloodVertex@@PBUFloodAuxVertex@@AAV?$map@IIU?$less@I@std@@V?$allocator@U?$pair@$$CBII@std@@@2@@std@@I@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C4B10
+size = 0xFA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "db4b812345855ad86e4a39fa3b764f34edd7fb08"
+
+[[function]]
+symbol = "?AnimationFinished@CrawdadTrapMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002CF6E
+size = 0xA0
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1b8a355faf0fae440d4dc700f70057e6dc096c68"
+
+[[function]]
+symbol = "?Message@CrawdaddyMain@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002DC91
+size = 0xEF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "eff03841e1207cd1dc79d4ad05f3b6c30d7f1529"
+
+[[function]]
+symbol = "?GetParkingDest@FanBoatMain@@QAE?AUVector3@@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002E31B
+size = 0xAA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "bc6d6e71e4c333c59f8657250d42fd05d1f31649"
+
+[[function]]
+symbol = "?AnimationFinished@VinceEnterBoat@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x000301FA
+size = 0xD5
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "317f83157b22c834851542c1a7287451da99ff61"
+
+[[function]]
+symbol = "?AddSegment@FanBoatWake@@QAEXUVector3@@0@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x00030C3F
+size = 0xEE
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ab23d5f473bb6768fbe085f8c9b4fcdb86a53982"
+
+[[function]]
+symbol = "?AddLight@LightManager@@KAXPBVLightNode@@@Z"
+unit = "Xbox\\Official_Release\\SwampLight.obj"
+va = 0x000CD6AA
+size = 0x136
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "59a737a65c6141bd3e046ccfa7ffe5f66f96e10d"
+
+[[function]]
+symbol = "?GetAllLights@LightManager@@SAXAAUUberIlluminationInfo@@W4Who@1@@Z"
+unit = "Xbox\\Official_Release\\SwampLight.obj"
+va = 0x000CDC8C
+size = 0x109
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7e7403f0b79f5af7b5628fef3f7a840f41a2815a"
+
+[[function]]
+symbol = "?AddSphere@SwampDebugGeometry@@QAEPAVGeometryNode@@ABUVector3@@M0M@Z"
+unit = "Xbox\\Official_Release\\SwampDebugGeometry.obj"
+va = 0x000D4AE4
+size = 0x2CD
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "132b58b3f798f53fbd1cde9a46cad17287814dc5"
+
+[[function]]
+symbol = "?AddCylinder@SwampDebugGeometry@@QAEPAVGeometryNode@@ABUVector3@@MM_N0M@Z"
+unit = "Xbox\\Official_Release\\SwampDebugGeometry.obj"
+va = 0x000D4DB1
+size = 0x396
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8d0afa0845958103ba87b36a60c25f239d561e64"
+
+[[function]]
+symbol = "?CreateProp@VinceWhammyMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+va = 0x00135529
+size = 0x1DF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8dcb8426b9f30ea2ede05f742cfb276bc597c0f9"
+
+[[function]]
+symbol = "?RenderPointSprites@ParticleRenderer@@AAEXABVFFlyEmitter@@PBUFFlyParticle@@I@Z"
+unit = "Xbox\\Official_Release\\SwampFireFlyNode.obj"
+va = 0x000C6782
+size = 0x2B9
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7b403e8189069384eff088221321a29fee9beb0a"
+
+[[function]]
+symbol = "?RenderBillboards@ParticleRenderer@@AAEXABVFFlyEmitter@@PBUFFlyParticle@@I@Z"
+unit = "Xbox\\Official_Release\\SwampFireFlyNode.obj"
+va = 0x000C6A3B
+size = 0x381
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2b9cf8c40f4b7b091a40e54aa7d2d6b2ae8c0866"
+
+[[function]]
+symbol = "?BeginMirrorProcessing@DrawLevel@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C2624
+size = 0x165
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5d8894c3f3f7ce48aa6e40ae1215ff1dc61a2ffb"
+
+[[function]]
+symbol = "?_Growmap@?$deque@UWakeSegment@FanBoatWake@@V?$allocator@UWakeSegment@FanBoatWake@@@std@@@std@@IAEXI@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x00030A12
+size = 0x105
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ebf40c64548b60b7345bd7484ac55ac04500ee76"
+
+[[function]]
+symbol = "?Activate@FanBoatMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x000305AF
+size = 0x132
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "337826e7adcb5f05be1948f35560bf05e6f01030"
+
+[[function]]
+symbol = "?Render@FanBoatWake@@UBEXABUMatrix@@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002FF24
+size = 0x15D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "834c811ab656260121ed3eb597b663743dae9649"
+
+[[function]]
+symbol = "?SetState@CritterMain@@MAEXH@Z"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+va = 0x00018190
+size = 0xA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4347c7022a62da901eb10be8f9534f2110388a6f"
+
+[[function]]
+symbol = "?SeekRelative@ZipFileHandler@@UAEXH@Z"
+unit = "Xbox\\Official_Release\\BeepFile.obj"
+va = 0x0003717D
+size = 0xA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "16882f75ad0fc88270641ed562f585d07813f2a0"
+
+[[function]]
+symbol = "?Seek@ZipFileHandler@@UAEXH@Z"
+unit = "Xbox\\Official_Release\\BeepFile.obj"
+va = 0x00037291
+size = 0xA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "567458cf0866d77016bfbff4da77a9fd120238f5"
+
+[[function]]
+symbol = "?SeekFromEnd@ZipFileHandler@@UAEXH@Z"
+unit = "Xbox\\Official_Release\\BeepFile.obj"
+va = 0x00037367
+size = 0xD
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4830b8b491acb18cbe46c14d1e163334adac007d"
+
+[[function]]
+symbol = "?Initialize@FFlyControllerV3@@UAEXAAUVector3@@0@Z"
+unit = "Xbox\\Official_Release\\FFlyController.obj"
+va = 0x0006DEB5
+size = 0x11
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1b32f6f4d0e451fdab65c87b5f33686a1745a572"
+
+[[function]]
+symbol = "?Message@MainstreetRegionMain@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "Xbox\\OfficialRelease\\DocksMain.obj"
+va = 0x00070505
+size = 0xF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fdd7e81d43696113cba15618fcfc27352566b217"
+
+[[function]]
+symbol = "?Message@UIPageMain@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E0C5F
+size = 0x14
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f63ad6dbceaddc97a2ee33f3ff81893bdb3a03ea"
+
+[[function]]
+symbol = "?TimerEvent@WhammyResultDisintegrateMain@@UAEXI@Z"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+va = 0x001338F3
+size = 0xF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8c81c29a44b1a361556b6f8eadb4ae370451ff02"
+
+[[function]]
+symbol = "?DestroyCurrentLevel@LevelLoader@@QAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00104D14
+size = 0x130
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "6ec5bb19d8f3c1039e620c2e908da82d8f828201"
+
+[[function]]
+symbol = "?Disable@LightNode@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampLight.obj"
+va = 0x000CD586
+size = 0x35
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f6e02a07376c8cc5e19baaafad64b05c91c62c66"
+
+[[function]]
+symbol = "?FrameTick@LaundryCarMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\BasketCase.obj"
+va = 0x000A2B6B
+size = 0x60E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7130bccc218f037dfedc5ca7b3a54c64e141317d"
+
+[[function]]
+symbol = "?FrameTick@VinceBlowBack@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\Hannah.obj"
+va = 0x00029068
+size = 0x1E2
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0b81db862183bf209cf56f339169fdc1c8c1a538"
+
+[[function]]
+symbol = "?GetLevelStats@LevelLoader@@QAEPAVLevelStats@@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00105BED
+size = 0xC6
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f0ff92bcd51591a89868f2af2d7694e20bbacd8b"
+
+[[function]]
+symbol = "?GetVelocityToTarget@Critter@@QAE?AUVector3@@ABU2@0MM@Z"
+unit = "core\\XBox\\OfficialRelease\\Critter.obj"
+va = 0x000ECF71
+size = 0x10F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "670f77de70719a288a705e4a056473f108177ba3"
+
+[[function]]
+symbol = "?Load@CameraHelperRegionMain@@UAEXABVBeepTDF@@@Z"
+unit = "core\\XBox\\OfficialRelease\\VinceCam.obj"
+va = 0x0010DF74
+size = 0x519
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3f9a42597cf2898491b538fedbecd5345e362846"
+
+[[function]]
+symbol = "?Load@LevelStats@@QAEXABVBeepTDF@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x001063CA
+size = 0x267
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "dee1d103c094ba1e75a07d1e1fbfd0a17fbddf42"
+
+[[function]]
+symbol = "?Load@SignTrolleyMain@@UAEXABVBeepTDF@@@Z"
+unit = "core\\XBox\\OfficialRelease\\SignTrolley.obj"
+va = 0x0012F65C
+size = 0x115
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "07c12e6ac8e25718ddcfdde7ab09a076674edd74"
+
+[[function]]
+symbol = "?LoadZones@LevelLoader@@AAEXPAVLevel@@ABVBeepTDF@@AAVLoadScreen@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00104286
+size = 0x6C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7190a456308a4aa30ba2279344c66147220bc1bc"
+
+[[function]]
+symbol = "?RemapBogMaterial@ZoneNode@@IAEXPAUBogNode@@AAV?$map@IIU?$less@I@std@@V?$allocator@U?$pair@$$CBII@std@@@2@@std@@@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C4C0A
+size = 0xAB
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4a1dbafe93dfe0e35b19934e3f9c0fb4297e2d4f"
+
+[[function]]
+symbol = "?Remove@CameraManager@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\CameraManager.obj"
+va = 0x00109411
+size = 0x9F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a92b1f147cc66a7041e6658ea578371ef57897eb"
+
+[[function]]
+symbol = "?Remove@CritterManager@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Critter.obj"
+va = 0x000F0654
+size = 0x57
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1affe671d14f9fe6643023e828e64b6b6027de90"
+
+[[function]]
+symbol = "?Render@HealthUI@@UBEXABUMatrix@@@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E15BA
+size = 0x5A9
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1e0bde1e16ae4c66efbd8ca6f6f093be736eeff0"
+
+[[function]]
+symbol = "?Render@LivesUI@@UBEXABUMatrix@@@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E2A7B
+size = 0x147
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "23a5bce2eb4847bd37d131c9b3f5ec5efa6bb8b5"
+
+[[function]]
+symbol = "?Render@PagesUI@@UBEXABUMatrix@@@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000EA1DD
+size = 0x17D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ac46822876c1fd46296fbfe00dc4e0dceda86c70"
+
+[[function]]
+symbol = "?Save@LevelStats@@QAE?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00100E11
+size = 0x2AB
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c659ee430fa5ff348988f7647acb8c7c9235b33f"
+
+[[function]]
+symbol = "?SetBoneTable@ModelResource@@ABEXI@Z"
+unit = "Xbox\\Official_Release\\SwampModelResource.obj"
+va = 0x000BAAA2
+size = 0x4E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "edfd6bf28f7a2407ad5e66d5a8edc3bd4f19d024"
+
+[[function]]
+symbol = "?Spawn@FFlyEllipseSurf@@UAEHAAVFFlyEmitter@@PAUFFlyParticle@@MMI@Z"
+unit = "Xbox\\Official_Release\\FFlyEmitterSurface.obj"
+va = 0x0006F479
+size = 0x1A6
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9c69bdb79fc9e109f346678fe79e28ea2e002c9f"
+
+[[function]]
+symbol = "?Spawn@FFlySphereSurf@@UAEHAAVFFlyEmitter@@PAUFFlyParticle@@MMI@Z"
+unit = "Xbox\\Official_Release\\FFlyEmitterSurface.obj"
+va = 0x0006F2B5
+size = 0x1C4
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "873bd23685707a10396dc92152cc8bbd82933220"
+
+[[function]]
+symbol = "?TestLineSegmentCollision@RegionTrigger@@QBEXPAVSwampSceneNode@@ABUVector3@@1_N@Z"
+unit = "Xbox\\Official_Release\\RegionTrigger.obj"
+va = 0x000C9045
+size = 0x57E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "400ef9654db08613df00070ae2e79080136fa34f"
+
+[[function]]
+symbol = "?TossCrap@HannahMain@@AAEXXZ"
+unit = "Xbox\\OfficialRelease\\Hannah.obj"
+va = 0x0002A123
+size = 0x3CA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "cee8032d61e197bc7ff9cef5c4bb0a82bbe6143d"
+
+[[function]]
+symbol = "??0Bog@@QAE@PAX@Z"
+unit = "Xbox\\Official_Release\\SwampBog.obj"
+va = 0x000DF3E8
+size = 0x42
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a926321f158e2d35c6502f6ff57d328edbb14fc8"
+
+[[function]]
+symbol = "??0CollidableNode@@QAE@H@Z"
+unit = "Xbox\\Official_Release\\SwampCollide.obj"
+va = 0x000B1C8B
+size = 0x37
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5d3ead0bee1050865f79446c1298234b7b2d99eb"
+
+[[function]]
+symbol = "??0Level@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00104C71
+size = 0xA3
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "51c788441e39583a4d172a105987b5690f6a01ce"
+
+[[function]]
+symbol = "?Activate@MrsGMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\RatRaceRodeo.obj"
+va = 0x00067F08
+size = 0xDF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5df9ddb7dad650daa4153e6c1c82731fe72f7540"
+
+[[function]]
+symbol = "?AnimationTrigger@CrawdaddyMain@@UAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@MMI@Z"
+unit = "Xbox\\OfficialRelease\\BogWallow.obj"
+va = 0x0002C1DC
+size = 0xD3
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c918d13e49700253e1be6c7c76ff671d2fb725ce"
+
+[[function]]
+symbol = "?CalculateTrigger@AnimationResource@@QBEMHM@Z"
+unit = "Xbox\\Official_Release\\SwampAnimationResource.obj"
+va = 0x000D285D
+size = 0x72
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4dfbddfdb06399533b2b431d7cfdba4a00fac323"
+
+[[function]]
+symbol = "?CheckActivationRange@SwampScript@@QBE_NABUVector3@@0M@Z"
+unit = "Xbox\\Official_Release\\SwampScript.obj"
+va = 0x000AB654
+size = 0xEA
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "59c2159d4ed4693c44c630aafc25c21d933c96db"
+
+[[function]]
+symbol = "?IsPointInside@FogZone@@KA_NABUVector3@@PBU2@IPBG@Z"
+unit = "Xbox\\Official_Release\\FogZone.obj"
+va = 0x000D0BA2
+size = 0xF3
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9d57fccfaac06a48d104a87de3caabe6cb4b8cf7"
+
+[[function]]
+symbol = "?TimerEvent@TrailerFrogsMain@@UAEXI@Z"
+unit = "Xbox\\OfficialRelease\\TrailerFrogs.obj"
+va = 0x0003DC8D
+size = 0x82
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7d02c8110c7e95d01dd290fa442a9e7b61748820"
+
+[[function]]
+symbol = "?Update@SwampInput@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampInput.obj"
+va = 0x000ADE70
+size = 0x1AE
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a97818e66885b1a141ae3ffde45a0b55d81d8ef6"
+
+[[function]]
+symbol = "?GetDamageInfo@CritterManager@@QAE?AUDamageInfo@@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z"
+unit = "core\\XBox\\OfficialRelease\\Critter.obj"
+va = 0x000EF407
+size = 0x89
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e91f91091d136f74d7ead4067533ee1288afaadb"
+
+[[function]]
+symbol = "?FrameTick@SewingBulletMain@@UAEXXZ"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x0004137B
+size = 0x14B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "679f777c1fd69e122a9d90a5c23ee76cc325aee0"
+
+[[function]]
+symbol = "?RenderChunks@ZoneNode@@IBEXAAUFloodChunk@@ABUFrustum@@ABUVector3@@_N@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C4CB5
+size = 0x18D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "929ae79631fff60823f07d8935fc21ba5cfac586"
+
+[[function]]
+symbol = "?FindChapterStartLocator@@YA_NABU?$pair@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PAVLocator@@@std@@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x0010090A
+size = 0x40
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "bebf07ec0f9033087035c29bf3b368ecefb76cbc"
+
+[[function]]
+symbol = "?erase@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PAXU?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PAX@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@V312@@Z"
+unit = "Xbox\\OfficialRelease\\Init.obj"
+va = 0x00011B38
+size = 0x279
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e2995b6f27d57efbff2346946bf8517a7b56a20d"
+
+[[function]]
+symbol = "?_Growmap@?$deque@V?$ResourceHandle@VSoundResource@@@@V?$allocator@V?$ResourceHandle@VSoundResource@@@@@std@@@std@@IAEXI@Z"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x000592AA
+size = 0x116
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fe04d6013453d6a1e2d63b43fc891658d0d1346f"
+
+[[function]]
+symbol = "??Dconst_iterator@?$deque@UVector3@@V?$allocator@UVector3@@@std@@@std@@QBEABUVector3@@XZ"
+unit = "Xbox\\OfficialRelease\\Oven.obj"
+va = 0x0007B188
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7ab9be7f8d460f373619eada4bb7d942d837b027"
+
+[[function]]
+symbol = "??8const_iterator@?$vector@_NV?$allocator@_N@std@@@std@@QBE_NABV012@@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AE259
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "855e29a9e55e9d9714446ec6da1bb544a9448a58"
+
+[[function]]
+symbol = "??4reference@?$vector@_NV?$allocator@_N@std@@@std@@QAEAAV012@_N@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AE4D3
+size = 0x20
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "44ec67806f8a32d9d8fe4a45833a9751d4583fa7"
+
+[[function]]
+symbol = "??4reference@?$vector@_NV?$allocator@_N@std@@@std@@QAEAAV012@ABV012@@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000AE59D
+size = 0x24
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d633a4c215656ad9bef36c123ae636e604e6e2ed"
+
+[[function]]
+symbol = "??Dconst_iterator@?$deque@UBundle@SwampLoader@@V?$allocator@UBundle@SwampLoader@@@std@@@std@@QBEABUBundle@SwampLoader@@XZ"
+unit = "Xbox\\Official_Release\\SwampLoader.obj"
+va = 0x000DA765
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fd5306b5a0bf8f64550e51ef76e5d505f31734b8"
+
+[[function]]
+symbol = "??Dconst_iterator@?$deque@UUnpackJob@SwampLoader@@V?$allocator@UUnpackJob@SwampLoader@@@std@@@std@@QBEABUUnpackJob@SwampLoader@@XZ"
+unit = "Xbox\\Official_Release\\SwampLoader.obj"
+va = 0x000DA786
+size = 0x1E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "385e7bc326be5e52f7503c21f7464445f99c5d15"
+
+[[function]]
+symbol = "??Dconst_iterator@?$deque@VBSPQueryResultObject@@V?$allocator@VBSPQueryResultObject@@@std@@@std@@QBEABVBSPQueryResultObject@@XZ"
+unit = "Xbox\\Official_Release\\SwampBSP.obj"
+va = 0x000DE742
+size = 0x1E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ef33df8589fb283414e5d23a8c63a1620eac3ae7"
+
+[[function]]
+symbol = "??Dconst_iterator@?$deque@V?$ResourceHandle@VSoundResource@@@@V?$allocator@V?$ResourceHandle@VSoundResource@@@@@std@@@std@@QBEABV?$ResourceHandle@VSoundResource@@@@XZ"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x00057A0D
+size = 0x26
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "dee8920db06c1252c2f91fcccc69b163da0a882b"
+
+[[emitter]]
+symbol = "?pin_emit_BellMain_dtor@@YAXPAVBellMain@@@Z"
+unit = "Xbox\\OfficialRelease\\Bell.obj"
+reason = "odr-uses the implicit ~BellMain for the ??1 row; retail emits it via the unmatched ctor 0x0006C10A"
+
+[[emitter]]
+symbol = "?pin_emit_BlenderMain_dtor@@YAXPAVBlenderMain@@@Z"
+unit = "Xbox\\OfficialRelease\\Blender.obj"
+reason = "odr-uses the implicit ~BlenderMain for the ??1 row; retail emits it via an unmatched ctor"
+
+[[emitter]]
+symbol = "?pin_emit_GingerDeadManMain_dtor@@YAXPAVGingerDeadManMain@@@Z"
+unit = "Xbox\\OfficialRelease\\GingerDM.obj"
+reason = "odr-uses the implicit ~GingerDeadManMain for the ??1 row; retail emits it via the unmatched ctor 0x0007AA42"
+
+[[emitter]]
+symbol = "?pin_emit_OnionMain_dtor@@YAXPAVOnionMain@@@Z"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+reason = "odr-uses the implicit ~OnionMain for the ??1 row; retail emits it via the unmatched ctor 0x000196CA"
+
+[[emitter]]
+symbol = "?pin_emit_LevelEntry_copy@@YAXPAXABVLevelEntry@ChaptersMenu@@@Z"
+unit = "Xbox\\OfficialRelease\\FrontEndUI.obj"
+reason = "odr-uses the implicit LevelEntry copy ctor for its row; retail emits it from an unmatched caller"
+
+[[function]]
+symbol = "??1BlenderMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\Blender.obj"
+va = 0x0007914B
+size = 0x2C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "542f8da9d6fd81d0fcbc1b1130bb3592c1b5fd0f"
+
+[[function]]
+symbol = "??0?$list@UEvilWhammy@EvilVinceMain@@V?$allocator@UEvilWhammy@EvilVinceMain@@@std@@@std@@QAE@XZ"
+unit = "Xbox\\OfficialRelease\\EvilVince.obj"
+va = 0x00044C14
+size = 0x13
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "aee6cd34541ba8ec8e853f2c5153970bd33eab0a"
+
+[[function]]
+symbol = "?_Insert@?$list@UEvilWhammy@EvilVinceMain@@V?$allocator@UEvilWhammy@EvilVinceMain@@@std@@@std@@QAEXViterator@12@ABUEvilWhammy@EvilVinceMain@@@Z"
+unit = "Xbox\\OfficialRelease\\EvilVince.obj"
+va = 0x000451AE
+size = 0x2F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a714f76423d2e5ddcb25e891899c065cfc3f4238"
+
+[[function]]
+symbol = "??0LevelEntry@ChaptersMenu@@QAE@ABV01@@Z"
+unit = "Xbox\\OfficialRelease\\FrontEndUI.obj"
+va = 0x0013DEFD
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5f5f4e7fd03f3197ef949845d9b83992b8ffa153"
+
+[[function]]
+symbol = "?_Tidy@?$deque@UReggieTaunt@ReggieWreckageMain@@V?$allocator@UReggieTaunt@ReggieWreckageMain@@@std@@@std@@IAEXXZ"
+unit = "Xbox\\OfficialRelease\\GasPumps.obj"
+va = 0x0007FA7B
+size = 0x44
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "827b24bc061b5d2270cc158bc94a739eeb8a3d6c"
+
+[[function]]
+symbol = "??1BellMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\Bell.obj"
+va = 0x0006C20E
+size = 0x1F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "63773d2489eba0439ad4c562f2a41aa326e3669f"
+
+[[function]]
+symbol = "??1GingerDeadManMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\GingerDM.obj"
+va = 0x0007B04F
+size = 0x53
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5dcbc55264cf718247af4a2726c8b2f959637807"
+
+[[function]]
+symbol = "??$_Destroy_range@VAreaStats@@V?$allocator@VAreaStats@@@std@@@std@@YAXPAVAreaStats@@0AAV?$allocator@VAreaStats@@@0@U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+va = 0x00018B19
+size = 0x1B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8b44bf512b43f4a6a08754849912a36d2f5db2f7"
+
+[[function]]
+symbol = "??1OnionMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+va = 0x00019921
+size = 0x39
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f90bd7f536667a77e4a937f80a915dafdf43e384"
+
+[[function]]
+symbol = "??$_Destroy_range@VLevelStats@@V?$allocator@VLevelStats@@@std@@@std@@YAXPAVLevelStats@@0AAV?$allocator@VLevelStats@@@0@U_Nonscalar_ptr_iterator_tag@0@@Z"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+va = 0x0001995A
+size = 0x19
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1282a10c9463ea29c4187e756f93bd85cd3573fd"
+
+[[function]]
+symbol = "?TestActivate@Activator_FanBoatMain@@UBE_NXZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x0002FBB8
+size = 0xAF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f6373e3a59a6f9bea9a47662c440e61060f77bc4"
+
+[[function]]
+symbol = "??$_Uninitialized_fill_n@PAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@IV12@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@YAXPAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@IABV10@AAV?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@0@@Z"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x00030C0A
+size = 0x1D
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7349ac11463023310861cd418b210b4a5db0c110"
+
+[[function]]
+symbol = "?clear@?$_Tree@V?$_Tmap_traits@IV?$vector@V?$ResourceHandle@VSoundResource@@@@V?$allocator@V?$ResourceHandle@VSoundResource@@@@@std@@@std@@U?$less@I@2@V?$allocator@U?$pair@$$CBIV?$vector@V?$ResourceHandle@VSoundResource@@@@V?$allocator@V?$ResourceHandle@VSoundResource@@@@@std@@@std@@@std@@@2@$0A@@std@@@std@@QAEXXZ"
+unit = "Xbox\\OfficialRelease\\FanBoat.obj"
+va = 0x000328D6
+size = 0x26
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "400f329443da7bd1f44b655583e397b674d83a4e"
+
+[[function]]
+symbol = "?creationFunc@WallSwitchMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\WallSwitch.obj"
+va = 0x0007C457
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "455a89b238771076531029b2997a0f31e11e68ae"
+
+[[function]]
+symbol = "?creationFunc@RocketLabRegionMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\RocketLab.obj"
+va = 0x0009ECAD
+size = 0x24
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "45c9a0a60657ced5a2dd5155a9abbbee24d0910d"
+
+[[function]]
+symbol = "?creationFunc@FireRegionMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\FireRegion.obj"
+va = 0x00121A2B
+size = 0x24
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a56f96c3f6e15caf8e89dc13df1a0c794a1121d6"
+
+[[function]]
+symbol = "?creationFunc@SwitchSafeMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\SwitchSafe.obj"
+va = 0x0007ECF4
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "bb93fb96b590e725d380bc2f7d8ae6e1a3bff64d"
+
+[[function]]
+symbol = "?creationFunc@SwitchMuseumMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Switch.obj"
+va = 0x0008B9DA
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "46b2468c560703f0d8beba3074ae5f5d073dc4c5"
+
+[[function]]
+symbol = "?creationFunc@DialogueRegionMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\DialogueRegion.obj"
+va = 0x00122122
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "64a7b79190c23850986be61a97aba0fcafd4901e"
+
+[[function]]
+symbol = "?creationFunc@Bead3Main@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Bead.obj"
+va = 0x001266E2
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f43fb63fbba098ffc55200de2cf77df215addd95"
+
+[[function]]
+symbol = "??_GLocatorMain@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x0003FE18
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "910b231a1ec26243a9afbce5e4cee0e2674091dc"
+
+[[function]]
+symbol = "??_GWorldData@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C254C
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "bf5dd7bbce77978b660b9e0861d9637ab7670108"
+
+[[function]]
+symbol = "??_GZoneNode@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampWorld.obj"
+va = 0x000C4884
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "6943bf2f1fd17db6dd094ebf5e54a67ee03d73e9"
+
+[[emitter]]
+symbol = "?pin_emit_HeatShimmer_dtor@@YAXPAVHeatShimmer@@@Z"
+unit = "Xbox\\Official_Release\\HeatShimmer.obj"
+reason = "stores the HeatShimmer vptr; retail emits ??_7/??_GHeatShimmer here, the ctor is not matched"
+
+[[emitter]]
+symbol = "?pin_emit_LevelStats_assign@@YAXPAVLevelStats@@ABV1@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+reason = "odr-uses the implicit LevelStats::operator=; retail emits it here, no matched function uses it"
+
+[[emitter]]
+symbol = "?pin_emit_FogZone_dtor@@YAXPAVFogZone@@@Z"
+unit = "Xbox\\OfficialRelease\\SearchlightBeam.obj"
+reason = "odr-uses the inline ~FogZone; retail emits it via the SearchlightBeam ctor 0xAB4F9 and folded ??_G, not matched"
+
+[[function]]
+symbol = "??1VinceCam@@UAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\VinceCam.obj"
+va = 0x0010BB5F
+size = 0xB
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "74d9a78e4d31450c87a78483466b50315203cdd0"
+
+[[function]]
+symbol = "?EndScene@SwampRenderer@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampRenderer.obj"
+va = 0x000CA88D
+size = 0xD
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "45f6b81c4a0d635dd1109d5b3e64176341795a31"
+
+[[function]]
+symbol = "??0SwingHookManager@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\SwingHook.obj"
+va = 0x00126F40
+size = 0x12
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0076f86003ec38cb395c22ee1386550ea8f28983"
+
+[[function]]
+symbol = "??_U@YAPAXIPBDH@Z"
+unit = "Xbox\\Official_Release\\BeepAlloc.obj"
+va = 0x00033EB4
+size = 0x17
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0888e5d8853e4ecbc57afdf216b7f415a09cb68c"
+
+[[function]]
+symbol = "?LeavingRegion@FireRegionMain@@UAEXPAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\FireRegion.obj"
+va = 0x001219BE
+size = 0x17
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8b55c0c8384dc0069eefb3a9ed46a0f94f1edda8"
+
+[[function]]
+symbol = "??0FanHurricaneMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\FanHurricane.obj"
+va = 0x0002B465
+size = 0x83
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4006e33e45fd95b84f2c34b40c4b4791c5253eb8"
+
+[[function]]
+symbol = "??_GFanHurricaneMain@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\FanHurricane.obj"
+va = 0x0002B4E8
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "230e859cfe2e81825b656b8d8cb8ecd9bab2b72b"
+
+[[function]]
+symbol = "??0SafeHookRopeMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\SafeHookRope.obj"
+va = 0x0007E3AF
+size = 0x118
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "db1b20b744ba9f5c79d56e4c223f3bb236d356b7"
+
+[[function]]
+symbol = "??_GSafeHookRopeMain@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\SafeHookRope.obj"
+va = 0x0007E4C7
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d2c70a91bea4ddf34962f4c607aef04145c10394"
+
+[[function]]
+symbol = "??_GGatorNode@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000B0B93
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "115c2e594e1fceb0b391a0c90387dba5c44554c8"
+
+[[function]]
+symbol = "??0GatorNode@@QAE@ABV?$ResourceHandle@VModelResource@@@@@Z"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000B0DD5
+size = 0x22E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e39fc4af580cfbf89924ab5ca669fe665e479ee1"
+
+[[function]]
+symbol = "??0DebugGeometryNode@@QAE@XZ"
+unit = "Xbox\\Official_Release\\SwampDebugGeometry.obj"
+va = 0x000D39DE
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d1b7764762769d02527c0b71ed5fccc51b862555"
+
+[[function]]
+symbol = "??0FadeToBlack@@QAE@XZ"
+unit = "Xbox\\OfficialRelease\\InsideKosmobotCutscenes.obj"
+va = 0x0005481D
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8c8e0a18c4e7d4c2e2f7735066160c47c8677012"
+
+[[function]]
+symbol = "??_GHeatShimmer@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\HeatShimmer.obj"
+va = 0x000D0769
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f36bfd09d628fc2b25a26b923f84f5cb848b50f4"
+
+[[function]]
+symbol = "??_GCollidableNode@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampCollide.obj"
+va = 0x000B1E61
+size = 0x22
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5f88c990573907e1c8e46dffeae40bbd1c45b15f"
+
+[[function]]
+symbol = "??4LevelStats@@QAEAAV0@ABV0@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelLoader.obj"
+va = 0x00104810
+size = 0x25
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "147796ab89f5fc0811feb4236e5d4b889620496c"
+
+[[function]]
+symbol = "?SetPosition@IDirectSoundBuffer@@QAGJMMMK@Z"
+unit = "Xbox\\Official_Release\\SwampSoundResource.obj"
+va = 0x000B8FCA
+size = 0x29
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2765befba6e47e2c447c2d598333195b0bc80502"
+
+[[function]]
+symbol = "??1FogZone@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\SearchlightBeam.obj"
+va = 0x000AB4C7
+size = 0x32
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9cd100b5ec61c9926504ed5fd1889837e3429611"
+
+[[function]]
+symbol = "??0KosmoBotMidriffMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Kosmo.obj"
+va = 0x0004D24A
+size = 0x77
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0e058d8ffbe048503f2dc119a67052fb3f6ce469"
+
+[[function]]
+symbol = "??_GKosmoBotMidriffMain@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\Kosmo.obj"
+va = 0x0004D2C1
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "bff74b1224e78854b806ac2d7474a918f947a810"
+
+[[function]]
+symbol = "??0RegisterMe@RegionTrigger@@QAE@XZ"
+unit = "Xbox\\Official_Release\\RegionTrigger.obj"
+va = 0x000CA04F
+size = 0x3C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f224cb3703be29df9894de3891e3a7ef3a40c3b0"
+
+[[function]]
+symbol = "??0RegisterMe@GoldenJuneBugMain@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\GoldJuneBug.obj"
+va = 0x00131CB3
+size = 0x3C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c307e33e6cb2b7843849ce1c4a0fa7fdac290a3b"
+
+[[emitter]]
+symbol = "?pin_emit_ResourceHandle_TextureResource_delete@@YAXPAV?$ResourceHandle@VTextureResource@@@@@Z"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+reason = "deletes a ResourceHandle<TextureResource>; retail emits its ??_G here, no matched function deletes one (C0145, 5.3 T6.c12)"
+
+[[emitter]]
+symbol = "?pin_emit_OnionHud_dtor@@YAXPAVOnionHud@@@Z"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+reason = "odr-uses an implicit member of a matched row; emits it out of line (C0029, 5.3 T6.c12)"
+
+[[emitter]]
+symbol = "?pin_emit_CaptionLine_delete@@YAXPAUCaptionLine@FrontEndMenu@@@Z"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+reason = "deletes a CaptionLine; retail emits ??_GCaptionLine here, no matched function deletes one (C0145, 5.3 T6.c12)"
+
+[[emitter]]
+symbol = "?pin_emit_CaptionLine_assign@@YAXPAUCaptionLine@FrontEndMenu@@ABU12@@Z"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+reason = "odr-uses an implicit member of a matched row; emits it out of line (C0029, 5.3 T6.c12)"
+
+[[emitter]]
+symbol = "?pin_emit_WallSwitchMain_dtor@@YAXPAVWallSwitchMain@@@Z"
+unit = "Xbox\\OfficialRelease\\WallSwitch.obj"
+reason = "odr-uses the implicit WallSwitchMain dtor; retail emits it in this unit, ctor not matched"
+
+[[emitter]]
+symbol = "?pin_emit_ProgressHint_assign@@YAXPAUProgressHint@LevelScript@@ABU12@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelScript.obj"
+reason = "odr-uses the implicit LevelScript::ProgressHint::operator=; retail emits it in this unit"
+
+[[emitter]]
+symbol = "?pin_emit_ZombieMain_dtor@@YAXPAVZombieMain@@@Z"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+reason = "odr-uses the implicit ZombieMain dtor; retail emits it in this unit, ctors not matched"
+
+[[emitter]]
+symbol = "?pin_emit_ShootingUI_dtor@@YAXPAVShootingUI@@@Z"
+unit = "Xbox\\OfficialRelease\\ShootingCam.obj"
+reason = "odr-uses the implicit ~ShootingUI; retail emits it via a caller in this unit, not matched"
+
+[[emitter]]
+symbol = "?pin_emit_ScaleMain_dtor@@YAXPAVScaleMain@@@Z"
+unit = "Xbox\\OfficialRelease\\Scale.obj"
+reason = "odr-uses the implicit ~ScaleMain; retail emits it via a caller in this unit, not matched"
+
+[[emitter]]
+symbol = "?pin_emit_ResourceBundle_copy@@YAXPAXABUResourceBundle@?$ResourceManager@VTextureResource@@@@@Z"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+reason = "5.3 T6.c7: emits the implicit ResourceBundle copy ctor (0x000BDCC0)"
+
+[[emitter]]
+symbol = "?pin_emit_ResourceBundle_delete@@YAXPAUResourceBundle@?$ResourceManager@VTextureResource@@@@@Z"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+reason = "5.3 T6.c7: emits the ResourceBundle scalar deleting dtor (0x000BE020)"
+
+[[function]]
+symbol = "??0RegisterMe@HoldText@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\PowerIcon.obj"
+va = 0x00121CB3
+size = 0x3C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "af915d3cc396324dd85b337191bedf67932ff4bc"
+
+[[function]]
+symbol = "??0AreaLoadRegionMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\BumpercarBumpoff.obj"
+va = 0x0004DE90
+size = 0x3E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5773c96416a965fbb2f0f7a381ff17e93d38a3d1"
+
+[[function]]
+symbol = "??0VoodooShopVinceMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\VoodooShopVince.obj"
+va = 0x0013F3E8
+size = 0x3E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1e6b3d2ed9fce190731ebe3de431d15d814a78a6"
+
+[[function]]
+symbol = "??0ResourceBundle@?$ResourceManager@VTextureResource@@@@QAE@ABU01@@Z"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BDCC0
+size = 0x1A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8f31e7d7d984f0166c9ab3e70383edd657efb713"
+
+[[function]]
+symbol = "??_GResourceBundle@?$ResourceManager@VTextureResource@@@@QAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BE020
+size = 0x28
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4fa036afad39a93e721150104105a5f0c3836778"
+
+[[function]]
+symbol = "??0TeslaCoilUpperMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\TeslaCoils.obj"
+va = 0x0008C08E
+size = 0x9B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "422b8c110f6d250a335ddc6b92c4056b22a4c6e5"
+
+[[function]]
+symbol = "??_GTeslaCoilUpperMain@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\TeslaCoils.obj"
+va = 0x0008C129
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3668c29fd81b2291a77d5215d9ffd7c38fdcc7d4"
+
+[[function]]
+symbol = "??1TeslaCoilUpperMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\TeslaCoils.obj"
+va = 0x0008C145
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "96572d4c044d5b94566209662fab92aa97f4c137"
+
+[[function]]
+symbol = "??1WallSwitchMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\WallSwitch.obj"
+va = 0x0007C254
+size = 0x27
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "cb5f8adb251af2e33941e3ddd55e9b99c7b021df"
+
+[[function]]
+symbol = "??4ProgressHint@LevelScript@@QAEAAU01@ABU01@@Z"
+unit = "core\\XBox\\OfficialRelease\\LevelScript.obj"
+va = 0x000EC802
+size = 0x1F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fbaf2cca03c00591e58861883075d76908fd28fb"
+
+[[function]]
+symbol = "?StopStream@CutsceneDriver@@SAXXZ"
+unit = "core\\XBox\\OfficialRelease\\Cutscene.obj"
+va = 0x001086AE
+size = 0xB
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "917a60cb22838070b1a80c7e6e9a79a6df73c7b8"
+
+[[function]]
+symbol = "??1ZombieMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\ZombieGuidanceCounselor.obj"
+va = 0x00057F6E
+size = 0x2C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2c726ca13a142f0ff9fb4b6cd44582ee1a92275f"
+
+[[function]]
+symbol = "??1ShootingUI@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\ShootingCam.obj"
+va = 0x00057807
+size = 0x12
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ba94fbfd5b8a0b1200cb0ed5c3b5356041fda635"
+
+[[function]]
+symbol = "??1ScaleMain@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\Scale.obj"
+va = 0x0007BC8B
+size = 0x39
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "26ba1328aa21d655652b42f680d2dd459c57aa71"
+
+[[function]]
+symbol = "??1LightBeam@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\LightBeam.obj"
+va = 0x0006B053
+size = 0x3A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "50fdd8dc259dea8448444e875b5f892b8b4bf873"
+
+[[function]]
+symbol = "??_GLightBeam@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\LightBeam.obj"
+va = 0x0006B08D
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "eca075211cf424434c54f183195ff13794e1886e"
+
+[[function]]
+symbol = "??0LightBeam@@QAE@XZ"
+unit = "Xbox\\OfficialRelease\\LightBeam.obj"
+va = 0x0006B0A9
+size = 0x119
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4bf69218e8fef4f806b891e69ff36d53d589a268"
+
+[[function]]
+symbol = "??1LightNode@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampLight.obj"
+va = 0x000CD658
+size = 0x32
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "503d9a53c1e20b6b67904eecf613ff19e38b395c"
+
+[[function]]
+symbol = "??_GLightNode@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampLight.obj"
+va = 0x000CD859
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b7a00f80e77dc441feb8a7b88344bf571da44499"
+
+[[function]]
+symbol = "?EnteringRegion@RocketLabRegionMain@@UAEXPAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\RocketLab.obj"
+va = 0x0009DAB0
+size = 0x3E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5e28055dc1f6274ef40fc34f3bb91c8d2c635156"
+
+[[function]]
+symbol = "??1LocatorManager@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\Locator.obj"
+va = 0x0010B016
+size = 0x17
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e201b4f3c0ac72b353482322c32eb12d408b22ee"
+
+[[function]]
+symbol = "??0LocatorManager@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\Locator.obj"
+va = 0x0010B02D
+size = 0x12
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5c392352e06e5972a4aab60c40409ae31e0cd8ab"
+
+[[function]]
+symbol = "??0RegisterMe@AreaLoadLocatorMain@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\Locator.obj"
+va = 0x0010B03F
+size = 0x3C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ff00fd9a8b721351eee9a7b66ecefeeb0a724142"
+
+[[function]]
+symbol = "?LandDust@Particle@@YAXABUVector3@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Particle.obj"
+va = 0x0011FBE9
+size = 0x33
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b00c6d9a416fe13d946d0b31719d21da0e4bb564"
+
+[[function]]
+symbol = "?MonsterDeath@Particle@@YAXABUVector3@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Particle.obj"
+va = 0x0011FC1C
+size = 0x33
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c180d35552b4c383b85b39fe8bcccb59ca4465d4"
+
+[[function]]
+symbol = "??0Switch_ShimmerAMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\PropellerRoom.obj"
+va = 0x000A4408
+size = 0x1A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d31486067f1637584db59fc289056852362c6673"
+
+[[function]]
+symbol = "??0Switch_ShimmerBMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\PropellerRoom.obj"
+va = 0x000A4422
+size = 0x1A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f89e298e454c38a79415b58b3fcd61a41eeed353"
+
+[[function]]
+symbol = "??0Switch_ShimmerCMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\PropellerRoom.obj"
+va = 0x000A443C
+size = 0x1A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b6da54f7f4b15f0f782015339003ff922488dcb1"
+
+[[function]]
+symbol = "??0Switch_ShimmerDMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\PropellerRoom.obj"
+va = 0x000A4456
+size = 0x1A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "92fc2cd7604e6a1e4d9f83f88856a7b01c2e34f1"
+
+[[function]]
+symbol = "??1LevelEntry@ChaptersMenu@@QAE@XZ"
+unit = "Xbox\\OfficialRelease\\FrontEndUI.obj"
+va = 0x0013E21E
+size = 0x18
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b164ab6af7ddcf2090c2f06d0e4e7e10e82b161f"
+
+[[function]]
+symbol = "??_G?$ResourceHandle@VTextureResource@@@@QAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+va = 0x000181FB
+size = 0x20
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b1a707e08154238c3cc085f9f5eb352d3ea316d9"
+
+[[function]]
+symbol = "??1OnionHud@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+va = 0x00018A38
+size = 0x12
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2ec7bcca924750f94165ff4041991eda6e5ccf59"
+
+[[function]]
+symbol = "?GetAttackVectorTolerance@MonsterMain@@UAEMXZ"
+unit = "Xbox\\OfficialRelease\\Onion.obj"
+va = 0x000198FE
+size = 0x7
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "18f878b0693fdf0efee9d373ec60d43e9d7d0f3d"
+
+[[function]]
+symbol = "??_GCaptionLine@FrontEndMenu@@QAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+va = 0x00138DBB
+size = 0x20
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "969bd275cf7af29520e8635dba7b665405511fd0"
+
+[[function]]
+symbol = "??4CaptionLine@FrontEndMenu@@QAEAAU01@ABU01@@Z"
+unit = "Xbox\\OfficialRelease\\VoodooShop.obj"
+va = 0x00138FA3
+size = 0x1F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3f7600bd23fdf7a0d81fff55d18dcfcce1813aee"
+
+[[emitter]]
+symbol = "?pin_emit_WhammyResultFrozenMain_dtor@@YAXPAVWhammyResultFrozenMain@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+reason = "odr-uses the implicit ~WhammyResultFrozenMain; emits it out of line for its matched dtor row (C0029, 5.3 T6.c15)"
+
+[[emitter]]
+symbol = "?pin_emit_SkullUI_dtor@@YAXPAVSkullUI@@@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+reason = "odr-uses the implicit ~SkullUI (no vptr store); emits it out of line for its matched dtor row (C0029, 5.3 T6.c16)"
+
+[[function]]
+symbol = "??1WindyBits@@UAE@XZ"
+unit = "Xbox\\OfficialRelease\\Hannah.obj"
+va = 0x00029288
+size = 0x1E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "25a80f1a5f3a2e95c0d9b90f3057d363c9158f32"
+
+[[function]]
+symbol = "??_GWindyBits@@UAEPAXI@Z"
+unit = "Xbox\\OfficialRelease\\Hannah.obj"
+va = 0x0002942C
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d8b5d348320931955254ccd958cfb585d71753b8"
+
+[[function]]
+symbol = "??0GeometryNode@@QAE@XZ"
+unit = "Xbox\\Official_Release\\SwampShapes.obj"
+va = 0x000DBE96
+size = 0x3E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "80eb8048ad80c4ca667a1ac4a7655c79b2667137"
+
+[[function]]
+symbol = "??1GeometryNode@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampShapes.obj"
+va = 0x000DBED4
+size = 0x38
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7d5da7696f8604300e4292a2f32deee1dd44e5d4"
+
+[[function]]
+symbol = "??_GGeometryNode@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampShapes.obj"
+va = 0x000DC0EE
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "0f36bd72937a6ad04453fa0c43d5b5bdb37dd20a"
+
+[[function]]
+symbol = "??1FloatyBits@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampWater.obj"
+va = 0x001503DE
+size = 0x1E
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b6b7ee84fb63fb164b606c10081e8eed1b26d7bd"
+
+[[function]]
+symbol = "??1SwampWaterNode@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampWater.obj"
+va = 0x001507CE
+size = 0x43
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "31a3c57b3ea70158560f1eede78a176f60acdca9"
+
+[[function]]
+symbol = "??_GFloatyBits@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampWater.obj"
+va = 0x0015099F
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "ab450876b58ba02778e90faed0131ab90eff6f93"
+
+[[function]]
+symbol = "??_GSwampWaterNode@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampWater.obj"
+va = 0x001509BB
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7984080f1e1dd745dcd22e5e12d4be86eea874de"
+
+[[function]]
+symbol = "??_GSwampPuddle@@UAEPAXI@Z"
+unit = "Xbox\\Official_Release\\SwampWater.obj"
+va = 0x00151202
+size = 0x1C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2e4ab8c46eb0a056d9f35271aeaeb1eab30fc88d"
+
+[[function]]
+symbol = "??1SwampPuddle@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampWater.obj"
+va = 0x0015121E
+size = 0x36
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fd66d96d84a8a4b276b3ea32e25ef15e68f1398e"
+
+[[function]]
+symbol = "??1WhammyResultFrozenMain@@UAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\Whammy.obj"
+va = 0x001349D9
+size = 0x23
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3f248f9fca9bb5de354c552edf78316037751305"
+
+[[function]]
+symbol = "?GetPartner@ReggieMain@@UAEPAVCritter@@XZ"
+unit = "Xbox\\OfficialRelease\\GasPumps.obj"
+va = 0x00080177
+size = 0x36
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "abddac458cb4822c5a12b9e00df86f8be85bdb8e"
+
+[[function]]
+symbol = "?GetPartner@PrimoMain@@UAEPAVCritter@@XZ"
+unit = "Xbox\\OfficialRelease\\GasPumps.obj"
+va = 0x0008039C
+size = 0x36
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7b923780b90116ecdf79659d8605352afa244105"
+
+[[function]]
+symbol = "?AnimationFinished@PagesUIMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E439F
+size = 0x8
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f0ea1237f2c25ef61e79ef0fc85935a302e37901"
+
+[[function]]
+symbol = "??1SkullUI@@UAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E8485
+size = 0x2C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1245528c1c97d4772fae978829525336bca0054b"
+
+[[function]]
+symbol = "??0LevelStats@@QAE@ABV0@@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E9769
+size = 0x21
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "68bc884a95cd65213cefec4f8e51733321e5ab7f"
+
+[[function]]
+symbol = "?DeathFX@MondoMoleMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\MondoMole.obj"
+va = 0x0011FF92
+size = 0x4A
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "900c0ee5ee1309cfe5678f1d060a30fde8cf63db"
+
+[[function]]
+symbol = "??0Switch_TrailerFrogsMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\TrailerFrogs.obj"
+va = 0x0003DA1F
+size = 0x53
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "d989ad83293be8c61daef0abfe0eb9d5de8ea79b"
+
+[[function]]
+symbol = "??0DoorRockBlockMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\MainTunnel.obj"
+va = 0x000A0417
+size = 0x59
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "3fa4177570a4de3c7e02994c507d28e3be543c4d"
+
+[[function]]
+symbol = "?Message@VinceExitTrolley@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "core\\XBox\\OfficialRelease\\Trolley.obj"
+va = 0x00130C3D
+size = 0x5B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "dc5f0df9ee655e9338fadd3e686d2f01a606e201"
+
+[[function]]
+symbol = "??0SwingHookTargetMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\SwingHook.obj"
+va = 0x00126F63
+size = 0x61
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "890e792aefd7f98c2c2772bd10bad183ca262cc0"
+
+[[function]]
+symbol = "??0BasicWallSwitchMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\Switch.obj"
+va = 0x0010F36E
+size = 0x66
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "2a29787be334e856a17940c734f2b70b477563b2"
+
+[[function]]
+symbol = "??0LighthouseMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\HurricaneHannah.obj"
+va = 0x000282AB
+size = 0x74
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "cf3af4d432e54a2fe6f4b53951d5ff65021cdb5f"
+
+[[function]]
+symbol = "??0Switch_DoorOuthouseMain@@AAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Outhouse.obj"
+va = 0x00022AA5
+size = 0x78
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "30fa013dcf1123e00927ffa9e03065ca5eb1c06f"
+
+[[function]]
+symbol = "??0TargetSwitchMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\ScareHouse.obj"
+va = 0x00041C3C
+size = 0x79
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8de104974bffa73ba307f80408cede3b6c1d7dbc"
+
+[[function]]
+symbol = "??0Switch_ShipDoorMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\jeanlafittesship.obj"
+va = 0x00022D90
+size = 0x7F
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fcf5cf55467a21ff641f864bb9f053d903169101"
+
+[[function]]
+symbol = "??0Switch_PropellerMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\PropellerRoom.obj"
+va = 0x000A42A7
+size = 0x50
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4971fd7881e2420a5c17a85a37c2e7eef52e3283"
+
+[[function]]
+symbol = "??0Switch_ShimmerMain@@QAE@PAVSwampSceneNode@@D@Z"
+unit = "Xbox\\OfficialRelease\\PropellerRoom.obj"
+va = 0x000A4358
+size = 0x52
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "de46c5415c6d79f018ed1b399b51f9f3d57415bf"
+
+[[function]]
+symbol = "?EnteringRegion@OnBotRegionMain@@UAEXPAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Kosmo.obj"
+va = 0x0004B162
+size = 0x5B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "38e2acbe592c8780ecf28c31131d4e6d8ab39c06"
+
+[[function]]
+symbol = "?LeavingRegion@OnBotRegionMain@@UAEXPAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Kosmo.obj"
+va = 0x0004B1BD
+size = 0x5B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4d2ac735c6bcc62cc8dd91bfe4ed8859175b028e"
+
+[[function]]
+symbol = "?Message@VincePlayHorn@@UAEXPAVSwampScript@@HPAX@Z"
+unit = "Xbox\\OfficialRelease\\theSquare.obj"
+va = 0x00072136
+size = 0x5B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1158cdb165f4d941451576a34dd339c1ff0af938"
+
+[[function]]
+symbol = "?LeavingRegion@StoreDialogueRegionMain@@UAEXPAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\theSquare.obj"
+va = 0x0007395E
+size = 0x5B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4150a65a367abe67199e17557d1bc6eb131fe703"
+
+[[function]]
+symbol = "?CollectGarbage@?$ResourceManager@VAnimationResource@@@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BF36B
+size = 0x59
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "eb75f645a70891ecd5ec57a104126c8d7c196bfa"
+
+[[function]]
+symbol = "?CollectGarbage@?$ResourceManager@VFireFlyResource@@@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BF3C4
+size = 0x59
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "87686814f4ee5cccf3d5739e364443eee394c4af"
+
+[[function]]
+symbol = "?CollectGarbage@?$ResourceManager@VRumbleResource@@@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BF41D
+size = 0x59
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "7a1ef72bc34e013d51eaddd62e1da76dbf2d31d8"
+
+[[function]]
+symbol = "?CollectGarbage@?$ResourceManager@VMaterialResource@@@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BF476
+size = 0x59
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "6ac383280c576b0af994b5e6df34e70e5d4099df"
+
+[[function]]
+symbol = "?CollectGarbage@?$ResourceManager@VModelResource@@@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BF4CF
+size = 0x59
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8abb58922f300824811c30ba49930547571e46b2"
+
+[[function]]
+symbol = "?CollectGarbage@?$ResourceManager@VTextureResource@@@@QAEXXZ"
+unit = "Xbox\\Official_Release\\SwampResourceManager.obj"
+va = 0x000BF581
+size = 0x59
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "297a647057d1f3aeb7ae48746b33700e4c4c5073"
+
+[[function]]
+symbol = "??0HelpUI@@QAE@XZ"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E1E7D
+size = 0x4C
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "508b3cd05b9c86450c8dbbaba2e3177946f96a88"
+
+[[function]]
+symbol = "??0UIPageMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E2993
+size = 0x74
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "1335a674b48ff76a9ef5d47724e2634e38743d43"
+
+[[function]]
+symbol = "?AnimationFinished@UIBagIconMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E3E3B
+size = 0x53
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "fac26c5d74693ac307800be6197151e79fb5f995"
+
+[[function]]
+symbol = "?AnimationFinished@UIHeartIconMain@@UAEXXZ"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E4429
+size = 0x53
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9de65912ef0603fae405d60f4b60e6ff4e831c69"
+
+[[function]]
+symbol = "??0WheelPlatformAMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\MainTunnel.obj"
+va = 0x0009FB0D
+size = 0xB6
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "c4d2ddf04386fcf3f898e22b870ca0edf3920a69"
+
+[[function]]
+symbol = "??0ReverseElevatorMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\MainTunnel.obj"
+va = 0x0009FC4C
+size = 0xEF
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "febb66c2d28a8ac03ab857d7823e85349338f0b1"
+
+[[function]]
+symbol = "??0ArmorDilloChuteMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\MainTunnel.obj"
+va = 0x0009FDAF
+size = 0x103
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "5badf260e4d3cfb01b8bd7e0d619f43b6a1e879c"
+
+[[function]]
+symbol = "?Render@Beret@@UBEXABUMatrix@@@Z"
+unit = "Xbox\\OfficialRelease\\theSquare.obj"
+va = 0x00071A17
+size = 0x89
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "04a42e4bae807d118e4dcbb63b5ef311ee754296"
+
+[[function]]
+symbol = "??0MuseumGateMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\theSquare.obj"
+va = 0x00071F8F
+size = 0xD0
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b848846e17d0dc3ccfb1527b3c6933a407e9e2a6"
+
+[[function]]
+symbol = "??0SwampWaterNode@@QAE@ABV?$ResourceHandle@VModelResource@@@@ABV?$ResourceHandle@VMaterialResource@@@@MI@Z"
+unit = "Xbox\\Official_Release\\SwampWater.obj"
+va = 0x0015132B
+size = 0x16B
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "52d9a72f8c22e651496fa669b611ac3b2d5ffefd"
+
+[[function]]
+symbol = "??1GatorNode@@UAE@XZ"
+unit = "Xbox\\Official_Release\\SwampGatorNode.obj"
+va = 0x000B051A
+size = 0x122
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "e8020a579020d3e8b89e4aa0c937d1985c522d65"
+
+[[function]]
+symbol = "??0UIBonusBagMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\HUDUI.obj"
+va = 0x000E3C23
+size = 0xDE
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "4695c76f00d2105f1962b7127e6867aac315dc26"
+
+[[function]]
+symbol = "??0SwitchSafeMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\SwitchSafe.obj"
+va = 0x0007EA26
+size = 0xB7
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "eaebc717c76d1548da6c390f805460e2a147303c"
+
+[[function]]
+symbol = "??0CannonCartMain@@AAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Cannon.obj"
+va = 0x0005DEDB
+size = 0xB7
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "b8f548c7f4db2d443de00fef7b3857cda85fc724"
+
+[[function]]
+symbol = "??0MondoMoundMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "core\\XBox\\OfficialRelease\\MondoMole.obj"
+va = 0x001209EA
+size = 0xB0
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "dbbd3c4dd8215e2333b94cbcb9967c28848b35cd"
+
+[[function]]
+symbol = "??0SearchlightBeam@@QAE@HABUQuaternion@@@Z"
+unit = "Xbox\\OfficialRelease\\SearchlightBeam.obj"
+va = 0x000AB4F9
+size = 0xA2
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "8b8879a9dc4b2587e43d4f3a4a3ff08f45112cb6"
+
+[[function]]
+symbol = "??0GateTrapMain@@QAE@PAVSwampSceneNode@@@Z"
+unit = "Xbox\\OfficialRelease\\Mainstreet.obj"
+va = 0x00070C74
+size = 0x99
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "a2d82da1fa5740c10fb881bd960ee9879ccbb7a5"
+
+[[function]]
+symbol = "??0SwampLightningFlash@@QAE@IMM@Z"
+unit = "Xbox\\Official_Release\\SwampLightning.obj"
+va = 0x000D08E1
+size = 0x92
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "f286748d2b394cb2cee346f4d760d8041dfdf86a"
+
+[[function]]
+symbol = "??0VinceGiblets@@QAE@ABV?$ResourceHandle@VModelResource@@@@@Z"
+unit = "Xbox\\OfficialRelease\\Blender.obj"
+va = 0x00078D86
+size = 0xD3
+xbe_sha1 = "2953b78229018a34e7f53e85bd34f124d51ef210"
+body_sha1 = "9510b46abc29dc7c4c0c4b1c29d9d3ef4e81d8de"

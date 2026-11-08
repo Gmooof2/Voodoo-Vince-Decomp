@@ -243,7 +243,7 @@ void PitFrogMain::Load(const BeepTDF& tdf)
     }
     Vector3 patrolCenter = GetPitFrog()->_homePosition;
     if (_haspit) {
-        // !FAKE: inliner; pointer locals and hand form of the inlined Vector3 scale and difference (no PDB free
+        // !FAKE: inliner; pointer locals and hand form of the inlined Vector3 scale and difference; no PDB free
         // operator, D78); direct member reads score 98.05, the C0191 pointer locals 100.0
         const Vector3* v2 = &_landingFacing;
         Vector3 v0(v2->x * 1.75f, v2->y * 1.75f, v2->z * 1.75f);
@@ -279,6 +279,6 @@ SwampString PitFrogMain::Save()
 // NAME: proto-pdb:default.pdb
 SwampScript* PitFrogMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\PitFrog.h", 13) PitFrogMain(node);
 }

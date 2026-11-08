@@ -100,7 +100,7 @@ DECOMP_SIZE_ASSERT(VinceWalkIn, 0x58);
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceWalkIn::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\VinceWalkIn.h", 6) VinceWalkIn(node);
 }
 

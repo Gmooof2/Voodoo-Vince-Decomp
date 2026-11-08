@@ -1,6 +1,6 @@
 """Seed and check the retail unit config and symbol file (T10, phase 1.3).
 
-CLI: units_seed.py --write [--force] | --check | --route --class C [--apply]   [--config P]
+CLI: units_seed.py --write [--force] | --check | --route --class C [--apply] [--unit N] | --controls   [--config P]
   --write: one unit per default.pdb module (689). Ownership from proto exec section contributions (runs of
     consecutive same-module records); main run = run with most own-proc bytes; edges pinned by LIS anchors over
     proto_map identical hits==1 rows and by anchor-window resolved ambiguous run-edge procs (anchor | neighbour |
@@ -11,7 +11,9 @@ CLI: units_seed.py --write [--force] | --check | --route --class C [--apply]   [
   --route --class C [--apply] (3.2 T8): T1's unit-edge route (docs/evidence/units.md "Unit-edge route") over the
     game units whose last seed item is in class C (ROUTE_CLASSES order); edges by `pin` (disasm-verified pin of the
     edge proc's PDB public), `chain`, `chain-neighbour`, `neighbour-fixed` (4.4 T8: the adjacent run's unit, proto
-    link order, has its facing edge fixed in units.toml and that VA lies in our own anchor gap); outside procs
+    link order, has its facing edge fixed in units.toml and that VA lies in our own anchor gap), `near-pin` /
+    `near-candidate` (5.2 T2, M27: near-identical edge proc by a disasm-verified pin at retail size, or by its
+    candidateVA as the Ghidra entry next to the neighbour's; class `near-edge`); outside procs
     explained as `moved` (between LIS anchors of one other unit's main run) or as another unit's chain proc; gap
     scans uncapped. Dry run prints the verdicts;
     --apply edits units.toml per unit block (released: range, edges, delink = true; kept: delink_reason
@@ -21,6 +23,7 @@ Exit: 0 ok; 1 validation or sum check failed; 2 refusal (input missing or != pin
 """
 import argparse
 import bisect
+import copy
 import hashlib
 import json
 import re
@@ -46,12 +49,23 @@ CNT_CODE = 0x20000000
 XBE_EXEC = 0x4
 KINDS = ("game", "xdk", "linker", "unknown")
 D120_WHY = ("copy in a gap between unit ranges", "copy bracketed by anchors of two different units")
-EDGE_OK = ("anchor", "neighbour", "window", "neighbour-window", "chain", "chain-neighbour", "pin", "neighbour-fixed")
+# 5.2 T2 (coordinator ruling on the O11 question): outside copies explained by one exact (unit index, retail VA) entry
+# each, with its evidence; never a widening of the bracket rule (control explained-va-exact: the same shape at any other
+# VA or unit still stops). Whammy#460's copy is kept out of its range (4.4 cut stands, name-only), never its own.
+EXPLAINED_VA = {
+    (460, 0x001338E4): "WhammyResultFlattenMain::TimerEvent 15 B at Roach.obj#505's chain end (units.md:117), directly "
+                       "against Whammy's first anchor 0x001338F3: not a stray between two other units; Whammy's 4.4 "
+                       "cut stands unchanged, the copy is not Whammy's own (5.2 T2)",
+}
+EDGE_OK = ("anchor", "neighbour", "window", "neighbour-window", "chain", "chain-neighbour", "pin", "neighbour-fixed",
+           "near-pin", "near-candidate")
 # was ("anchor", "neighbour", "window", "neighbour-window", "chain", "chain-neighbour"); 3.2 T8 adds `pin` (route);
-# 4.4 T8 adds `neighbour-fixed` (route: the adjacent run's unit has its facing edge fixed in units.toml)
+# 4.4 T8 adds `neighbour-fixed` (route: the adjacent run's unit has its facing edge fixed in units.toml);
+# 5.2 T2 (M27) adds `near-pin` (form a) and `near-candidate` (form b) for near-identical edge procs
 ROUTE_CLASSES = ("inconsistent", "end-ambiguous", "start-ambiguous", "near-identical", "identical", "excluded",
-                 "no-range")
-# was (... "identical", "excluded"); 3.2 T9 adds `no-range` (game units with no anchor in the main run; pin anchors)
+                 "no-range", "near-edge")
+# was (... "identical", "excluded"); 3.2 T9 adds `no-range` (game units with no anchor in the main run; pin anchors);
+# 5.2 T2 adds `near-edge` (every gate item routable, one of class 1-3: an ambiguous or near-identical edge; M27)
 PINS = REPO / "config" / "retail" / "symbols_pin.txt"
 SOURCES = ("proto-pdb:default.pdb", "proto-exe", "xbsymdb", "ghidra")
 STATUSES = ("unverified", "verified")
@@ -800,10 +814,15 @@ class Route:
             if 1 <= p["seg"] <= len(secs):
                 self.pubs[base + secs[p["seg"] - 1]["va"] + p["off"]].append(p["name"])
         self.pins = {}  # name -> va, disasm-verified func pins only (D78: site-corr/unverified/boundary never fix)
+        self.pin_st, self.pin_size = {}, {}  # 5.2 T2: every func pin name -> (va, status); size field (None for -)
         for line in PINS.read_text(encoding="utf-8").splitlines():
             f = line.split(" ")
             if not line.startswith("#") and len(f) == 6 and f[1] == "func" and f[5] == "disasm-verified":
                 self.pins.setdefault(f[3], int(f[0], 16))
+            if not line.startswith("#") and len(f) == 6 and f[1] == "func" and (
+                    f[3] not in self.pin_st or f[5] == "disasm-verified" != self.pin_st[f[3]][1]):
+                self.pin_st[f[3]] = (int(f[0], 16), f[5])
+                self.pin_size[f[3]] = None if f[2] == "-" else int(f[2], 16)
         self.pin_at = {v: n for n, v in self.pins.items()}
         self.pub_va = {n: v for v, ns in self.pubs.items() for n in ns}
         self.gf = sorted((int(r["entry"], 16), r["size"]) for r in d["funcs"])
@@ -813,10 +832,17 @@ class Route:
         self.cur = {u["index"]: u for u in cur}  # 4.4 T8: units.toml state, read by neighbour_fixed
         self.xsecs = [s for s in d["x"]["sections"] if s["flags"] & XBE_EXEC]
         self._chains, self._cpv = {}, None
+        self.explained = EXPLAINED_VA  # 5.2 T2: exact-VA explained entries (controls replace the dict)
 
     def unit_at(self, v):
         k = bisect.bisect_right(self.rstarts, v) - 1
         return self.ranged[k] if k >= 0 and v < self.ranged[k]["text_end"] else None
+
+    def containing_cut(self, v):  # D125 record: the units.toml unit whose range holds v, if it is cut (delink true)
+        r = self.unit_at(v)
+        if r is None:
+            return "none"
+        return _short(r) if self.cur[r["index"]].get("delink") is True else f"none (in range of {_short(r)}, uncut)"
 
     def bracket(self, v):  # nearest LIS anchors (retail VA order) at/below and above v
         k = bisect.bisect_right(self.ancv, v) - 1
@@ -936,6 +962,9 @@ class Route:
         q = pl[-1] if side == "end" else pl[0]
         if side == "end" and q["off"] + q["len"] != main["end"] or side == "start" and q["off"] != main["start"]:
             return None
+        r = self.byva.get(q["va"])
+        if r is not None and r["class"] == "near-identical":  # 5.2 T2: near_pin sizes it (retail size, not proto len)
+            return None
         lo, hi = self.anchor_gap(u, side)
         for n in self.pubs.get(q["va"], ()):
             if n in self.pins:
@@ -972,6 +1001,141 @@ class Route:
             gap = f"0x{lo:08X}-0x{hi:08X}" if lo is not None else "none"
             return None, f"neighbour {_short(nb)} {far} {ek} 0x{v:08X} outside own anchor gap {gap}"
         return v, f"neighbour {_short(nb)} {far} {ek} 0x{v:08X} (units.toml) in own anchor gap 0x{lo:08X}-0x{hi:08X}"
+
+    def _edge_proc(self, u, side):  # the main run's first (start) / last (end) proc, None when the run edge is no proc's
+        main = u["_main"]
+        q = main["procs"][-1 if side == "end" else 0]
+        if side == "end" and q["off"] + q["len"] != main["end"] or side == "start" and q["off"] != main["start"]:
+            return None
+        return q
+
+    def _entry(self, v):  # -> Ghidra function size when v is a Ghidra entry, else None
+        k = bisect.bisect_left(self.gfa, v)
+        return self.gf[k][1] if k < len(self.gfa) and self.gfa[k] == v else None
+
+    def near_pin(self, u, side):
+        """5.2 T2 `near-pin` (M27 form a): the near-identical edge proc's PDB public has a disasm-verified func pin in
+        own anchor gap; size = the pin line's size field, else the Ghidra function size at the pin VA, else refuse
+        (never the proto length). Edge = pin VA (start) / pin VA + size (end). -> (VA, evidence) or (None, why)."""
+        q = self._edge_proc(u, side)
+        if q is None:
+            return None, f"run {side} is no proc {side}"
+        r = self.byva.get(q["va"])
+        if r is None or r["class"] != "near-identical":
+            return None, f"edge proc class {r['class'] if r else 'none'}"
+        lo, hi = self.anchor_gap(u, side)
+        why = []
+        for n in self.pubs.get(q["va"], ()):
+            if n not in self.pin_st:
+                continue
+            v, st = self.pin_st[n]
+            if st != "disasm-verified":  # D78: site-corr/unverified/boundary pins never fix an edge
+                why.append(f"pin {n[:60]} 0x{v:08X} status {st}")
+                continue
+            sz = self.pin_size.get(n)
+            sz = self._entry(v) if sz is None else sz
+            if sz is None:
+                why.append(f"pin {n[:60]} 0x{v:08X} has no size field and is no Ghidra entry")
+                continue
+            if lo is None or not (lo <= v and v + sz <= hi):  # C0257: a folded pin elsewhere is no edge
+                why.append(f"pin {n[:60]} 0x{v:08X}+0x{sz:X} outside own anchor gap")
+                continue
+            return (v + sz if side == "end" else v), \
+                f"pin {n[:60]} 0x{v:08X}+0x{sz:X} (retail size) in own anchor gap 0x{lo:08X}-0x{hi:08X}"
+        return None, "; ".join(why)
+
+    def _claimed(self, x, own, q):  # another proto_map row's candidateVA / hits-1 targetVA at x, or another's pin
+        for r in self.byva.values():
+            if r is own:
+                continue
+            if (r["candidateVA"] and int(r["candidateVA"], 16) == x) or \
+                    (r["hits"] == 1 and r["targetVAs"] and int(r["targetVAs"][0], 16) == x):
+                p = int(r["protoVA"], 16)
+                return f"{self.proc[p]['name'][:40] if p in self.proc else 'row'} proto 0x{p:08X} ({r['class']})"
+        mine = set(self.pubs.get(q["va"], ()))
+        for n, v in self.pins.items():
+            if v == x and n not in mine:
+                return f"pin {n[:60]}"
+        return None
+
+    def near_candidate(self, u, side):
+        """5.2 T2 `near-candidate` (M27 form b): our near-identical edge proc's candidateVA cv is a Ghidra entry (size
+        n); the adjacent run in proto link order is another unit's main run whose facing edge proc is near-identical
+        with candidateVA cv2, and cv2 is the Ghidra entry next to cv (end: cv + n == cv2; start: cv2 + size == cv),
+        no entry between; neither VA is claimed by another row or pin; both procs lie in their own unit's anchor gap.
+        Never relies on masked-equal bytes. Edge = cv2 (end) / cv (start). -> (VA, evidence) or (None, verdict)."""
+        q = self._edge_proc(u, side)
+        if q is None:
+            return None, f"run {side} is no proc {side}"
+        r = self.byva.get(q["va"])
+        if r is None or r["class"] != "near-identical" or not r["candidateVA"]:
+            c = r["class"] if r else "none"
+            return None, f"class {c}, candidateVA null: no form (b)" if c == "ambiguous" else f"edge proc class {c}"
+        cv = int(r["candidateVA"], 16)
+        n = self._entry(cv)
+        if n is None:
+            return None, f"no Ghidra entry at 0x{cv:08X}"
+        main = u["_main"]
+        run = main["next"] if side == "end" else main["prev"]
+        far = "start" if side == "end" else "end"
+        nb = self.seed.get(run["module"]) if run is not None else None
+        if nb is None or nb["index"] == u["index"] or nb.get("_main") is not run:
+            return None, "no near-identical neighbour edge (adjacent run is no other unit's main run)"
+        q2 = self._edge_proc(nb, far)
+        r2 = self.byva.get(q2["va"]) if q2 is not None else None
+        if r2 is None or r2["class"] != "near-identical" or not r2["candidateVA"]:
+            return None, f"no near-identical neighbour edge ({_short(nb)} {far}: " \
+                         f"{r2['class'] if r2 else 'no proc edge'})"
+        cv2 = int(r2["candidateVA"], 16)
+        n2 = self._entry(cv2)
+        nm2 = f"{_short(nb)} {q2['name'][:40]} 0x{cv2:08X}"
+        if n2 is None:
+            return None, f"not adjacent to {nm2} (neighbour candidate no Ghidra entry)"
+        k = bisect.bisect_left(self.gfa, cv)
+        k2 = bisect.bisect_left(self.gfa, cv2)
+        gap, nxt = (cv2 - (cv + n), k2 == k + 1) if side == "end" else (cv - (cv2 + n2), k2 == k - 1)
+        if gap != 0 or not nxt:
+            return None, f"not adjacent to {nm2} (gap {gap})"
+        for x, rr, qq in ((cv, r, q), (cv2, r2, q2)):
+            c = self._claimed(x, rr, qq)
+            if c is not None:
+                return None, f"0x{x:08X} claimed by {c}"
+        for uu, sd, a, sz in ((u, side, cv, n), (nb, far, cv2, n2)):
+            lo, hi = self.anchor_gap(uu, sd)
+            if lo is None or not (lo <= a and a + sz <= hi):
+                gs = f"0x{lo:08X}-0x{hi:08X}" if lo is not None else "none"
+                return None, f"0x{a:08X}+0x{sz:X} outside {_short(uu)} {sd} anchor gap {gs}"
+        return (cv2 if side == "end" else cv), \
+            f"candidate {q['name'][:40]} 0x{cv:08X}+0x{n:X} (Ghidra entry) next to {nm2}, no entry between, both in " \
+            f"own anchor gaps"
+
+    def m27_text(self, u, side, nn):  # 5.2 T5: the M27 search of a kept edge, one reason item (no "; " inside)
+        if nn:
+            return "M27 " + nn[len("near-edge "):].replace("; ", ", ")
+        q = self._edge_proc(u, side)
+        if q is None:
+            return f"M27 {side}: run edge is no proc's, no form"
+        r = self.byva.get(q["va"])
+        return f"M27 {side}: {q['name'][:48]} proto 0x{q['va']:08X} " + \
+            (f"class {r['class']}, not ambiguous or near-identical, no form" if r else "not in proto_map, no form")
+
+    def near_note(self, u, side, why_a, why_b):  # kept edge: what form (a)/(b) would need; None unless amb./near-id.
+        q = self._edge_proc(u, side)
+        r = self.byva.get(q["va"]) if q is not None else None
+        if r is None or r["class"] not in ("ambiguous", "near-identical"):
+            return None
+        cand = r["candidateVA"]
+        pubs = self.pubs.get(q["va"], ())
+        a = f"needs disasm-verified pin {(pubs[0] if pubs else q['name'])[:60]}" + \
+            (f" at 0x{int(cand, 16):08X}" if cand else "")
+        st = [f"pin {n[:60]} 0x{self.pin_st[n][0]:08X} status {self.pin_st[n][1]}" for n in pubs
+              if n in self.pin_st and self.pin_st[n][1] != "disasm-verified"]
+        if r["class"] == "near-identical":  # near_pin's refusals name present pins (status, size, gap)
+            a += f"; present {why_a}" if why_a else ""
+        else:
+            a += "".join(f"; present {x}" for x in st)
+        return f"near-edge {side}: {q['name'][:48]} proto 0x{q['va']:08X} class {r['class']} candidateVA " \
+               f"{('0x%08X' % int(cand, 16)) if cand else 'null'}; form (a): {a}; form (b): {why_b}"
 
     def anchor_gap(self, u, side):  # retail gap after the unit's last LIS anchor (end) / before its first (start)
         own = [q for q in u["_main"]["procs"] if q["va"] in self.anchor]
@@ -1015,13 +1179,19 @@ class Route:
         cp = self.chain_pv().get(v)
         if cp is not None and cp[0]["index"] != u["index"]:
             return None, f"{nm} chain proc of {_short(cp[0])}"
+        if (u["index"], v) in self.explained:  # 5.2 T2: one exact (unit, VA) entry, EXPLAINED_VA
+            return None, f"explained (exact VA): of {_short(u)}: {nm}: {self.explained[(u['index'], v)]}"
         f = lambda a, o: f"0x{a[0]:08X} {_short(self.seed[o]) if o is not None else 'no main run'}" if a else "-"
         ev = f"{nm}: single masked copy (proto_map hits 1), LIS bracket {f(lo, ol)} .. {f(hi, oh)}"
         ru = self.unit_at(v)
         ev += f", in {_short(ru)}" if ru else ", in no unit range"
         gb = self.ghidra_body(v)
         ev += f", inside Ghidra body 0x{gb:08X} (decoy hint)" if gb is not None else ""
-        if ru is None:
+        if (ol == u["index"]) != (oh == u["index"]):  # 5.2 T2 (O11): not D120 stray; start = lower bracket anchor
+            why = f"copy bracketed by own anchor on {'start' if ol == u['index'] else 'end'} side"
+        elif ol is not None and ol == oh != u["index"]:  # the moved test above failed: copy runs past hi
+            why = f"copy bracketed by two anchors of {_short(self.seed[ol])}, overlapping its upper anchor"
+        elif ru is None:
             why = "copy in a gap between unit ranges"
         elif ol is None or oh is None:
             why = "bracket anchor in no unit's main run"
@@ -1126,17 +1296,28 @@ class Route:
                 continue
             item = f"edge {side} {edges[i]}"
             pn = self.edge_pin(u, side)
+            av, aev = self.near_pin(u, side) if pn is None else (None, "")  # 5.2 T2 (M27 form a)
             if pn is not None:
                 v, ev = pn
                 edges[i] = "pin"
+            elif av is not None:
+                v, ev = av, aev
+                edges[i] = "near-pin"
             else:
                 v, kind, _out, ev = self.chain(u, side)
                 if v is None:
-                    nv, nev = self.neighbour_fixed(u, side)  # 4.4 T8
-                    if nv is None:
-                        kept.append((item, f"{ev}; {nev}", "no pin, chain fails, neighbour edge not fixed"))
+                    bv, bev = self.near_candidate(u, side)  # 5.2 T2 (M27 form b)
+                    nv, nev = self.neighbour_fixed(u, side) if bv is None else (None, "")  # 4.4 T8
+                    if bv is not None:
+                        v, kind, ev = bv, "near-candidate", f"{bev}; chain: {ev}"
+                    elif nv is None:
+                        nn = self.near_note(u, side, aev, bev)
+                        notes += [nn] if nn else []
+                        kept.append((item, f"{ev}; {nev}; {self.m27_text(u, side, nn)}",
+                                     "no pin, chain fails, neighbour edge not fixed, no M27 form"))  # 5.2 T5
                         continue
-                    v, kind, ev = nv, "neighbour-fixed", f"{nev}; chain: {ev}"
+                    else:
+                        v, kind, ev = nv, "neighbour-fixed", f"{nev}; chain: {ev}"
                 edges[i] = kind
             notes.append(f"{side} {edges[i]}: {ev}")
             if side == "start":
@@ -1171,14 +1352,15 @@ class Route:
                     why, ev = self.explain(u, q, r["class"], v)
                     outs.append((why, ev))
                     if why is not None:
-                        unexpl.append((why, ev))
+                        unexpl.append((why, ev, v))
             notes += [ev for why, ev in outs if why is None]
-            if not kept and unexpl and all(w in D120_WHY for w, _e in unexpl):  # D120: edges fixed, stray stays uncut
-                notes += [f"stray stays uncut (D120): {ev}; reason: {w}" for w, ev in unexpl]
+            if not kept and unexpl and all(w in D120_WHY for w, _e, _v in unexpl):  # D120/D125: stray stays uncut
+                notes += [f"stray (D125): of {_short(u)}: {ev}; reason: {w}; containing cut: {self.containing_cut(v)}"
+                          for w, ev, v in unexpl]
                 unexpl = []
             if unexpl:
                 item = f"inconsistent: {len(outs)} procs outside range, {len(outs) - len(unexpl)} explained"
-                kept.append((item, " | ".join(ev for _w, ev in unexpl), " | ".join(w for w, _e in unexpl)))
+                kept.append((item, " | ".join(ev for _w, ev, _v in unexpl), " | ".join(w for w, _e, _v in unexpl)))
         elif u["_incons"]:
             kept.append((f"inconsistent: {u['_incons']} procs outside range", "not searched", "edges not fixed"))
         return {"release": not kept, "range": rng, "edges": tuple(edges), "kept": kept, "notes": notes, "outs": outs}
@@ -1230,6 +1412,20 @@ def _edit_block(lines, u, dec):
             ev += [f"# route: {n}" for n in dec["notes"]]
             if not any(x.startswith("# route: ") for x in blk):
                 blk[ri + 1:ri + 1] = ev
+        for n in dec["notes"]:  # 5.2 T2 (D125): stray record replaces the D120 line of its VA, also in cut blocks
+            m = re.search(r" proto 0x[0-9A-F]{8} -> (0x[0-9A-F]{8}):", n)
+            if not n.startswith(("stray (D125): ", "explained (exact VA): ")) or m is None or f"# route: {n}" in blk:
+                continue
+            at = next((i for i, x in enumerate(blk) if x.startswith(("# route: stray stays uncut (D120): ",
+                                                                      "# route: stray (D125): "))
+                       and f" -> {m.group(1)}:" in x), None)
+            if at is None:
+                at = max((i for i, x in enumerate(blk) if x.startswith("# route: ")), default=None)
+                if at is None:
+                    at = next(i for i, x in enumerate(blk) if x.startswith("delink = "))
+                blk.insert(at + 1, f"# route: {n}")
+            else:
+                blk[at] = f"# route: {n}"
     else:
         new = f"delink_reason = {_tq(_reason(dec['kept']))}"
         if ri is None:
@@ -1269,7 +1465,8 @@ def do_route(cfg_path, cls, apply, only=None):
         if u["kind"] != "game" or u["delink"]:
             continue
         cl = [item_class(x) for x in gate_items(u["delink_reason"])]
-        if None not in cl and max(cl) == ci and (only is None or u["index"] == only):
+        hit = any(c in (1, 2, 3) for c in cl) if cls == "near-edge" else None not in cl and max(cl) == ci  # 5.2 T2
+        if None not in cl and hit and (only is None or u["index"] == only):
             sel.append(u)
     sel.sort(key=lambda u: (u["_range"][0] if u["_range"] else 0, u["index"]))  # `no-range`: no seed range
     rt = Route(d, seed, cur)
@@ -1313,6 +1510,147 @@ def do_route(cfg_path, cls, apply, only=None):
     return 0
 
 
+def _ctl_o11_own(rt, seed):  # real data: Whammy#460's stray copy sits under its own start anchor -> KEEP
+    r2 = copy.copy(rt)
+    r2.explained = {}  # without its exact-VA entry (the ruling on the question) the O11 label must keep it
+    dec = r2.decide(seed[460])
+    return not dec["release"] and any("copy bracketed by own anchor on " in w for _i, _s, w in dec["kept"])
+
+
+def _ctl_o11_same(rt, seed):  # HouseOfMirrors#260 stray 0x000A6021 with both bracket anchors given to one other unit
+    u, v = seed[260], 0x000A6021
+    lo, hi = rt.bracket(v)
+    q = next(q for q in u["_main"]["procs"] if (r := rt.byva.get(q["va"])) is not None
+             and r["class"] == "identical" and r["hits"] == 1 and int(r["targetVAs"][0], 16) == v)
+    r2 = copy.copy(rt)
+    r2.owner = dict(rt.owner)
+    o = rt.owner[lo[2]]
+    assert o != u["index"]
+    r2.owner[hi[2]] = o
+    u2 = dict(u, _main=dict(u["_main"]))
+    u2["_main"]["procs"] = [dict(x, len=hi[0] - v + 1) if x["va"] == q["va"] else x for x in u["_main"]["procs"]]
+    dec = r2.decide(u2)
+    return not dec["release"] and any("overlapping its upper anchor" in w for _i, _s, w in dec["kept"])
+
+
+def _ctl_d125_cut(rt, seed):  # HouseOfMirrors#260: one stray inside bakeryMain's cut range, one in a gap
+    notes = rt.decide(seed[260])["notes"]
+    a = [n for n in notes if n.startswith("stray (D125): ") and "-> 0x00070263:" in n]
+    b = [n for n in notes if n.startswith("stray (D125): ") and "-> 0x000A6021:" in n]
+    return len(a) == 1 and a[0].endswith("; containing cut: bakeryMain.obj#309") and len(b) == 1 \
+        and b[0].endswith("; containing cut: none")
+
+
+# 5.2 T5.c2: the pair as uncut before 5.2 T3 (949745aa9 units.toml); T3's cut makes BasicDoor's start `near-candidate`,
+# so neighbour_fixed would fix LevelLoader's end and the form (b) checks never run
+NEAR_PAIR_UNCUT = {442: {"text_end": 0x001077C2, "edge_end": "unpinned-near-identical", "delink": False},
+                   422: {"text_start": 0x0010790D, "edge_start": "unpinned-near-identical", "delink": False}}
+
+
+def _near_pair(rt, seed, ours=None, theirs=None, extra=None):
+    """5.2 T2: LevelLoader#442 end / BasicDoor#422 start (real adjacent near-identical candidates); a Route copy whose
+    units.toml state has the pair uncut (NEAR_PAIR_UNCUT, in memory), whose byva rows get candidateVA ours / theirs
+    (fn(cv, cv2) -> int) and extra rows. -> (route copy, unit, cv, cv2)."""
+    u, nb = seed[442], seed[422]
+    q, q2 = rt._edge_proc(u, "end"), rt._edge_proc(nb, "start")
+    cv, cv2 = int(rt.byva[q["va"]]["candidateVA"], 16), int(rt.byva[q2["va"]]["candidateVA"], 16)
+    r2 = copy.copy(rt)
+    r2.cur = {**rt.cur, **{i: {**rt.cur[i], **v} for i, v in NEAR_PAIR_UNCUT.items()}}
+    r2.ranged = sorted((c for c in r2.cur.values() if "text_start" in c), key=lambda c: c["text_start"])
+    r2.rstarts = [c["text_start"] for c in r2.ranged]
+    r2.byva = dict(rt.byva)
+    for pq, f in ((q, ours), (q2, theirs)):
+        if f is not None:
+            r2.byva[pq["va"]] = dict(rt.byva[pq["va"]], candidateVA=f"0x{f(cv, cv2):08X}")
+    for k, row in (extra or {}).items():
+        r2.byva[k] = row
+    return r2, u, cv, cv2
+
+
+def _ctl_near_positive(rt, seed):  # the real pair releases LevelLoader#442 with `near-candidate` on its end
+    r2, u, _cv, _c2 = _near_pair(rt, seed)  # the same uncut fixture as the three KEEP controls (5.2 T5.c2)
+    dec = r2.decide(u)
+    return dec["release"] and dec["edges"][1] == "near-candidate"
+
+
+def _near_kept(dec, verdict):  # end edge not fixed by form (b); its near-edge note carries the verdict
+    return dec["edges"][1] != "near-candidate" and any(n.startswith("near-edge end: ") and f"form (b): {verdict}" in n
+                                                      for n in dec["notes"])
+
+
+def _ctl_near_noentry(rt, seed):  # our candidateVA moved 1 byte off the Ghidra entry -> KEEP, no Ghidra entry
+    r2, u, cv, _c2 = _near_pair(rt, seed, ours=lambda a, b: a + 1)
+    assert rt._entry(cv + 1) is None
+    return _near_kept(r2.decide(u), "no Ghidra entry at ")
+
+
+def _ctl_near_notadj(rt, seed):  # BasicDoor's candidateVA = the Ghidra entry after the real one -> KEEP, not adjacent
+    nx = lambda a, b: rt.gfa[bisect.bisect_left(rt.gfa, b) + 1]
+    r2, u, _cv, _c2 = _near_pair(rt, seed, theirs=nx)
+    return _near_kept(r2.decide(u), "not adjacent to ")
+
+
+def _ctl_near_claimed(rt, seed):  # a planted extra proto_map row claims our candidateVA -> KEEP, claimed by
+    q = rt._edge_proc(seed[442], "end")
+    row = dict(rt.byva[q["va"]], protoVA="0x00000001")
+    r2, u, _cv, _c2 = _near_pair(rt, seed, extra={1: row})
+    dec = r2.decide(u)
+    return _near_kept(dec, "0x") and any("claimed by row proto 0x00000001" in n for n in dec["notes"])
+
+
+def _ctl_near_pin_status(rt, seed):  # site-corr pin at ShrimpSub#210's start candidate (retail size) never fixes
+    u = seed[210]
+    q = rt._edge_proc(u, "start")
+    cv = int(rt.byva[q["va"]]["candidateVA"], 16)
+    lo, hi = rt.anchor_gap(u, "start")
+    if lo is None or not (lo <= cv and cv + q["len"] <= hi):
+        return False
+    n = rt.pubs[q["va"]][0]
+    r2 = copy.copy(rt)
+    r2.pin_st, r2.pin_size = {**rt.pin_st, n: (cv, "site-corr")}, {**rt.pin_size, n: q["len"]}
+    dec = r2.decide(u)
+    return not dec["release"] and dec["edges"][0] != "near-pin" and any(
+        x.startswith("near-edge start: ") and "status site-corr" in x for x in dec["notes"])
+
+
+def _ctl_explained_exact(rt, seed):  # Whammy#460 releases only through its exact entry; same shape elsewhere stops
+    u = seed[460]
+    dec = rt.decide(u)
+    ok = dec["release"] and any(n.startswith("explained (exact VA): of Whammy.obj#460: ") and "-> 0x001338E4:" in n
+                                for n in dec["notes"])
+    for key in ((460, 0x001338E5), (505, 0x001338E4)):  # one byte off; another unit at the same VA
+        r2 = copy.copy(rt)
+        r2.explained = {key: EXPLAINED_VA[(460, 0x001338E4)]}
+        d2 = r2.decide(u)
+        ok = ok and not d2["release"] and any("own anchor on " in w for _i, _s, w in d2["kept"])
+    return ok
+
+
+CONTROLS = [("o11-own-anchor", _ctl_o11_own), ("o11-same-other", _ctl_o11_same), ("explained-va-exact", _ctl_explained_exact),
+            ("d125-containing-cut", _ctl_d125_cut),  # (name, fn(route, seed) -> True iff the expected failure shows)
+            ("near-pin-status", _ctl_near_pin_status), ("near-cand-noentry", _ctl_near_noentry),
+            ("near-cand-notadjacent", _ctl_near_notadj), ("near-cand-claimed", _ctl_near_claimed),
+            ("near-cand-positive", _ctl_near_positive)]  # 5.2 T2 (M27); positive: True iff it releases
+
+
+def do_controls(cfg_path):
+    """Run CONTROLS on one Route over in-memory copies; never writes a file. -> 0 iff every control fails as expected."""
+    global ARGS_CFG
+    ARGS_CFG = cfg_path
+    d = load(cfg_path)
+    seed = {u["index"]: u for u in build_units(d, {})}
+    cur = tomllib.loads(UNITS.read_text(encoding="utf-8"))["unit"]
+    rt = Route(d, seed, cur)
+    rt.chain_pv()  # shared cache before any copy
+    k = 0
+    for name, fn in CONTROLS:
+        ok = fn(rt, seed)
+        k += ok
+        print(f"{name}: {'failed as expected' if ok else 'DID NOT FAIL as expected'}")
+    print(f"controls: {k} failed as expected of {len(CONTROLS)}")
+    return 0 if k == len(CONTROLS) else 1
+
+
 ARGS_CFG = None
 
 
@@ -1322,6 +1660,7 @@ def main(argv):
     g.add_argument("--write", action="store_true", help="seed both files, then check them")
     g.add_argument("--check", action="store_true", help="validate both files")
     g.add_argument("--route", action="store_true", help="T1 unit-edge route over one class (dry run unless --apply)")
+    g.add_argument("--controls", action="store_true", help="run the route's teeth controls in memory (5.2 T2)")
     ap.add_argument("--class", dest="cls", choices=ROUTE_CLASSES, help="route class (with --route)")
     ap.add_argument("--apply", action="store_true", help="--route: edit units.toml per unit block")
     ap.add_argument("--unit", type=int, help="--route: only the unit with this index (4.4 T6.1)")
@@ -1332,6 +1671,8 @@ def main(argv):
         if not args.cls:
             _refuse("--route needs --class")
         return do_route(args.config, args.cls, args.apply, args.unit)
+    if args.controls:
+        return do_controls(args.config)
     if args.write:
         return do_write(args.config, args.force)
     pin = coff_info.pinned_sha()

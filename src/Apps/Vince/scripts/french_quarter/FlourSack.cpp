@@ -295,10 +295,12 @@ DECOMP_SIZE_ASSERT(DialogueVinceCarryRegionMain, 0xA4);
 // NAME: proto-pdb:default.pdb
 SwampScript* DialogueVinceCarryRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\FlourSack.h", 52) DialogueVinceCarryRegionMain(node);
 }
 
+// FUNCTION: USA 0x0007984C
+// NAME: proto-pdb:default.pdb
 // FUNCTION: USA 0x00079868
 // PROTOTYPE: PREVIEW 0x0046587C identical
 // NAME: proto-pdb:default.pdb
@@ -338,6 +340,22 @@ void FlourSackMain::CollidedWith(CollisionType type, SwampSceneNode* critterhit,
     if (critterhit && critterhit->GetName() == "blender" && type == VerticalCollision && cr->HitTag() == 1)
         GetCritter()->ReturnToHome();
 }
+
+inline void *__cdecl operator new(unsigned int, void *_Where)
+{
+    return (_Where);
+}
+
+#ifdef NON_MATCHING
+// best: ??_GFlourSackMain match_one objdiff 100.0, bytes match; wall: relink refuses `floursack.obj: data section
+// .rdata: 0 VAs from its symbols by name` (??_7FlourSackMain 0x001DE3C0 unnamed; lift: pin it, match the ctor 0x796EC)
+// !FAKE: c1xx front end; scaffold copy construction; retail emits ??_7FlourSackMain and its ??_G here from the ctor
+// 0x796EC (not matched yet); the implicit copy ctor's vptr store emits them instead ([[emitter]] row)
+void pin_emit_FlourSackMain_vtable(void* p, FlourSackMain* s)
+{
+    new(p) FlourSackMain(*s);
+}
+#endif
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1FlourSackMain@@UAE@XZ because this unit defines
 // the ctor 0x796EC (not matched yet); this qualified call odr-uses it instead (matched_set [[emitter]] row)
@@ -409,6 +427,6 @@ void FlourSackMain::FrameTick()
 // NAME: proto-pdb:default.pdb
 SwampScript* FlourSackMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\FlourSack.h", 14) FlourSackMain(node);
 }

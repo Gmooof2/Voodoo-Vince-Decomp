@@ -70,9 +70,14 @@ public:
     CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
     virtual void Message(SwampScript*, int, void*);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
 
     int _state;                        // 0x4C
     char field_50[0x6C];               // 0x50
@@ -152,18 +157,38 @@ public:
 
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
-class GatorNode { // NAME: proto-pdb:default.pdb
+struct AABox;                // NAME: proto-pdb:default.pdb
+struct Quaternion;           // NAME: proto-pdb:default.pdb
+struct Matrix;               // NAME: proto-pdb:default.pdb
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+};
+
+class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>& anim, bool a, bool b);
     void SetAnimSpeed(float speed);
+    Matrix GetBoneOrientation(const SwampString&) const;
 };
 
 // Retail layout: Critter _CritterType 0x258 -> 0x268 (+0x10).
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
-    char field_0[0x268];               // 0x00
+    char field_4[0x268 - 0x4];         // 0x04
     CritterType _CritterType;          // 0x268
 };
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+};
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class Cannon : public Critter { // NAME: proto-pdb:default.pdb
 };
@@ -177,6 +202,22 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
     float z;                           // 0x08
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
+
+struct Vector4 { // NAME: proto-pdb:default.pdb
+    // !FAKE: inliner; hand form of the PDB inline conversion operator (FanCeiling.cpp form)
+    operator Vector3() const { return *(const Vector3*)this; }
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Vector4, 0x10);
+
+struct Matrix { // NAME: proto-pdb:default.pdb
+    Vector4 row[4];                    // 0x00
+};
+DECOMP_SIZE_ASSERT(Matrix, 0x40);
 
 struct Quaternion { // NAME: proto-pdb:default.pdb
     void Apply(const Vector3&, Vector3&) const;
@@ -277,7 +318,7 @@ CannonMain::CannonMain(SwampSceneNode* node) : CritterMain(node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CannonMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\sarcophagushustle\\Cannon.h", 41) CannonMain(node);
 }
 
@@ -305,11 +346,24 @@ void CannonMain::Load(const BeepTDF& tdf)
     }
 }
 
+// FUNCTION: USA 0x0005DEDB
+// NAME: proto-pdb:default.pdb
+CannonCartMain::CannonCartMain(SwampSceneNode* node) : CritterMain(node)
+{
+    // !FAKE: inliner; hand form of the inline free Vector3 operator+ (no PDB record, D78): C0365 comma expression with a
+    // C0191 pointer local ending in the 3-float ctor (split statements 96.92, temp ctor arg 91.97); neutral stand-in locals
+    Critter* v0 = pManager->Find("cannon");
+    Matrix v1 = ((GatorNode*)_node)->GetBoneOrientation("locator_cannon");
+    Vector3 v2 = v1.row[3];
+    const Vector3* p;
+    v0->SetWorldPosition((p = &_node->GetWorldPosition(), Vector3(v2.x + p->x, v2.y + p->y, v2.z + p->z)));
+}
+
 // FUNCTION: USA 0x0005DF92
 // PROTOTYPE: PREVIEW 0x0044A3D1 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* CannonCartMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\sarcophagushustle\\Cannon.h", 82) CannonCartMain(node);
 }

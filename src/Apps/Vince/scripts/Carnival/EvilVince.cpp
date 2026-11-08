@@ -330,6 +330,7 @@ public:
     {
     }
 };
+#endif
 
 template<class _Ty, class _Alloc>
 class _List_ptr : public _List_nod<_Ty, _Alloc> { // src proto-pdb:default.pdb _List_ptr
@@ -350,30 +351,84 @@ public:
     typedef typename _Mybase::_Alty _Alloc;
     typedef typename _Alloc::size_type size_type;
     typedef typename _Mybase::_Genptr _Nodeptr;
+    typedef _Nodeptr& _Nodepref;
+
+    class const_iterator {
+    public:
+        _Nodeptr _Mynode() const
+        {
+            return (_Ptr);
+        }
+
+        _Nodeptr _Ptr;
+    };
+
+    class iterator : public const_iterator {
+    };
+
+    // FUNCTION: USA 0x00044C14
+    // NAME: proto-pdb:default.pdb
+    list()
+        : _Mybase(), _Myhead(_Buynode()), _Mysize(0)
+    {
+    }
 
     size_type max_size() const
     {
         return (this->_Alval.max_size());
     }
 
+    // FUNCTION: USA 0x000451AE
+    // NAME: proto-pdb:default.pdb
+    void _Insert(iterator _Where, const _Ty& _Val)
+    {
+        _Nodeptr _Pnode = _Where._Mynode();
+        _Nodeptr _Newnode = _Buynode(_Pnode, _Prevnode(_Pnode), _Val);
+        _Incsize(1);
+        _Prevnode(_Pnode) = _Newnode;
+        _Nextnode(_Prevnode(_Newnode)) = _Newnode;
+    }
+
 protected:
+    static _Nodepref _Nextnode(_Nodeptr _Pnode)
+    {
+        return ((_Nodepref)(*_Pnode)._Next);
+    }
+
+    static _Nodepref _Prevnode(_Nodeptr _Pnode)
+    {
+        return ((_Nodepref)(*_Pnode)._Prev);
+    }
+
+    _Nodeptr _Buynode();
+    _Nodeptr _Buynode(_Nodeptr _Next, _Nodeptr _Prev, const _Ty& _Val);
+
     // FUNCTION: USA 0x0004515E
     // NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
     void _Incsize(size_type _Count)
     {
         if (max_size() - _Mysize < _Count)
             throw length_error("list<T> too long");
         _Mysize += _Count;
     }
+#else
+    void _Incsize(size_type _Count);
+#endif
 
     _Nodeptr _Myhead;
     size_type _Mysize;
 };
 
+#ifdef NON_MATCHING
 // !FAKE: c1xx front end; explicit instantiation of a single member; retail emits it through callers in this unit
 // (not matched yet); the instantiation emits it instead
 template void list<EvilVinceMain::EvilWhammy>::_Incsize(size_type);
 #endif
+// !FAKE: c1xx front end; explicit instantiations of single members; retail emits them through callers in this unit
+// (not matched yet); the instantiations emit them instead
+template list<EvilVinceMain::EvilWhammy>::list();
+template void list<EvilVinceMain::EvilWhammy>::_Insert(iterator, const EvilVinceMain::EvilWhammy&);
 
 template<class _Ty, class _Alloc>
 class _Vector_val { // src proto-pdb:default.pdb _Vector_val

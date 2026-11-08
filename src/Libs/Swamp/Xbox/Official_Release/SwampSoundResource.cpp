@@ -123,15 +123,31 @@ class SoundStreamer;     // NAME: proto-pdb:default.pdb
 class SoundNode;         // NAME: proto-pdb:default.pdb
 class SwampScript;       // NAME: proto-pdb:default.pdb
 
-struct IDirectSoundBuffer; // NAME: proto-pdb:default.pdb
+struct IDirectSoundBuffer { // NAME: proto-pdb:default.pdb
+    long __stdcall SetPosition(float x, float y, float z, unsigned long dwApply);
+};
+struct _DSMIXBINVOLUMEPAIR; // NAME: proto-pdb:default.pdb
+struct _DSMIXBINS { // NAME: proto-pdb:default.pdb
+    unsigned long dwMixBinCount;                       // 0x00
+    const _DSMIXBINVOLUMEPAIR* lpMixBinVolumePairs;    // 0x04
+};
+DECOMP_SIZE_ASSERT(_DSMIXBINS, 0x8);
 struct IDirectSound { // NAME: proto-pdb:default.pdb
     long __stdcall SetOrientation(float xFront, float yFront, float zFront, float xTop, float yTop, float zTop, unsigned long dwApply);
 };
 
 extern "C" long __stdcall IDirectSound_SetOrientation(IDirectSound*, float, float, float, float, float, float, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetPosition(IDirectSoundBuffer*, float, float, float, unsigned long); // NAME: proto-pdb:default.pdb
 extern "C" long __stdcall IDirectSoundBuffer_StopEx(IDirectSoundBuffer*, __int64, unsigned long); // NAME: proto-pdb:default.pdb
 extern "C" long __stdcall IDirectSoundBuffer_GetStatus(IDirectSoundBuffer*, unsigned long*); // NAME: proto-pdb:default.pdb
 extern "C" long __stdcall IDirectSoundBuffer_SetBufferData(IDirectSoundBuffer*, void*, unsigned long); // NAME: proto-pdb:default.pdb
+struct tWAVEFORMATEX; // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetFormat(IDirectSoundBuffer*, const tWAVEFORMATEX*); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetVolume(IDirectSoundBuffer*, long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetFrequency(IDirectSoundBuffer*, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetMaxDistance(IDirectSoundBuffer*, float, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetMinDistance(IDirectSoundBuffer*, float, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetMixBins(IDirectSoundBuffer*, const _DSMIXBINS*); // NAME: proto-pdb:default.pdb
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
 protected:
@@ -285,6 +301,11 @@ public:
         void StopFreeList();
         void Clean();
 
+    private:
+        static bool ResetBuffer(bool is3D, IDirectSoundBuffer* buffer, const tWAVEFORMATEX* fmt, bool isVoice);
+
+    public:
+
         unsigned int _count;           // 0x00
         unsigned int _max;             // 0x04
         FreeBufferList _freeList;      // 0x08
@@ -303,6 +324,7 @@ public:
 private:
     static void PrepareSound(SoundNode* psound, const ResourceHandle<SoundResource>& sh, const std::basic_string<char, std::char_traits<char>, std::allocator<char> >& name, SwampSceneNode* parent, bool bAttach);
     void ResetVolumes();
+    void SetupMixBins(_DSMIXBINS& dsmb, bool is3D, const tWAVEFORMATEX* fmt, bool isVoice) const;
 
 public:
     IDirectSound* _dSound;             // 0x58
@@ -381,11 +403,42 @@ long __stdcall IDirectSound::SetOrientation(float xFront, float yFront, float zF
     return IDirectSound_SetOrientation(this, xFront, yFront, zFront, xTop, yTop, zTop, dwApply);
 }
 
+// FUNCTION: USA 0x000B8FCA
+// NAME: proto-pdb:default.pdb
+long __stdcall IDirectSoundBuffer::SetPosition(float x, float y, float z, unsigned long dwApply)
+{
+    return IDirectSoundBuffer_SetPosition(this, x, y, z, dwApply);
+}
+
 // FUNCTION: USA 0x000B9037
 // PROTOTYPE: PREVIEW 0x004A3DCB identical
 // NAME: proto-pdb:default.pdb
 // fold VA: SoundNode.cpp emits its SoundNode* alias with this body (C0233 Fix 1)
 template void std::_Tree<std::_Tset_traits<SoundStreamer *,std::less<SoundStreamer *>,std::allocator<SoundStreamer *>,0> >::const_iterator::_Inc();
+
+// FUNCTION: USA 0x000B9277
+// PROTOTYPE: PREVIEW 0x004A4005 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 5): _IDirectSoundBuffer_SetBufferData@12, _SetFormat@8, _SetVolume@8, _SetFrequency@8, _SetMixBins@8 have only ghidra names in symbols.txt
+bool SoundManager::BufferMgr::ResetBuffer(bool is3D, IDirectSoundBuffer* buffer, const tWAVEFORMATEX* fmt, bool isVoice)
+{
+    IDirectSoundBuffer_SetBufferData(buffer, 0, 0);
+    if (IDirectSoundBuffer_SetFormat(buffer, fmt) < 0)
+        return false;
+    IDirectSoundBuffer_SetVolume(buffer, 0);
+    IDirectSoundBuffer_SetFrequency(buffer, 0);
+    if (is3D) {
+        buffer->SetPosition(0.0f, 0.0f, 0.0f, 1);
+        IDirectSoundBuffer_SetMaxDistance(buffer, 1000000000.0f, 1);
+        IDirectSoundBuffer_SetMinDistance(buffer, 1.0f, 1);
+    }
+    _DSMIXBINS dsmb;
+    g_swamp->_soundManager->SetupMixBins(dsmb, is3D, fmt, isVoice);
+    // !FAKE: c2 register allocation; cast; without it xor ecx/setge cl/mov al,cl (match_one 96.94 -> 100.0)
+    return (bool)(IDirectSoundBuffer_SetMixBins(buffer, &dsmb) >= 0);
+}
+#endif
 
 // FUNCTION: USA 0x000B940F
 // PROTOTYPE: PREVIEW 0x004A4174 identical
@@ -500,7 +553,7 @@ SoundResource::SoundResource(const std::basic_string<char, std::char_traits<char
     Ptr<BundleWrapper> myBundle;
     HottieRawData rawData = g_swamp->_soundManager->GetDataInBundle(shortname, myBundle);
     if (rawData.size) {
-        // !FAKE: c1xx frame packing; bare block so the uint->float temp below shares offset's slot (+8) as in retail (C0232)
+        // !FAKE: c1xx frame packing; bare block; the uint->float temp below shares offset's slot (+8) as in retail (C0232)
         {
             unsigned int offset = 0;
             if (!SwampSound_GetWaveData((const unsigned char*)rawData.header, rawData.size, &_format, &offset, &_dataLen) || offset != 0x48) {

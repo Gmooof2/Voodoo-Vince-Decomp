@@ -54,14 +54,20 @@ public:
 class GatorNode { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+
+    char field_0[0x184];               // 0x00
+    float _animSoundRange;             // 0x184
+    float _animSoundVolume;            // 0x188
+    unsigned int _animTriggerFlags;    // 0x18C
 };
+DECOMP_SIZE_ASSERT(GatorNode, 0x190);
 
 // Retail layout: Critter _defaultIdleAnim 0x278 -> 0x288; Vince _idlesAny 0x4D8 -> 0x4EC.
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationResource> GetDefaultIdleAnim() const { return _defaultIdleAnim; }
 
-    char field_0[0x288];               // 0x00
+    char field_190[0x288 - 0x190];     // 0x190
     ResourceHandle<AnimationResource> _defaultIdleAnim; // 0x288
 };
 
@@ -124,10 +130,17 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void Message(SwampScript*, int, void*);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
     Critter* GetCritter() { return (Critter*)_node; }
 
     int _state;                        // 0x4C
@@ -168,11 +181,21 @@ void VoodooShopVinceMain::AnimationFinished()
 }
 #endif
 
+// FUNCTION: USA 0x0013F3E8
+// NAME: proto-pdb:default.pdb
+VoodooShopVinceMain::VoodooShopVinceMain(SwampSceneNode* node)
+    : CritterMain(node), _defaultIdleCount(0)
+{
+    AnimationFinished();
+    GetCritter()->_animTriggerFlags = 8;
+    GetCritter()->_animSoundRange = 1.0f;
+}
+
 // FUNCTION: USA 0x0013F426
 // PROTOTYPE: PREVIEW 0x00527D02 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* VoodooShopVinceMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("VoodooShopVince.cpp", 12) VoodooShopVinceMain(node);
 }

@@ -104,6 +104,9 @@ template <class Tr> class _Tree : public Tr {
     _Nodeptr& _Root() const { return (_Parent(_Myhead)); }
 
 protected:
+    // retail calls _Init (0x0010A36A) and _Tidy (0x0010AF92) out of line: declared only
+    void _Init();
+    void _Tidy();
     _Nodeptr _Lbound(const key_type& _Keyval) const
     {
         _Nodeptr _Pnode = _Root();
@@ -154,6 +157,8 @@ public:
     const_iterator begin() const { return const_iterator(_Myhead->_Left); }
     iterator end() { return iterator(_Myhead); }
     const_iterator end() const { return const_iterator(_Myhead); }
+    _Tree() { _Init(); }
+    ~_Tree() { _Tidy(); }
     // retail calls find out of line (fold 0x001090EB, named): declared only
     const_iterator find(const key_type& _Keyval) const;
     void clear();
@@ -312,6 +317,11 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
     static void FinishedLevelIntro(SwampScript* source);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -329,8 +339,10 @@ DECOMP_SIZE_ASSERT(AreaLoadLocatorMain, 0xFC);
 
 class SwampScriptManager { // NAME: proto-pdb:default.pdb
 public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
     static SwampScriptManager& Instance();
     SwampScript* Create(const SwampString&, SwampSceneNode*) const;
+    void Add(const SwampString& name, CreationFunc func);
 };
 
 class Locator { // NAME: proto-pdb:default.pdb
@@ -348,6 +360,8 @@ class LocatorManager { // NAME: proto-pdb:default.pdb
 public:
     typedef std::map<SwampString, Locator*> Map;
 
+    LocatorManager();
+    ~LocatorManager();
     void RemoveAll();
     Locator* Find(const SwampString& s) const;
     Locator* Find(bool (*match)(const std::pair<SwampString, Locator*>&)) const;
@@ -359,6 +373,7 @@ public:
     Map _locators;                     // 0x00
 };
 DECOMP_SIZE_ASSERT(LocatorManager, 0xC);
+extern LocatorManager* g_locatorManager; // NAME: proto-pdb:default.pdb
 
 // FUNCTION: USA 0x0010A326
 // NAME: proto-pdb:default.pdb
@@ -498,7 +513,7 @@ template std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<ch
 // NAME: proto-pdb:default.pdb
 SwampScript* AreaLoadLocatorMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Locator.h", 117) AreaLoadLocatorMain(node);
 }
 
@@ -537,6 +552,28 @@ void LocatorManager::RemoveAll()
     for (Map::iterator lit = _locators.begin(); lit != _locators.end(); ++lit)
         delete lit->second;
     _locators.clear();
+}
+
+// FUNCTION: USA 0x0010B016
+// NAME: proto-pdb:default.pdb
+LocatorManager::~LocatorManager()
+{
+    RemoveAll();
+    g_locatorManager = 0;
+}
+
+// FUNCTION: USA 0x0010B02D
+// NAME: proto-pdb:default.pdb
+LocatorManager::LocatorManager()
+{
+    g_locatorManager = this;
+}
+
+// FUNCTION: USA 0x0010B03F
+// NAME: proto-pdb:default.pdb
+AreaLoadLocatorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("AreaLoadLocatorMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0010B07B

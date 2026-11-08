@@ -12,7 +12,10 @@ Per row: grammar; status against tag (TAGS); the name a PDB public where the tag
   callee and fold masked bytes plus the callee name rule, vtable slots (4.5 T16.2.c4: the retail slot count too,
   `slot-count-differs`), string and `__real@` bytes, label = VA, hand
   rows named in docs/evidence/compiler_pin.md, corr-verified `+site-bundle` and `+slot-bytes` re-derived (D113);
-  site test on every row with a public.
+  corr-verified `+slot-names` (5.3 T2.c4, M30): each slot's retail VA named, accepted, by a slot target public, slot
+  counts equal (`route-slotnames:*`); `+unit-bracket+callee-bytes` (5.3 T2.c4, T1 ruling): the callee route plus the
+  module's matched-neighbour bracket, the unit's text range and no second masked-equal body in the bracket
+  (`route-bracket:*`); site test on every row with a public.
 Site index (locked): each symbols.txt func whose name is one PDB public P, PDB proc length n, prototype and retail
   masked-equal over n; each outgoing mask -> (proto dest, retail dest, caller P). Agree: (P(name), VA). Conflict: P(name)
   reaching another VA, or VA reached from a proto dest whose publics exclude the name.
@@ -23,8 +26,11 @@ Dispositions (D119): fold case: a proto dest with 2+ publics agrees when the ret
   (4.2 T5.c4): a conflicting site from the row's proto dest with 2+ publics whose retail dest has no table name does
   not count (the site cannot say which member it calls) while the row has 1+ agreeing site; an undecorated
   library name in symbols.txt equal to the row's (`_F@N` -> `F`, `?M@C@...` -> `C_M`) is one name; a literal copy's site
-  conflict is waived only by a row of config/pin_accepted.txt (`0x<VA><TAB><name><TAB><reason>`); a waiver no
-  conflict uses fails `accepted-stale ... unused` (4.5 T16.2.c4).
+  conflict is waived only by a row of config/pin_accepted.txt (`0x<VA><TAB><name><TAB><reason><TAB><conflict>`,
+  conflict: the sorted comma-joined tokens `r:0x<VA8>` (each retail dest != VA from the row's proto dests, fold sites
+  too) and `p:0x<VA8>` (each proto dest reaching VA whose publics exclude the name); 5.1 T3) whose conflict equals the
+  row's, else `site-conflict-both|only:accepted-conflict-differs`; a waiver no conflict uses fails `accepted-stale ...
+  unused` (4.5 T16.2.c4).
 Near rows (4.5 T16.1, D115): 1+ agreeing site, else `route-near:no-agreeing-site`, except NEAR_NO_SITE (va, name)
   rows; a listed row with an agreeing site, or no near row of that (va, name), fails `route-near:stale-exception`.
   Not re-derived here: near_check (`+retail-xref` rows rest on the site test). Data-bytes route (4.5 T16.1): proto and
@@ -34,9 +40,11 @@ Near rows (4.5 T16.1, D115): 1+ agreeing site, else `route-near:no-agreeing-site
   and a wrong name no site reaches pass; a pass cannot prove a name true.
 Inputs: provenance_lint.inputs (PDB, EXE, XBE pinned to the manifest; the two prototype files re-read for raw publics,
   proc lengths, section flags, data symbols and TPI type sizes (pdb_types)), symbols.txt, the pin file, the evidence
-  doc, config/pin_accepted.txt, config/matched_set.toml. No derived/. Output: names, VAs, counts only; `??_C@` names
+  doc, config/pin_accepted.txt, config/matched_set.toml, config/retail/units.toml (bracket). No derived/. Output: names, VAs, counts only; `??_C@` names
   masked (D46).
 """
+# was (docstring before 5.1 T3): ... waived only by a row of config/pin_accepted.txt (`0x<VA><TAB><name><TAB><reason>`);
+#   a waiver of any conflict at the row.
 # was (docstring before 4.5 T16.1):
 # Not re-derived here: near_check (near-corr and `+retail-xref` rows rest on the site test), the data-bytes record route
 #   (its rows: name kind and site test). Limits (docs/ops/validation.md "4.2 Pin-row check"): a byte twin with no site
@@ -52,6 +60,7 @@ import re
 import struct
 import sys
 import time
+import tomllib
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -72,6 +81,7 @@ import xbe_info  # noqa: E402
 REPO = Path(__file__).resolve().parent.parent
 PIN = REPO / "config" / "retail" / "symbols_pin.txt"
 SYMS = REPO / "config" / "retail" / "symbols.txt"
+UNITS = REPO / "config" / "retail" / "units.toml"  # 5.3 T2.c4: the bracket route's unit text ranges
 EVID = REPO / "docs" / "evidence" / "compiler_pin.md"
 ACCEPTED = REPO / "config" / "pin_accepted.txt"
 MATCHED = REPO / "config" / "matched_set.toml"
@@ -90,8 +100,10 @@ TAGS = {
     ("data", PP + "site-corr+data-bytes"): ("disasm-verified", "global", True),
     ("data", PP + "site-corr+site-bundle"): ("corr-verified", "bundle", True),  # D113: bss, __TI, initialized globals
     ("data", PP + "site-corr+slot-bytes"): ("corr-verified", "slots", True),  # D113: vtables
+    ("data", PP + "site-corr+slot-names"): ("corr-verified", "slotnames", True),  # 5.3 T2.c4 (M30, R212): vtables
     ("func", PP + "fold-alias+callee-bytes"): ("disasm-verified", "fold", True),
     ("func", PP + "site-corr+callee-bytes"): ("disasm-verified", "func", True),
+    ("func", PP + "unit-bracket+callee-bytes"): ("disasm-verified", "bracket", True),  # 5.3 T2.c4 (T1 ruling)
     ("func", PP + "proto-neighbour+retail-bytes"): ("disasm-verified", "func", True),
     ("func", PP + "anchor-window+caller-xref"): ("near-corr", "near", True),  # D115: func only
     ("data", PP + "site-corr"): ("site-corr", None, True),
@@ -111,6 +123,8 @@ TAGS = {
     ("data", PP + "retail-data"): ("disasm-verified", "hand", True),
 }
 # 4.5 T16.1 (G2, D115): near rows with no agreeing site, allowed by (va, name). The list only shrinks (C0286).
+# 5.1 T3.1 (ruled no slot route, T3 review): kept with their evidence, docs/ops/validation.md "5.1 Near re-check";
+#   control pin-near-listed: a fourth unlisted no-site near row fails route-near:no-agreeing-site.
 _NNS = "virtual Init, no rel32 caller in pin_rows' site index; D115 evidence is name_sites near_check; re-check gen 5"
 NEAR_NO_SITE = {
     (0x000688EA, "?Init@RatRacePreludeCutscene@@MAEXXZ"): _NNS,
@@ -295,6 +309,7 @@ class State:
         self.xbe_sha1 = hashlib.sha1(xbe.data).hexdigest()
         secs = pe["sections"]
         self.pubs, self.byname, self.procs = defaultdict(set), defaultdict(set), {}
+        self.pmods, self.mprocs = defaultdict(set), defaultdict(set)  # 5.3 T2.c4 bracket: proc VA <-> PDB module
         for p in pdb["publics"]:
             if 1 <= p["seg"] <= len(secs):
                 v = img.base + secs[p["seg"] - 1]["va"] + p["off"]
@@ -305,6 +320,17 @@ class State:
                 if 1 <= x["seg"] <= len(secs):
                     v = img.base + secs[x["seg"] - 1]["va"] + x["off"]
                     self.procs[v] = max(self.procs.get(v, 0), x["length"])
+                    self.pmods[v].add(m["name"])
+                    self.mprocs[m["name"]].add(v)
+        try:  # 5.3 T2.c4 bracket inputs: unit text ranges, matched functions (name -> retail VA, size)
+            self.utext = {u["name"]: (u["text_start"], u["text_end"])
+                          for u in tomllib.loads(UNITS.read_text(encoding="utf-8"))["unit"]
+                          if "text_start" in u and "text_end" in u}
+            self.matched = {e["symbol"]: (e["va"], e["size"]) for e in matched_set.load(MATCHED)
+                            if e["kind"] == "function"}
+        except (OSError, tomllib.TOMLDecodeError, matched_set.Refuse) as e:
+            raise Refuse(f"units.toml/matched_set.toml unreadable: {e}")
+        self.banc = {}  # module -> sorted bracket anchors (proto VA, retail VA, retail size), built on first use
         self.pub_vas = sorted(self.pubs)
         self.dtypes = defaultdict(set)  # proto VA -> PDB data symbol type indices
         for ti, off, seg in dsyms:
@@ -362,9 +388,13 @@ class State:
                 if not ln.strip() or ln.startswith("#"):
                     continue
                 f = ln.split("\t")
-                if len(f) != 3 or not re.fullmatch(r"0x[0-9A-F]{8}", f[0]) or not f[2].strip():
-                    raise Refuse(f"{self.acc_path.name}:{i}: want 0x<VA><TAB><name><TAB><reason>")
-                out[(int(f[0], 16), f[1])] = i
+                # 5.1 T3: a 4th field, the conflict the waiver covers; was: 3 fields, a waiver of any conflict
+                toks = frozenset(f[3].split(",")) if len(f) == 4 else frozenset()
+                if (len(f) != 4 or not re.fullmatch(r"0x[0-9A-F]{8}", f[0]) or not f[2].strip() or not toks
+                        or not all(re.fullmatch(r"[rp]:0x[0-9A-F]{8}", t) for t in toks)):
+                    raise Refuse(f"{self.acc_path.name}:{i}: want 0x<VA><TAB><name><TAB><reason><TAB><conflict> "
+                                 f"(conflict: comma-joined r:0x<VA8> / p:0x<VA8>, non-empty)")
+                out[(int(f[0], 16), f[1])] = (i, toks)
         return out
 
     # -- site index (locked: symbols.txt names, PDB proc lengths)
@@ -450,6 +480,82 @@ class State:
             k += 1
         return k
 
+    def anchors(self, m):
+        """Bracket anchors of PDB module m: its procs with a public name in matched_set.toml, as sorted (proto VA,
+        retail VA, retail size); several matched names at one proc: the lowest retail VA."""
+        if m not in self.banc:
+            an = []
+            for x in sorted(self.mprocs.get(m, ())):
+                hit = sorted(self.matched[n] for n in self.pubs.get(x, ()) if n in self.matched)
+                if hit:
+                    an.append((x, *hit[0]))
+            self.banc[m] = an
+        return self.banc[m]
+
+    def bracket(self, p, va, ln):
+        """5.3 T2.c4 (T1 ruling; pool_buckets' bracket :690-714, gate-verified anchors): P's proc in exactly one PDB
+        module M; anchors = M's matched procs (anchors()); VA in [retail end of the nearest anchor below P, retail start
+        of the nearest anchor above P) and in M's units.toml text range; no other retail offset in that window
+        masked-equal to P over its proc length (Images.match, constants allowed) -> None, else a fail reason."""
+        ms = self.pmods.get(p, set())
+        if len(ms) != 1:
+            return "module-not-unique"
+        m = next(iter(ms))
+        if m not in self.utext:
+            return "unit-unknown"
+        an = self.anchors(m)
+        lo = max((a for a in an if a[0] < p), default=None)
+        hi = min((a for a in an if a[0] > p), default=None)
+        if lo is None or hi is None:
+            return "no-anchor"
+        w0, w1 = lo[1] + lo[2], hi[1]
+        if not w0 <= va < w1:
+            return "outside-bracket"
+        if not self.utext[m][0] <= va < self.utext[m][1]:
+            return "outside-unit"
+        pb = self.img.pbytes(p, ln)
+        mp, _e = mask_proc(pb, p, self.img.plo, self.img.phi)
+        best, pos = (0, 0), 0  # (length, offset) of P's longest unmasked run: the search key
+        for o, sz, _k in mp + [(ln, 0, "")]:
+            if o - pos > best[0]:
+                best = (o - pos, pos)
+            pos = max(pos, o + sz)
+        s = self.img.rsec(w0)
+        end = min(w1 + ln, s["virtualAddr"] + s["rawSize"]) if s else w0
+        win = self.img.rbytes(w0, end - w0) or b""
+        key, ko = pb[best[1]:best[1] + best[0]], best[1]
+        cands = range(w0, w1) if not key else []
+        if key:
+            i = win.find(key)
+            while i >= 0:
+                cands.append(w0 + i - ko)
+                i = win.find(key, i + 1)
+        for t in cands:
+            if t != va and w0 <= t < w1 and self.img.match(p, t, ln) is not None:
+                return "ambiguous"
+        return None
+
+    def slot_names(self, n, p, va):
+        """5.3 T2.c4 (M30, R212): a `??_7` vtable named by its slots' names: every proto slot (vt_slots) has its retail
+        slot VA named by one of the slot target's publics (D119: or its undecorated library name), the name from
+        symbols.txt or a passing pin row of an accepted status; and rt_slots(VA) == the proto slot count -> None,
+        else a fail reason. No byte compare and no site (the names carry it)."""
+        slots = self.vt_slots(p, va) if n.startswith("??_7") else []
+        if not slots:
+            return "vtable-no-slots"
+        for pv, rv in slots:
+            want = set(self.pubs.get(pv, ()))
+            want |= {undecorated(x) for x in want} - {None}
+            rows = self.by_row_va.get(rv, ())
+            names = set(self.sy_va.get(rv, ())) | {x["name"] for x in rows}
+            ok = set(self.sy_va.get(rv, ())) | {x["name"] for x in rows
+                                                 if x["status"] in ACCEPTED_STATUS and not x["fails"]}
+            if not names:
+                return "slot-unnamed"
+            if not ok & want:
+                return "slot-site-corr" if names & want else "slot-name-differs"
+        return None if self.rt_slots(va) == len(slots) else "slot-count-differs"
+
     def literal(self, route, n, p, va):
         """-> True, False, or a fail reason (vtable: `slot-count-differs`)."""
         img = self.img
@@ -522,9 +628,11 @@ class State:
             by_va[r["va"]].add(r["name"])
             pairs[(r["va"], r["name"])] += 1
         self.tab_sorted = sorted(self.tab_va)  # 4.5 T16.1: next retail-side name (data_equal)
-        self.by_row_name = defaultdict(list)
+        self.by_row_name, self.by_row_va = defaultdict(list), defaultdict(list)  # by_row_va: 5.3 T2.c4 slot names
         for r in rows:
             self.by_row_name[r.get("name", "")].append(r)
+        for r in live:
+            self.by_row_va[r["va"]].append(r)
         for r in live:
             t = r["cls"] = TAGS.get((r["kind"], r["tag"]))
             if t is None:
@@ -572,7 +680,7 @@ class State:
                 elif not agree:
                     r["fails"].append("route-near:no-agreeing-site")
         for r in live:
-            if r.get("cls") and r["cls"][1] in ("bundle", "slots"):
+            if r.get("cls") and r["cls"][1] in ("bundle", "slots", "slotnames"):  # was: ("bundle", "slots")
                 self.corr_route(r)
 
     def route(self, r):
@@ -585,7 +693,7 @@ class State:
         if route == "label":
             m = re.fullmatch(r"(?:_s_|boundary_)([0-9A-F]{8})", n)
             why = None if m and int(m.group(1), 16) == va else "label-not-va"
-        elif route in ("func", "fold"):
+        elif route in ("func", "fold", "bracket"):  # was: ("func", "fold"); bracket: 5.3 T2.c4 (T1 ruling)
             why = "proto-name"
             for p in r["protos"]:
                 ln = self.procs.get(p)
@@ -598,6 +706,8 @@ class State:
                         why = "size-differs"
                     elif route == "fold" and len(self.pubs.get(p, ())) < 2:
                         why = "fold-single-public"
+                    elif route == "bracket":
+                        why = self.bracket(p, va, ln)
                     break
         elif route in ("string", "float", "vtable"):
             why = "proto-name"
@@ -621,11 +731,14 @@ class State:
             return
         n, va = r["name"], r["va"]
         agree = conf = rconf = fold = 0
+        toks = set()  # 5.1 T3: the conflict as tokens, r:<retail dest> (fold sites too) and p:<proto dest>
         for p in r["protos"]:
             for rd, c in self.by_pd.get(p, {}).items():
                 if rd == va:
                     agree += len(c)
-                elif len(self.pubs.get(p, ())) > 1 and not self.tab_va.get(rd):
+                    continue
+                toks.add(f"r:0x{rd:08X}")
+                if len(self.pubs.get(p, ())) > 1 and not self.tab_va.get(rd):
                     fold += len(c)  # D119 fold site (4.2 T5): a fold dest's site cannot say which member it calls
                 else:
                     conf += len(c)
@@ -635,10 +748,15 @@ class State:
             names = self.pubs.get(pd, set())
             if names and n not in names:
                 rconf += len(c)
+                toks.add(f"p:0x{pd:08X}")
         r["site"] = (agree, conf, rconf)
         if conf or rconf:
-            if (va, n) in self.accepted and n.startswith(("??_C@", "__real@")):
+            acc = self.accepted.get((va, n))
+            # was: if (va, n) in self.accepted and n.startswith(("??_C@", "__real@")):  (a waiver of any conflict)
+            if acc and n.startswith(("??_C@", "__real@")) and acc[1] == toks:
                 r["notes"].append("literal-copy-accepted")
+            elif acc and n.startswith(("??_C@", "__real@")):  # 5.1 T3: the waiver names another conflict
+                r["fails"].append(("site-conflict-both" if agree else "site-conflict-only") + ":accepted-conflict-differs")
             else:
                 r["fails"].append("site-conflict-both" if agree else "site-conflict-only")
 
@@ -651,6 +769,11 @@ class State:
             r["fails"].append(f"route-{r['cls'][1]}:public-not-unique")
             return
         p, img = ps[0], self.img
+        if r["cls"][1] == "slotnames":  # 5.3 T2.c4 (M30, R212)
+            why = self.slot_names(n, p, va)
+            if why:
+                r["fails"].append(f"route-slotnames:{why}")
+            return
         if r["cls"][1] == "slots":
             slots = self.vt_slots(p, va) if n.startswith("??_7") else []
             why = None
@@ -690,7 +813,7 @@ class State:
             out.append(f"FAIL pin-row header-sha1 {self.pin.name}:1: retail default.xbe sha1 {self.xbe_sha1} not in the header")
         live = {(r.get("va"), r.get("name")) for r in self.rows}
         used = {(r.get("va"), r.get("name")) for r in self.rows if "literal-copy-accepted" in r.get("notes", ())}
-        for (va, n), i in sorted(self.accepted.items()):
+        for (va, n), (i, _toks) in sorted(self.accepted.items()):
             if (va, n) not in live or not n.startswith(("??_C@", "__real@")):
                 out.append(f"FAIL pin-row accepted-stale 0x{va:08X} {mask(n)} {self.acc_path.name}:{i}: no such literal row")
             elif (va, n) not in used:  # 4.5 T16.2.c4 (G14); was: a live literal row's waiver passed, conflict or not
@@ -711,10 +834,13 @@ class State:
         """Function text relocations of each matched function's built object: a name only the pin file holds must have
         an accepted status and a passing row; a name in neither table fails."""
         out, used, seen_none, objs = [], defaultdict(set), set(), {}
+        rels = matched_set.build.obj_rels()  # 5.1 T4.c2: obj at its source path
         for e in matched_set.load(list_path):
             if e["kind"] != "function":
                 continue
-            p = Path(build) / e["unit"].replace("/", "\\").rsplit("\\", 1)[-1]
+            # was: p = Path(build) / e["unit"].replace("/", "\\").rsplit("\\", 1)[-1]
+            p = Path(build) / rels.get(e["unit"].replace("/", "\\").lower(),
+                                       e["unit"].replace("/", "\\").rsplit("\\", 1)[-1])
             key = str(p).lower()
             if key not in objs:
                 if not p.is_file():

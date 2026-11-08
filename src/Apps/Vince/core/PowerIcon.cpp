@@ -215,13 +215,20 @@ private:
 
 class SwampScriptManager { // NAME: proto-pdb:default.pdb
 public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
     static SwampScriptManager& Instance();
     SwampScript* Create(const SwampString&, SwampSceneNode*) const;
+    void Add(const SwampString& name, CreationFunc func);
 };
 
 class HoldText : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     HoldText(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -269,7 +276,7 @@ DECOMP_SIZE_ASSERT(RewardPowerIconMain, 0xD8);
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* HoldText::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("scripts\\common\\PowerIcon.cpp", 23) HoldText(node);
 }
 #endif
@@ -279,7 +286,7 @@ SwampScript* HoldText::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* PowerIconMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\PowerIcon.h", 14) PowerIconMain(node);
 }
 
@@ -302,9 +309,16 @@ void RewardPowerIconMain::Message(SwampScript* source, int message, void* data)
 void RewardPowerIconMain::Load(const BeepTDF& tdf)
 {
     PowerIconMain::Load(tdf);
-    // !FAKE: local absent from the PDB; retail destroys the "state" temporary before the SetState call
+    // !FAKE: EH state; stand-in local (absent from the PDB); retail destroys the "state" temporary before the SetState call
     int state = tdf.GetIntRecord("state", 0);
     SetState(state);
+}
+
+// FUNCTION: USA 0x00121CB3
+// NAME: proto-pdb:default.pdb
+HoldText::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HoldText", creationFunc);
 }
 
 // FUNCTION: USA 0x00121D91

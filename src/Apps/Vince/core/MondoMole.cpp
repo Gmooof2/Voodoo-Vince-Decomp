@@ -6,7 +6,11 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string(const E* _Ptr);
+    ~basic_string() { _Tidy(true); }
     int compare(const E* _Ptr) const;
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
     unsigned int _pad00[0x1C / 4];
@@ -16,6 +20,21 @@ inline bool operator==(const basic_string<E, T, A>& _Left, const E* _Right)
 {
     return _Left.compare(_Right) == 0;
 }
+template <class T, class A = allocator<T> > class deque { // NAME: proto-pdb:default.pdb
+public:
+    deque() : _Map(0), _Mapsize(0), _Myoff(0), _Mysize(0) {}
+    ~deque() { _Tidy(); }
+
+protected:
+    void _Tidy();
+
+private:
+    char _Alval;                       // 0x00
+    T** _Map;                          // 0x04
+    unsigned int _Mapsize;             // 0x08
+    unsigned int _Myoff;               // 0x0C
+    unsigned int _Mysize;              // 0x10
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -71,11 +90,12 @@ template <class T> class SwampShuffleQueue { // NAME: proto-pdb:default.pdb
 public:
     T Fetch();
 
-    char field_0[0x14];                // 0x00
+    std::deque<T> _queue;              // 0x00
 };
 
 class MultiAnimation { // NAME: proto-pdb:default.pdb
 public:
+    void Load(const SwampString& baseName, const char* formatString, int startindex);
     ResourceHandle<AnimationResource> FetchAnim() { return _animQueue.Fetch(); }
 
     SwampShuffleQueue<ResourceHandle<AnimationResource> > _animQueue; // 0x00
@@ -95,7 +115,10 @@ public:
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     virtual void Invalidate();                                     // vtable+0x14
+
+    char field_4[0xA4 - 0x4];          // 0x04
 };
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -142,9 +165,13 @@ class Critter; // NAME: proto-pdb:default.pdb
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     Critter* GetCritter();
     virtual ~CritterMain();
     virtual void Message(SwampScript*, int, void*);                // vtable+0x34
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -154,8 +181,23 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
-// src proto-pdb:default.pdb GatorNode base CollidableCylinder (SwampSceneNode at 0x0), not modelled
-class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    void SetCollidable(bool b) { _collidable = b; }
+
+    float _sphereRadius;               // 0xA4
+    bool _collidable;                  // 0xA8
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    float _height;                     // 0xAC
+    float _radius;                     // 0xB0
+};
+DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
     void SetAnimSpeed(float);
@@ -199,6 +241,7 @@ public:
     MondoMoundMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void AnimationFinished();
+    virtual void Load(const BeepTDF&);
     virtual void SetState(int);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -247,6 +290,7 @@ public:
     virtual void AnimationFinished();
     virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
     virtual void SetState(int);
+    virtual void DeathFX();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -402,6 +446,19 @@ void MondoMoleMain::AnimationTrigger(const SwampString& name, float value, float
     }
 }
 
+class SoundManager { // NAME: proto-pdb:default.pdb
+public:
+    static void PlaySound(const SwampString&, unsigned int, SwampSceneNode*, bool, float, float);
+};
+
+// FUNCTION: USA 0x0011FF92
+// NAME: proto-pdb:default.pdb
+void MondoMoleMain::DeathFX()
+{
+    MonsterMain::DeathFX();
+    SoundManager::PlaySound("moledeath", 0, _node, false, 0.0f, 0.0f);
+}
+
 // FUNCTION: USA 0x0011FF18
 // PROTOTYPE: PREVIEW 0x00508C14 identical
 // NAME: proto-pdb:default.pdb
@@ -447,12 +504,22 @@ void MondoMoundMain::SetState(int state)
     }
 }
 
+// FUNCTION: USA 0x001209EA
+// NAME: proto-pdb:default.pdb
+MondoMoundMain::MondoMoundMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _multiAnimMoundAppear.Load("mondomound_appear", "%s%003i", 1);
+    _multiAnimMoundDisappear.Load("mondomound_disappear", "%s%003i", 1);
+    GetCritter()->SetCollidable(false);
+    SetState(STATE_HIDDEN);
+}
+
 // FUNCTION: USA 0x00120AD7
 // PROTOTYPE: PREVIEW 0x005097B7 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* MondoMoundMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\MondoMole.h", 104) MondoMoundMain(node);
 }
 
@@ -461,6 +528,6 @@ SwampScript* MondoMoundMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* MondoMoleMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\MondoMole.h", 17) MondoMoleMain(node);
 }

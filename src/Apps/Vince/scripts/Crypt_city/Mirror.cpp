@@ -204,7 +204,7 @@ void MirrorUrnMain::TestForAim()
 {
     // !FAKE: c2 scheduling; dummy local; retail reads _onBell into bl before the calls; the proto PDB lists no such local
     bool tmp = _onBell;
-    // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference (no free operator in the PDB, C0191)
+    // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference; no free operator in the PDB, no before/after recorded (C0191)
     const Vector3* v0 = &_node->GetWorldPosition();
     const Vector3* v1 = &_bell->GetWorldPosition();
     Vector3 diff;
@@ -212,7 +212,7 @@ void MirrorUrnMain::TestForAim()
     diff.y = v1->y - v0->y;
     diff.z = v1->z - v0->z;
     diff.Normalize();
-    // !FAKE: inliner; pointer local + hand form of retail's inlined dot product (C0191)
+    // !FAKE: inliner; pointer local + hand form of retail's inlined dot product; retail inlines it, no before/after recorded (C0191)
     const Vector3* p = &_node->GetFacing();
     _onBell = diff.z * p->z + diff.y * p->y + diff.x * p->x > 0.99f;
     if (_onBell) {
@@ -237,7 +237,7 @@ MirrorUrnMain::MirrorUrnMain(SwampSceneNode* node)
     _state = 0;
     critter->_CritterType = CRITTER_TYPE_STATIC;
     critter->GetBoneOrientation("locator_center", _focusRot, _focusPos);
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     LightBeam* beam = new("Gwistlethorpe\\Mirror.cpp", 36) LightBeam;
     beam->SetLocation(_focusPos);
     beam->SetRotation(_focusRot);
@@ -280,6 +280,6 @@ SwampString MirrorUrnMain::Save()
 // NAME: proto-pdb:default.pdb
 SwampScript* MirrorUrnMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Mirror.h", 12) MirrorUrnMain(node);
 }

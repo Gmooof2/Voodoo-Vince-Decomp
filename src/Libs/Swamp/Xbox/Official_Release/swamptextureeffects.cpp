@@ -305,7 +305,7 @@ void SwampSpookyRenderer::BeginRender()
 // PROTOTYPE: PREVIEW 0x004C1F70 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 96.758064, bytes mismatch (frame layout equal, but cl keeps a plain ebp frame where retail biases it, lea ebp,[esp-0x6c]; and g_swamp stays in eax for CreateCubemap where retail reloads it)
+// best: match_one objdiff 99.08602, bytes mismatch +0x1B (if/else SetUp gives retail's biased frame, lea ebp,[esp-0x6c]; g_swamp stays in eax for CreateCubemap where retail reloads it: lea eax,[ebp+0x68] vs lea ecx; a volatile read of g_swamp for v1 matches, 100 + bytes, but D116 forbids it, T12.c18b)
 ResourceHandle<TextureResource> SwampTextureEffects::GenerateEnvironmentMap(const Vector3& loc, unsigned int size)
 {
     // !FAKE: c2 register allocation; dummy local; renderer loaded into ebx before the first call
@@ -330,7 +330,12 @@ ResourceHandle<TextureResource> SwampTextureEffects::GenerateEnvironmentMap(cons
     DrawLevel::EnableMirrors(false);
     for (unsigned int i = 0; i < 6; i++) {
         camera.SetFacing(facings[i]);
-        camera.SetUp(i == 2 ? Vector3(0.0f, 0.0f, -1.0f) : i == 3 ? Vector3(0.0f, 0.0f, 1.0f) : Vector3(0.0f, 1.0f, 0.0f));
+        if (i == 2)
+            camera.SetUp(Vector3(0.0f, 0.0f, -1.0f));
+        else if (i == 3)
+            camera.SetUp(Vector3(0.0f, 0.0f, 1.0f));
+        else
+            camera.SetUp(Vector3(0.0f, 1.0f, 0.0f));
         v1.RenderToTexture(cubeTex, zTex, i);
         v1.ClearScreen(0, true, true, true);
         g_swamp->GetScene().RenderScene();

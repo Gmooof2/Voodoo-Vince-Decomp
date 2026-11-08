@@ -31,7 +31,7 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 #ifdef NON_MATCHING // D78: no PDB record for these operators; only the guarded FreeFall draft uses them
-// !FAKE: inliner; hand forms of the inlined Vector3 free operators retail FreeFall shows (no PDB record)
+// !FAKE: inliner; hand forms of the inlined Vector3 free operators; retail FreeFall shows them (no PDB record), no before/after recorded
 inline Vector3 operator*(const Vector3& v, float f) { return Vector3(v.x * f, v.y * f, v.z * f); }
 inline Vector3 operator*(float f, const Vector3& v) { return Vector3(v.x * f, v.y * f, v.z * f); }
 inline Vector3 operator+(const Vector3& a, const Vector3& b) { return Vector3(a.x + b.x, a.y + b.y, a.z + b.z); }
@@ -322,7 +322,10 @@ void VinceSwing::KillSwing()
 // PROTOTYPE: PREVIEW 0x00511ACF identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 95.59, bytes mismatch: cl hoists the 3 pops above the ~Ptr test, retail pops after the dec
+// best: match_one objdiff 100.0, bytes match (T12.c20) but D78-blocked: needs the unrecorded free Vector3 operator*/operator+/operator- above; best allowed hand form (C0191) va_dis 48 lines off (retail keeps vel*elapsed on the x87 stack). Was 95.59 (pops hoisted above the ~Ptr test)
+// T12.c28 lever E at-stop 20: best allowed 97.625 (+0x35): member-store products y,z,x + sums x,y,z, hit branch as
+// 3-arg ctor temps + `float f` (hit branch then byte-equal); retail's x87 shape (3 products held to statement end, elapsed
+// in memory) came only from inlined function calls in both expressions (diagnostic probes), never from a hand form
 void VinceSwing::FreeFall()
 {
     Vector3 vel = GetCritter()->GetVelocity();
@@ -337,6 +340,8 @@ void VinceSwing::FreeFall()
         GetCritter()->SetCurSpeed(0.0f);
         KillSwing();
         InvalidateScript();
+        // !FAKE: c2 block layout; explicit return; without it cl hoists the 3 pops above the ~Ptr test (match_one 95.59 -> 100.0, T12.c20)
+        return;
     } else {
         _node->SetWorldPosition(newpos);
         GetCritter()->SetVelocity(vel);

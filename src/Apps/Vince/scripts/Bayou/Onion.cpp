@@ -33,8 +33,22 @@ template <class T> inline void _Destroy(T* _Ptr)
 {
     (_Ptr)->~T();
 }
+}
+#pragma warning(disable: 4530) // no /EH in the unit flags; as Init.cpp
+// VC 7.1 <new> placement new, <xmemory> _Construct, allocator::allocate/construct (map _Buynode row)
+inline void* operator new(unsigned int, void* _Where)
+{
+    return _Where;
+}
+namespace std {
+template <class T1, class T2> inline void _Construct(T1* _Ptr, const T2& _Val)
+{
+    new ((void*)_Ptr) T1(_Val);
+}
 template <class T> class allocator {
 public:
+    T* allocate(unsigned int _Count) { return (T*)operator new(_Count * sizeof(T)); }
+    void construct(T* _Ptr, const T& _Val) { _Construct(_Ptr, _Val); }
     void deallocate(T* _Ptr, unsigned int) { operator delete(_Ptr); }
     void destroy(T* _Ptr) { _Destroy(_Ptr); }
 };
@@ -69,7 +83,7 @@ private:
     unsigned int _Mysize;              // 0x14
     unsigned int _Myres;               // 0x18
 };
-// !FAKE: decl-only specialization; retail calls the char _Tidy out of line (no row here), keeps it unemitted
+// !FAKE: c1xx front end; decl-only specialization; retail calls the char _Tidy out of line (no row here), keeps it unemitted
 template <> void basic_string<char, char_traits<char>, allocator<char> >::_Tidy(bool _Built, unsigned int _Newsize);
 template <class E, class T, class A> void basic_string<E, T, A>::_Eos(unsigned int _Newsize)
 {
@@ -80,7 +94,7 @@ template <class E, class T, class A> void basic_string<E, T, A>::_Tidy(bool _Bui
     if (!_Built)
         ;
     else if (_BUF_SIZE <= _Myres) {
-        E* tmp = _Bx._Ptr; // !FAKE: name; VC 7.1 _Ptr, not in the PDB locals
+        E* tmp = _Bx._Ptr; // !FAKE: provenance; stand-in name tmp; VC 7.1 _Ptr, not in the PDB locals
         if (0 < _Newsize)
             T::copy(_Bx._Buf, tmp, _Newsize);
         _Alval.deallocate(tmp, _Myres + 1);
@@ -125,18 +139,79 @@ protected:
 private:
     char _pad00[0x14];
 };
-template <class K, class T, class Pr, class A, bool Mfl> class _Tmap_traits;
+template <class K, class T, class Pr, class A, bool Mfl> class _Tmap_traits {
+public:
+    typedef pair<const K, T> value_type;
+};
+// _Tree_nod/_Tree: VC 7.1 <xtree> node layout and _Erase body (as SwampDiary.cpp:93-131, 356-364)
+template <class Traits> class _Tree_nod {
+public:
+    struct _Node;
+    typedef _Node* _Genptr;
+    struct _Node {
+        _Genptr _Left;                 // 0x00
+        _Genptr _Parent;               // 0x04
+        _Genptr _Right;                // 0x08
+        typename Traits::value_type _Myval; // 0x0C
+        char _Color;
+        char _Isnil;
+    };
+};
 template <class Traits> class _Tree {
 public:
     _Tree() { _Init(); } // src proto-pdb:default.pdb _Init
     ~_Tree() { _Tidy(); }
 
 protected:
+    typedef typename _Tree_nod<Traits>::_Node _Node;
+    typedef _Node* _Nodeptr;
+    enum _Redbl { _Red, _Black };
+    static char& _Color(_Nodeptr _Pnode) { return ((char&)(*_Pnode)._Color); }
+    static char& _Isnil(_Nodeptr _Pnode) { return ((char&)(*_Pnode)._Isnil); }
+    static _Nodeptr& _Left(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Left); }
+    static _Nodeptr& _Parent(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Parent); }
+    static _Nodeptr& _Right(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Right); }
+    _Nodeptr _Buynode()
+    {
+        _Nodeptr _Wherenode = this->_Alnod.allocate(1);
+        int _Linkcnt = 0;
+
+        try {
+            this->_Alptr.construct(&_Left(_Wherenode), 0);
+            ++_Linkcnt;
+            this->_Alptr.construct(&_Parent(_Wherenode), 0);
+            ++_Linkcnt;
+            this->_Alptr.construct(&_Right(_Wherenode), 0);
+        } catch (...) {
+            if (1 < _Linkcnt)
+                this->_Alptr.destroy(&_Parent(_Wherenode));
+            if (0 < _Linkcnt)
+                this->_Alptr.destroy(&_Left(_Wherenode));
+            this->_Alnod.deallocate(_Wherenode, 1);
+            throw;
+        }
+        _Color(_Wherenode) = _Black;
+        _Isnil(_Wherenode) = false;
+        return (_Wherenode);
+    }
+    void _Erase(_Nodeptr _Rootnode)
+    {
+        for (_Nodeptr _Pnode = _Rootnode; !_Isnil(_Pnode); _Rootnode = _Pnode) {
+            _Erase(_Right(_Pnode));
+            _Pnode = _Left(_Pnode);
+            this->_Alnod.destroy(_Rootnode);
+            this->_Alnod.deallocate(_Rootnode, 1);
+        }
+    }
     void _Init();
     void _Tidy();
 
 private:
-    char _pad00[0xC];
+    allocator<_Node> _Alnod;           // 0x00
+    allocator<_Nodeptr> _Alptr;        // 0x01
+    char _pad02[0x4 - 0x2];            // 0x02 (_Alval)
+    _Nodeptr _Myhead;                  // 0x04
+    unsigned int _Mysize;              // 0x08
 };
 template <class K, class T, class Pr = less<K>, class A = allocator<pair<const K, T> > >
 class map : public _Tree<_Tmap_traits<K, T, Pr, A, false> > {
@@ -327,6 +402,9 @@ public:
 };
 DECOMP_SIZE_ASSERT(TextureResource, 0x30);
 
+// FUNCTION: USA 0x000181FB
+// NAME: proto-pdb:default.pdb
+// ??_G?$ResourceHandle<TextureResource>: compiler-generated, emitted by pin_emit_ResourceHandle_TextureResource_delete (5.3 T6.c12)
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
@@ -469,6 +547,11 @@ void pin_emit_AreaStats_delete(AreaStats* p)
     delete p;
 }
 
+// FUNCTION: USA 0x00018B19
+// NAME: proto-pdb:default.pdb
+template void std::_Destroy_range<AreaStats, std::allocator<AreaStats> >(AreaStats*, AreaStats*, std::allocator<AreaStats>&,
+                                                                        std::_Nonscalar_ptr_iterator_tag);
+
 // FUNCTION: USA 0x00018696
 // PROTOTYPE: PREVIEW 0x004078ED identical
 // NAME: proto-pdb:default.pdb
@@ -510,7 +593,9 @@ class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
     virtual void Load(const BeepTDF&);
     virtual void Message(SwampScript*, int, void*);
     Critter* GetCritter() { return (Critter*)_node; }
@@ -589,6 +674,23 @@ void pin_emit_MonsterMain_dtor(MonsterMain* p)
     p->MonsterMain::~MonsterMain();
 }
 
+typedef std::_Tmap_traits<SwampString, SwampString, std::less<SwampString>,
+                          std::allocator<std::pair<const SwampString, SwampString> >, false>
+    TexRemapTraits;
+
+// FUNCTION: USA 0x00018E1A
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1): callee ??_G_Node (destroy) at retail 0x000186CC has no symbol; needs that pin (our build also emits ??_G_Node here)
+template void std::_Tree<TexRemapTraits>::_Erase(std::_Tree_nod<TexRemapTraits>::_Node*);
+#endif
+
+// FUNCTION: USA 0x00019905
+// NAME: proto-pdb:default.pdb
+// ??_GOnionMain (alias ??_EOnionMain) unmatched, no draft; wall: a virtual ??_G is emitted only with the class vtable, i.e.
+// with its ctor ??0OnionMain 0x000196CA (0x1EB, not matched, not a row here) (C0320); match_one: `not defined in Onion.obj`
+// FUNCTION: USA 0x00019921
+// NAME: proto-pdb:default.pdb
 class OnionMain : public MonsterMain { // NAME: proto-pdb:default.pdb
 public:
     enum States { // NAME: proto-pdb:default.pdb
@@ -627,6 +729,24 @@ public:
     int _idleCount;                    // 0x254
 };
 DECOMP_SIZE_ASSERT(OnionMain, 0x258);
+
+typedef std::_Tmap_traits<SwampString, SwampSceneNode* (*)(), std::less<SwampString>,
+                          std::allocator<std::pair<const SwampString, SwampSceneNode* (*)()> >, false>
+    NodeMapTraits;
+
+// FUNCTION: USA 0x0001850E
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1): only masked target is its own __ehhandler$ funclet (retail 0x00152AF6), unnamed; needs the funclet pinned (C0331), not a source lever
+template std::_Tree<NodeMapTraits>::_Nodeptr std::_Tree<NodeMapTraits>::_Buynode();
+#endif
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1OnionMain@@UAE@XZ in this unit (no matched
+// function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_OnionMain_dtor(OnionMain* p)
+{
+    p->OnionMain::~OnionMain();
+}
 
 class TrapOnionMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
@@ -672,7 +792,7 @@ DECOMP_SIZE_ASSERT(OnionTrapRegionMain, 0x4C);
 // NAME: proto-pdb:default.pdb
 SwampScript* OnionTrapRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\belowdecks\\Onion.h", 126) OnionTrapRegionMain(node);
 }
 
@@ -772,6 +892,14 @@ void Critter::ReturnToHome()
     _Velocity = Vector3(0.0f, 0.0f, 0.0f);
 }
 
+// FUNCTION: USA 0x00018190
+// PROTOTYPE: PREVIEW 0x00478846 identical
+// NAME: proto-pdb:default.pdb
+void CritterMain::SetState(int state)
+{
+    _state = state;
+}
+
 // FUNCTION: USA 0x0001819A
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
@@ -789,6 +917,13 @@ template <class T> ResourceHandle<T>& ResourceHandle<T>::operator=(const Resourc
 template ResourceHandle<VertexShaderResource>& ResourceHandle<VertexShaderResource>::operator=(
     const ResourceHandle<VertexShaderResource>& h);
 #endif
+
+// !FAKE: c1xx front end; scaffold delete; retail emits ??_G?$ResourceHandle@VTextureResource@@@@QAEPAXI@Z in this unit
+// (no matched function deletes a ResourceHandle); this delete-expression emits it instead (matched_set [[emitter]] row)
+void pin_emit_ResourceHandle_TextureResource_delete(ResourceHandle<TextureResource>* p)
+{
+    delete p;
+}
 
 // FUNCTION: USA 0x0001821B
 // PROTOTYPE: PREVIEW 0x004074D9 identical
@@ -854,7 +989,11 @@ bool Onion::DoesJorgeRepelMe(const SwampSceneNode* jorgeNode, bool bHorizontal) 
 
 class Globals { // NAME: proto-pdb:default.pdb
 public:
-    char field_0[0x6C4];               // 0x00
+    float GetGravity() const { return Gravity; }
+
+    char field_0[0x8C];                // 0x00
+    float Gravity;                     // 0x8C
+    char field_90[0x6C4 - 0x90];       // 0x90
     float _onionPatrolRadius;          // 0x6C4
     float _onionTurnRate;              // 0x6C8
     float _onionIdleTimeMin;           // 0x6CC
@@ -867,6 +1006,16 @@ public:
 };
 
 extern Globals gSettings; // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x000180E1
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0 + bytes match (masked 0); precheck ADD REFUSED: pin has no size in symbols_pin.txt (C0377 unsized pin)
+float Critter::GetGravity()
+{
+    return gSettings.GetGravity();
+}
+#endif
 
 // FUNCTION: USA 0x0001829A
 // PROTOTYPE: PREVIEW 0x00407558 identical
@@ -1073,7 +1222,7 @@ void TrapOnionMain::SetState(int state)
 // NAME: proto-pdb:default.pdb
 SwampScript* TrapOnionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (a header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (a header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\belowdecks\\Onion.h", 75) TrapOnionMain(node);
 }
 
@@ -1184,12 +1333,44 @@ Vector3 MonsterMain::GetAttackVectorLeft()
     return Vector3(-0.7071f, 0.0f, 0.7071f);
 }
 
+// FUNCTION: USA 0x000198FE
+// NAME: proto-pdb:default.pdb
+float MonsterMain::GetAttackVectorTolerance()
+{
+    return 0.9f;
+}
+
+class LevelStats { // NAME: proto-pdb:default.pdb
+public:
+    ~LevelStats();
+
+    SwampString _name;                 // 0x00
+    std::vector<AreaStats, std::allocator<AreaStats> > _areaStatsList; // 0x1C
+};
+DECOMP_SIZE_ASSERT(LevelStats, 0x2C);
+
+// FUNCTION: USA 0x0001995A
+// NAME: proto-pdb:default.pdb
+template void std::_Destroy_range<LevelStats, std::allocator<LevelStats> >(LevelStats*, LevelStats*,
+                                                                          std::allocator<LevelStats>&,
+                                                                          std::_Nonscalar_ptr_iterator_tag);
+
+// FUNCTION: USA 0x000194FB
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0 + bytes match (masked 0); relink: our objects and a cut object both define
+// ?_Tidy@?$vector@VAreaStats@@... (0x00019214, a fail row `library: std:: name`); needs _Tidy matched with it
+LevelStats::~LevelStats()
+{
+}
+#endif
+
 // FUNCTION: USA 0x0001999E
 // PROTOTYPE: PREVIEW 0x00408C0F identical
 // NAME: proto-pdb:default.pdb
 SwampScript* OnionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\belowdecks\\Onion.h", 9) OnionMain(node);
 }
 
@@ -1234,6 +1415,9 @@ public:
 
 extern "C" int __cdecl sprintf(char*, const char*, ...); // NAME: proto-pdb:default.pdb
 
+// FUNCTION: USA 0x00018A38
+// NAME: proto-pdb:default.pdb
+// ??1OnionHud: implicit, emitted by pin_emit_OnionHud_dtor (5.3 T6.c12)
 class OnionHud : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     virtual void Render(const Matrix& m) const;
@@ -1242,6 +1426,13 @@ public:
     Sprite _icon;                      // 0xA8
 };
 DECOMP_SIZE_ASSERT(OnionHud, 0xF4);
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1OnionHud@@UAE@XZ in this unit (no matched
+// function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_OnionHud_dtor(OnionHud* p)
+{
+    p->OnionHud::~OnionHud();
+}
 
 // FUNCTION: USA 0x00018A4A
 // PROTOTYPE: PREVIEW 0x00407C8F identical

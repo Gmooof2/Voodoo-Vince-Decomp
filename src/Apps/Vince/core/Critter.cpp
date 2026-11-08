@@ -320,7 +320,13 @@ public:
     size_type size() const { return (_Mysize); }
     size_type max_size() const { return (this->_Alval.max_size()); }
     void clear();
-    iterator find(const key_type& _Keyval);
+    // VC 7.1 body visible, still called out of line (fold alias 0x000EEA2C); with only the declaration cl kept
+    // GetDamageInfo's attackType temp in [ebp+0x10] instead of reusing [ebp+0xc] (C0222, C0244; T12.c27)
+    iterator find(const key_type& _Keyval)
+    {
+        iterator _Where = lower_bound(_Keyval);
+        return (_Where == end() || this->comp(_Keyval, _Key(_Where._Mynode())) ? end() : _Where);
+    }
     iterator lower_bound(const key_type& _Keyval) { return (iterator(_Lbound(_Keyval))); }
     iterator insert(iterator _Where, const value_type& _Val)
     {
@@ -591,6 +597,28 @@ public:
         return ((*_Where).second);
     }
 };
+template <class T, class A> class list { // NAME: proto-pdb:default.pdb
+    struct _Node {
+        _Node* _Next;                  // 0x00
+        _Node* _Prev;                  // 0x04
+        T _Myval;                      // 0x08
+    };
+public:
+    class iterator { // NAME: proto-pdb:default.pdb
+    public:
+        iterator(_Node* _Pnode) : _Ptr(_Pnode) {}
+        T& operator*() const { return _Ptr->_Myval; }
+        iterator& operator++() { _Ptr = _Ptr->_Next; return *this; }
+        bool operator!=(const iterator& _Right) const { return _Ptr != _Right._Ptr; }
+        _Node* _Ptr;
+    };
+    iterator begin() { return iterator(_Myhead->_Next); }
+    iterator end() { return iterator(_Myhead); }
+
+    char field_0[0x4];                 // 0x00
+    _Node* _Myhead;                    // 0x04
+    unsigned int _Mysize;              // 0x08
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -680,9 +708,16 @@ public:
     bool GetRenderingOption(unsigned int option) const { return (_RenderingOptions & option) != 0; }
     bool IsValid() const { return !GetRenderingOption(Invalid); }
 
+    enum SwampSceneNodeTypes { // NAME: proto-pdb:default.pdb
+        Sound = 0x8
+    };
+    int GetType() const { return _Type; }
+
     int _Type;                         // 0x04
     SwampString _Name;                 // 0x08
-    char field_24[0x88 - 0x24];        // 0x24
+    SwampSceneNode* _Parent;           // 0x24
+    std::list<SwampSceneNode*, std::allocator<SwampSceneNode*> > _Children; // 0x28
+    char field_34[0x88 - 0x34];        // 0x34
     unsigned int _RenderingOptions;    // 0x88
     char field_8C[0xA4 - 0x8C];        // 0x8C
 };
@@ -690,6 +725,8 @@ DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual void Update();
+
     char field_A4[0x200 - 0xA4];       // 0xA4
 };
 DECOMP_SIZE_ASSERT(GatorNode, 0x200);
@@ -699,11 +736,21 @@ public:
     void CheckForRegionCrossings(SwampSceneNode* node, const Vector3& start, const Vector3& end, bool testEndOnly) const;
 };
 
+class SwampInput { // NAME: proto-pdb:default.pdb
+public:
+    float GetElapsedTime() const { return _elapsed; }
+
+    float _elapsed;                    // 0x00
+};
+
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
+    SwampInput& GetInput() const { return *_input; }
     RegionManager& GetRegionManager() const { return *_regionManager; }
 
-    char field_0[0x30];                // 0x00
+    char field_0[0x4];                 // 0x00
+    SwampInput* _input;                // 0x04
+    char field_8[0x30 - 0x8];          // 0x08
     RegionManager* _regionManager;     // 0x30
 };
 
@@ -714,6 +761,8 @@ public:
     virtual void Stun(float);                                      // vtable+0x3C
     CritterCollision MoveMyFatAss(float, unsigned int);
     void CheckRegions();
+    virtual void Update();
+    void StopSounds();
     Vector3 GetVelocityToTarget(const Vector3& start, const Vector3& target, float gravity, float lobfactor);
 
     float _MaxSpeed;                   // 0x200
@@ -735,31 +784,43 @@ Vector3 Normalize(const Vector3&);     // NAME: proto-pdb:default.pdb
 // FUNCTION: USA 0x000ECF71
 // PROTOTYPE: PREVIEW 0x004D8274 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 92.15, bytes mismatch; retail passes delta's slot as Normalize's return temp and reads it
-// through eax (frame 0x18, ours 0x24), and squares flat x before z; the operator-, operator* and const-ref forms
-// stay out of line or add a temp (C0125, C0219)
 Vector3 Critter::GetVelocityToTarget(const Vector3& start, const Vector3& target, float gravity, float lobfactor)
 {
-    Vector3 delta;
-    delta.x = target.x - start.x;
-    delta.y = target.y - start.y;
-    delta.z = target.z - start.z;
-    Vector3 flat_delta(delta.x, 0.0f, delta.z);
-    float lengthSq = flat_delta.x * flat_delta.x + flat_delta.z * flat_delta.z;
-    float distance = lengthSq * FastReciprocalSquareRoot(lengthSq);
-    float angle = distance != 0.0f ? (float)atan(delta.y / distance) : 1.5707964f;
-    angle += (1.5707963267948966 - angle) * lobfactor;
-    float cos_angle = (float)cos(angle);
-    float sin_angle = (float)sin(angle);
-    float velocity = distance * distance * gravity * -0.5f / ((cos_angle * delta.y - sin_angle * distance) * cos_angle);
-    if (velocity < 0.0f)
-        return delta;
+    Vector3 flat_delta;
+    float velocity;
+    float cos_angle;
+    float sin_angle;
+    // !FAKE: c2 block layout; inner block; delta's scope ends before Normalize so its return temp packs into delta's slot
+    // (frame 0x24 -> 0x18, match_one 92.15 -> 92.17)
+    {
+        Vector3 delta;
+        delta.x = target.x - start.x;
+        delta.y = target.y - start.y;
+        delta.z = target.z - start.z;
+        flat_delta.x = delta.x;
+        flat_delta.y = 0.0f;
+        flat_delta.z = delta.z;
+        // !FAKE: c2 register allocation; stand-in x87 local; retail squares x before z (92.17 -> 92.36)
+        float v3 = flat_delta.x * flat_delta.x;
+        float v4 = v3 + flat_delta.z * flat_delta.z; // !FAKE: c2 register allocation; neutral stand-in name (squared length)
+        float distance = v4 * FastReciprocalSquareRoot(v4);
+        float angle = distance != 0.0f ? (float)atan(delta.y / distance) : 1.5707964f;
+        angle += (1.5707963267948966 - angle) * lobfactor;
+        cos_angle = (float)cos(angle);
+        sin_angle = (float)sin(angle);
+        velocity = distance * distance * gravity * -0.5f / ((cos_angle * delta.y - sin_angle * distance) * cos_angle);
+        if (velocity < 0.0f)
+            return delta;
+    }
     velocity = (float)sqrt(velocity);
-    Vector3 dir = Normalize(flat_delta);
-    return Vector3(cos_angle * dir.x * velocity, velocity * sin_angle, cos_angle * dir.z * velocity);
+    {
+        // !FAKE: c2 register allocation; pointer stand-in to the return temp; retail reads it through eax (92.36 -> 95.51)
+        const Vector3* v0 = &Normalize(flat_delta);
+        // !FAKE: inliner; ref-bound temporary; keeps cos*x on x87 to the shared tail pop (95.51 -> 100.0)
+        const Vector3& v2 = Vector3(cos_angle * v0->x, sin_angle, cos_angle * v0->z);
+        return Vector3(v2.x * velocity, velocity * v2.y, v2.z * velocity);
+    }
 }
-#endif
 
 // FUNCTION: USA 0x000ED09F
 // PROTOTYPE: PREVIEW 0x004D83A2 identical
@@ -768,6 +829,30 @@ void Critter::CheckRegions()
 {
     Vector3 pos = GetWorldPosition();
     g_swamp->GetRegionManager().CheckForRegionCrossings(this, pos, pos, true);
+}
+
+// FUNCTION: USA 0x000ED0CB
+// PROTOTYPE: PREVIEW 0x004D83CE identical
+// NAME: proto-pdb:default.pdb
+void Critter::Update()
+{
+    GatorNode::Update();
+    if (_stunTimer != 0.0f) {
+        _stunTimer -= g_swamp->GetInput().GetElapsedTime();
+        if (_stunTimer < 0.0f)
+            _stunTimer = 0.0f;
+    }
+}
+
+// FUNCTION: USA 0x000ED891
+// PROTOTYPE: PREVIEW 0x004D8B52 identical
+// NAME: proto-pdb:default.pdb
+void Critter::StopSounds()
+{
+    for (std::list<SwampSceneNode*, std::allocator<SwampSceneNode*> >::iterator it = _Children.begin(); it != _Children.end(); ++it) {
+        if ((*it)->GetType() == Sound)
+            (*it)->Invalidate();
+    }
 }
 
 class BeepTDF { // NAME: proto-pdb:default.pdb
@@ -809,28 +894,69 @@ public:
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
 
+protected:
+    SwampScript(SwampSceneNode* node);
+
+public:
     char field_4[0x20 - 0x4];          // 0x04
     SwampSceneNode* _node;             // 0x20
     char field_24[0x4C - 0x24];        // 0x24
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+// FUNCTION: USA 0x000EDC3B
+// PROTOTYPE: PREVIEW 0x004D8EE8 identical
+// NAME: proto-pdb:default.pdb
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     Critter* GetCritter() { return (Critter*)_node; }
     CritterCollision MoveMe(float gravity);
+    virtual void Message(SwampScript*, int, void*);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
+    virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
 
-    char field_4C[0x5C - 0x4C];        // 0x4C
+protected:
+    virtual void SetState(int);                                    // vtable+0x6C
+
+public:
+    int _state;                        // 0x4C
+    Vector3 _wanderPatrolCenter;       // 0x50
     float _wanderPatrolRadius;         // 0x5C
     float _wanderLeashRadius;          // 0x60
-    char field_64[0xAC - 0x64];        // 0x64
+    float _wanderLeashMargin;          // 0x64
+    int _wanderMode;                   // 0x68
+    Vector3 _wanderDir;                // 0x6C
+    Vector3 _wanderDest;               // 0x78
+    SwampString _wanderChaseTarget;    // 0x84
+    float _wanderSpeed;                // 0xA0
+    float _wanderTurnRate;             // 0xA4
+    bool _wanderAvoidLedges;           // 0xA8
+    bool _wanderTurnAdjusting;         // 0xA9
     float _wanderLeashRadiusOverride;  // 0xAC
     float _wanderPatrolRadiusOverride; // 0xB0
-    char field_B4[0xBC - 0xB4];        // 0xB4
+    float _wanderLostTimeStart;        // 0xB4
+    float _chaseRangeOverride;         // 0xB8
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
+
+// FUNCTION: USA 0x000EDBA5
+// PROTOTYPE: PREVIEW 0x004D8E52 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (with ??_G 0x000EDC3B, 100.0 bytes match); gate pin_rows refuses: vptr store relocates through site-corr pin ??_7CritterMain 0x001ED988 (C0264)
+CritterMain::CritterMain(SwampSceneNode* node)
+    : SwampScript(node), _state(-1), _wanderPatrolCenter(0.0f, 0.0f, 0.0f), _wanderPatrolRadius(0.0f),
+      _wanderLeashRadius(0.0f), _wanderLeashMargin(1.0f), _wanderMode(0), _wanderDir(0.0f, 0.0f, 0.0f),
+      _wanderSpeed(1.0f), _wanderTurnRate(1.0f), _wanderAvoidLedges(true), _wanderTurnAdjusting(false),
+      _wanderLeashRadiusOverride(0.0f), _wanderPatrolRadiusOverride(0.0f), _wanderLostTimeStart(0.0f),
+      _chaseRangeOverride(0.0f)
+{
+}
+#endif
 
 // FUNCTION: USA 0x000EE88E
 // PROTOTYPE: PREVIEW 0x004D9AF7 identical
@@ -915,6 +1041,143 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterManager, 0x2C);
 
+// !FAKE: c1xx front end; fold-VA alias body (C0233 Fix 1, C0270): retail calls erase out of line at the fold
+// 0x00011B38 (row: Init.cpp _Tree<string,void*>::erase); this unit's Critter* alias is emitted pick-any (inline)
+// with the VC 7.1 <xtree> body verbatim (_THROW expanded) so relink merges it into the row (5.2 T13.c1)
+template <> inline std::_Tree<std::_Tmap_traits<SwampString, Critter*, std::less<SwampString>, std::allocator<std::pair<const SwampString, Critter*> >, false> >::iterator std::_Tree<std::_Tmap_traits<SwampString, Critter*, std::less<SwampString>, std::allocator<std::pair<const SwampString, Critter*> >, false> >::erase(iterator _Where)
+{
+    if (_Isnil(_Where._Mynode()))
+        throw out_of_range("invalid map/set<T> iterator");
+    _Nodeptr _Erasednode = _Where._Mynode();
+    ++_Where;
+
+    _Nodeptr _Fixnode;
+    _Nodeptr _Fixnodeparent;
+    _Nodeptr _Pnode = _Erasednode;
+
+    if (_Isnil(_Left(_Pnode)))
+        _Fixnode = _Right(_Pnode);
+    else if (_Isnil(_Right(_Pnode)))
+        _Fixnode = _Left(_Pnode);
+    else {
+        _Pnode = _Where._Mynode();
+        _Fixnode = _Right(_Pnode);
+    }
+
+    if (_Pnode == _Erasednode) {
+        _Fixnodeparent = _Parent(_Erasednode);
+        if (!_Isnil(_Fixnode))
+            _Parent(_Fixnode) = _Fixnodeparent;
+
+        if (_Root() == _Erasednode)
+            _Root() = _Fixnode;
+        else if (_Left(_Fixnodeparent) == _Erasednode)
+            _Left(_Fixnodeparent) = _Fixnode;
+        else
+            _Right(_Fixnodeparent) = _Fixnode;
+
+        if (_Lmost() == _Erasednode)
+            _Lmost() = _Isnil(_Fixnode) ? _Fixnodeparent : _Min(_Fixnode);
+
+        if (_Rmost() == _Erasednode)
+            _Rmost() = _Isnil(_Fixnode) ? _Fixnodeparent : _Max(_Fixnode);
+    } else {
+        _Parent(_Left(_Erasednode)) = _Pnode;
+        _Left(_Pnode) = _Left(_Erasednode);
+
+        if (_Pnode == _Right(_Erasednode))
+            _Fixnodeparent = _Pnode;
+        else {
+            _Fixnodeparent = _Parent(_Pnode);
+            if (!_Isnil(_Fixnode))
+                _Parent(_Fixnode) = _Fixnodeparent;
+            _Left(_Fixnodeparent) = _Fixnode;
+            _Right(_Pnode) = _Right(_Erasednode);
+            _Parent(_Right(_Erasednode)) = _Pnode;
+        }
+
+        if (_Root() == _Erasednode)
+            _Root() = _Pnode;
+        else if (_Left(_Parent(_Erasednode)) == _Erasednode)
+            _Left(_Parent(_Erasednode)) = _Pnode;
+        else
+            _Right(_Parent(_Erasednode)) = _Pnode;
+
+        _Parent(_Pnode) = _Parent(_Erasednode);
+        std::swap(_Color(_Pnode), _Color(_Erasednode));
+    }
+
+    if (_Color(_Erasednode) == _Black) {
+        for (; _Fixnode != _Root() && _Color(_Fixnode) == _Black; _Fixnodeparent = _Parent(_Fixnode))
+            if (_Fixnode == _Left(_Fixnodeparent)) {
+                _Pnode = _Right(_Fixnodeparent);
+                if (_Color(_Pnode) == _Red) {
+                    _Color(_Pnode) = _Black;
+                    _Color(_Fixnodeparent) = _Red;
+                    _Lrotate(_Fixnodeparent);
+                    _Pnode = _Right(_Fixnodeparent);
+                }
+
+                if (_Isnil(_Pnode))
+                    _Fixnode = _Fixnodeparent;
+                else if (_Color(_Left(_Pnode)) == _Black && _Color(_Right(_Pnode)) == _Black) {
+                    _Color(_Pnode) = _Red;
+                    _Fixnode = _Fixnodeparent;
+                } else {
+                    if (_Color(_Right(_Pnode)) == _Black) {
+                        _Color(_Left(_Pnode)) = _Black;
+                        _Color(_Pnode) = _Red;
+                        _Rrotate(_Pnode);
+                        _Pnode = _Right(_Fixnodeparent);
+                    }
+
+                    _Color(_Pnode) = _Color(_Fixnodeparent);
+                    _Color(_Fixnodeparent) = _Black;
+                    _Color(_Right(_Pnode)) = _Black;
+                    _Lrotate(_Fixnodeparent);
+                    break;
+                }
+            } else {
+                _Pnode = _Left(_Fixnodeparent);
+                if (_Color(_Pnode) == _Red) {
+                    _Color(_Pnode) = _Black;
+                    _Color(_Fixnodeparent) = _Red;
+                    _Rrotate(_Fixnodeparent);
+                    _Pnode = _Left(_Fixnodeparent);
+                }
+                if (_Isnil(_Pnode))
+                    _Fixnode = _Fixnodeparent;
+                else if (_Color(_Right(_Pnode)) == _Black && _Color(_Left(_Pnode)) == _Black) {
+                    _Color(_Pnode) = _Red;
+                    _Fixnode = _Fixnodeparent;
+                } else {
+                    if (_Color(_Left(_Pnode)) == _Black) {
+                        _Color(_Right(_Pnode)) = _Black;
+                        _Color(_Pnode) = _Red;
+                        _Lrotate(_Pnode);
+                        _Pnode = _Left(_Fixnodeparent);
+                    }
+
+                    _Color(_Pnode) = _Color(_Fixnodeparent);
+                    _Color(_Fixnodeparent) = _Black;
+                    _Color(_Left(_Pnode)) = _Black;
+                    _Rrotate(_Fixnodeparent);
+                    break;
+                }
+            }
+
+        _Color(_Fixnode) = _Black;
+    }
+
+    this->_Alnod.destroy(_Erasednode);
+    this->_Alnod.deallocate(_Erasednode, 1);
+
+    if (0 < _Mysize)
+        --_Mysize;
+
+    return (_Where);
+}
+
 extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 // FUNCTION: USA 0x000EF120
@@ -951,8 +1214,6 @@ int CritterManager::GetStartHealth(const SwampString& critterType)
 // FUNCTION: USA 0x000EF407
 // PROTOTYPE: PREVIEW 0x004DA670 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 99.96, bytes mismatch (a in the attackType slot [ebp+0x10], retail reuses c's [ebp+0xc]; 20 forms: blocks, stand-ins, branch order)
 DamageInfo CritterManager::GetDamageInfo(const SwampString& critterType, const SwampString& attackType)
 {
     // !FAKE: c2 register allocation; neutral stand-in local; the PDB records only c and a, retail keeps the node in esi
@@ -973,7 +1234,6 @@ DamageInfo CritterManager::GetDamageInfo(const SwampString& critterType, const S
         return (*a).second;
     }
 }
-#endif
 
 // FUNCTION: USA 0x000F05E4
 // PROTOTYPE: PREVIEW 0x004DB84D identical
@@ -998,12 +1258,16 @@ void CritterManager::RemoveMatching(const SwampString& s)
 // FUNCTION: USA 0x000F0654
 // PROTOTYPE: PREVIEW 0x004DB8BD identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 99.74, bytes mismatch (frame 0x20 vs 0x1C: retail's erase result shares the [ebp+8] slot of it; declared-then-assigned it gives 98.42, the CameraManager::Remove wall)
 void CritterManager::Remove(const SwampString& s)
 {
     SwampString lookup = BeepLib::MakeLower(s);
-    NameMap::iterator it = _Critters.find(lookup);
+    // !FAKE: c2 register allocation; declared-then-assigned iterator local; it lives in eax, the find and erase temps share [ebp+8]
+    NameMap::iterator it;
+    {
+        // !FAKE: c2 register allocation; block-scoped reference stand-in (CameraManager::Remove form; match_one 99.74 -> 100.0)
+        const NameMap::iterator& v0 = _Critters.find(lookup);
+        it = v0;
+    }
     if (it != _Critters.end()) {
         // !FAKE: c2 register allocation; neutral stand-in local; the PDB records no local for the erased critter (esi)
         Critter* p = it->second;
@@ -1011,7 +1275,6 @@ void CritterManager::Remove(const SwampString& s)
         p->Invalidate();
     }
 }
-#endif
 
 // FUNCTION: USA 0x000F2546
 // PROTOTYPE: PREVIEW 0x004DD7AF identical
@@ -1057,7 +1320,7 @@ template <> pair<std::basic_string<char,std::char_traits<char>,std::allocator<ch
 }
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::map<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,DamageInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,DamageInfo> > >,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,std::map<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,DamageInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,DamageInfo> > > > >,0> >::iterator _Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::map<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,DamageInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,DamageInfo> > >,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,std::map<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,DamageInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,DamageInfo> > > > >,0> >::_Insert(bool,std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::map<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,DamageInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,DamageInfo> > >,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,std::map<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,DamageInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,DamageInfo> > > > >,0> >::_Node *,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,std::map<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,DamageInfo,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,DamageInfo> > > > const &);

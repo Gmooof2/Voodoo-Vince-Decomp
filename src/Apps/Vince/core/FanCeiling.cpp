@@ -48,7 +48,7 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 struct Vector4 { // NAME: proto-pdb:default.pdb
-    // !FAKE: inliner; hand form of the PDB inline conversion operator
+    // !FAKE: inliner; hand form of the PDB inline conversion operator; no before/after recorded
     operator Vector3() const { return *(const Vector3*)this; }
 
     float x; // 0x00
@@ -385,7 +385,7 @@ void CeilingFanMain::SetState(int state)
         Vince* v2 = pManager->_vinceCache;
         Matrix mBody = v2->GetBoneOrientation("body");
         // !FAKE: inliner; hand forms of the by-value Apply and the inline Vector3 operator+ (C0191); neutral stand-in locals
-        // !FAKE: c2 register allocation; blocks and split locals give retail's slot sharing (match_one 99.02 -> 99.93 -> 100)
+        // !FAKE: c2 register allocation; blocks and split locals; they give retail's slot sharing (match_one 99.02 -> 99.93 -> 100)
         Vector3 newpos;
         {
             Vector3 v6;
@@ -432,7 +432,7 @@ VinceCeilingFan::VinceCeilingFan(SwampSceneNode* node) : SwampScript(node)
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceCeilingFan::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\FanCeiling.h", 36) VinceCeilingFan(node);
 }
 
@@ -441,6 +441,23 @@ SwampScript* VinceCeilingFan::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CeilingFanMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\FanCeiling.h", 11) CeilingFanMain(node);
 }
+
+class ClownMissileMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void CollidedWith(CollisionType type, SwampSceneNode* critterHitBy, const Ptr<CollisionResultObject>& cr);
+    virtual void HitBy(CollisionType type, SwampSceneNode* hitby, const Ptr<CollisionResultObject>& cr);
+};
+
+// FUNCTION: USA 0x0013240F
+// PROTOTYPE: PREVIEW 0x0046B0DE identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0 + bytes match; wall: matched_set refuses the row (pin has no size in symbols_pin.txt)
+void ClownMissileMain::HitBy(CollisionType type, SwampSceneNode* hitby, const Ptr<CollisionResultObject>& cr)
+{
+    CollidedWith(type, hitby, cr);
+}
+#endif

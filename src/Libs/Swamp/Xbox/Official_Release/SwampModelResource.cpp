@@ -678,19 +678,17 @@ void ModelResource::LowLevelRender(bool vb_override) const
 // FUNCTION: USA 0x000BAAA2
 // PROTOTYPE: PREVIEW 0x004A57AD identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 94.29, bytes mismatch (retail adds the _vShaderBones base before push 12; ours after)
 void ModelResource::SetBoneTable(unsigned int table) const
 {
     if (_gator->usesBoneTables) {
         // !FAKE: c1xx front end; neutral stand-in locals; the proto PDB lists no local for the table, bones or counter
         const GatorBoneTable& v1 = _gator->GetBoneTable(table);
         const unsigned char* p = v1.Get(_gator);
-        for (unsigned int i = 0; i < v1.count; i++, p++)
-            D3DDevice_SetVertexShaderConstantNotInline(i * 3 + 60, &_vShaderBones[*p * 3], 12);
+        // !FAKE: c2 scheduling; both increments inside the call arguments; base add before push 12 (match_one 94.29 -> 100.0)
+        for (unsigned int i = 0; i < v1.count;)
+            D3DDevice_SetVertexShaderConstantNotInline(i++ * 3 + 60, &_vShaderBones[*p++ * 3], 12);
     }
 }
-#endif
 
 extern "C" int __cdecl _stricmp(const char*, const char*); // NAME: proto-pdb:default.pdb
 
@@ -832,7 +830,7 @@ void ModelResource::ApplyDeformationsToSkeletion(std::vector<Matrix>& matrices,
         const float w1 = v0->overlayWeight;
         const float w0 = 1.0f - w1;
         const SwampDeformation* v1 = &primary[b];
-        // !FAKE: inliner; hand form of the inlined `primary * w0 + secondary * w1` Vector3 operators (C0191: cl /O1
+        // !FAKE: inliner; hand form of the inlined `primary * w0 + secondary * w1` Vector3 operators; C0191: cl /O1
         // keeps them out of line, 30.29), stand-in temps v2..v9; secondary-first sums give retail's x87 spills and
         // temp slots (92.68 -> 97.66 -> 100.0)
         Vector3 v2(v0->translation.x * w1, v0->translation.y * w1, v0->translation.z * w1);
@@ -884,7 +882,7 @@ void ModelResource::ApplyDeformationsToSkeletion(std::vector<Matrix>& matrices,
         const SwampDeformation* v0 = &secondary[b];
         const float w1 = 1.0f - tween;
         const SwampDeformation* v1 = &primary[b];
-        // !FAKE: inliner; hand form of the inlined `primary * tween + secondary * w1` Vector3 operators (C0191: cl
+        // !FAKE: inliner; hand form of the inlined `primary * tween + secondary * w1` Vector3 operators; C0191: cl
         // /O1 keeps them out of line), stand-in temps v2..v9 (same form as the two-vector overload)
         Vector3 v2(v0->translation.x * w1, v0->translation.y * w1, v0->translation.z * w1);
         Vector3 v3(v1->translation.x * tween, v1->translation.y * tween, v1->translation.z * tween);

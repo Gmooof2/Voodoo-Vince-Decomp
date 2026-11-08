@@ -4,8 +4,27 @@ CLI: gate.py [--self-test] [--config P]
   no args      src/ + config/matched_set.toml (the project's matched set); writes derived/gate/last.json.
   --self-test  tests/gate/src + tests/gate/matched_set.toml (the gate fixture, NOT the matched set); banner first;
                never writes last.json; the positive run passes on rc 0 AND its global key set == POSITIVE_GLOBALS + `target <unit>`
-               per listed function unit (4.5 T16.2.c5; was: rc 0 only). Then 138 controls (was 135 before 4.5
-               T16.2.c5: positive-keys (direct: _positive_ok on a key set with `relink` dropped), last-tree (direct:
+               per listed function unit (4.5 T16.2.c5; was: rc 0 only). Then 159 controls (5.3 T2.c4: +pin-slotnames-
+               unnamed, -site-corr, -count (a `??_7` row retagged `+slot-names` passes, then a slot stripped of names,
+               named only by a site-corr row, retail one slot longer -> `route-slotnames:<why>`), +pin-bracket-outside,
+               -ambiguous (a func row retagged `+unit-bracket+callee-bytes` passes, then its lower anchor moved onto it,
+               a copy of its body inside the bracket -> `route-bracket:<why>`); was 154 after 5.3 T2: +prov-nested-op (a
+               nested operator keeps its outer classes; right ones pass, a wrong outer class fails proto-pdb exactly),
+               +relink-site-past-buffer (a reloc field past its cut section's raw -> REFUSED naming it, rc 2); was 152
+               after 5.1 T14: +relink-label-unref, +relink-unit-key; was 150 after 5.1 T13; 146 after 5.1 T3.1; 145 before 5.1 T3.1:
+               pin-near-listed (direct: a by_pd copy drops a passing near row's agreeing sites -> a fourth unlisted
+               no-site near row fails `route-near:no-agreeing-site`); 144 before 5.1 T3:
+               pin-accepted-other-conflict (direct: a by_pd copy gives an accepted row's proto one more retail dest
+               -> the waiver's recorded conflict differs, `site-conflict-*` at the row); 141 before 5.1 T2:
+               gate-lock (direct: a child holds the run lock -> main rc 2, run not called; killed -> rc 0; a
+               --self-test is not refused by its own lock), ms-extra-emitter (an [[emitter]] row naming an unmarked
+               hand-written body fails `*objects* extra`), ms-parallel (an __asm in SetState fails its row's asm only;
+               matched_set.WORKERS > 1); 138 before 5.1 T1:
+               objdiff-noexec (config copy, objdiff_cli a text file zz.exe -> `objdiff report` `fail: objdiff-cli
+               OSError`, rc 1, xbe_sha1 + bytes still run), prov-include-dotdot (a quoted #include escaping the src
+               root, one to a missing file under `#if 0`, one to an existing file -> FAIL include at both),
+               prov-pragma-if0 (an in-body `#pragma` inside `#if 0` .. `#endif` -> FAIL pragma: every `#if` arm is
+               scanned); 135 before 4.5 T16.2.c5: positive-keys (direct: _positive_ok on a key set with `relink` dropped), last-tree (direct:
                _write_last into scratch paths; a list edit moves tree.list_sha256), cut-unpinned (hashes.txt copy
                edited + cut.complete re-sealed -> `cut: hashes.txt sha256 != config/delink_cut.sha256`, rc 2);
                extra, clean-build, toolchain-split, relink tightened to their own cause text (G13); 131 before 4.5 T16.2.c4: pin-i10-static (direct: I10
@@ -143,7 +162,8 @@ layer_seconds: {layer: s}, tree: {head, dirty (`git status --porcelain` line cou
 fp_sha256 (config/verifier.sha256)}} (hashes only, D46; tree 4.5 T16.2.c5, None where git or a file fails).
 Exit: 0 every function and global check pass and N >= 1; 1 any failure, N = 0, or missing list (reason printed);
 2 refusal (malformed list, cut.complete absent/malformed/stale, cut pin mismatch, build Refuse, unexpected byte_compare setup refusal,
-relink refusal).
+relink refusal, 5.1 T2: another gate holds the run lock RUN_LOCK (`gate: REFUSED run lock: another gate is running
+(<path>)`, before any layer; main only, so run()/_core never take it)).
 Library: run(src_root, list_path, self_test=False, config=None) -> _core's 4-tuple (4.5 T16.2.c5; was: rc);
   _core(src_root, list_path, config, write_last, units_path, symtabs, tdir, bdir, audit_args, lock_root, lock_fp,
         lock_modules, relink_control, run_relink, run_audit, run_lint, lint_accepted, lint_base, lint_rev,
@@ -155,11 +175,13 @@ Library: run(src_root, list_path, self_test=False, config=None) -> _core's 4-tup
 import argparse
 import atexit
 import contextlib
+import copy
 import datetime
 import gzip
 import hashlib
 import io
 import json
+import msvcrt
 import os
 import re
 import shutil
@@ -207,6 +229,8 @@ LAST = REPO / "derived" / "gate" / "last.json"
 CUT_PIN = REPO / "config" / "delink_cut.sha256"  # 4.5 T16.2.c5 (G17): sha256 of the real cut's hashes.txt
 SYMTABS = [REPO / "config" / "retail" / "symbols.txt", REPO / "config" / "retail" / "symbols_pin.txt"]
 ORDER = ("build", "target", *matched_set.REQUIRED, "objdiff", "bytes")
+RUN_LOCK = byte_compare._phase_run_dir() / "gate" / "run.lock"  # 5.1 T2 (O21): one gate at a time, held by main
+RUN_LOCK_AT = 1 << 40  # the locked byte, past any content (as match_one.LEDGER_LOCK_AT)
 
 
 def _tool(name, args=(), config=None, tools=TOOLS):
@@ -253,7 +277,10 @@ def _objdiff(bdir, units, cfg):
     (bdir / "objdiff.json").write_text(json.dumps(proj, indent=2) + "\n", encoding="utf-8", newline="\n")
     report = bdir / "report.json"
     cmd = [str(cfg["objdiff_cli"]), "report", "generate", "-p", str(bdir), "-o", str(report), "-f", "json"]
-    p = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace")
+    try:  # 5.1 T1: a non-executable objdiff_cli is a failed layer, not a gate crash; was: run unguarded (OSError up)
+        p = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace")
+    except OSError as e:
+        return {}, f"fail: objdiff-cli OSError: {e}"
     if p.returncode != 0 or not report.is_file():
         tail = " | ".join((p.stdout + p.stderr).strip().splitlines()[-3:])
         return {}, f"fail: objdiff-cli report rc {p.returncode}: {tail}"
@@ -833,7 +860,9 @@ def _c_clean(d, config=None):
     (s / LOC_SRC).unlink()
     bdir = d / "build"
     bdir.mkdir()
-    shutil.copy2(seed[0]["obj"], bdir / Path(seed[0]["obj"]).name)
+    # 5.1 T4.c2: planted at the source-path obj; was: bdir / Path(seed[0]["obj"]).name
+    (bdir / LOC_SRC).parent.mkdir(parents=True)
+    shutil.copy2(seed[0]["obj"], bdir / LOC_SRC.with_suffix(".obj"))
     print(f"control clean-build: good {Path(seed[0]['obj']).name} planted in {bdir}; {LOC_SRC.as_posix()} removed")
     return {"src_root": s, "bdir": bdir}, lambda r, v, g, i: (  # 4.5 T16.2.c5 G13: the removed source; was: != "pass"
         v[LOC_SYM]["build"] == f"fail: no source built for unit {LOC_UNIT}", f"{LOC_SYM} build (no source built)")
@@ -847,7 +876,7 @@ def _c_d26(d):
         fu = i["failures"].get(LOC_UNIT)
         m = re.match(r"cl exit (-?\d+)", fu["text"]) if fu else None
         print(f"control d26: cl rc {m.group(1) if m else 'not reported'}; codes {fu['codes'] if fu else None}; "
-              f"obj exists {(i['bdir'] / 'LocString.obj').is_file()}")
+              f"obj exists {(i['bdir'] / LOC_SRC.with_suffix('.obj')).is_file()}")  # 5.1 T4.c2; was: bdir / 'LocString.obj'
         # 3.5 T4 C4: cl exit 0 + D4002; was: build != pass only (any compile failure passed)
         return (v[LOC_SYM]["build"] != "pass" and bool(m) and m.group(1) == "0" and "D4002" in fu["codes"],
                 f"{LOC_SYM} build (cl exit 0, D4002)")
@@ -926,6 +955,16 @@ def _c_objdiff_pin(d, config=None):  # 4.5 T16.1 G4: check_env pins the objdiff-
         "check_env (objdiff_cli pin)")
 
 
+def _c_objdiff_noexec(d, config=None):  # 5.1 T1: objdiff_cli exists but is not executable -> CreateProcess OSError
+    p = d / "zz.exe"
+    p.write_text("gate control: a text file, not a program\n", encoding="utf-8", newline="\n")
+    print("control objdiff-noexec: config copy, objdiff_cli -> a text file zz.exe (exists, not executable)")
+    return {"config": _cfg_copy(d, config, "objdiff_cli", p)}, lambda r, v, g, i: (
+        r == 1 and g.get("objdiff report", "").startswith("fail: objdiff-cli OSError") and
+        v[LOC_SYM]["objdiff"] == "fail: not in report" and "xbe_sha1" in g and "bytes setup" in g and
+        "bytes" in v[LOC_SYM], "objdiff report (OSError; xbe_sha1 + bytes still run)")
+
+
 def _c_toolchain_hash(d, config=None):  # 4.5 T16.2.c3 (G14): check_env check_pins on a pinned msvc binary's sha
     src, m = Path(vv_inputs.load_config(config)["msvc71_dir"]), d / "msvc"
     m.mkdir()
@@ -946,6 +985,44 @@ def _c_build_refuse(d):  # 3.5 T4 N4
     print("control build-refuse: Libs/NoUnit.cpp (maps to no unit) added to a src copy")
     return {"src_root": s}, lambda r, v, g, i: (
         r == 2 and "maps to no unit" in g.get("build", ""), "build (REFUSED)")
+
+
+def _c_build_objname_path(d, config):  # 5.1 T4.c2 (C0247): obj per source path; a same-output-path pair refused
+    def unit(name, obj, lang):
+        return (f'[[unit]]\nname = {json.dumps(name)}\nobjname = {json.dumps(obj)}\nlanguage = "{lang}"\n'
+                f'opt = "/O1 /Oy"\n')
+    a = ("Apps/Vince/scripts/french_quarter/Switch.cpp", "d:\\beep\\Apps\\Vince\\scripts\\french_quarter\\Xbox\\"
+         "OfficialRelease\\Switch.obj")
+    b = ("Apps/Vince/core/Switch.cpp", "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\Switch.obj")
+    dup = "d:\\beep\\Apps\\Vince\\x\\Dup.obj"
+    sides = {"two": ([a, b], [unit("fq Switch.obj", a[1], "c++"), unit("core Switch.obj", b[1], "c++")]),
+             "dup": ([("Apps/Vince/x/Dup.c", dup), ("Apps/Vince/x/Dup.cpp", dup)],
+                     [unit("c Dup.obj", dup, "c"), unit("c++ Dup.obj", dup, "c++")])}
+    for k, (srcs, rows) in sides.items():
+        for rel, _ in srcs:
+            p = d / k / "src" / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("int gate_control_obj;\n", encoding="utf-8", newline="\n")
+        (d / k / "units.toml").write_text("\n".join(rows), encoding="utf-8", newline="\n")
+
+    def expect(r, v, g, i):
+        out = d / "two" / "build"
+        try:
+            got = build.build(d / "two" / "src", out, d / "two" / "units.toml", config)
+        except build.Refuse as e:
+            got = f"REFUSED {e}"
+        want = sorted(str((out / s[0]).with_suffix(".obj")) for s in (a, b))
+        objs = sorted(str(x["obj"]) for x in got) if isinstance(got, list) else got
+        try:
+            build.build(d / "dup" / "src", d / "dup" / "build", d / "dup" / "units.toml", config)
+            why = "built"
+        except build.Refuse as e:
+            why = f"REFUSED {e}"
+        print(f"control build-objname-path: two Switch.obj units -> {objs}; Dup.c + Dup.cpp -> {why}")
+        ok = objs == want and all(Path(o).is_file() for o in want) and why.startswith("REFUSED") and "Dup" in why
+        return ok, "build (two Switch.obj per source path; Dup.obj refused)"
+    print("control build-objname-path: scratch src+units: french_quarter + core Switch.obj; x/Dup.c + x/Dup.cpp")
+    return {"direct": True}, expect
 
 
 def _target_copy(d, skip=()):
@@ -1241,6 +1318,61 @@ def _c_relink_fold(d):  # 4.3 T3: the fold-VA accept (C0198) must not swallow a 
 def _c_relink_samename(d):  # 4.4 T3 (C0215): the same-name row merge must not swallow a differing copy
     return _relink_refused("samename", "our ranges overlap",
                            "a synthetic same-name copy of a matched row's COMDAT, one byte flipped")
+
+
+def _c_relink_samevt(d):  # 5.1 T4 (C0255 limit 1): a weak reloc followed in same() must not merge two names
+    return _relink_refused("samevt", "our ranges overlap",
+                           "two byte-identical synthetic vtable COMDATs under two names at one VA, slot 0 a weak ??_E")
+
+
+def _c_relink_xdata_order(d):  # 5.1 T4 (C0255 limit 2): `.xdata$x` sorted by VA as `.rdata$<va8>`, checked there
+    print("control relink-xdata-order: relink layer with control xdata-order (two synthetic .xdata$x sections, "
+          "retail bytes between them, each holding the other's retail bytes)")
+    return {"relink_control": "xdata-order"}, lambda r, v, g, i: (
+        r == 1 and g.get("relink", "pass").startswith("fail: .rdata digest ") and bool(v)
+        and all(matched_set.is_done({"verdicts": x}) for x in v.values())
+        and all(val == "pass" for k, val in g.items() if k != "relink"),
+        "relink (rc 1, .rdata digest FAIL; every fn row and other global pass)")
+
+
+def _c_relink_data_order(d):  # 5.1 T13 (C0302 wall 2): one object's `.data` sorted by VA as `.data$<va8>`
+    print("control relink-data-order: relink layer with control data-order (one synthetic object, two .data sections, "
+          "retail bytes between them, each holding the other's retail bytes)")
+    return {"relink_control": "data-order"}, lambda r, v, g, i: (
+        r == 1 and g.get("relink", "pass").startswith("fail: .data digest ") and bool(v)
+        and all(matched_set.is_done({"verdicts": x}) for x in v.values())
+        and all(val == "pass" for k, val in g.items() if k != "relink"),
+        "relink (rc 1, .data digest FAIL; every fn row and other global pass)")
+
+
+def _c_relink_label_unref(d):  # 5.1 T14 (C0305): an unreferenced type-0 STATIC `$L` label of a code hole is not wanted
+    print("control relink-label-unref: relink layer with control label-unref (a synthetic code hole of retail .text "
+          "bytes, type-0 STATIC labels $Lctl_unref (no reloc) and $Lctl_ref (DIR32 target from a COMDAT LINK drops))")
+    return {"relink_control": "label-unref"}, lambda r, v, g, i: (
+        r == 1 and g.get("relink", "pass").startswith("fail: ") and "$Lctl_ref linked absent " in g["relink"]
+        and "$Lctl_unref" not in g["relink"] and "digest" not in g["relink"] and bool(v)
+        and all(matched_set.is_done({"verdicts": x}) for x in v.values())
+        and all(val == "pass" for k, val in g.items() if k != "relink"),
+        "relink (rc 1, $Lctl_ref linked absent FAIL, $Lctl_unref not named, no digest FAIL; every fn row and other "
+        "global pass)")
+
+
+def _c_relink_unit_key(d):  # 5.1 T14 (C0304): two matched-set units of one basename stem, keyed by full unit name
+    print("control relink-unit-key: relink layer with control unit-key (a list copy moves a row to a second unit of "
+          "the same basename stem; its object a copy with one byte of that row flipped; both objects carry a data "
+          "section _link stages under ours/, else relink refuses, 5.1 T14.c3 C0309)")
+    # was: "...the same basename stem; its object a copy with one byte of that row flipped)"
+    return {"relink_control": "unit-key"}, lambda r, v, g, i: (
+        r == 1 and g.get("relink", "pass").startswith("fail: .text digest ") and bool(v)
+        and " FAIL (1 differing byte offsets; " in g["relink"]
+        and all(matched_set.is_done({"verdicts": x}) for x in v.values())
+        and all(val == "pass" for k, val in g.items() if k != "relink"),
+        "relink (rc 1, .text digest FAIL, 1 differing byte; every fn row and other global pass)")
+
+
+def _c_relink_site_past_buffer(d):  # 5.3 T2: a reloc field past its buffer -> refused naming it, not a struct.error
+    return _relink_refused("site-past-buffer", "reloc field past its buffer",
+                           "a cut's external reloc, its section raw cut to the field + 3 bytes")
 
 
 def _c_relink_weak(d):  # 4.4 T3 (C0217): a weak external whose TagIndex names a wrong body -> the image differs
@@ -1613,6 +1745,30 @@ def _c_prov_pragma(d):  # 4.5 T16.2 G9 (D116): an in-body `#pragma` is refused e
                        ("pragma",), {"pragma": "#pragma warning(disable:4100)"})
 
 
+def _c_prov_pragma_if0(d):  # 5.1 T1: the depth scan covers every `#if` arm (no preprocessor handling): `#if 0` too
+    return _prov_plant(d, TAIL, "#if 0\n#pragma warning(disable:4100)\n#endif\n" + TAIL,
+                       ("pragma",), {"pragma": "#pragma warning(disable:4100)"})
+
+
+def _c_prov_include_dotdot(d):  # 5.1 T1: a quoted #include escaping the src root FAILs `include`, target present or not
+    s = _src_copy(d)
+    up = "../" * len(LOC_SRC.parts)  # LocString.cpp's dir -> d (outside src)
+    (d / "zz_gate_outside.h").write_text("// gate control: a header outside the src root\n", encoding="utf-8",
+                                         newline="\n")
+    miss, out = f'#include "{up}zz_gate_missing.h"', f'#include "{up}zz_gate_outside.h"'
+    # the missing one under `#if 0`: the lint reads every arm, the locals /Z7 compile must not fail (a REFUSED lint)
+    _edit_text(s / LOC_SRC, TAIL, TAIL + f"#if 0\n{miss}\n#endif\n{out}\n")
+    at = [f"src/{LOC_SRC.as_posix()}:{_line_of(s / LOC_SRC, t)}" for t in (miss, out)]
+    print(f"control prov: planted in {LOC_SRC.as_posix()}: {miss!r}, {out!r}; want FAIL include at {at}")
+
+    def expect(r, v, g, i):
+        got = {a: sum(1 for f in i.get("provenance", []) if f.startswith(f"FAIL include {a}:")) for a in at}
+        print(f"control prov: FAIL lines at the plants {got}")
+        gv = g.get("provenance", "pass")
+        return gv != "pass" and "REFUSED" not in gv and all(got.values()), "provenance include (missing + outside)"
+    return {"src_root": s}, expect
+
+
 def _c_prov_noinline(d):  # 4.5 T16.2 G9 (D116): `noinline` is refused even under a `// !FAKE:` line
     return _prov_plant(d, TAIL, TAIL + "// !FAKE: inliner; gate control\n__declspec(noinline) int zz_gate_noinline();\n",
                        ("noinline",))
@@ -1756,6 +1912,19 @@ def _c_prov_name_ns(d):  # 4.1 T4: both NAME causes in `namespace std`; right na
     want = [f"src/{LOC_SRC.as_posix()}:{_line_of(s / LOC_SRC, t) - 1}"
             for t in ("zzGateWrong(", "zzGateWrongScoped(", "zzGateClosed")]
     print(f"control prov: namespace std plants in {LOC_SRC.as_posix()}; want proto-pdb exactly at {want}")
+    return _prov_exact("proto-pdb", {"src_root": s}, want)
+
+
+def _c_prov_nested_op(d):  # 5.3 T2: a nested-class operator keeps its outer class; right ones pass, a wrong outer fails
+    s = _src_copy(d)
+    nm = "// NAME: proto-pdb:default.pdb\n"
+    _edit_text(s / LOC_SRC, TAIL, TAIL + "#ifdef NON_MATCHING\n"
+               + nm + "template Matrix const & std::deque<Matrix,std::allocator<Matrix> >::const_iterator::operator*()const;\n"
+               + nm + "template std::vector<bool,std::allocator<bool> >::reference & "
+                      "std::vector<bool,std::allocator<bool> >::reference::operator=(bool);\n"
+               + nm + "template Matrix const & zzGateWrong<Matrix>::const_iterator::operator*()const;\n#endif\n")
+    want = [f"src/{LOC_SRC.as_posix()}:{_line_of(s / LOC_SRC, 'zzGateWrong<') - 1}"]
+    print(f"control prov: nested operator plants in {LOC_SRC.as_posix()}; want proto-pdb exactly at {want}")
     return _prov_exact("proto-pdb", {"src_root": s}, want)
 
 
@@ -1942,7 +2111,7 @@ def _c_pin_fold_site(d):
 
     def run(case, sites, tab):
         s = types.SimpleNamespace(by_pd={p: {x: ["call"] for x in sites}}, pubs={p: {n, "?b@@YAXXZ"}}, tab_va=tab,
-                                  by_rd={}, accepted=set())
+                                  by_rd={}, accepted={})  # was: accepted=set() (5.1 T3: a dict, (va, n) -> (line, conflict))
         r = {"name": n, "va": va, "protos": [p], "fails": [], "notes": []}
         pin_rows.State.site_test(s, r)
         print(f"control pin-fold-site: {case}: site {r['site']} fails {r['fails']}")
@@ -2095,7 +2264,7 @@ def _c_pin_literal_list(d, config=None):
     pin_rows fails `accepted-stale` at it; pin_rows' cached State swapped for the copy's (restored by undo)."""
     base = pin_rows.state(config)
     acc = _pin_scratch(d, pin_rows.ACCEPTED, pin_rows.ACCEPTED.read_text(encoding="utf-8")
-                       + "0x000E0887\t?handledMain@@YAXXZ\tgate control: a waiver for a non-literal row\n")
+                       + "0x000E0887\t?handledMain@@YAXXZ\tgate control: a waiver for a non-literal row\tr:0x00000000\n")
     pin_rows._STATE[config] = base.replant(pin_rows.PIN, acc)
     print("control pin-literal-list: accepted list copy + a waiver of non-literal 0x000E0887")
     return {"undo": lambda: pin_rows._STATE.__setitem__(config, base)}, lambda r, v, g, i: (
@@ -2146,7 +2315,8 @@ def _c_pin_i10_static(d, config=None):
     for e in matched_set.load(FIX_LIST):
         if e["kind"] != "function":
             continue
-        c = byte_compare.load_obj(bdir / e["unit"].replace("/", "\\").rsplit("\\", 1)[-1])[1]
+        # 5.1 T4.c2: obj at its source path; was: bdir / e["unit"].replace("/", "\\").rsplit("\\", 1)[-1]
+        c = byte_compare.load_obj(bdir / build.obj_rels()[e["unit"].replace("/", "\\").lower()])[1]
         f = next(y for y in c["symbols"].values() if y["name"] == e["symbol"] and y["section"] > 0)
         sec, lo, hi = byte_compare.extent(c, f)
         statics += [y["name"] for rl in sec["relocs"] if lo <= rl["offset"] < hi
@@ -2203,7 +2373,7 @@ def _c_pin_accepted_unused(d, config=None):
            and not r["fails"] and "literal-copy-accepted" not in r["notes"] and (r["va"], r["name"]) not in base.accepted]
     r0 = sorted(lit, key=lambda r: (not r["name"].startswith("__real@"), r["va"]))[0]
     acc = _pin_scratch(d, pin_rows.ACCEPTED, pin_rows.ACCEPTED.read_text(encoding="utf-8")
-                       + f"0x{r0['va']:08X}\t{r0['name']}\tgate control: a waiver no site conflict uses\n")
+                       + f"0x{r0['va']:08X}\t{r0['name']}\tgate control: a waiver no site conflict uses\tr:0x00000000\n")
     va = f"0x{r0['va']:08X}"
     print(f"control pin-accepted-unused: accepted list copy + a waiver of passing literal {va} {pin_rows.mask(r0['name'])}")
 
@@ -2212,6 +2382,170 @@ def _c_pin_accepted_unused(d, config=None):
         return (any(x.split()[2:4] == ["accepted-stale", va] and ": unused " in x for x in new),
                 f"pin-row accepted-stale {va} unused")
     return {"direct": True}, expect
+
+
+def _c_pin_accepted_other_conflict(d, config=None):
+    """kw `direct` (5.1 T3): a State copy whose by_pd (copied, base untouched) gives an accepted row's proto P one extra
+    retail dest (another accepted row's VA, a table VA) -> the waiver no longer covers the conflict: a new
+    `site-conflict-*` fail line at the row."""
+    base = pin_rows.state(config)
+    rows = {(r.get("va"), r.get("name")): r for r in base.rows}
+    keys = sorted(k for k in base.accepted if rows.get(k, {}).get("protos"))
+    (va, n), rd = keys[0], keys[1][0]
+    p = rows[keys[0]]["protos"][0]
+    by_pd = copy.copy(base.by_pd)
+    by_pd[p] = copy.copy(base.by_pd[p])
+    by_pd[p][rd] = list(by_pd[p].get(rd, [])) + [next(iter(by_pd[p].values()))[0]]
+    s = copy.copy(base)
+    s.by_pd = by_pd
+    at = f"0x{va:08X}"
+    print(f"control pin-accepted-other-conflict: State copy, proto 0x{p:08X} of accepted {at} {pin_rows.mask(n)} "
+          f"+ a site to retail 0x{rd:08X}")
+
+    def expect(r_, v, g, i):
+        new = _pin_new("pin-accepted-other-conflict", base, s.replant(pin_rows.PIN))
+        return (any(x.split()[2].startswith("site-conflict-") and x.split()[3] == at for x in new),
+                f"pin-row site-conflict-* {at}")
+    return {"direct": True}, expect
+
+
+def _c_pin_near_listed(d, config=None):
+    """kw `direct` (5.1 T3.1, R77 ruled no slot route): a State copy whose by_pd (copied, base untouched) drops the
+    agreeing sites of a passing near row with only agreeing sites -> a fourth no-site near row, not in NEAR_NO_SITE:
+    a new `route-near:no-agreeing-site` fail line at it (the list does not grow by itself)."""
+    base = pin_rows.state(config)
+    near = [r for r in base.rows if r.get("cls") and r["cls"][1] == "near" and not r["fails"] and r.get("protos")
+            and (r["va"], r["name"]) not in pin_rows.NEAR_NO_SITE and (r.get("site") or (0,))[0]
+            and all(set(base.by_pd.get(p, {})) == {r["va"]} for p in r["protos"]) and not base.by_rd.get(r["va"], {})
+            .keys() - set(r["protos"])]
+    r0 = sorted(near, key=lambda r: r["va"])[0]
+    by_pd = copy.copy(base.by_pd)
+    for p in r0["protos"]:
+        by_pd[p] = copy.copy(base.by_pd[p])
+        del by_pd[p][r0["va"]]
+    s = copy.copy(base)
+    s.by_pd = by_pd
+    at = f"0x{r0['va']:08X}"
+    print(f"control pin-near-listed: State copy, the agreeing sites of near row {at} {pin_rows.mask(r0['name'])} "
+          f"dropped ({len(near)} candidates)")
+
+    def expect(r_, v, g, i):
+        new = _pin_new("pin-near-listed", base, s.replant(pin_rows.PIN))
+        return (any(x.split()[2:4] == ["route-near", at] and "route-near:no-agreeing-site" in x for x in new),
+                f"pin-row route-near:no-agreeing-site {at}")
+    return {"direct": True}, expect
+
+
+def _pin_slotnames(pid, cut):
+    """kw `direct` (5.3 T2.c4, M30): the first (by VA) `??_7` site-corr pin row whose slot names pass, retagged
+    `+slot-names` corr-verified in memory; corr_route on the base State passes (positive path), then on a State copy
+    cut(base, slots) -> `route-slotnames:<pid>`."""
+    tag = _PP + "site-corr+slot-names"
+
+    def make(d, config=None):
+        base = pin_rows.state(config)
+        r0 = next(r for r in sorted(base.rows, key=lambda r: r.get("va") or 0) if r.get("tag") == _PP + "site-corr"
+                  and r["kind"] == "data" and r["name"].startswith("??_7") and len(r.get("protos", ())) == 1
+                  and not base.slot_names(r["name"], r["protos"][0], r["va"]))
+        slots = base.vt_slots(r0["protos"][0], r0["va"])
+
+        def run(case, s):
+            r = dict(r0, tag=tag, status="corr-verified", cls=pin_rows.TAGS[("data", tag)], fails=[], notes=[])
+            pin_rows.State.corr_route(s, r)
+            print(f"control pin-slotnames ({pid}): {case}: 0x{r0['va']:08X} {r0['name']} ({len(slots)} slots) "
+                  f"fails {r['fails']}")
+            return r["fails"]
+
+        def expect(r_, v, g, i):
+            s = copy.copy(base)
+            cut(base, s, slots)
+            return (run("unplanted", base) == [] and run("planted", s) == [f"route-slotnames:{pid}"],
+                    f"pin-row route-slotnames:{pid}")
+        return {"direct": True}, expect
+    return make
+
+
+def _slot_strip(base, s, slots, fake=None):
+    """State copy s: the first slot's retail VA loses its symbols.txt and pin-row names (fake: one row in their place)."""
+    rv = slots[0][1]
+    s.sy_va, s.by_row_va = copy.copy(base.sy_va), copy.copy(base.by_row_va)
+    s.sy_va[rv] = set()
+    s.by_row_va[rv] = [fake] if fake else []
+
+
+def _slot_site_corr(base, s, slots):
+    pv, rv = slots[0]
+    _slot_strip(base, s, slots, {"va": rv, "name": sorted(base.pubs[pv])[0], "status": "site-corr", "fails": []})
+
+
+def _slot_count(base, s, slots):
+    s.rt_slots = lambda va: base.rt_slots(va) + 1  # retail one slot longer than the proto table
+
+
+_c_pin_slotnames_unnamed = _pin_slotnames("slot-unnamed", _slot_strip)
+_c_pin_slotnames_site_corr = _pin_slotnames("slot-site-corr", _slot_site_corr)
+_c_pin_slotnames_count = _pin_slotnames("slot-count-differs", _slot_count)
+
+
+def _pin_bracket(pid, cut):
+    """kw `direct` (5.3 T2.c4, T1 ruling): the first (by VA) passing `func`-route pin row whose bracket holds with room
+    for a second body, retagged `+unit-bracket+callee-bytes` in memory; route() on the base State passes (positive
+    path), then on a State copy cut(base, s, r0, p, ln, w0, w1) -> `route-bracket:<pid>`."""
+    tag = _PP + "unit-bracket+callee-bytes"
+
+    def make(d, config=None):
+        base = pin_rows.state(config)
+        for r0 in sorted((r for r in base.rows if r.get("cls") and r["cls"][1] == "func" and not r["fails"]
+                          and len(r.get("protos", ())) == 1 and base.procs.get(r["protos"][0])), key=lambda r: r["va"]):
+            p = r0["protos"][0]
+            ln = base.procs[p]
+            if base.bracket(p, r0["va"], ln) is None:
+                m = next(iter(base.pmods[p]))
+                an = base.anchors(m)
+                lo, hi = max(a for a in an if a[0] < p), min(a for a in an if a[0] > p)
+                w0, w1 = lo[1] + lo[2], hi[1]
+                if w0 + ln <= r0["va"] or r0["va"] + 2 * ln <= w1:
+                    break
+
+        def run(case, s):
+            r = dict(r0, tag=tag, cls=pin_rows.TAGS[("func", tag)], fails=[], notes=[])
+            pin_rows.State.route(s, r)
+            print(f"control pin-bracket ({pid}): {case}: 0x{r0['va']:08X} {pin_rows.mask(r0['name'])} (len 0x{ln:X}, "
+                  f"bracket 0x{w0:08X}..0x{w1:08X}) fails {r['fails']}")
+            return r["fails"]
+
+        def expect(r_, v, g, i):
+            s = copy.copy(base)
+            cut(base, s, r0, p, ln, w0, w1)
+            return (run("unplanted", base) == [] and run("planted", s) == [f"route-bracket:{pid}"],
+                    f"pin-row route-bracket:{pid}")
+        return {"direct": True}, expect
+    return make
+
+
+def _bracket_outside(base, s, r0, p, ln, w0, w1):
+    """The lower anchor's retail body moved to start at the row's VA: the row now lies before the bracket's start."""
+    m = next(iter(base.pmods[p]))
+    an = base.anchors(m)
+    lo = max(a for a in an if a[0] < p)
+    s.banc = dict(base.banc)
+    s.banc[m] = sorted([a for a in an if a != lo] + [(lo[0], r0["va"], lo[2])])
+
+
+def _bracket_second(base, s, r0, p, ln, w0, w1):
+    """A copy of the row's retail body planted at another offset inside the bracket (an image copy, base untouched)."""
+    img = s.img = copy.copy(base.img)
+    va = r0["va"]
+    t2 = w0 if w0 + ln <= va else va + ln
+    xb = bytearray(img.xb)
+    o, o2 = pin_rows.xbe_info.va_to_off(img.x, va), pin_rows.xbe_info.va_to_off(img.x, t2)
+    xb[o2:o2 + ln] = xb[o:o + ln]
+    img.xb = bytes(xb)
+    print(f"control pin-bracket-ambiguous: body 0x{va:08X} copied to 0x{t2:08X}")
+
+
+_c_pin_bracket_outside = _pin_bracket("outside-bracket", _bracket_outside)
+_c_pin_bracket_ambiguous = _pin_bracket("ambiguous", _bracket_second)
 
 
 def _c_cfg_pin_row(d, config=None):
@@ -2290,6 +2624,100 @@ def _c_cut_unpinned(d):  # 4.5 T16.2.c5 (G17): hashes.txt copy gains a line, cut
         r == 2 and g.get("cut") == "fail: cut: hashes.txt sha256 != config/delink_cut.sha256", "cut (unpinned)")
 
 
+LOCK_CHILD = """import msvcrt, sys, time
+fh = open(sys.argv[1], "r+b")
+fh.seek(int(sys.argv[2]))
+msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+print("held", flush=True)
+time.sleep(600)
+"""
+
+
+def _c_gate_lock(d):  # kw `direct` (5.1 T2, O21): a held run lock refuses main rc 2 before run(); none stale; no self-refusal
+    lock, hold = d / "run.lock", d / "hold.py"
+    lock.write_bytes(b"")
+    hold.write_text(LOCK_CHILD, encoding="utf-8", newline="\n")
+    g, names = globals(), ("RUN_LOCK", "run", "controls", "_positive_ok")
+    saved = {k: g[k] for k in names if k in g}
+    child, calls = [], []
+    print(f"control gate-lock: child holds byte {RUN_LOCK_AT} of {d.name}/run.lock; main([]) with run stubbed")
+
+    def undo():
+        for p in child:
+            if p.poll() is None:
+                p.kill()
+            p.wait()
+        for k in names:
+            if k in saved:
+                g[k] = saved[k]
+            else:
+                g.pop(k, None)
+
+    def main_out(argv):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = main(argv)
+        return rc, buf.getvalue()
+
+    def expect(r, v, gl, i):
+        g["RUN_LOCK"] = lock
+        g["run"] = lambda *a, **k: (calls.append("run"), (0, {}, {}, {}))[1]
+        child.append(subprocess.Popen([sys.executable, str(hold), str(lock), str(RUN_LOCK_AT)],
+                                      stdout=subprocess.PIPE, text=True))
+        held = child[0].stdout.readline().strip()
+        rc1, out1 = main_out([])
+        n1 = calls.count("run")
+        child[0].kill()
+        child[0].wait()
+        rc2, out2 = main_out([])
+        n2 = calls.count("run") - n1
+        g["controls"] = lambda *a, **k: (calls.append("controls"), (1, 1))[1]
+        g["_positive_ok"] = lambda *a, **k: True
+        rc3, out3 = main_out(["--self-test"])
+        n3, nc = calls.count("run") - n1 - n2, calls.count("controls")
+        print(f"control gate-lock: child {held!r}; held: rc {rc1} run calls {n1} out {out1.strip()!r}; "
+              f"killed: rc {rc2} run calls {n2}; --self-test: rc {rc3} run calls {n3} controls calls {nc}")
+        ok = (held == "held" and rc1 == 2 and "another gate is running" in out1 and n1 == 0
+              and rc2 == 0 and n2 == 1 and rc3 == 0 and n3 == 1 and nc == 1)
+        return ok, "main run lock (held -> rc 2, run not called; released; self-test not self-refused)"
+    return {"direct": True, "undo": undo}, expect
+
+
+def _c_ms_extra_emitter(d):  # 5.1 T2 (D124): an [[emitter]] row naming an unmarked hand-written body fails extra
+    s = _src_copy(d)
+    with open(s / LOC_SRC, "a", encoding="utf-8", newline="\n") as f:
+        f.write('\nextern "C" int gate_control_emit(int x)\n{\n    return x + 2;\n}\n')
+    lp = d / "matched_set.toml"
+    shutil.copy2(FIX_LIST, lp)
+    matched_set.add_emitter(lp, "_gate_control_emit", LOC_UNIT, "gate control ms-extra-emitter: a hand-written body")
+    print(f"control ms-extra-emitter: unmarked gate_control_emit body appended to {LOC_SRC.as_posix()}, "
+          f"[[emitter]] _gate_control_emit row in a list copy")
+    return {"src_root": s, "list_path": lp}, lambda r, v, g, i: (
+        "[[emitter]] _gate_control_emit" in g.get("*objects* extra", "")
+        and "hand-written body" in g.get("*objects* extra", ""), "*objects* extra (emitter _gate_control_emit body)")
+
+
+SET_SRC = Path("Apps") / "Vince" / "scripts" / "Sewers" / "JaniceCutscenes.cpp"
+
+
+def _c_ms_parallel(d):  # 5.1 T2 (O18): parallel preprocess verdicts land on their own rows (by key, not completion)
+    s = _src_copy(d)
+    head = "void VinceDropsInCutscene::SetState(int state)\n{\n"
+    _edit_text(s / SET_SRC, head, head + "    __asm { nop }\n")
+    print(f"control ms-parallel: __asm {{ nop }} inserted in {SET_SYM} only; matched_set.WORKERS "
+          f"{getattr(matched_set, 'WORKERS', None)}")
+
+    def expect(r, v, g, i):
+        others = sorted(k for k in v if k != SET_SYM)
+        bad = [k for k in others if v[k].get("asm") != "pass"]
+        print(f"control ms-parallel: {SET_SYM} asm {v.get(SET_SYM, {}).get('asm')!r}; others {len(others)}, "
+              f"asm not pass {bad}")
+        ok = (v[SET_SYM]["build"] == "pass" and v[SET_SYM]["asm"].startswith("fail: __asm/_asm in preprocessed")
+              and others and not bad and getattr(matched_set, "WORKERS", 1) > 1)
+        return ok, f"{SET_SYM} asm only (build pass, WORKERS > 1)"
+    return {"src_root": s}, expect
+
+
 CONTROLS =(("objdiff", _c_objdiff), ("bytes-alone", _c_bytes), ("target", _c_target), ("cut-marker", _c_cut_marker),
             ("body_sha1", _c_body),
             ("xbe_sha1", _c_xbe), ("empty-list", _c_empty), ("missing-list", _c_missing), ("extra", _c_extra),
@@ -2336,12 +2764,30 @@ CONTROLS =(("objdiff", _c_objdiff), ("bytes-alone", _c_bytes), ("target", _c_tar
             ("pin-i10-static", _c_pin_i10_static), ("pin-vtable-prefix", _c_pin_vtable_prefix),  # 4.5 T16.2.c4
             ("pin-accepted-unused", _c_pin_accepted_unused), ("cfg-pin-row", _c_cfg_pin_row),
             ("positive-keys", _c_positive_keys), ("last-tree", _c_last_tree),  # 4.5 T16.2.c5
-            ("cut-unpinned", _c_cut_unpinned))
-CFG_CONTROLS = (_c_data_impostor, _c_xbe_wrong, _c_objdiff_cli,
+            ("cut-unpinned", _c_cut_unpinned),
+            ("objdiff-noexec", _c_objdiff_noexec), ("prov-include-dotdot", _c_prov_include_dotdot),  # 5.1 T1
+            ("prov-pragma-if0", _c_prov_pragma_if0),
+            ("gate-lock", _c_gate_lock), ("ms-extra-emitter", _c_ms_extra_emitter),  # 5.1 T2
+            ("ms-parallel", _c_ms_parallel),
+            ("pin-accepted-other-conflict", _c_pin_accepted_other_conflict),  # 5.1 T3
+            ("pin-near-listed", _c_pin_near_listed),  # 5.1 T3.1
+            ("relink-samevt", _c_relink_samevt), ("relink-xdata-order", _c_relink_xdata_order),  # 5.1 T4
+            ("build-objname-path", _c_build_objname_path),  # 5.1 T4.c2
+            ("relink-data-order", _c_relink_data_order),  # 5.1 T13
+            ("relink-label-unref", _c_relink_label_unref), ("relink-unit-key", _c_relink_unit_key),  # 5.1 T14
+            ("prov-nested-op", _c_prov_nested_op), ("relink-site-past-buffer", _c_relink_site_past_buffer),  # 5.3 T2
+            ("pin-slotnames-unnamed", _c_pin_slotnames_unnamed),  # 5.3 T2.c4
+            ("pin-slotnames-site-corr", _c_pin_slotnames_site_corr), ("pin-slotnames-count", _c_pin_slotnames_count),
+            ("pin-bracket-outside", _c_pin_bracket_outside), ("pin-bracket-ambiguous", _c_pin_bracket_ambiguous))
+CFG_CONTROLS = (_c_data_impostor, _c_xbe_wrong, _c_objdiff_cli, _c_objdiff_noexec,  # 5.1 T1: +objdiff-noexec
                 _c_toolchain_split, _c_prov_locals_cache, _c_prov_inputs_pin,  # 3.5 T4: make(d, config)
                 _c_audit_null_key, _c_audit_tail, _c_prov_d66_pdb_volatile,
                 _c_pin_literal_list, _c_pin_unruled, _c_objdiff_pin, _c_audit_marker_contradiction,  # 4.5 T16.1
                 _c_toolchain_hash,  # 4.5 T16.2.c3
+                _c_pin_accepted_other_conflict, _c_pin_near_listed,  # 5.1 T3, T3.1
+                _c_build_objname_path,  # 5.1 T4.c2
+                _c_pin_slotnames_unnamed, _c_pin_slotnames_site_corr, _c_pin_slotnames_count,  # 5.3 T2.c4
+                _c_pin_bracket_outside, _c_pin_bracket_ambiguous,
                 _c_clean, _c_pin_i10_static, _c_pin_vtable_prefix, _c_pin_accepted_unused, _c_cfg_pin_row,  # T16.2.c4
                 *(m for n, m in CONTROLS if n.startswith("pin-plant-")))
 LINE_GLOBALS = {"extra": "*objects* extra", "audit": "audit_public", "empty-list": "list",
@@ -2408,12 +2854,27 @@ def main(argv):
     ap.add_argument("--self-test", action="store_true", help="run on the gate fixture (tests/gate/), not the matched set")
     ap.add_argument("--config", help="config path (default config/local_paths.json)")
     a = ap.parse_args(argv)
-    if a.self_test:
-        rc, _v, g, _i = run(FIX_SRC, FIX_LIST, self_test=True, config=a.config)
-        ok = _positive_ok(rc, g, FIX_LIST)  # 4.5 T16.2.c5; was: rc == 0 only
-        j, k = controls(a.config)
-        return 0 if ok and j == k else (rc or 1)
-    return run(SRC, LIST, config=a.config)[0]
+    # 5.1 T2 (O21): one gate at a time: the OS byte lock on RUN_LOCK, one try, held until main returns (the OS drops it
+    # at process death, so never stale; C0178); was: no lock (two gates shared .run/<phase>/gate/ scratch)
+    RUN_LOCK.parent.mkdir(parents=True, exist_ok=True)
+    RUN_LOCK.open("a").close()
+    with RUN_LOCK.open("r+b") as fh:
+        fh.seek(RUN_LOCK_AT)
+        try:
+            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+        except OSError:
+            print(f"gate: REFUSED run lock: another gate is running ({RUN_LOCK})")
+            return 2
+        try:
+            if a.self_test:
+                rc, _v, g, _i = run(FIX_SRC, FIX_LIST, self_test=True, config=a.config)
+                ok = _positive_ok(rc, g, FIX_LIST)  # 4.5 T16.2.c5; was: rc == 0 only
+                j, k = controls(a.config)
+                return 0 if ok and j == k else (rc or 1)
+            return run(SRC, LIST, config=a.config)[0]
+        finally:
+            fh.seek(RUN_LOCK_AT)
+            msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 if __name__ == "__main__":

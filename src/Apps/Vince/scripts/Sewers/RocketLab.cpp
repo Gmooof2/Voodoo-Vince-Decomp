@@ -151,6 +151,30 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line);
 
+class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual void EnteringRegion(SwampSceneNode*);
+
+    bool _isZone;                      // 0x4C
+    bool _inRegion;                    // 0x4D
+    char field_4E[0x64 - 0x4E];        // 0x4E (not reached)
+};
+DECOMP_SIZE_ASSERT(LevelScript, 0x64);
+
+class CutsceneDriver { // NAME: proto-pdb:default.pdb
+public:
+    static void SetStream(const SwampString& wav, bool looped);
+};
+
+class RocketLabRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    RocketLabRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(RocketLabRegionMain, 0x64);
+
 class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum State { // NAME: proto-pdb:default.pdb
@@ -581,6 +605,16 @@ void FlamePipesMain::AnimationTrigger(const SwampString& name, float value, floa
     }
 }
 
+// FUNCTION: USA 0x0009DAB0
+// NAME: proto-pdb:default.pdb
+void RocketLabRegionMain::EnteringRegion(SwampSceneNode* node)
+{
+    if (!_inRegion) {
+        LevelScript::EnteringRegion(node);
+        CutsceneDriver::SetStream("ethelRocketLab", false);
+    }
+}
+
 // FUNCTION: USA 0x0009DAEE
 // PROTOTYPE: PREVIEW 0x00488BE9 identical
 // NAME: proto-pdb:default.pdb
@@ -662,7 +696,7 @@ GasCanisterMain::GasCanisterMain(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* GasCanisterMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\rocketlab\\RocketLab.h", 65) GasCanisterMain(node);
 }
 
@@ -707,12 +741,19 @@ void FlamePipesMain::Message(SwampScript* source, int message, void* data)
         GetCritter()->StartAnimation(_multiAnim.FetchAnim(), true, false);
 }
 
+// FUNCTION: USA 0x0009ECAD
+// NAME: proto-pdb:default.pdb
+SwampScript* RocketLabRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\rocketlab\\RocketLab.h", 18) RocketLabRegionMain(node);
+}
 // FUNCTION: USA 0x0009ECD1
 // PROTOTYPE: PREVIEW 0x00489D8D identical
 // NAME: proto-pdb:default.pdb
 SwampScript* ShortcutHatchMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("RocketLab\\RocketLab.cpp", 41) ShortcutHatchMain(node);
 }
 

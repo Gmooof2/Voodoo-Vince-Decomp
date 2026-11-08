@@ -184,7 +184,7 @@ void PipeGasMain::Message(SwampScript* source, int message, void* data)
 // NAME: proto-pdb:default.pdb
 SwampSceneNode* CreateFlameHeatShimmer()
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     HeatShimmer* shimmer = new("mainstreet\\PipeGas.cpp", 152) HeatShimmer(Vector3(0.4f, 0.4f, 0.4f));
     shimmer->SetNoiseTextureScaling(0, Vector2(1.0f, 1.0f));
     shimmer->SetNoiseTextureScaling(1, Vector2(1.5f, 1.5f));
@@ -213,7 +213,7 @@ PipeGasMain::PipeGasMain(SwampSceneNode* node) : CritterMain(node), _emitter(0),
 // NAME: proto-pdb:default.pdb
 SwampScript* PipeGasMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\PipeGas.h", 11) PipeGasMain(node);
 }
 

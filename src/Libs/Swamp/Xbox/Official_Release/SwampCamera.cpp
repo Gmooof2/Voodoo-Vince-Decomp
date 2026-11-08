@@ -243,9 +243,6 @@ const Matrix& SwampCamera::GetProjectionMatrix() const
 // FUNCTION: USA 0x000CAF63
 // PROTOTYPE: PREVIEW 0x004B61AC identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 94.58, bytes mismatch (retail keeps _nearPlane on the x87 stack past the z product, ours consumes it;
-// T16.c9 also tried PDB Vector3::operator*=, _nearPlane x3 CSE, member stores, block-scoped n, n-first operands: <= 94.58)
 Vector4 SwampCamera::GetNearClipPlane() const
 {
     Vector3 viewdir = GetWorldFacing();
@@ -253,15 +250,14 @@ Vector4 SwampCamera::GetNearClipPlane() const
     result.x = viewdir.x;
     result.y = viewdir.y;
     result.z = viewdir.z;
-    // !FAKE: inliner; hand form of the Vector3 operators: stand-ins n, v0, p, v1; retail reads the returned Vector3 through eax (C0191)
-    float n = _nearPlane;
+    // !FAKE: c2 x87 register allocation; double stand-in n (hand form of the inlined Vector3 scale, stand-ins v0, p, v1); a float n consumes it at the z product (match_one 94.58 -> 100.0)
+    double n = _nearPlane;
     Vector3 v0(viewdir.x * n, viewdir.y * n, viewdir.z * n);
     const Vector3* p = &GetWorldPosition();
     Vector3 v1(v0.x + p->x, v0.y + p->y, v0.z + p->z);
     result.w = -(v1.x * viewdir.x + v1.y * viewdir.y + v1.z * viewdir.z);
     return result;
 }
-#endif
 
 // FUNCTION: USA 0x000CAFF0
 // PROTOTYPE: PREVIEW 0x004B6239 identical
@@ -341,7 +337,7 @@ Frustum SwampCamera::GetViewPlanes(bool usenearplane) const
     }
     Vector3 location = GetWorldPosition();
     Frustum result;
-    // !FAKE: inliner; per-plane block, temporary tmp and copy v1..v4 for the by-value Apply argument (T4.c3 F.00 92.85, F.01 100.0)
+    // !FAKE: inliner; per-plane block, temporary tmp and copy v1..v4 for the by-value Apply argument; T4.c3 F.00 92.85, F.01 100.0
     {
         Vector3 tmp;
         cam2world.Apply(left, tmp);
@@ -383,7 +379,7 @@ ResourceHandle<AnimationControl> SwampCamera::StartPlayback(const ResourceHandle
     if (!camPath._Resource) {
         _currentPath = ResourceHandle<AnimationControl>();
     } else {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
         _currentPath = ResourceHandle<AnimationControl>(new("SwampCamera.cpp", 213) AnimationControl(camPath, 0, looped, reverse, false));
     }
     return _currentPath;

@@ -22,7 +22,7 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 };
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> void deque<Vector3,std::allocator<Vector3> >::_Tidy();
@@ -137,6 +137,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
+// FUNCTION: USA 0x0007B380
+// NAME: proto-pdb:default.pdb
 // FUNCTION: USA 0x0007B39C
 // NAME: proto-pdb:default.pdb
 class OvenMain : public CritterMain { // NAME: proto-pdb:default.pdb
@@ -159,12 +161,12 @@ private:
 };
 DECOMP_SIZE_ASSERT(OvenMain, 0xE4);
 
-#ifdef NON_MATCHING
-// row USA 0x0007B188, PREVIEW 0x0046718F identical
-// best: match_one objdiff 100.0, bytes match; wall: provenance_lint nested operator (C0212): no NAME tag, so
-// no FUNCTION tag (4.3 T7.c1)
+// FUNCTION: USA 0x0007B188
+// PROTOTYPE: PREVIEW 0x0046718F identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.3 T7.c1); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template Vector3 const & std::deque<Vector3,std::allocator<Vector3> >::const_iterator::operator*()const;
-#endif
 
 // FUNCTION: USA 0x0007B602
 // PROTOTYPE: PREVIEW 0x00467609 identical
@@ -175,7 +177,7 @@ template <> void std::deque<Vector3,std::allocator<Vector3> >::_Growmap(size_typ
 {
     if (max_size() / _DEQUESIZ - _Mapsize < _Count) {
         _Xlen();
-        __assume(0); // !FAKE: noreturn restated (C0237)
+        __assume(0); // !FAKE: c2 noreturn; __assume(0) restating noreturn; no before/after recorded (C0237)
     }
 
     size_type _Inc = _Mapsize / 2;
@@ -235,7 +237,9 @@ SwampString OvenMain::Save()
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store, literal)
+// best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store, literal); with it ??_GOvenMain 0x0007B380
+// 100.0 bytes match (5.3 T6.c2), wall: relink `external PTR_??_GOvenMain@@UAEPAXI@Z_001dea50: 0 VAs by name`
+// (??_7OvenMain 0x001DEA50 unpinned); lift: pin ??_7OvenMain@@6B@, then match this ctor
 // FUNCTION: USA 0x0007B2CF
 // PROTOTYPE: PREVIEW 0x004672D6 near-identical
 // NAME: proto-pdb:default.pdb
@@ -261,7 +265,7 @@ void OvenMain::Load(const BeepTDF& tdf)
 // NAME: proto-pdb:default.pdb
 SwampScript* OvenMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\Oven.h", 21) OvenMain(node);
 }
 

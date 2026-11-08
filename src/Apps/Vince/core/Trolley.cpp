@@ -131,10 +131,17 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class Vince; // NAME: proto-pdb:default.pdb
+
 class VinceExitTrolley : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_JUMPOUT = 0x14
+    };
     VinceExitTrolley(SwampSceneNode* node);
     virtual void AnimationFinished();
+    virtual void Message(SwampScript* source, int message, void* data);
+    Vince* GetVince();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -167,7 +174,7 @@ DECOMP_SIZE_ASSERT(VinceBoardTrolley, 0x64);
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceExitTrolley::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Trolley.h", 60) VinceExitTrolley(node);
 }
 
@@ -219,6 +226,23 @@ public:
 };
 
 class AnimationControl; // NAME: proto-pdb:default.pdb
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
+
+    char field_0[0x18];                // 0x00
+    AnimationManager* _animationManager; // 0x18
+};
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
 class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -277,11 +301,13 @@ private:
 DECOMP_SIZE_ASSERT(TrolleyMain, 0xEC);
 
 // Retail layout: Vince _startPos 0x354 -> 0x368 (+0x14).
-class Vince : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+class Vince : public Critter { // NAME: proto-pdb:default.pdb
 public:
     char field_50[0x368 - 0x50];       // 0x50
     Vector3 _startPos;                 // 0x368
 };
+
+inline Vince* VinceExitTrolley::GetVince() { return (Vince*)_node; }
 
 class CritterManager { // NAME: proto-pdb:default.pdb
 public:
@@ -423,7 +449,7 @@ void TrolleyMain::AnimationFinished()
 // NAME: proto-pdb:default.pdb
 SwampScript* TrolleyMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Trolley.h", 13) TrolleyMain(node);
 }
 
@@ -432,6 +458,14 @@ SwampScript* TrolleyMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceBoardTrolley::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Trolley.h", 38) VinceBoardTrolley(node);
+}
+
+// FUNCTION: USA 0x00130C3D
+// NAME: proto-pdb:default.pdb
+void VinceExitTrolley::Message(SwampScript* source, int message, void* data)
+{
+    if (message == MESSAGE_JUMPOUT)
+        GetVince()->StartAnimation(g_swamp->GetAnimationManager().Load("vince_trolleyoff"), false, false);
 }

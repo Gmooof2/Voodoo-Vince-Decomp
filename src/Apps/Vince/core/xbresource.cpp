@@ -116,7 +116,7 @@ long CXBPackedResource::Create(const void* mem, unsigned long dwNumResourceTags,
     m_dwSysMemDataSize = xprh.dwHeaderSize - sizeof(XPR_HEADER);
     m_dwVidMemDataSize = xprh.dwTotalSize - xprh.dwHeaderSize;
 
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     m_pSysMemData = new("\\beep\\vendor\\Microsoft\\XbCommon\\xbresource.cpp", 217) unsigned char[m_dwSysMemDataSize];
     m_pVidMemData = (unsigned char*)D3D_AllocContiguousMemory(m_dwVidMemDataSize, 0x80);
     s_totalVideoMemoryAllocated += m_dwVidMemDataSize;
@@ -185,7 +185,7 @@ long CXBPackedResource::Create(const char* strFilename, unsigned long dwNumResou
     m_dwSysMemDataSize = xprh.dwHeaderSize - sizeof(XPR_HEADER);
     m_dwVidMemDataSize = xprh.dwTotalSize - xprh.dwHeaderSize;
 
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     m_pSysMemData = new("\\beep\\vendor\\Microsoft\\XbCommon\\xbresource.cpp", 150) unsigned char[m_dwSysMemDataSize];
     m_pVidMemData = (unsigned char*)D3D_AllocContiguousMemory(m_dwVidMemDataSize, 0x80);
     s_totalVideoMemoryAllocated += m_dwVidMemDataSize;

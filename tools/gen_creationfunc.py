@@ -173,7 +173,7 @@ def main():
         hdr = "header path" if s.endswith(".h") else "relative path"
         esc = s.replace(B, B + B)
         out_fn.append(NL.join(ann + [f"SwampScript* {cls}::creationFunc(SwampSceneNode* node)", "{",
-            f"    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ ({hdr}), ours differs",
+            f"    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ ({hdr}), ours differs",
             f'    return new("{esc}", {line}) {cls}(node);', "}"]))
 
     o = unit["objname"]

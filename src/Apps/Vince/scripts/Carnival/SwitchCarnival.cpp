@@ -89,6 +89,6 @@ DECOMP_SIZE_ASSERT(SwitchCarnivalMain, 0x13C);
 // NAME: proto-pdb:default.pdb
 SwampScript* SwitchCarnivalMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\SwitchCarnival.cpp", 8) SwitchCarnivalMain(node);
 }

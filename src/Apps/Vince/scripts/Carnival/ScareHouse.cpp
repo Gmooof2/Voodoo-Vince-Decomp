@@ -5,6 +5,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string();
     basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
     const E* c_str() const { return _Myptr(); }
@@ -74,6 +75,12 @@ DECOMP_SIZE_ASSERT(Locator, 0x48);
 float FastReciprocalSquareRoot(float); // NAME: proto-pdb:default.pdb
 struct Matrix;               // NAME: proto-pdb:default.pdb
 class CXBFont;               // NAME: proto-pdb:default.pdb
+
+class FontManager { // NAME: proto-pdb:default.pdb
+public:
+    CXBFont* Load(const char*);
+};
+FontManager& GetFontManager(); // NAME: proto-pdb:default.pdb
 
 enum { // NAME: proto-pdb:default.pdb
     BUTTON_A = 8,
@@ -155,9 +162,13 @@ public:
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     virtual void Invalidate();                                     // vtable+0x14
+protected:
     virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+public:
     virtual void Update();                                         // vtable+0x1C
     virtual void Render(const Matrix&) const;                      // vtable+0x20
+
+    SwampSceneNode(int);
 
     char field_4[0x8 - 0x4];           // 0x04
     SwampString _Name;                 // 0x08
@@ -168,6 +179,9 @@ public:
     char field_8C[0xA4 - 0x8C];        // 0x8C
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+class SoundNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+};
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
@@ -239,6 +253,7 @@ template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle() : _Resource(0) {}
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ResourceHandle& operator=(const ResourceHandle& h);
     ~ResourceHandle()
     {
         if (_Resource)
@@ -391,6 +406,13 @@ public:
 
     void RegisterTimerEvent(unsigned int id, float deltaTime, bool looped);
 
+protected:
+    SwampScript(SwampSceneNode* node);
+    void RegisterSaveLoadVar(const SwampString&, SwampString*, const char*);
+    void RegisterSaveLoadVar(const SwampString&, float*, float);
+    void RegisterSaveLoadVar(const SwampString&, int*, int);
+public:
+
     char field_4[0x1C];                // 0x04 (_name; not reached)
     SwampSceneNode* _node;             // 0x20
     char field_24[0x28];               // 0x24 (_parent .. _saveLoadVars; not reached)
@@ -399,8 +421,12 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
     virtual void Message(SwampScript* source, int message, void* data);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     Critter* GetCritter() { return (Critter*)_node; }
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
@@ -455,6 +481,7 @@ public:
     };
     virtual void FrameTick();
     virtual void AnimationFinished();
+    virtual void InvalidateScript();
 private:
     virtual void SetState(int state);
 public:
@@ -537,6 +564,7 @@ public:
         STATE_HIT = 0x1
     };
     TargetSwitchMain(SwampSceneNode* node);
+    virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void HitBy(CollisionType type, SwampSceneNode* other, const Ptr<CollisionResultObject>& result);
 private:
@@ -580,8 +608,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(ScareHouseRegionMain, 0x64);
 
+// FUNCTION: USA 0x0003FE18
+// PROTOTYPE: PREVIEW 0x0042E2C3 ambiguous
+// NAME: proto-pdb:default.pdb
+// ??_GLocatorMain: compiler-generated with the vtable LocatorMain's ctor emits; calls ??1 out of line (5.3 T5)
 class LocatorMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    LocatorMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     Locator* GetLocator() const { return _locator; }
 
@@ -591,6 +624,10 @@ public:
 };
 DECOMP_SIZE_ASSERT(LocatorMain, 0x88);
 
+// FUNCTION: USA 0x000415E6
+// PROTOTYPE: PREVIEW 0x0042FA4D identical
+// NAME: proto-pdb:default.pdb
+// ??_GMonsterSpawnLocatorMain: compiler-generated with the vtable the ctor emits; inlines the implicit dtor
 class MonsterSpawnLocatorMain : public LocatorMain { // NAME: proto-pdb:default.pdb
 public:
     enum Messages { // NAME: proto-pdb:default.pdb
@@ -619,13 +656,26 @@ DECOMP_SIZE_ASSERT(MonsterSpawnLocatorMain, 0xC0);
 
 class ScareHouseTryAgainMenu : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    ScareHouseTryAgainMenu(SwampScript* script);
     virtual void Update();
+    virtual void Render(const Matrix&) const;
 
     bool _ready;                       // 0xA4
     CXBFont* _font;                    // 0xA8
     SwampScript* _returnScript;        // 0xAC
 };
 DECOMP_SIZE_ASSERT(ScareHouseTryAgainMenu, 0xB0);
+
+// FUNCTION: USA 0x0003F98A
+// PROTOTYPE: PREVIEW 0x0042DE3D identical
+// NAME: proto-pdb:default.pdb
+void CarRideMain::InvalidateScript()
+{
+    _rider = 0;
+    if (_sound)
+        _sound->Invalidate();
+    CritterMain::InvalidateScript();
+}
 
 // FUNCTION: USA 0x0003F9B3
 // PROTOTYPE: PREVIEW 0x0042DE5E identical
@@ -652,17 +702,17 @@ void CarRideMain::FrameTick()
     carride->GetBoneOrientation(_bone, rot, pos);
     Quaternion v0 = carride->GetWorldRotation();
     {
-        // !FAKE: inliner; hand form of the inlined Quaternion free operator* (no PDB record, D78)
+        // !FAKE: inliner; hand form of the inlined Quaternion free operator*; no PDB record (D78), no before/after recorded
         Quaternion tmp = rot;
         tmp *= v0;
         rot = tmp;
     }
     {
-        // !FAKE: inliner; hand form of the inlined Quaternion::Apply(const Vector3&) and Vector3 free operator+ (D78)
+        // !FAKE: inliner; hand form of the inlined Quaternion::Apply(const Vector3&) and Vector3 free operator+; no before/after recorded (D78)
         Vector3 tmp;
         v0.Apply(pos, tmp);
         Vector3 v1 = tmp;
-        const Vector3* wp = &carride->GetWorldPosition(); // !FAKE: pointer local to the call (D117 allowed form)
+        const Vector3* wp = &carride->GetWorldPosition(); // !FAKE: inliner; pointer local to the call; D117 allowed form, no before/after recorded
         pos = Vector3(v1.x + wp->x, v1.y + wp->y, v1.z + wp->z);
     }
     if (_rider) {
@@ -670,8 +720,8 @@ void CarRideMain::FrameTick()
         _rider->SetRotation(rot);
     }
     if (_lastTime != 0.0) {
-        // !FAKE: inliner; hand form of the inlined Vector3 free operator- and ApproxLength (D78)
-        const Vector3* last = &_lastPos; // !FAKE: pointer local to the inlined operator-'s reference (D117 allowed form)
+        // !FAKE: inliner; hand form of the inlined Vector3 free operator- and ApproxLength; no before/after recorded (D78)
+        const Vector3* last = &_lastPos; // !FAKE: inliner; pointer local to the inlined operator-'s reference; D117 allowed form, no before/after recorded
         float dx = pos.x - last->x;
         float dy = pos.y - last->y;
         float dz = pos.z - last->z;
@@ -766,6 +816,13 @@ void NeedleHatMain::Message(SwampScript* source, int message, void* data)
     CheckHair();
 }
 
+// FUNCTION: USA 0x0003FDC9
+// PROTOTYPE: PREVIEW 0x0042E274 identical
+// NAME: proto-pdb:default.pdb
+LocatorMain::LocatorMain(SwampSceneNode* node) : SwampScript(node), _locator(0)
+{
+}
+
 // FUNCTION: USA 0x0003FDF5
 // PROTOTYPE: PREVIEW 0x0042E2A0 identical
 // NAME: proto-pdb:default.pdb
@@ -775,6 +832,21 @@ void pin_emit_LocatorMain_dtor(LocatorMain* p)
 {
     p->LocatorMain::~LocatorMain();
 }
+
+// FUNCTION: USA 0x0003FE34
+// PROTOTYPE: PREVIEW 0x0045D94C identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (fold-name relink wall: theSquare.obj's external
+// ?SetVisible@Beret@@QAEX_N@Z at this fold VA lies in a replaced range; lift = Beret::SetVisible body in
+// theSquare.cpp so its copy merges as a fold duplicate (C0233 fix 1); 1 draft)
+void NeedleHat::SetVisible(bool b)
+{
+    SetOption(DontDraw, !b, false);
+    if (GetScript())
+        GetScript()->Message(GetScript(), NeedleHatMain::MESSAGE_CHECKHAIR, 0);
+}
+#endif
 
 // FUNCTION: USA 0x0003FFD9
 // PROTOTYPE: PREVIEW 0x0042E440 identical
@@ -806,8 +878,9 @@ void TargetSwitchMain::Message(SwampScript* source, int message, void* data)
 // PROTOTYPE: PREVIEW 0x0042E4F9 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 95.40, bytes mismatch (slot packing: retail puts hat in node's param slot and mgr at -4,
-// ours mgr in node's slot, hat at -4; frame 0x84 vs 0x88; 6 drafts)
+// best: match_one objdiff 95.40, bytes mismatch (slot packing: retail puts hat in node's param slot, mgr at -4 and the
+// this spill at -0x18; ours mgr in node's slot, hat and this share -4; frame 0x84 vs 0x88; at-stop 20, T12.c12: hat/mgr/sw
+// block-scoped, hat at use, hat = 0, carride at top, this stand-ins, if-wrap, pManager->GetVince: no change)
 void ScareHouseRegionMain::EnteringRegion(SwampSceneNode* node)
 {
     NeedleHat* hat;
@@ -815,11 +888,11 @@ void ScareHouseRegionMain::EnteringRegion(SwampSceneNode* node)
         return;
     LevelScript::EnteringRegion(node);
     CritterManager& mgr = *pManager;
-    Vince* vince = mgr.GetVince(); // !FAKE: stand-in for the register the PDB drops (ebx)
+    Vince* vince = mgr.GetVince(); // !FAKE: c2 register allocation; stand-in local for the register the PDB drops (ebx); no before/after recorded
     vince->SetHomePosition(vince->GetWorldPosition());
     vince->SetHomeRotation(vince->GetRotation());
     Critter* carride = mgr.Find("carride");
-    // !FAKE: stand-in for the register the PDB drops (esi); retail ends the name temp before GetScript
+    // !FAKE: c2 register allocation; stand-in for the register the PDB drops (esi); retail ends the name temp before GetScript
     Critter* sw = mgr.Find("scareSwitchA");
     sw->GetScript()->Message(this, 0x15, carride); // src proto-pdb:default.pdb TargetSwitchMain::Messages::MESSAGE_SETPARENT
     sw = mgr.Find("scareSwitchB");
@@ -838,6 +911,19 @@ void ScareHouseRegionMain::EnteringRegion(SwampSceneNode* node)
 }
 #endif
 
+// FUNCTION: USA 0x000402AB
+// PROTOTYPE: PREVIEW 0x0042E712 identical
+// NAME: proto-pdb:default.pdb
+ScareHouseTryAgainMenu::ScareHouseTryAgainMenu(SwampScript* script)
+    : SwampSceneNode(9), _returnScript(script)
+{
+    _font = GetFontManager().Load("pauseCounters");
+    // !FAKE: inliner; pointer local + hand form of the inlined SwampGamePad::GetButtonState (analog branch, b >= 8), as in Update; no before/after recorded
+    const SwampGamePad* p = g_swamp->GetInput().GetPad(0);
+    _ready = p->_current.bAnalogButtons[BUTTON_A - 8] < 0x20 && p->_current.bAnalogButtons[BUTTON_B - 8] < 0x20;
+    SoundManager::PlaySound("frontdialog", 0, 0, false, 0.0f, 0.0f);
+}
+
 // FUNCTION: USA 0x00040347
 // PROTOTYPE: PREVIEW 0x0042E7AE identical
 // NAME: proto-pdb:default.pdb
@@ -847,7 +933,7 @@ void ScareHouseTryAgainMenu::Update()
         return;
     const SwampGamePad* pad = g_swamp->GetInput().GetPad(0);
     if (!_ready) {
-        // !FAKE: inliner; hand form of the inlined SwampGamePad::GetButtonState (analog branch, b >= 8): an in-class
+        // !FAKE: inliner; hand form of the inlined SwampGamePad::GetButtonState (analog branch, b >= 8); an in-class
         // body leaves a COMDAT that collides with the cut object's out-of-line copy at relink (C0256)
         _ready = pad->_current.bAnalogButtons[BUTTON_A - 8] < 0x20 && pad->_current.bAnalogButtons[BUTTON_B - 8] < 0x20;
     } else if (pad->WasButtonPressed(BUTTON_A)) {
@@ -860,6 +946,16 @@ void ScareHouseTryAgainMenu::Update()
         Invalidate();
     }
 }
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1VinceCarRide@@UAE@XZ (0x00042737) in this
+// unit (no matched function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+#ifdef NON_MATCHING
+// best: match_one ??1VinceCarRide objdiff 1.30, bytes match (masked 0); cut-extent wall: delink symbol runs to FUN_00042bfd
+void pin_emit_VinceCarRide_dtor(VinceCarRide* p)
+{
+    p->VinceCarRide::~VinceCarRide();
+}
+#endif
 
 // FUNCTION: USA 0x00040E9E
 // PROTOTYPE: PREVIEW 0x0042F305 identical
@@ -882,24 +978,21 @@ void VinceCarRide::TimerEvent(unsigned int timerId)
 // FUNCTION: USA 0x0004137B
 // PROTOTYPE: PREVIEW 0x0042F7E2 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 97.69, bytes mismatch (miss branch: retail loads g_particleManager into edi before the
-// GetWorldPosition call, ours after it; 14 drafts: pointer locals to calls, early-return form fixed ~Ptr pops)
 void SewingBulletMain::FrameTick()
 {
     float elapsed = g_swamp->GetInput().GetElapsedTime();
-    Critter* bullet = GetCritter(); // !FAKE: stand-in for the register the PDB drops (ebx)
+    Critter* bullet = GetCritter(); // !FAKE: c2 register allocation; stand-in local for the register the PDB drops (ebx); no before/after recorded
     {
-        // !FAKE: inliner; hand form of the inlined Vector3 free operator* (no PDB record, D78)
-        float speed = _speed;
-        const Vector3* facing = &bullet->GetFacing(); // !FAKE: pointer local to the call (D117 allowed form)
-        bullet->SetVelocity(Vector3(speed * facing->x, speed * facing->y, speed * facing->z));
+        // !FAKE: inliner; hand form of the inlined Vector3 free operator*; no PDB record (D78), no before/after recorded
+        float v0 = _speed;
+        const Vector3* facing = &bullet->GetFacing(); // !FAKE: inliner; pointer local to the call; D117 allowed form, no before/after recorded
+        bullet->SetVelocity(Vector3(v0 * facing->x, v0 * facing->y, v0 * facing->z));
     }
     Vector3 start = bullet->GetWorldPosition();
-    // !FAKE: inliner; hand form of the inlined Vector3 free operator* and operator+ (no PDB record, D78)
+    // !FAKE: inliner; hand form of the inlined Vector3 free operator* and operator+; no PDB record (D78), no before/after recorded
     const Vector3& v = bullet->GetVelocity();
-    Vector3 d(elapsed * v.x, elapsed * v.y, elapsed * v.z);
-    Vector3 end(d.x + start.x, d.y + start.y, d.z + start.z);
+    Vector3 v1(elapsed * v.x, elapsed * v.y, elapsed * v.z);
+    Vector3 end(v1.x + start.x, v1.y + start.y, v1.z + start.z);
     Ptr<CollisionResultObject> cr = SwampCollide::CheckLine(start, end, bullet->_radius, 0, 0);
     if (!cr->HitSomething() || cr->HitObject() == bullet) {
         bullet->SetWorldPosition(end);
@@ -908,11 +1001,27 @@ void SewingBulletMain::FrameTick()
     SwampSceneNode* hit = (SwampSceneNode*)cr->HitObject();
     if (hit && hit->GetScript())
         hit->GetScript()->HitBy(HorizontalCollision, bullet, cr);
-    else
-        g_particleManager->AddOneShot("bulletMiss", bullet->GetWorldPosition());
+    else {
+        // !FAKE: c2 evaluation order; stand-in local for the object pointer, retail loads g_particleManager into edi
+        // before the GetWorldPosition call (probe: va_dis first diff +0xC5 -> none, T12.c28)
+        SwampParticleManager* p;
+        (p = g_particleManager)->AddOneShot("bulletMiss", bullet->GetWorldPosition());
+    }
     InvalidateScript();
 }
-#endif
+
+// FUNCTION: USA 0x000414C6
+// PROTOTYPE: PREVIEW 0x0042F92D identical
+// NAME: proto-pdb:default.pdb
+MonsterSpawnLocatorMain::MonsterSpawnLocatorMain(SwampSceneNode* node)
+    : LocatorMain(node), _spawning(false), _count(0), _carRide(0)
+{
+    RegisterSaveLoadVar("monstername", &_monsterName, "");
+    RegisterSaveLoadVar("monsterfrequency", &_monsterFreq, 1.0f);
+    RegisterSaveLoadVar("monsterspeed", &_monsterSpeed, 1.0f);
+    RegisterSaveLoadVar("monstercount", &_monsterCount, 1);
+    RegisterSaveLoadVar("monsteranim", &_monsterAnim, 0);
+}
 
 // FUNCTION: USA 0x00041613
 // PROTOTYPE: PREVIEW 0x0042FA7A identical
@@ -958,7 +1067,7 @@ void TargetSwitchMain::SetState(int state)
 // NAME: proto-pdb:default.pdb
 SwampScript* CarRideMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 32) CarRideMain(node);
 }
 
@@ -970,7 +1079,7 @@ SwampScript* CarRideMain::creationFunc(SwampSceneNode* node)
 // ?creationFunc@NeedleHatMain...+4 inside the push imm32, splitting the symbol; source is final; 1 draft)
 SwampScript* NeedleHatMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 169) NeedleHatMain(node);
 }
 #endif
@@ -980,7 +1089,7 @@ SwampScript* NeedleHatMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* SewingBulletMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 190) SewingBulletMain(node);
 }
 
@@ -992,7 +1101,7 @@ SwampScript* SewingBulletMain::creationFunc(SwampSceneNode* node)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* MonsterSpawnLocatorMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 209) MonsterSpawnLocatorMain(node);
 }
 #endif
@@ -1020,12 +1129,20 @@ void MonsterSpawnLocatorMain::Message(SwampScript* source, int message, void* da
     }
 }
 
+// FUNCTION: USA 0x00041C3C
+// NAME: proto-pdb:default.pdb
+TargetSwitchMain::TargetSwitchMain(SwampSceneNode* node) : CritterMain(node), _parent(0)
+{
+    _animHit = g_swamp->GetAnimationManager().Load("targetswitch_hit");
+    SetState(STATE_UP);
+}
+
 // FUNCTION: USA 0x00041CB5
 // PROTOTYPE: PREVIEW 0x004300BD identical
 // NAME: proto-pdb:default.pdb
 SwampScript* TargetSwitchMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 274) TargetSwitchMain(node);
 }
 
@@ -1067,6 +1184,6 @@ void CarRideMain::AnimationFinished()
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceCarRide::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 98) VinceCarRide(node);
 }

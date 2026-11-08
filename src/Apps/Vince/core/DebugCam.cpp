@@ -174,7 +174,7 @@ DECOMP_SIZE_ASSERT(DebugCam, 0x11C);
 // PROTOTYPE: PREVIEW 0x00521FA6 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 98.03, bytes mismatch (frame slot packing of temps; side.x x87 operand form)
+// best: match_one objdiff 99.10 (T12.c13), bytes mismatch +0xAC: slot order turn 0x64/Set temps 0x6c vs retail 0x70/0x60; tail v9/facing/delta order
 void DebugCam::Update()
 {
     GameCam::Update();
@@ -201,6 +201,8 @@ void DebugCam::Update()
                 qv.Set(Vector3(1.0f, 0.0f, 0.0f), turn.v * turnrate);
             }
             // !FAKE: inliner; hand forms of the inlined Quaternion and Vector3 operators (no PDB record, D78); stand-ins v0-v7, v9, v10; blocks give retail's slot sharing (match_one 95.41 -> 98.03)
+            // !FAKE: frame layout; Z declared before the quaternion temps, filled per component where retail stores it
+            Vector3 Z;
             Quaternion hrot;
             {
                 Quaternion v0(qh);
@@ -213,7 +215,9 @@ void DebugCam::Update()
                 v1 *= qv;
                 newrot = v1;
             }
-            Vector3 Z(0.0f, 0.0f, 1.0f);
+            Z.x = 0.0f;
+            Z.y = 0.0f;
+            Z.z = 1.0f;
             {
                 Vector3 v2;
                 newrot.Apply(Z, v2);
@@ -225,12 +229,21 @@ void DebugCam::Update()
                 const Vector3& v7 = Vector3(v6.y * 0.0f - v6.z, v6.z * 0.0f - v6.x * 0.0f, v6.x - v6.y * 0.0f);
                 SetRotation(v4.x * v7.x + v4.y * v7.y + v4.z * v7.z > 0.01 ? newrot : hrot);
             }
+            Vector3 delta;
             {
                 Vector2 move = pad->GetLeftStick();
-                Vector3 facing = GetFacing();
-                Vector3 delta(facing.x * move.v, facing.y * move.v, facing.z * move.v);
                 {
-                    Vector3 v9(facing.z - facing.y * 0.0f, facing.x * 0.0f - facing.z * 0.0f, facing.y * 0.0f - facing.x);
+                    // !FAKE: frame layout; facing's scope closes before v10 so v10 shares its slot (PDB facing 0x6c)
+                    Vector3 v9;
+                    {
+                        Vector3 facing = GetFacing();
+                        delta.x = facing.x * move.v;
+                        delta.y = facing.y * move.v;
+                        delta.z = facing.z * move.v;
+                        v9.x = facing.z - facing.y * 0.0f;
+                        v9.y = facing.x * 0.0f - facing.z * 0.0f;
+                        v9.z = facing.y * 0.0f - facing.x;
+                    }
                     const Vector3& v10 = Vector3(move.u * v9.x, move.u * v9.y, move.u * v9.z);
                     delta += v10;
                 }

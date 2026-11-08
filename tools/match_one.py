@@ -11,13 +11,16 @@ Target: derived/delink/retail-<pin[:8]>/<gate._tname(unit)>, sha256 == its hashe
 delink.cut_check passes (valid cut.complete, T1 2.1). objdiff via gate._objdiff;
 bytes via byte_compare.setup + compare. Never writes derived/gate/last.json.
 Output: header `<symbol> unit <unit> va 0x.. size 0x..`; `PASS|FAIL objdiff: <pct>`; `PASS|FAIL bytes: <verdict>
-(masked <n>)`; `flags: <unit flags>`; last line `not a match claim: run PY tools/gate.py`.
+(masked <n>)[ first differing byte +0x<HEX>]`; `flags: <unit flags>`; last line `not a match claim: run PY tools/gate.py`.
 Exit: 0 objdiff 100.0 and bytes `match`; 1 any failure; 2 refusal (symbol absent/ambiguous, no unit/source,
 build.Refuse, byte_compare.Refuse, --task missing). W removed on pass, kept (path printed) on fail or --listing.
 Ledger (2.2 T2): every run, refusals too, appends one JSON line to --ledger (default docs/matching/attempts-<phase>.jsonl,
 4.4 T11: attempts.jsonl is the frozen base; readers take it first, then the phase files by phase; relative to the repo): keys ts (UTC ISO seconds), phase (byte_compare._phase_run_dir().name), task, symbol, va
 ("0x%08X"), size (int), insns (iced Decoder(32) count over retail bytes [va, va+size)), unit, opt (flags built with),
-kind (attempt|control|listing), objdiff (pct float or verdict), bytes (verdict), rc; unknown -> null. No byte content (D46).
+kind (attempt|control|listing), objdiff (pct float or verdict), bytes (verdict), rc, src_sha256 (5.2 T7: sha256 of
+the unit's source file as built; old rows lack it, readers use .get); unknown -> null. No byte content (D46).
+Resubmission (5.2 T15): an attempt or control whose (symbol, src_sha256, opt, kind) equals a ledger row with rc 0/1
+(ledger_paths() plus --ledger) refuses 2 naming that row; --listing runs are exempt.
 The append holds an OS byte lock on the ledger (4.1 T6; a plain append lost and tore rows under concurrent runs).
 --control F: the unit is built with opt = F (units.toml copy W/units.toml, passed as build's units_path; works for
 `opt = "unknown"` units); prints `control: F` and `control run: no claim`; kind control.
@@ -43,6 +46,7 @@ import subprocess
 import sys
 import time
 import tomllib
+from collections import defaultdict
 from pathlib import Path
 
 from iced_x86 import Decoder
@@ -63,10 +67,19 @@ LEDGER = REPO / "docs" / "matching" / "attempts.jsonl"  # base, frozen at 4.4 T1
 PHASE_LEDGER = re.compile(r"attempts-(\d+(?:\.\d+)*)\.jsonl")  # 4.4 T11: one appended ledger per phase beside it
 TABLE = REPO / "docs" / "matching" / "attempts_by_size.md"
 MATCHED = REPO / "config" / "matched_set.toml"
-KEYS = ("ts", "phase", "task", "symbol", "va", "size", "insns", "unit", "opt", "kind", "objdiff", "bytes", "rc")
+KEYS = ("ts", "phase", "task", "symbol", "va", "size", "insns", "unit", "opt", "kind", "objdiff", "bytes", "rc",
+        "src_sha256")  # 5.2 T7: sha256 of the unit's source file as built; null on refusal; old rows lack it
 WORKDIR_NAME = re.compile(r"[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*")
 LEDGER_LOCK_AT = 1 << 40  # a byte past any ledger's end: the OS lock there blocks no read or write of the rows
 BUCKETS = ((1, 8), (9, 16), (17, 32), (33, 64), (65, 128), (129, None))
+CANDIDATES = REPO / "derived" / "candidates" / "candidates.jsonl"  # lane per va, for the attempt curve (5.2 T7)
+
+
+def is_attempt(row):
+    """The one attempt definition for every ledger reader (5.2 T7): kind attempt or listing (a --listing run builds and
+    compares like an attempt, it only adds an asm dump), rc 0 or 1 (rc 2 refusals compiled nothing; controls build
+    other flags)."""
+    return row.get("kind") in ("attempt", "listing") and row.get("rc") in (0, 1)
 
 
 class Refuse(Exception):
@@ -180,7 +193,7 @@ def _control_units(unit, flags, out):
     return out
 
 
-def run(sym, src, config=None, rec=None, control=None, listing=False, workdir=None):
+def run(sym, src, config=None, rec=None, control=None, listing=False, workdir=None, prior=None):
     rec = {} if rec is None else rec
     rec["symbol"] = sym
     try:
@@ -202,6 +215,12 @@ def run(sym, src, config=None, rec=None, control=None, listing=False, workdir=No
         srcs = [p for p in src.rglob("*") if p.is_file() and p.relative_to(src).as_posix().lower() == rel]
         if len(srcs) != 1:
             raise Refuse(f"{len(srcs)} sources for {rel} under {src}")
+        rec["src_sha256"] = hashlib.sha256(srcs[0].read_bytes()).hexdigest()
+        if rec.get("kind") in ("attempt", "control"):  # 5.2 T15: 52 identical resubmissions in 5.2, 0 changed outcome
+            for p in [r for r in load_ledger(prior) if r.get("rc") in (0, 1) and r.get("kind") == rec["kind"]
+                      and (r.get("symbol"), r.get("src_sha256"), r.get("opt")) == (mangled, rec["src_sha256"], rec["opt"])][:1]:
+                raise Refuse(f"resubmission: {rec['kind']} {p['task']} {p['ts']} built this source with opt {rec['opt']!r}"
+                             f" (objdiff {p['objdiff']}, bytes {p['bytes']}, rc {p['rc']}); change the source first")
         if workdir is not None and not WORKDIR_NAME.fullmatch(workdir):
             raise Refuse(f"--workdir {workdir!r}: one name of letters, digits and single . _ - between them")
         w = byte_compare._phase_run_dir() / ("match_one" if workdir is None else f"match_one.{workdir}")
@@ -261,14 +280,17 @@ def run(sym, src, config=None, rec=None, control=None, listing=False, workdir=No
         try:
             _p, byname, _t, _xp, xb, x = byte_compare.setup(argparse.Namespace(
                 symbols=[str(p) for p in gate.SYMTABS], xbe=None, config=config))
-            with contextlib.redirect_stdout(io.StringIO()):
+            cap = io.StringIO()
+            with contextlib.redirect_stdout(cap):
                 bv, nmask, _n = byte_compare.compare(obj, mangled, va, byname, xb, x)
         except byte_compare.Refuse as e:
             print(f"match_one: REFUSED bytes: {e}", file=sys.stderr)
             rc = 2
             raise _Done
         rec["bytes"] = bv
-        print(f"{'PASS' if bv == 'match' else 'FAIL'} bytes: {bv} (masked {nmask})")
+        first = re.search(r"first at \+0x([0-9A-Fa-f]+)", cap.getvalue())  # 5.2 T7: first differing byte offset
+        print(f"{'PASS' if bv == 'match' else 'FAIL'} bytes: {bv} (masked {nmask})"
+              + (f" first differing byte +0x{first.group(1).upper()}" if first else ""))
         print(f"flags: {' '.join(built[u]['flags']) if isinstance(built[u]['flags'], list) else built[u]['flags']}")
         rc = 0 if ok_o and bv == "match" else 1
     except _Done:
@@ -314,6 +336,81 @@ def load_ledger(paths=None):
             for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
+def _curve(att, insns, matched):
+    """`## Attempt curve` lines (5.2 T7): per lane, then per lane and insns bucket, the attempt-count survival table."""
+    by_sym = defaultdict(list)
+    for r in sorted(att, key=lambda r: r.get("ts") or ""):  # stable: ledger order breaks ts ties
+        by_sym[r["symbol"]].append(r)
+    end, passed = {}, set()  # symbol -> (k, matched?): k = first rc 0 row's position, or the last counted row
+    for s, rs in by_sym.items():
+        k = next((i for i, r in enumerate(rs, 1) if r["rc"] == 0), None)
+        if k is not None:
+            passed.add(s)
+        end[s] = (k, s in matched) if k is not None else (len(rs), False)
+    lane_of_va, note = {}, None
+    if CANDIDATES.is_file():
+        for l in CANDIDATES.read_text(encoding="utf-8").splitlines():
+            if l.strip():
+                c = json.loads(l)
+                lane_of_va[f"0x{c['va']:08X}"] = c.get("lane", "identical")
+        lane = {}
+        for s, rs in by_sym.items():
+            va = next((r["va"] for r in rs if r.get("va") not in (None, "None")), None)
+            ln = None if va is None else lane_of_va.get(f"0x{va if isinstance(va, int) else int(va, 16):08X}")
+            lane[s] = ln if ln in ("identical", "near", "ambiguous") else "none"  # 5.3 T3: ambiguous lane
+        lanes = ("identical", "near", "ambiguous", "none")
+    else:
+        note = f"`{_rel(CANDIDATES)}` missing: every symbol lane `unknown`."
+        lane, lanes = {s: "unknown" for s in by_sym}, ("unknown",)
+    pct = lambda x: "-" if x is None else f"{100 * x:.1f}%"
+    def _tab(syms):
+        n = max((end[s][0] for s in syms), default=0)
+        risk = {k: sum(1 for s in syms if end[s][0] >= k) for k in range(1, n + 1)}
+        hit = {k: sum(1 for s in syms if end[s] == (k, True)) for k in range(1, n + 1)}
+        stop = {k: risk[k] - hit[k] - (risk[k + 1] if k < n else 0) for k in range(1, n + 1)}
+        haz = {k: hit[k] / risk[k] for k in range(1, n + 1)}
+        t = ["| k | at risk | matched at k | stopped at k | P(match at k \\| none before) |"
+             " P(eventual match \\| k failures) raw | censored |", "|---|---|---|---|---|---|---|"]
+        for k in range(1, n + 1):
+            den = risk[k] - hit[k]
+            raw = None if not den else sum(hit[j] for j in range(k + 1, n + 1)) / den
+            surv = 1.0
+            for j in range(k + 1, n + 1):
+                surv *= 1 - haz[j]
+            t.append(f"| {k} | {risk[k]} | {hit[k]} | {stop[k]} | {pct(haz[k])} | {pct(raw)} | {pct(1 - surv)} |")
+        return t
+    out = ["", "## Attempt curve", "",
+           "Per symbol: its attempt rows sorted by `ts` (stable; ledger order breaks ties), up to and including the"
+           " first `rc` 0 row. Matched at k: that first rc 0 row is row k and the symbol is in `config/matched_set.toml`;"
+           " otherwise (open, or rc 0 but not in matched_set) the symbol is censored (stopped) at its last counted row.",
+           "Lane: `derived/candidates/candidates.jsonl` `lane` joined on the rows' va (`none`: in no lane).",
+           "- at risk(k): symbols with >= k counted rows and no match before k; hazard P(match at k | none before) ="
+           " matched at k / at risk(k).",
+           "- raw eventual: (matched at j > k) / (at risk(k) - matched at k), `-` when the denominator is 0.",
+           "- censored: 1 - prod over j > k of (1 - hazard(j)) (Kaplan-Meier eventual match after k failures)."]
+    if note:
+        out += ["", note]
+    for ln in lanes:
+        syms = sorted(s for s in by_sym if lane[s] == ln)
+        if not syms:
+            continue
+        top = min(syms, key=lambda s: (-end[s][0], s))  # counted rows; ties: first symbol by name
+        out += ["", f"### lane {ln}", "",
+                f"symbols: {len(syms)}; matched: {sum(1 for s in syms if end[s][1])}", ""] + _tab(syms)
+        for lo, hi in BUCKETS + ((None, None),):
+            if lo is None:
+                label, bs = "unknown", [s for s in syms if insns.get(s) is None]
+            else:
+                label = f"{lo}-{hi}" if hi else f"{lo}+"
+                bs = [s for s in syms if insns.get(s) is not None and insns[s] >= lo and (hi is None or insns[s] <= hi)]
+            if bs:
+                out += ["", f"#### lane {ln}, insns {label}", "",
+                        f"symbols: {len(bs)}; matched: {sum(1 for s in bs if end[s][1])}", ""] + _tab(bs)
+        out += ["", f"highest attempt count: {end[top][0]} ({top})",
+                f"passed match_one, not in matched_set: {sum(1 for s in syms if s in passed and s not in matched)}"]
+    return out
+
+
 def table(ledger):
     """Write TABLE from the ledger files (a list of paths) + MATCHED; -> 0, 1 when a matched symbol has no passing
     attempt row (names printed, TABLE not written), or 2 when either is unreadable."""
@@ -323,7 +420,7 @@ def table(ledger):
     except (OSError, ValueError, matched_set.Refuse) as e:
         print(f"match_one: REFUSED table: {e}", file=sys.stderr)
         return 2
-    att = [r for r in rows if r.get("kind") == "attempt" and r.get("rc") in (0, 1)]
+    att = [r for r in rows if is_attempt(r)]
     insns, n_try, first = {}, {}, {}
     for r in att:  # ledger (file) order
         s = r["symbol"]
@@ -336,7 +433,7 @@ def table(ledger):
     missing = sorted(matched - first.keys())
     if missing:
         for s in missing:
-            print(f"match_one: matched without a passing attempt row (kind attempt, rc 0): {s}", file=sys.stderr)
+            print(f"match_one: matched without a passing attempt row (kind attempt or listing, rc 0): {s}", file=sys.stderr)
         print(f"match_one: FAIL {len(missing)} of {len(matched)} matched symbols unledgered in {' + '.join(_rel(x) for x in ledger)};"
               " table not written", file=sys.stderr)
         return 1
@@ -346,7 +443,9 @@ def table(ledger):
            " never hand-edited.",
            "",
            "- insns: retail instruction count (iced Decoder(32) over XBE bytes [va, va+size)), the row's `insns`.",
-           "- attempt row: ledger row with `kind` = attempt and `rc` 0 or 1 (control/listing runs and refusals excluded).",
+           "- attempt row: ledger row with `kind` attempt or listing and `rc` 0 or 1 (`is_attempt`: a `--listing` run"
+           " builds and compares like an attempt and only adds an asm dump; refusals rc 2 compiled nothing; controls"
+           " build other flags: excluded).",
            "- attempted: distinct symbols with >= 1 attempt row, bucketed by their `insns` (null: `unknown`).",
            "- matched: attempted symbols listed in `config/matched_set.toml`.",
            "- attempts to first pass: per matched symbol, its attempt rows in ledger order up to and including the"
@@ -380,6 +479,7 @@ def table(ledger):
                 "| insns | attempted | attempt rows | matched | attempts to first pass (median) | (max) | match rate |",
                 "|---|---|---|---|---|---|---|"]
         _rows({s: n for s, n in insns.items() if phase_of[s] == ph}, rows_col=True)
+    out += _curve(att, insns, matched)
     TABLE.write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {_rel(TABLE)}")
     return 0
@@ -439,7 +539,8 @@ def main(argv):
         if not (a.task and re.fullmatch(r"T\d+", a.task)):
             print(f"match_one: REFUSED --task T<n> required (got {a.task!r})", file=sys.stderr)
         else:
-            rec["rc"] = run(a.symbol, a.src, a.config, rec, a.control, a.listing, a.workdir)
+            rec["rc"] = run(a.symbol, a.src, a.config, rec, a.control, a.listing, a.workdir,
+                            ledger_paths() + ([ledger] if ledger not in ledger_paths() else []))
     finally:
         _append_row(ledger, json.dumps({k: rec[k] for k in KEYS}) + "\n")
     return rec["rc"]

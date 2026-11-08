@@ -3,7 +3,7 @@
 #pragma warning(disable: 4530) // no /EH in the unit flags; as SwampGatorNode.cpp
 #include <xstring>
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations before <vector> (as MoleGatePuzzle.cpp, C0277); retail calls
+// !FAKE: c1xx front end; declaration-only explicit specializations before <vector> (as MoleGatePuzzle.cpp, C0277); retail calls
 // these out of line (0x000117DE, 0x00011655, 0x000111D6); the header bodies would emit them here (C0090)
 namespace std {
 template <> basic_string<char,std::char_traits<char>,std::allocator<char> >::basic_string(const char *);
@@ -21,6 +21,7 @@ template <> basic_string<char,std::char_traits<char>,std::allocator<char> >& bas
 struct AABox;      // NAME: proto-pdb:default.pdb
 struct Quaternion; // NAME: proto-pdb:default.pdb
 struct Matrix;     // NAME: proto-pdb:default.pdb
+struct UberIlluminationInfo; // NAME: proto-pdb:default.pdb
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
     float x;                           // 0x00
@@ -36,7 +37,10 @@ struct Vector4 { // NAME: proto-pdb:default.pdb
     void Set(const Vector3& v) { x = v.x; y = v.y; z = v.z; w = 1.0f; }
     void Set(float x_, float y_, float z_) { x = x_; y = y_; z = z_; w = 1.0f; }
     void Set(float x_, float y_, float z_, float w_) { x = x_; y = y_; z = z_; w = w_; }
+    void Set(unsigned int);
     void Zero() { x = 0.0f; y = 0.0f; z = 0.0f; w = 0.0f; }
+    unsigned int GetARGB() const;
+    Vector4& operator+=(const Vector4& v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
 
     float x;                           // 0x00
     float y;                           // 0x04
@@ -175,16 +179,24 @@ public:
 };
 DECOMP_SIZE_ASSERT(SpotBeam, 0x58);
 
+// FUNCTION: USA 0x000CD859
+// NAME: proto-pdb:default.pdb
+// ??_GLightNode: compiler-generated with the vtable ~LightNode emits (5.3 T6.c10)
 class LightNode : public SwampSceneNode, public LightDefinition { // NAME: proto-pdb:default.pdb
 public:
     LightNode(const LightDefinition& def);
+    virtual ~LightNode();
+    virtual void UpdateAnimation(unsigned int pass);
     virtual void Update();
+    virtual void Render(const Matrix&) const;
     LightDefinition::Type GetLightType() const { return _type; }
     const LightDefinition& GetDefinition() const { return *this; }
     const Vector3& GetCachedWorldPosition() const { return _worldPos; }
     float GetConeCos() const { return _coneCos; }
     float GetPenumbraCos() const { return _penumbraCos; }
     float GetCentimeterDecay() const { return _centimeterDecay; }
+    bool CastsWorldShadows() const { return GetDefinition()._castsWorldShadows; }
+    ResourceHandle<TextureResource> GenerateShadowBuffer(const Vector3* center, float range) const;
     ResourceHandle<AnimationControl> StartPlayback(const ResourceHandle<AnimationResource>& lgtPath, bool looped, bool reverse);
     void Enable();
     void Disable();
@@ -195,7 +207,8 @@ public:
     float _coneCos;                    // 0xF8
     float _penumbraCos;                // 0xFC
     float _centimeterDecay;            // 0x100
-    char field_104[0x150 - 0x104];     // 0x104 (_shadowBuffer .. _shadowBufferRange; not reached)
+    ResourceHandle<TextureResource> _shadowBuffer; // 0x104
+    char field_108[0x150 - 0x108];     // 0x108 (_lightViewProj .. _shadowBufferRange; not reached)
     SpotBeam* _spotBeam;               // 0x150
     bool _enabled;                     // 0x154
     char field_155[0x158 - 0x155];     // 0x155
@@ -284,20 +297,44 @@ public:
         const LightNode* light;        // 0x04
     };
 
+    enum Who { OBJECT_LIGHTS = 0x0, WORLD_LIGHTS = 0x1 }; // NAME: proto-pdb:default.pdb
+
+    struct CachedII { // NAME: proto-pdb:default.pdb
+        CachedII() {}
+
+        Vector3 pos;                   // 0x00
+        float radius;                  // 0x0C
+        const LightNode* source[4];    // 0x10
+        unsigned int ambientColor;     // 0x20
+        bool valid;                    // 0x24
+        bool anyLights;                // 0x25
+    };
+
+    static void GetLights(const Vector3& loc, float radius, IlluminationInfo& ii, Who who, unsigned int* id);
+    static void GetAllLights(UberIlluminationInfo& uii, Who who);
     static LightNode* CreateGatorLight(const GatorAnimationFile* anim, const GatorLightInfo* lightinfo);
     static LightNode* CreateDirectionalLight(const Vector3& direction, const Vector3& color);
+    static void CreateShadowBuffers();
+    static void ClearCache();
 
 protected:
     static void AddLight(const LightNode* light);
     static void RemoveLight(const LightNode* light);
     static void FillInfoBlock(IlluminationInfo& ii, const LightNode* light, unsigned int slot);
 
+    static std::multiset<LightLocation> _objectLights;
+    static std::multiset<LightLocation> _worldLights;
+    static std::multiset<LightLocation> _objectAmbientAndDirectionalLights;
+    static std::multiset<LightLocation> _worldAmbientAndDirectionalLights;
+    static std::vector<CachedII> _cachedII;
+
     friend class LightNode;
 };
 DECOMP_SIZE_ASSERT(LightManager::LightLocation, 0x8);
+DECOMP_SIZE_ASSERT(LightManager::CachedII, 0x28);
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> void vector<IlluminationInfo,allocator<IlluminationInfo> >::_Xlen()const;
@@ -307,6 +344,7 @@ template <> vector<IlluminationInfo,allocator<IlluminationInfo> >::iterator vect
 template <> void _Uninitialized_fill_n<IlluminationInfo*,unsigned int,IlluminationInfo,allocator<IlluminationInfo> >(IlluminationInfo*,unsigned int,const IlluminationInfo&,allocator<IlluminationInfo>&);
 template <> void _Tree<_Tset_traits<LightManager::LightLocation,less<LightManager::LightLocation>,allocator<LightManager::LightLocation>,1> >::const_iterator::_Dec();
 template <> _Tree<_Tset_traits<LightManager::LightLocation,less<LightManager::LightLocation>,allocator<LightManager::LightLocation>,1> >::iterator _Tree<_Tset_traits<LightManager::LightLocation,less<LightManager::LightLocation>,allocator<LightManager::LightLocation>,1> >::_Insert(bool,_Nodeptr,const LightManager::LightLocation&);
+template <> void vector<LightManager::CachedII,allocator<LightManager::CachedII> >::push_back(const LightManager::CachedII&);
 }
 #endif
 
@@ -424,18 +462,18 @@ void PotentialLights::ConsiderLight(const LightNode* light)
         case LightDefinition::POINT:
         case LightDefinition::SPOTLIGHT: {
             const float ballFactor = light->_ballFactor;
-            // !FAKE: stand-in local; the PDB lists none
+            // !FAKE: c2 x87 scheduling; stand-in local (the PDB lists none); trial 5.2 T14: without it range is computed after the distance and dist2 stays in st(3) instead of [ebp+8]
             float range = light->_range;
             if (ballFactor != 0.0f)
                 range *= ballFactor;
-            // !FAKE: stand-in local; hand form of the inlined LengthSquared of the difference (D78)
+            // !FAKE: inliner; stand-in local, hand form of the inlined LengthSquared of the difference; no before/after recorded (D78)
             const Vector3& p = light->_worldPos;
             Vector3 d;
             d.x = p.x - _center.x;
             d.y = p.y - _center.y;
             d.z = p.z - _center.z;
             const float dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
-            // !FAKE: stand-in local; the PDB lists none
+            // !FAKE: provenance; stand-in local (the PDB lists none); trial 5.2 T14: removal changes no byte (readability stage, R133)
             float r = (range + _radius) * 1.05f;
             if (!(dist2 >= r * r))
                 PlaceLight(light, ballFactor != 0.0f ? 0.0f : sqrtf(dist2));
@@ -492,7 +530,7 @@ unsigned int UberIlluminationInfo::GetIICount() const
 // NAME: proto-pdb:default.pdb
 void LightManager::FillInfoBlock(IlluminationInfo& ii, const LightNode* light, unsigned int slot)
 {
-    // !FAKE: stand-in local; the PDB lists none (retail ebx = &ii.info[slot] before the null test)
+    // !FAKE: c2 register allocation; stand-in local (the PDB lists none); retail ebx = &ii.info[slot] before the null test
     IlluminationInfo::LightInfo& info = ii.info[slot];
     if (light) {
         ii.source[slot] = light;
@@ -522,7 +560,7 @@ void LightManager::FillInfoBlock(IlluminationInfo& ii, const LightNode* light, u
             break;
         case LightDefinition::SPOTLIGHT: {
             Quaternion rot = light->GetWorldRotation();
-            // !FAKE: stand-in local; hand form of the inlined value Apply (C0125: /O1 keeps it out of line)
+            // !FAKE: inliner; stand-in local, hand form of the inlined value Apply; C0125: /O1 keeps it out of line
             Vector3 tmp;
             rot.Apply(def._direction, tmp);
             Vector3 dir = tmp;
@@ -546,11 +584,11 @@ void LightManager::FillInfoBlock(IlluminationInfo& ii, const LightNode* light, u
         }
         case LightDefinition::DIRECTIONAL: {
             Quaternion rot = light->GetWorldRotation();
-            // !FAKE: stand-in local; hand form of the inlined value Apply (C0125: /O1 keeps it out of line)
+            // !FAKE: inliner; stand-in local, hand form of the inlined value Apply; C0125: /O1 keeps it out of line
             Vector3 tmp;
             rot.Apply(def._direction, tmp);
             Vector3 dir = tmp;
-            // !FAKE: stand-in local; hand form of the inlined dir * -10000.0f (no PDB record of a free operator, D78)
+            // !FAKE: inliner; stand-in local, hand form of the inlined dir * -10000.0f; no PDB record of a free operator (D78), no before/after recorded
             Vector3 p;
             p.x = dir.x * -10000.0f;
             p.y = dir.y * -10000.0f;
@@ -597,7 +635,7 @@ ResourceHandle<AnimationControl> LightNode::StartPlayback(const ResourceHandle<A
     if (!lgtPath._Resource) {
         _currentPath = ResourceHandle<AnimationControl>();
     } else {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
         _currentPath = ResourceHandle<AnimationControl>(new("SwampLight.cpp", 221) AnimationControl(lgtPath, 0, looped, reverse, false));
     }
     return _currentPath;
@@ -607,6 +645,19 @@ ResourceHandle<AnimationControl> LightNode::StartPlayback(const ResourceHandle<A
 // PROTOTYPE: PREVIEW 0x004B89EB identical
 // NAME: proto-pdb:default.pdb
 template std::_Tree_nod<std::_Tset_traits<LightManager::LightLocation,std::less<LightManager::LightLocation>,std::allocator<LightManager::LightLocation>,1> >::_Node * std::_Tree<std::_Tset_traits<LightManager::LightLocation,std::less<LightManager::LightLocation>,std::allocator<LightManager::LightLocation>,1> >::_Lbound(LightManager::LightLocation const &)const;
+
+// FUNCTION: USA 0x000CC2F5
+// PROTOTYPE: PREVIEW 0x004B8EF3 identical
+// NAME: proto-pdb:default.pdb
+void LightManager::CreateShadowBuffers()
+{
+    for (std::multiset<LightLocation>::iterator lit = _objectLights.begin(); lit != _objectLights.end(); ++lit) {
+        // !FAKE: c2 register allocation; stand-in local (the PDB lists only lit); retail keeps the light in ecx (match_one 90.1 -> 100.0)
+        const LightNode* light = lit->light;
+        if (light->CastsWorldShadows())
+            light->GenerateShadowBuffer(0, 0.0f);
+    }
+}
 
 // FUNCTION: USA 0x000CC4B1
 // PROTOTYPE: PREVIEW 0x004B90AF identical
@@ -638,6 +689,16 @@ UberIlluminationInfo::~UberIlluminationInfo()
 {
 }
 
+// FUNCTION: USA 0x000CCA3B
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match; matched_set refuses (near-corr pin, no lane near row at 0x000CCA3B)
+void LightManager::ClearCache()
+{
+    _cachedII.clear();
+}
+#endif
+
 // FUNCTION: USA 0x000CD0E1
 // PROTOTYPE: PREVIEW 0x004B9CDF identical
 // NAME: proto-pdb:default.pdb
@@ -650,7 +711,7 @@ template <> bool std::vector<IlluminationInfo,std::allocator<IlluminationInfo> >
         return (false);
     else if (max_size() < _Capacity) {
         _Xlen();
-        __assume(0); // !FAKE: noreturn restated (C0237)
+        __assume(0); // !FAKE: c2 noreturn; __assume(0) restating noreturn; no before/after recorded (C0237)
     } else {
         _Myfirst = this->_Alval.allocate(_Capacity);
         _Mylast = _Myfirst;
@@ -667,8 +728,6 @@ template std::pair<std::_Tree<std::_Tset_traits<LightManager::LightLocation,std:
 // FUNCTION: USA 0x000CD586
 // PROTOTYPE: PREVIEW 0x004BA184 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 89.0, bytes mismatch (retail inlines ??_GSpotBeam: ??1 call, push ecx, delete; ours calls ??_G)
 void LightNode::Disable()
 {
     if (_enabled) {
@@ -680,12 +739,18 @@ void LightNode::Disable()
         }
     }
 }
-#endif
 
 // FUNCTION: USA 0x000CD5BB
 // PROTOTYPE: PREVIEW 0x004BA1B9 identical
 // NAME: proto-pdb:default.pdb
 template void std::vector<IlluminationInfo,std::allocator<IlluminationInfo> >::resize(unsigned int,IlluminationInfo);
+
+// FUNCTION: USA 0x000CD658
+// NAME: proto-pdb:default.pdb
+LightNode::~LightNode()
+{
+    Disable();
+}
 
 // FUNCTION: USA 0x000CD68A
 // PROTOTYPE: PREVIEW 0x004BA288 identical
@@ -693,6 +758,54 @@ template void std::vector<IlluminationInfo,std::allocator<IlluminationInfo> >::r
 UberIlluminationInfo::UberIlluminationInfo()
 {
     _ii.Initialize();
+}
+
+// FUNCTION: USA 0x000CD6AA
+// PROTOTYPE: PREVIEW 0x004BA2A8 identical
+// NAME: proto-pdb:default.pdb
+void LightManager::AddLight(const LightNode* light)
+{
+    // !FAKE: provenance; neutral name stand-in for the inlined GetDefinition result (the PDB lists no local); no before/after recorded
+    const LightDefinition& p = light->GetDefinition();
+    bool ballLight = p._ballFactor != 0.0f;
+    // !FAKE: c2 register allocation; stand-in local (the PDB lists none); retail loads the type before the ballLight test (match_one 58.57 -> 100)
+    LightDefinition::Type v1 = light->GetLightType();
+    if (!ballLight && (v1 == LightDefinition::POINT || v1 == LightDefinition::SPOTLIGHT)) {
+        LightLocation ll;
+        ll.xPos = light->GetCachedWorldPosition().x;
+        ll.light = light;
+        if (light->_affectsWorldGeometry)
+            _worldLights.insert(ll);
+        if (light->_affectsObjects)
+            _objectLights.insert(ll);
+    } else {
+        LightLocation ll;
+        ll.xPos = 0.0f;
+        ll.light = light;
+        if (light->_affectsWorldGeometry)
+            _worldAmbientAndDirectionalLights.insert(ll);
+        if (light->_affectsObjects)
+            _objectAmbientAndDirectionalLights.insert(ll);
+    }
+    if (light->_affectsWorldGeometry) {
+        // !FAKE: c2 register allocation; stand-in local (the PDB lists none); retail keeps the range in st across the loop
+        float v2 = p._range;
+        if (ballLight)
+            v2 *= p._ballFactor;
+        for (std::vector<CachedII>::iterator i = _cachedII.begin(); i != _cachedII.end(); ++i) {
+            if (i->valid) {
+                // !FAKE: inliner; stand-in locals, hand form of the inlined LengthSquared of the difference (D78)
+                const Vector3& v0 = light->GetCachedWorldPosition();
+                Vector3 v3;
+                v3.x = v0.x - i->pos.x;
+                v3.y = v0.y - i->pos.y;
+                v3.z = v0.z - i->pos.z;
+                float v4 = (v2 + i->radius) * 1.05f;
+                if (v3.x * v3.x + v3.y * v3.y + v3.z * v3.z <= v4 * v4)
+                    i->valid = false;
+            }
+        }
+    }
 }
 
 // FUNCTION: USA 0x000CD7E0
@@ -709,7 +822,7 @@ void LightNode::Enable()
         _enabled = true;
         LightManager::AddLight(this);
         if (_type == LightDefinition::SPOTLIGHT && _glowSize > 0.0f)
-            // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+            // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
             _spotBeam = new("SwampLight.cpp", 152) SpotBeam(_penumbraAngle * 0.1f + _coneAngle * 0.9f, _glowSize, _glowIntensity);
     }
 }
@@ -765,13 +878,152 @@ void UberIlluminationInfo::AddII()
     _iis.back().Initialize();
 }
 
+// FUNCTION: USA 0x000CD9FE
+// PROTOTYPE: PREVIEW 0x004BA5FC identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 89.33, bytes mismatch (c2 register allocation: retail keeps ls->_Myhead in esi across the
+// forward/reverse walk, ours keeps forward; ls/doneCount frame slots follow; ambient type test `mov edx; test` vs `cmp`)
+// lever C (T12.c27): visible _Dec (decl-only spec dropped) 89.57, first diff +0x6E, ls in esi not _Myhead; ConsiderLight body: no change
+void LightManager::GetLights(const Vector3& loc, float radius, IlluminationInfo& ii, Who who, unsigned int* id)
+{
+    ii.Initialize();
+    // !FAKE: c2 register allocation; stand-in local (the PDB lists none); retail holds the cache entry in ebx
+    CachedII* p = 0;
+    if (id && ~*id != 0) {
+
+        p = &_cachedII[*id];
+        if (p->valid) {
+            if (p->anyLights) {
+                for (unsigned int slot = 0; slot < 4; slot++)
+                    FillInfoBlock(ii, p->source[slot], slot);
+            }
+            ii.ambientColor.Set(p->ambientColor);
+            return;
+        }
+    }
+    // !FAKE: c2 register allocation; block scope; ends pl before the cache store so the CachedII temp shares its slot (frame 0x70 -> 0x4c)
+    {
+    unsigned int doneCount;
+    const std::multiset<LightLocation>* ls = who == OBJECT_LIGHTS ? &_objectLights : &_worldLights;
+    // !FAKE: c2 register allocation; stand-in local (the PDB lists none); retail holds the ambient set in esi
+    const std::multiset<LightLocation>* v0 = who == OBJECT_LIGHTS ? &_objectAmbientAndDirectionalLights : &_worldAmbientAndDirectionalLights;
+    PotentialLights pl(loc, radius);
+    for (std::multiset<LightLocation>::const_iterator lit = v0->begin(); lit != v0->end(); ++lit) {
+        const LightNode* light = lit->light;
+        const LightDefinition& def = light->GetDefinition();
+        if (def._type != LightDefinition::AMBIENT)
+            pl.ConsiderLight(light);
+        else {
+            // !FAKE: inliner; stand-in local, hand form of the inlined Vector4::operator+= (C0125: /O1 calls it); no before/after recorded
+            const Vector4& v1 = Vector4(def._color);
+            ii.ambientColor.x += v1.x;
+            ii.ambientColor.y += v1.y;
+            ii.ambientColor.z += v1.z;
+            ii.ambientColor.w += v1.w;
+        }
+    }
+    LightLocation ll;
+    ll.xPos = loc.x;
+    ll.light = 0;
+    std::multiset<LightLocation>::const_iterator forward = ls->lower_bound(ll);
+    std::reverse_iterator<std::multiset<LightLocation>::const_iterator> reverse(forward);
+    do {
+        doneCount = 0;
+        if (ls->end() != forward) {
+            if ((*forward).xPos - ll.xPos > pl._distanceToLight[3])
+                forward = ls->end();
+            else {
+                pl.ConsiderLight((*forward).light);
+                ++forward;
+            }
+        }
+        if (ls->end() == forward)
+            doneCount++;
+        if (reverse != ls->rend()) {
+            if (ll.xPos - (*reverse).xPos > pl._distanceToLight[3])
+                reverse = ls->rend();
+            else {
+                pl.ConsiderLight((*reverse).light);
+                ++reverse;
+            }
+        }
+        if (reverse == ls->rend())
+            doneCount++;
+    } while (doneCount != 2);
+    if (!pl._lights[0])
+        return;
+    pl.PromoteSpotlights();
+    for (unsigned int slot = 0; slot < 4; slot++)
+        FillInfoBlock(ii, pl._lights[slot], slot);
+    }
+    if (id) {
+        if (!p) {
+            *id = _cachedII.size();
+            _cachedII.push_back(CachedII());
+            p = &_cachedII.back();
+            p->pos = loc;
+            p->radius = radius;
+        }
+        p->ambientColor = ii.ambientColor.GetARGB();
+        p->anyLights = false;
+        for (unsigned int i = 0; i < 4; i++) {
+            p->source[i] = ii.source[i];
+            if (ii.source[i])
+                p->anyLights = true;
+        }
+        p->valid = true;
+    }
+}
+#endif
+
+// FUNCTION: USA 0x000CDC8C
+// PROTOTYPE: PREVIEW 0x004BA88A identical
+// NAME: proto-pdb:default.pdb
+void LightManager::GetAllLights(UberIlluminationInfo& uii, Who who)
+{
+    const std::multiset<LightLocation>* ls[2];
+    if (who == OBJECT_LIGHTS) {
+        ls[0] = &_objectAmbientAndDirectionalLights;
+        ls[1] = &_objectLights;
+    } else {
+        ls[0] = &_worldAmbientAndDirectionalLights;
+        ls[1] = &_worldLights;
+    }
+    unsigned int numLights = 0;
+    Vector4 ambientColor;
+    ambientColor.Zero();
+    for (unsigned int pass = 0; pass < 2; pass++) {
+        for (std::multiset<LightLocation>::const_iterator lit = ls[pass]->begin(); lit != ls[pass]->end(); ++lit) {
+            // !FAKE: c2 register allocation; stand-in local (the PDB lists none); retail holds the light in esi
+            const LightNode* v1 = lit->light;
+            const LightDefinition& v2 = v1->GetDefinition();
+            if (v2._type == LightDefinition::AMBIENT) {
+                // !FAKE: inliner; stand-in local, hand form of the inlined Vector4::operator+= (C0125: /O1 calls it); a named temporary
+                // gives a different x87 operand order, the reference-bound one retail's (match_one 95.25 -> 100)
+                const Vector4& v0 = Vector4(v2._color);
+                ambientColor.x += v0.x;
+                ambientColor.y += v0.y;
+                ambientColor.z += v0.z;
+                ambientColor.w += v0.w;
+            } else {
+                if (numLights % 4 == 0)
+                    uii.AddII();
+                FillInfoBlock(uii.GetLastII(), v1, numLights % 4);
+                numLights++;
+            }
+        }
+    }
+    uii.GetII(0).ambientColor = ambientColor;
+}
+
 // FUNCTION: USA 0x000CE44F
 // PROTOTYPE: PREVIEW 0x004BB04D identical
 // NAME: proto-pdb:default.pdb
 LightNode* LightManager::CreateGatorLight(const GatorAnimationFile* anim, const GatorLightInfo* lightinfo)
 {
     LightDefinition def;
-    // !FAKE: stand-in locals; hand form of the inlined color * intensity (no PDB record of a free operator, D78);
+    // !FAKE: inliner; stand-in locals, hand form of the inlined color * intensity; no PDB record of a free operator (D78);
     // the float local keeps intensity in st(0) as retail (match_one 92.97 -> 100)
     const float v1 = lightinfo->intensity;
     Vector3 v0;
@@ -792,8 +1044,8 @@ LightNode* LightManager::CreateGatorLight(const GatorAnimationFile* anim, const 
     def._castsShadows = lightinfo->rtShadows;
     def._affectsWorldGeometry = true;
     def._castsWorldShadows = lightinfo->rtWorldShadows;
-    // !FAKE: stand-in local; the PDB lists none
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: provenance; stand-in local (the PDB lists none); trial 5.2 T14: not removable, light is the new result used three times, inlining it repeats the allocation
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     LightNode* light = new("SwampLight.cpp", 1205) LightNode(def);
     light->SetLocation(lightinfo->location);
     light->SetName(anim->GetString(lightinfo->name));

@@ -14,13 +14,18 @@ exactly one sized `func` pin line, status disasm-verified with another func name
 whose pin row passes tools/pin_rows.py (D118, 4.2 T5), or near-corr; else refused with the reason. add of a near-corr pin also needs a `"lane": "near"` row of the symbol at
 that VA in derived/candidates/candidates.jsonl (add-time only; check never reads it). One row per retail VA.
 check: per function `xbe_sha1`, `size`, `body_sha1`, `defined`, `asm`; global `"*objects*"` -> `extra` (rules
-eh-funclet, local-label, inline-copy). Every layer reported (D51). `built` reconstructed from --src + --objs with
+eh-funclet, local-label, inline-copy; 5.1 T2 D124: an `[[emitter]]` symbol with a hand-written definition in its
+unit's source (brace depth 0, `{` before `;`) that is not a marked scaffold (`pin_emit_*` under `//` lines with
+`!FAKE:` and `scaffold`) fails `[[emitter]] <symbol> (<obj>) has a hand-written body at <source>:<line>`; a symbol
+with no hand spelling or no definition passes). `asm`: one preprocess per unique (source, flags), sorted, on WORKERS
+threads, results by key (5.1 T2 O18; was: serial). Every layer reported (D51). `built` reconstructed from --src + --objs with
 build.unit_map/unit_path/flags_of (no rebuild; obj = objs/<objname basename>).
 Exit (D26): 0 all pass and N >= 1; 1 any fail; 2 refusal (stderr `matched_set: REFUSED <why>`).
 Library: load(list_path) -> entries (dicts with `kind` "function"|"emitter"); check(entries, built, src_root) ->
 {symbol: {check: verdict}, "*objects*": {"extra": verdict}}; REQUIRED; is_done(row); Refuse.
 """
 import argparse
+import concurrent.futures
 import hashlib
 import json
 import re
@@ -55,6 +60,9 @@ ASM = re.compile(r"(?<![A-Za-z0-9_])_?_asm(?![A-Za-z0-9_])")
 LITERAL = re.compile(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'')
 FUNCLET = re.compile(r"^(?:__ehhandler\$(.+)|__(?:unwindfunclet|catch|tryend)\$(.+)\$\d+)$")
 LOCAL_LABEL = re.compile(r"^\$L\d+$")
+WORKERS = 8  # 5.1 T2 (O18): asm preprocess threads; a fixed constant, never tuned per run
+SCAFFOLD_PREFIX = "pin_emit_"  # 5.1 T2 (D124): a marked scaffold's name prefix
+IDENT = re.compile(r"[A-Za-z_]\w*")
 
 
 class Refuse(Exception):
@@ -299,6 +307,87 @@ def _asm_verdict(src, flags, bindir):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def _hand_spelling(symbol):
+    """5.1 T2: -> (regex of a hand-written definition's name, function name) or None (no hand spelling).
+    `_name` / `@name@N` -> name; `?name@B@A@@...` -> A::B::name (bare name when no scope); `??0X@` X::X, `??1X@`
+    X::~X, `??4X@` X::operator=; any other `??` name, or a scope that is not a plain identifier -> None."""
+    if symbol.startswith("??"):
+        m = re.match(r"^\?\?([014])([A-Za-z_]\w*)@", symbol)
+        if not m:
+            return None
+        x = re.escape(m.group(2))
+        tail = {"0": x, "1": r"~\s*" + x, "4": r"operator\s*="}[m.group(1)]
+        return r"(?<![\w:~])" + x + r"\s*::\s*" + tail + r"\s*\(", m.group(2)
+    if symbol.startswith("?"):
+        parts = symbol[1:].split("@@", 1)[0].split("@")
+        if not all(IDENT.fullmatch(p) for p in parts):
+            return None
+        name = parts[0]
+        return r"(?<![\w:~])" + r"\s*::\s*".join(map(re.escape, parts[:0:-1] + [name])) + r"\s*\(", name
+    m = re.match(r"^[_@]([A-Za-z_]\w*?)(?:@\d+)?$", symbol)
+    return (r"(?<![\w:~])" + re.escape(m.group(1)) + r"\s*\(", m.group(1)) if m else None
+
+
+def _code_depths(lines):
+    """-> [(brace depth before the line, its code with comments blanked and literals emptied)] per line (as
+    provenance_lint.code_depths; local: provenance_lint imports this module)."""
+    out, depth, inblock = [], 0, False
+    for line in lines:
+        start, buf, j = depth, [], 0
+        while j < len(line):
+            if inblock:
+                e = line.find("*/", j)
+                inblock, j = (True, len(line)) if e < 0 else (False, e + 2)
+                continue
+            ch = line[j]
+            if ch in "\"'":
+                k = j + 1
+                while k < len(line) and line[k] != ch:
+                    k += 2 if line[k] == "\\" else 1
+                buf.append(ch + ch)
+                j = k + 1
+            elif line.startswith("//", j):
+                break
+            elif line.startswith("/*", j):
+                inblock, j = True, j + 2
+            else:
+                depth += (ch == "{") - (ch == "}")
+                buf.append(ch)
+                j += 1
+        out.append((start, "".join(buf)))
+    return out
+
+
+def _hand_body(text, symbol):
+    """5.1 T2 (D124): -> 1-based line of the first hand-written definition of symbol in text that is not a marked
+    scaffold (name `pin_emit_*` and the contiguous `//` lines directly above hold `!FAKE:` and `scaffold`), else None.
+    A definition: a name hit at brace depth 0 on a non-`#` code line whose following code reaches `{` before `;`."""
+    sp = _hand_spelling(symbol)
+    if sp is None:
+        return None
+    rx, name = re.compile(sp[0]), sp[1]
+    lines = text.splitlines()
+    code = _code_depths(lines)
+    for i, (depth, c) in enumerate(code):
+        if c.lstrip().startswith("#"):
+            continue
+        for m in rx.finditer(c):
+            if depth + c[:m.start()].count("{") - c[:m.start()].count("}"):
+                continue
+            rest = [c[m.end():]] + [cc for _d, cc in code[i + 1:]]
+            hit = next((ch for r in rest for ch in r if ch in "{;"), None)
+            if hit != "{":
+                continue
+            j, above = i - 1, []
+            while j >= 0 and lines[j].strip().startswith("//"):
+                above.append(lines[j])
+                j -= 1
+            note = " ".join(above)
+            if not (name.startswith(SCAFFOLD_PREFIX) and "!FAKE:" in note and "scaffold" in note):
+                return i + 1
+    return None
+
+
 def check(entries, built, src_root, config=None):
     """-> {symbol: {check: verdict}, "*objects*": {"extra": verdict}}; verdict "pass" or "fail: <why>"."""
     pin, xb, x = _xbe(config)
@@ -310,7 +399,14 @@ def check(entries, built, src_root, config=None):
     objsyms = {str(b["obj"]): _obj_symbols(b["obj"]) for b in built}
     funcs = [e for e in entries if e["kind"] == "function"]
     emits = [e for e in entries if e["kind"] == "emitter"]
-    asm_cache, res = {}, {}
+    res = {}  # was: asm_cache, res = {}, {}
+    # 5.1 T2 (O18): every unique (source, flags) of a one-obj unit, sorted, preprocessed on WORKERS threads; each
+    # verdict is read back by its key (a dict of futures by key), never by completion order; no cache across runs
+    keys = sorted({(b["source"], b["flags"]) for e in funcs if len(byunit.get(e["unit"], [])) == 1
+                   for b in byunit[e["unit"]]}, key=lambda k: (str(k[0]), k[1]))
+    with concurrent.futures.ThreadPoolExecutor(WORKERS) as ex:
+        futs = {k: ex.submit(_asm_verdict, Path(src_root) / k[0], k[1].split(), bindir) for k in keys}
+    asm = {k: f.result() for k, f in futs.items()}
     for e in funcs:
         v, s = {}, e["symbol"]
         v["xbe_sha1"] = "pass" if e["xbe_sha1"] == pin else f"fail: xbe_sha1 {e['xbe_sha1']} != pin {pin}"
@@ -330,10 +426,9 @@ def check(entries, built, src_root, config=None):
             b = bs[0]
             v["defined"] = ("pass" if any(n == s for n, *_ in objsyms[str(b["obj"])]) else
                             f"fail: {s} not defined in {Path(b['obj']).name}")
-            key = (b["source"], b["flags"])
-            if key not in asm_cache:
-                asm_cache[key] = _asm_verdict(Path(src_root) / b["source"], b["flags"].split(), bindir)
-            v["asm"] = asm_cache[key]
+            v["asm"] = asm[(b["source"], b["flags"])]
+            # was: key = (b["source"], b["flags"]); if key not in asm_cache: asm_cache[key] = _asm_verdict(
+            #     Path(src_root) / b["source"], b["flags"].split(), bindir); v["asm"] = asm_cache[key]  (serial)
         res[s] = v
     listed = {(e["unit"], e["symbol"]) for e in funcs + emits}
     names = {e["symbol"] for e in funcs}
@@ -350,7 +445,16 @@ def check(entries, built, src_root, config=None):
             if sel == SEL_ANY:
                 continue  # inline-copy
             offenders.append(f"{Path(b['obj']).name}:{n}")
-    res[OBJECTS] = {"extra": "pass" if not offenders else f"fail: unlisted code symbol(s) {', '.join(offenders)}"}
+    hand = []  # 5.1 T2 (D124): an [[emitter]] row is only compiler-emitted code or a marked scaffold
+    for e in emits:
+        for b in byunit.get(e["unit"], []):
+            ln = _hand_body((Path(src_root) / b["source"]).read_text(encoding="utf-8", errors="replace"), e["symbol"])
+            if ln:
+                hand.append(f"[[emitter]] {e['symbol']} ({Path(b['obj']).name}) has a hand-written body at "
+                            f"{Path(b['source']).as_posix()}:{ln}")
+    fails = ([f"unlisted code symbol(s) {', '.join(offenders)}"] if offenders else []) + hand
+    res[OBJECTS] = {"extra": "pass" if not fails else "fail: " + "; ".join(fails)}
+    # was: {"extra": "pass" if not offenders else f"fail: unlisted code symbol(s) {', '.join(offenders)}"}
     return res
 
 
@@ -369,7 +473,7 @@ def built_from(src_root, objs):
         us = umap.get(rel.lower(), [])
         if len(us) != 1:
             raise Refuse(f"{rel} maps to {len(us)} units")
-        obj = objs / us[0]["objname"].rsplit("\\", 1)[-1]
+        obj = objs / (rel.rsplit(".", 1)[0] + ".obj")  # 5.1 T4.c2 (build's rule); was: objs / <objname basename>
         if obj.is_file():
             out.append({"unit": us[0]["name"], "source": rel, "obj": obj, "flags": " ".join(build.flags_of(us[0]))})
     return out

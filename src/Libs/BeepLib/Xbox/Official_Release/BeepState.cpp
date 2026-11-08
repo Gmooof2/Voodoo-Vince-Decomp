@@ -257,6 +257,7 @@ public:
     iterator begin() { return iterator(_Myfirst); }
     iterator end() { return iterator(_Mylast); }
     unsigned int size() const { return _Myfirst == 0 ? 0 : _Mylast - _Myfirst; }
+    unsigned int capacity() const { return _Myfirst == 0 ? 0 : _Myend - _Myfirst; }
     T& operator[](unsigned int _Pos) { return _Myfirst[_Pos]; }
     void push_back(const T& val);
 
@@ -542,7 +543,7 @@ template<class _RanIt> inline
 	_Sort(_First, _Last, _Last - _First);
 	}
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132); retail calls rotate out of line (pin 0x00036475), and its
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132); retail calls rotate out of line (pin 0x00036475), and its
 // header body would emit rotate and the unnamed _Rotate(..., random_access_iterator_tag) it calls
 template<> void rotate(vector<double>::iterator, vector<double>::iterator, vector<double>::iterator);
 #endif
@@ -628,6 +629,12 @@ DECOMP_SIZE_ASSERT(BeepState, 0xC58);
 
 extern BeepState beepState; // NAME: proto-pdb:default.pdb
 
+// the fold rows 0x00035E68/0x00035E7B carry this alias's name (symbols.txt); its element type only
+class TextureResource; // NAME: proto-pdb:default.pdb
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+    T* _Resource;                      // 0x00
+};
+
 // FUNCTION: USA 0x00035E44
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
@@ -667,6 +674,18 @@ void BeepState::CheckForSSE()
 {
     _SSEAvailable = true;
 }
+
+// FUNCTION: USA 0x00035E68
+// PROTOTYPE: PREVIEW 0x0045A14F identical
+// NAME: proto-pdb:default.pdb
+// fold VA: the FFlyCtrlData::Key and FrequencyCalculator::Sample aliases share these bytes (C0233)
+template unsigned int std::vector<std::vector<ResourceHandle<TextureResource>,std::allocator<ResourceHandle<TextureResource> > >,std::allocator<std::vector<ResourceHandle<TextureResource>,std::allocator<ResourceHandle<TextureResource> > > > >::capacity()const;
+
+// FUNCTION: USA 0x00035E7B
+// PROTOTYPE: PREVIEW 0x0045A13C identical
+// NAME: proto-pdb:default.pdb
+// fold VA: the FFlyCtrlData::Key and FrequencyCalculator::Sample aliases share these bytes (C0233)
+template unsigned int std::vector<std::vector<ResourceHandle<TextureResource>,std::allocator<ResourceHandle<TextureResource> > >,std::allocator<std::vector<ResourceHandle<TextureResource>,std::allocator<ResourceHandle<TextureResource> > > > >::size()const;
 
 // FUNCTION: USA 0x00035ED3
 // PROTOTYPE: PREVIEW 0x004245F6 identical
@@ -786,7 +805,10 @@ FrequencyCalculator::FrequencyCalculator()
 // PROTOTYPE: PREVIEW 0x004252B7 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 62.29, retail keeps frequencies' _Myfirst/_Mylast in ebx/esi across sort and inverts the loop; 6 drafts
+// best: match_one objdiff 88.51, bytes mismatch +0x6 (T12.c23 at-stop 20): retail keeps frequencies' _Myfirst/_Mylast in
+// ebx/esi across the out-of-line sort (cl 13.10 reloads members of any local passed as `this`); iterator stand-ins first/last
+// keep them in registers but cl merges the repeated size() null tests and puts first in edi, zero stores stay `and [m],0`;
+// retail pretests the sample loop; VC 7.1 operator[] body form 82.52; lever C (T12.c27, visible push_back/_Tidy): identical
 double FrequencyCalculator::Finalize()
 {
     std::vector<double> frequencies;
@@ -800,9 +822,14 @@ double FrequencyCalculator::Finalize()
         double frequency = (double)s.tsc * performance_frequency / (double)s.performance_timer.QuadPart;
         frequencies.push_back(frequency);
     }
-    std::sort(frequencies.begin(), frequencies.end());
-    if (frequencies.size() & 1)
-        return frequencies[frequencies.size() / 2];
-    return (frequencies[frequencies.size() / 2 - 1] + frequencies[frequencies.size() / 2]) * 0.5;
+    // !FAKE: regalloc; iterator stand-ins first/last and hand forms of size() and operator[] keep the vector bounds in
+    // registers across sort, as retail; lo (address of the lower median) sets the fadd operand order
+    std::vector<double>::iterator first = frequencies.begin();
+    std::vector<double>::iterator last = frequencies.end();
+    std::sort(first, last);
+    if ((first._Myptr == 0 ? 0 : (unsigned int)(last - first)) & 1)
+        return *(first + (first._Myptr == 0 ? 0 : (unsigned int)(last - first)) / 2);
+    const double* lo = &*(first + ((first._Myptr == 0 ? 0 : (unsigned int)(last - first)) / 2 - 1));
+    return (*(first + (first._Myptr == 0 ? 0 : (unsigned int)(last - first)) / 2) + *lo) * 0.5;
 }
 #endif

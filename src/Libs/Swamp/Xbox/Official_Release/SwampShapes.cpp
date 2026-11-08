@@ -45,6 +45,7 @@ DECOMP_SIZE_ASSERT(TextureResource, 0x30);
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
     ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
     bool IsValid() const { return _Resource != 0; }
@@ -64,6 +65,7 @@ public:
 DECOMP_SIZE_ASSERT(TextureManager, 0x84);
 
 enum _D3DPRIMITIVETYPE { // NAME: proto-pdb:default.pdb
+    D3DPT_TRIANGLELIST = 5,
     D3DPT_FORCE_DWORD = 0x7FFFFFFF
 };
 
@@ -117,16 +119,35 @@ public:
 
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
+struct AABox;      // NAME: proto-pdb:default.pdb
+struct Vector3;    // NAME: proto-pdb:default.pdb
+struct Quaternion; // NAME: proto-pdb:default.pdb
+
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    SwampSceneNode(int type);
     virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+protected:
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
 
     char field_4[0xA4 - 0x4];          // 0x04
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
+// FUNCTION: USA 0x000DC0EE
+// NAME: proto-pdb:default.pdb
 class GeometryNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    GeometryNode();
+    virtual ~GeometryNode();
     void SetVertices(const Vertex* verts, int num);
     void SetIndices(const unsigned short* indices, int num);
 protected:
@@ -141,6 +162,21 @@ public:
     int _NumPrimitives;                // 0xB8
 };
 DECOMP_SIZE_ASSERT(GeometryNode, 0xBC);
+
+// FUNCTION: USA 0x000DBE96
+// NAME: proto-pdb:default.pdb
+GeometryNode::GeometryNode()
+    : SwampSceneNode(5), _Vertices(0), _Indices(0), _NumVertices(0), _PrimitiveType(D3DPT_TRIANGLELIST), _NumPrimitives(0)
+{
+}
+
+// FUNCTION: USA 0x000DBED4
+// NAME: proto-pdb:default.pdb
+GeometryNode::~GeometryNode()
+{
+    RELEASE(_Vertices);
+    RELEASE(_Indices);
+}
 
 // FUNCTION: USA 0x000DBF0C
 // PROTOTYPE: PREVIEW 0x004C7443 identical

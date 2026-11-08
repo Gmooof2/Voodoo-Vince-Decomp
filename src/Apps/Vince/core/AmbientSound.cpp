@@ -56,6 +56,7 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
     float y;                           // 0x04
     float z;                           // 0x08
 };
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:

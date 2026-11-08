@@ -11,7 +11,7 @@
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> basic_string<char,std::char_traits<char>,std::allocator<char> >::basic_string(const char *);
@@ -27,7 +27,6 @@ class Quaternion;            // NAME: proto-pdb:default.pdb
 class SoundResource;         // NAME: proto-pdb:default.pdb
 struct Matrix;               // NAME: proto-pdb:default.pdb
 class ModelResource;         // NAME: proto-pdb:default.pdb
-class AnimationResource;     // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
@@ -37,8 +36,30 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { _RefCount--; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x34 - 0x24];        // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ~ResourceHandle()
+    {
+        if (_Resource)
+            _Resource->SubRef();
+    }
+
     T* _Resource;                      // 0x00
 };
 
@@ -291,6 +312,8 @@ class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
 
 class ImpMain : public MonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void AnimationFinished();
 
     char field_240[0x300 - 0x240];     // 0x240 (not reached)
 };
@@ -298,7 +321,14 @@ DECOMP_SIZE_ASSERT(ImpMain, 0x300);
 
 class ZGCImpMain : public ImpMain { // NAME: proto-pdb:default.pdb
 public:
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_SEEKGBCML = 0xF,
+        STATE_FLYFROMCRYPT = 0x10,
+        STATE_PROTECT_PATROL = 0x11,
+        STATE_DANCE = 0x12
+    };
     ZGCImpMain(SwampSceneNode* node);
+    virtual void AnimationFinished();
     virtual void DeathFX();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -335,6 +365,8 @@ private:
 };
 DECOMP_SIZE_ASSERT(GbcmlMain, 0x118);
 
+// FUNCTION: USA 0x00057F6E
+// NAME: proto-pdb:default.pdb
 class ZombieMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum States { // NAME: proto-pdb:default.pdb
@@ -362,6 +394,13 @@ public:
     ResourceHandle<AnimationResource> _animEnterCrypt; // 0xE4
 };
 DECOMP_SIZE_ASSERT(ZombieMain, 0xE8);
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1ZombieMain@@UAE@XZ in this unit (its ctor and
+// the derived ctors are unmatched); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_ZombieMain_dtor(ZombieMain* p)
+{
+    p->ZombieMain::~ZombieMain();
+}
 
 class ZombieHulaGirlMain : public ZombieMain { // NAME: proto-pdb:default.pdb
 public:
@@ -410,6 +449,7 @@ public:
         MESSAGE_ON = 0x15,
         MESSAGE_OFF = 0x16
     };
+    virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
 
     ResourceHandle<AnimationResource> _animIdle;   // 0xBC
@@ -493,21 +533,20 @@ void GbcmlMain::InvalidateScript()
     CarriedObjectMain::InvalidateScript();
 }
 
-#ifdef NON_MATCHING
-// row USA 0x00057A0D, PREVIEW 0x004DE953 identical
-// best: match_one objdiff 100.0, bytes match; wall: provenance_lint nested operator (C0212): no NAME tag, so
-// no FUNCTION tag (4.4 T11.c3)
+// FUNCTION: USA 0x00057A0D
+// PROTOTYPE: PREVIEW 0x004DE953 identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.4 T11.c3); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template ResourceHandle<SoundResource> const & std::deque<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >::const_iterator::operator*()const;
-#endif
 
 // FUNCTION: USA 0x000592AA
 // PROTOTYPE: PREVIEW 0x0040DF9C identical
 // NAME: proto-pdb:default.pdb
-// best: match_one objdiff 100.0, bytes match (4.4 T13.c5); wall: fold VA (C0233): CameraManager.obj calls its
+// best: match_one objdiff 100.0, bytes match (4.4 T13.c5); was walled: fold VA (C0233): CameraManager.obj calls its
 // deque<SwampScript*>::_Growmap alias at 0x000592AA, refused `lies in a replaced range`; needs CameraManager.cpp
-// to emit that alias inline (C0233 Fix 1, C0270)
-#ifdef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// to emit that alias inline (C0233 Fix 1, C0270) -- lifted 5.2 T13.c1
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> ResourceHandle<SoundResource> * * _Uninitialized_copy<ResourceHandle<SoundResource> * *,ResourceHandle<SoundResource> * *,std::allocator<ResourceHandle<SoundResource> *> >(ResourceHandle<SoundResource> * *,ResourceHandle<SoundResource> * *,ResourceHandle<SoundResource> * *,std::allocator<ResourceHandle<SoundResource> *> &);
@@ -519,7 +558,7 @@ template <> void std::deque<ResourceHandle<SoundResource>,std::allocator<Resourc
 {
     if (max_size() / _DEQUESIZ - _Mapsize < _Count) {
         _Xlen();
-        __assume(0); // !FAKE: noreturn restated (C0237)
+        __assume(0); // !FAKE: c2 noreturn; __assume(0) restating noreturn; no before/after recorded (C0237)
     }
 
     size_type _Inc = _Mapsize / 2;
@@ -549,9 +588,19 @@ template <> void std::deque<ResourceHandle<SoundResource>,std::allocator<Resourc
     _Map = _Newmap;
     _Mapsize += _Count;
 }
-// !FAKE: emission; no caller of _Growmap in this unit, so cl drops the unreferenced specialization without this
+// !FAKE: c1xx front end; explicit instantiation (emission); no caller of _Growmap in this unit, so cl drops the unreferenced specialization without this
 template void std::deque<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >::_Growmap(unsigned int);
-#endif
+
+// FUNCTION: USA 0x00057AB7
+// PROTOTYPE: PREVIEW 0x00444342 identical
+// NAME: proto-pdb:default.pdb
+void ZGCImpMain::AnimationFinished()
+{
+    if (_state != STATE_DANCE)
+        ImpMain::AnimationFinished();
+    else
+        SetState(STATE_PROTECT_PATROL);
+}
 
 // FUNCTION: USA 0x00057AE2
 // PROTOTYPE: PREVIEW 0x00444355 identical
@@ -629,14 +678,27 @@ void ZombieMain::Message(SwampScript* source, int message, void* data)
     }
 }
 
+// FUNCTION: USA 0x00057CC5
+// PROTOTYPE: PREVIEW 0x00444550 identical
+// NAME: proto-pdb:default.pdb
+void ZombieCryptMain::AnimationFinished()
+{
+    GetCritter()->StartAnimation(_animIdle, false, false);
+}
+
 // FUNCTION: USA 0x00057EF3
 // PROTOTYPE: PREVIEW 0x0044477E identical
 // NAME: proto-pdb:default.pdb
 SwampScript* ZGCImpMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 286) ZGCImpMain(node);
 }
+
+// FUNCTION: USA 0x00057F1D
+// PROTOTYPE: PREVIEW 0x0044B308 identical
+// NAME: proto-pdb:default.pdb
+template void std::deque<SwampScript*,std::allocator<SwampScript*> >::pop_front();
 
 // FUNCTION: USA 0x00058571
 // PROTOTYPE: PREVIEW 0x00444D5A identical
@@ -721,7 +783,7 @@ void ZombieGuidanceCounselorHud::Render(const Matrix& m) const
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptImpMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 411) CryptImpMain(node);
 }
 
@@ -730,7 +792,7 @@ SwampScript* CryptImpMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* GbcmlMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 355) GbcmlMain(node);
 }
 
@@ -739,7 +801,7 @@ SwampScript* GbcmlMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* ZombieHulaGirlMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 100) ZombieHulaGirlMain(node);
 }
 
@@ -748,7 +810,7 @@ SwampScript* ZombieHulaGirlMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* ZombieBakerMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 112) ZombieBakerMain(node);
 }
 
@@ -757,7 +819,7 @@ SwampScript* ZombieBakerMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* ZombieClownMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 124) ZombieClownMain(node);
 }
 
@@ -766,7 +828,7 @@ SwampScript* ZombieClownMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* ZombieBelleMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 136) ZombieBelleMain(node);
 }
 
@@ -775,7 +837,7 @@ SwampScript* ZombieBelleMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* ZombieFootballMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 148) ZombieFootballMain(node);
 }
 
@@ -784,7 +846,7 @@ SwampScript* ZombieFootballMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptHulaMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 207) CryptHulaMain(node);
 }
 
@@ -793,7 +855,7 @@ SwampScript* CryptHulaMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBakerMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 220) CryptBakerMain(node);
 }
 
@@ -802,7 +864,7 @@ SwampScript* CryptBakerMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptClownMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 233) CryptClownMain(node);
 }
 
@@ -811,7 +873,7 @@ SwampScript* CryptClownMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptBelleMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 246) CryptBelleMain(node);
 }
 
@@ -820,19 +882,64 @@ SwampScript* CryptBelleMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CryptFootballMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 259) CryptFootballMain(node);
 }
+
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line
+// (pinned fold aliases 0x0007F3FD, 0x0001D5C2); the header bodies would emit them here with EH funclets and throw info (C0090)
+namespace std {
+template <> SwampScript * * * _Uninitialized_copy<SwampScript * * *,SwampScript * * *,std::allocator<SwampScript * *> >(SwampScript * * *,SwampScript * * *,SwampScript * * *,std::allocator<SwampScript * *> &);
+template <> void deque<SwampScript *,std::allocator<SwampScript *> >::_Xlen()const;
+}
+// !FAKE: c1xx front end; fold-VA alias body (C0233 Fix 1, C0270): retail calls _Growmap out of line at the fold
+// 0x000592AA (row: deque<ResourceHandle<SoundResource>>::_Growmap above); this unit's SwampScript* alias is emitted
+// pick-any (inline) with the same VC 7.1 <deque> body verbatim so relink merges it into the row (5.2 T13.c1)
+template <> inline void std::deque<SwampScript*,std::allocator<SwampScript*> >::_Growmap(size_type _Count)
+{
+    if (max_size() / _DEQUESIZ - _Mapsize < _Count) {
+        _Xlen();
+        __assume(0); // !FAKE: c2 noreturn; __assume(0) restating noreturn; no before/after recorded (C0237)
+    }
+
+    size_type _Inc = _Mapsize / 2;
+    if (_Inc < _DEQUEMAPSIZ)
+        _Inc = _DEQUEMAPSIZ;
+    if (_Count < _Inc && _Mapsize <= max_size() / _DEQUESIZ - _Inc)
+        _Count = _Inc;
+    size_type _Myboff = _Myoff / _DEQUESIZ;
+    _Mapptr _Newmap = this->_Almap.allocate(_Mapsize + _Count);
+    _Mapptr _Myptr = _Newmap + _Myboff;
+
+    _Myptr = _Uninitialized_copy(_Map + _Myboff, _Map + _Mapsize, _Myptr, this->_Almap);
+    if (_Myboff <= _Count) {
+        _Myptr = _Uninitialized_copy(_Map, _Map + _Myboff, _Myptr, this->_Almap);
+        _Uninitialized_fill_n(_Myptr, _Count - _Myboff, (_Tptr)0, this->_Almap);
+        _Uninitialized_fill_n(_Newmap, _Myboff, (_Tptr)0, this->_Almap);
+    } else {
+        _Uninitialized_copy(_Map, _Map + _Count, _Myptr, this->_Almap);
+        _Myptr = _Uninitialized_copy(_Map + _Count, _Map + _Myboff, _Newmap, this->_Almap);
+        _Uninitialized_fill_n(_Myptr, _Count, (_Tptr)0, this->_Almap);
+    }
+
+    _Destroy_range(_Map + _Myboff, _Map + _Mapsize, this->_Almap);
+    if (_Map)
+        this->_Almap.deallocate(_Map, _Mapsize);
+
+    _Map = _Newmap;
+    _Mapsize += _Count;
+}
+
+// FUNCTION: USA 0x0005955B
+// PROTOTYPE: PREVIEW 0x004971FB identical
+// NAME: proto-pdb:default.pdb
+template void std::deque<SwampScript*,std::allocator<SwampScript*> >::push_back(SwampScript* const &);
 
 // FUNCTION: USA 0x0005B9D9
 // PROTOTYPE: PREVIEW 0x00447EFA identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100, bytes match; pin_rows refuses: ctor pin 0x0005B952 is site-corr
-// (symbols_pin.txt:3583); needs a disasm-verified ctor pin, source is final (generated, 4.4 T10)
 SwampScript* DoorExitZGCMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 484) DoorExitZGCMain(node);
 }
-#endif

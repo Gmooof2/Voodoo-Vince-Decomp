@@ -97,6 +97,21 @@ equal retail bytes there. Status note: names/VAs only (D46).
     `neighbour` rule with the neighbour's fixed edge in place of its LIS anchor: the bytes between our last anchor and
     the neighbour's fixed edge have no third owner. Tried after `pin` and `chain`; the C0020 widened-bytes check and the
     outside-proc check run on the result as for every edge. Released 13 units at 4.4 T8 (validation.md "4.4 Cuts").
+  - `near-pin` (5.2 T2, M27 form a): the edge proc is proto_map `near-identical` and its PDB public has a
+    `disasm-verified` func pin in own anchor gap. Size is retail, never the proto length: the pin line's size field,
+    else the Ghidra function size when the pin VA is a Ghidra entry, else refused. Edge = pin VA (start) / pin VA +
+    size (end). `pin` (above) defers a near-identical edge proc to this class. Site-corr/unverified pins never fix.
+  - `near-candidate` (5.2 T2, M27 form b): our near-identical edge proc's `candidateVA` is a Ghidra function entry,
+    and the adjacent run in proto link order is another unit's main run whose facing edge proc is near-identical. "Next
+    to" means the other side's candidate is the Ghidra function entry that starts exactly where ours ends, with no byte
+    and no function between. The boundary lies in both units' own anchor gaps. Refused when either VA is claimed by
+    another row (another proto_map row's candidateVA or hits-1 targetVA, or a `disasm-verified` pin of another public).
+    Never relies on masked-equal bytes. `ambiguous` (candidateVA null) gets no form (b). Edge = the neighbour's
+    candidate (end) / ours (start). Tried after `chain`, before `neighbour-fixed`. Route class `near-edge` = uncut game
+    units whose gate items are all routable and include an ambiguous or near-identical edge. A kept unit's notes name,
+    per unfixed edge, the pin form (a) needs and form (b)'s verdict. At 5.2 T2 the class's dry run released 4 adjacent
+    pairs, all `near-candidate`: BogWallow#212/FanBoat#209, LevelLoader#442/BasicDoor#422,
+    CarriedObject#424/HeavyObject#439, VinceCutScene#485/Boomerang#468.
   - Pins: a `disasm-verified` pin (3.1 T5/T7, byte-checked) whose name is the PDB public of the edge proc fixes the
     edge as an anchor would (pin VA, pin VA + proc len). A `boundary` pin proves a function start only: it may close
     a chain as the far side, never assign ownership alone. `site-corr` and `unverified` pins never fix an edge.
@@ -115,6 +130,19 @@ equal retail bytes there. Status note: names/VAs only (D46).
     outside procs, all class identical, 60 moved, 18 not explained: 13 copies in a gap between unit ranges, 5 inside
     a unit range but between anchors of two different units; 6 of the 18 start inside a Ghidra function body (a
     decoy hint, not evidence). Whammy's 0x001338E4 copy is Roach#505's chain end: a chain may explain gap copies.
+  - O11 labels (5.2 T2, not D120 strays, stay in the reason): `copy bracketed by own anchor on start|end side` (one
+    bracket anchor is ours, the other not); `copy bracketed by two anchors of <unit>, overlapping its upper anchor` (both
+    anchors one other unit's, but the copy runs past the upper one, so not `moved`).
+  - D125 record: a D120 stray (gap between units, or anchors of two different units) stays uncut; the route note is
+    `stray (D125): of <unit#idx>: <proc> proto 0x.. -> 0x..: <evidence>; reason: <D120 why>; containing cut:
+    <unit#idx> | none | none (in range of <unit#idx>, uncut)`, replacing that VA's older stray line in the block on
+    `--apply`.
+  - explained (exact VA) (5.2 T2, the ruling on the O11 question): `units_seed.EXPLAINED_VA` holds one (unit index,
+    retail VA) entry per copy with its evidence; `explain()` reads it after `moved` and chain, before the labels. Never
+    a widening of the bracket rule (control `explained-va-exact`: the same entry one byte off, or for another unit,
+    still keeps). One entry: Whammy#460's `WhammyResultFlattenMain::TimerEvent` copy 0x001338E4 (15 B), Roach#505's
+    chain end (above), directly against Whammy's first anchor 0x001338F3: Whammy's 4.4 cut stands unchanged and the copy
+    is never relabelled as Whammy's own. Route note `explained (exact VA): of <unit#idx>: <proc> ... : <evidence>`.
 - Consistency re-check after any edge change (C0020): a widened range is re-tested over the same rule; the procs it
   newly covers must be the chain's own.
 - Tally for the 20 `edge end unpinned-ambiguous`-only game units: 18 chains byte-equal (the edge proc is mostly the 60-B

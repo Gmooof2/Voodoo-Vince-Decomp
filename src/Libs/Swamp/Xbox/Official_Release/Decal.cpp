@@ -51,7 +51,18 @@ DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 struct AABox;      // NAME: proto-pdb:default.pdb
 struct Quaternion; // NAME: proto-pdb:default.pdb
-class TextureResource; // NAME: proto-pdb:default.pdb
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class TextureResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
 
 struct Vector4 { // NAME: proto-pdb:default.pdb
     float x;                           // 0x00
@@ -70,6 +81,8 @@ DECOMP_SIZE_ASSERT(Matrix, 0x40);
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+
     T* _Resource;                      // 0x00
 };
 DECOMP_SIZE_ASSERT(ResourceHandle<TextureResource>, 0x4);
@@ -214,3 +227,16 @@ void Decal::Render(const Matrix& m) const
     D3DDevice_SetRenderState_Simple(0x4035C, 1);
     D3DDevice_SetRenderState_Simple(0x40304, 0);
 }
+
+// FUNCTION: USA 0x0014FBC5
+// NAME: proto-pdb:default.pdb
+// ??_GDecal (alias ??_EDecal) unmatched, no draft; wall: a virtual ??_G is emitted only with the class vtable, i.e. with its ctor
+// ??0Decal 0x0014FA4E (candidates fail: unresolved target 0x2DE9D) (C0320); match_one: `not defined in Decal.obj` (5.3 T6)
+// FUNCTION: USA 0x0014FBE1
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); wall: relink refuses: the vptr store emits ??_7Decal, whose slot ?UpdateAnimation@SwampSceneNode@@UAEXI@Z has no retail VA (`does not resolve by name`); lift = pin that slot (C0256) (5.3 T6)
+Decal::~Decal()
+{
+}
+#endif

@@ -6,6 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string();
     basic_string(const E* ptr);
     ~basic_string() { _Tidy(true); }
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
@@ -94,11 +95,17 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
     virtual void Message(SwampScript*, int, void*);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
 
     int _state;                        // 0x4C
     char field_50[0x6C];               // 0x50
@@ -126,6 +133,7 @@ class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle() : _Resource(0) {}
+    ResourceHandle& operator=(const ResourceHandle& other);
     ~ResourceHandle()
     {
         if (_Resource)
@@ -160,12 +168,23 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampInput, 0x120);
 
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
     SwampInput& GetInput() const { return *_input; }
 
     char field_0[0x4];                 // 0x00
     SwampInput* _input;                // 0x04
+    char field_8[0x10];                // 0x08
+    AnimationManager* GetAnimationManager() { return _animationManager; }
+    AnimationManager* _animationManager; // 0x18
 };
 
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
@@ -188,6 +207,8 @@ public:
     static SoundNode* CreateSound(const SwampString&, unsigned int, SwampSceneNode*, bool);
 };
 
+// FUNCTION: USA 0x0002B4E8
+// NAME: proto-pdb:default.pdb
 // FUNCTION: USA 0x0002B504
 // PROTOTYPE: PREVIEW 0x0041A028 identical
 // NAME: proto-pdb:default.pdb
@@ -215,6 +236,15 @@ private:
     SoundNode* _loopSound;             // 0xE0
 };
 DECOMP_SIZE_ASSERT(FanHurricaneMain, 0xE4);
+
+// FUNCTION: USA 0x0002B465
+// PROTOTYPE: PREVIEW 0x00419F89 identical
+// NAME: proto-pdb:default.pdb
+FanHurricaneMain::FanHurricaneMain(SwampSceneNode* node) : CritterMain(node), _loopSound(0)
+{
+    _animRun = g_swamp->GetAnimationManager()->Load("fanHurricane_on");
+    _runSpeed = 0.0f;
+}
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1FanHurricaneMain@@UAE@XZ in this unit (no
 // matched function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
@@ -296,6 +326,6 @@ void FanHurricaneMain::FrameTick()
 // NAME: proto-pdb:default.pdb
 SwampScript* FanHurricaneMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\hurricanehanna\\FanHurricane.h", 6) FanHurricaneMain(node);
 }

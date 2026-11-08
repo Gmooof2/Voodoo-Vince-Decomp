@@ -86,6 +86,6 @@ DECOMP_SIZE_ASSERT(SpringMain, 0x100);
 // NAME: proto-pdb:default.pdb
 SwampScript* SpringMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\sarcophagushustle\\Spring.h", 16) SpringMain(node);
 }

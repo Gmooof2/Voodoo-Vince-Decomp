@@ -225,7 +225,7 @@ DECOMP_SIZE_ASSERT(LandORidesRegionMain, 0x68);
 // NAME: proto-pdb:default.pdb
 SwampScript* ChopperMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\landorides\\LandORides.h", 32) ChopperMain(node);
 }
 
@@ -243,10 +243,10 @@ void RidesCannonMain::FrameTick()
         if (_moveScale < 0.0f) {
             _moveScale = 0.0f;
         }
-        // !FAKE: inliner; pointer locals, hand forms of the inlined Vector3 products and sum (C0191, C0223 D78)
+        // !FAKE: inliner; pointer locals, hand forms of the inlined Vector3 products and sum; no before/after recorded (C0191, C0223 D78)
         const Vector3* v1 = &p->GetFacing();
         Vector3 v2(v1->x * elapsed, v1->y * elapsed, v1->z * elapsed);
-        // !FAKE: c2 x87 scheduling; float stand-in for the inlined product's by-value scale (retail loads _moveScale
+        // !FAKE: c2 x87 scheduling; float stand-in for the inlined product's by-value scale; retail loads _moveScale
         // once; match_one 90.25 -> 100.0)
         float v6 = _moveScale;
         Vector3 v3(v2.x * v6, v2.y * v6, v2.z * v6);
@@ -255,7 +255,7 @@ void RidesCannonMain::FrameTick()
         break;
     }
     case STATE_LAUNCH: {
-        // !FAKE: inliner; pointer locals, hand forms of the inlined Vector3 products and sum (C0191, C0223 D78)
+        // !FAKE: inliner; pointer locals, hand forms of the inlined Vector3 products and sum; no before/after recorded (C0191, C0223 D78)
         const Vector3* v1 = &p->GetFacing();
         Vector3 v2(v1->x, v1->y + 0.25f, v1->z);
         Vector3 v3(v2.x * elapsed, v2.y * elapsed, v2.z * elapsed);
@@ -289,7 +289,7 @@ void RidesCannonMain::Activate()
 // NAME: proto-pdb:default.pdb
 SwampScript* LandORidesRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\landorides\\LandORides.h", 14) LandORidesRegionMain(node);
 }
 

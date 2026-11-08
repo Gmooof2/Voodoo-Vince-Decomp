@@ -84,6 +84,7 @@ public:
 DECOMP_SIZE_ASSERT(HeatShimmer, 0xE0);
 
 class BeepTDF;               // NAME: proto-pdb:default.pdb
+struct Vector3;              // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 
@@ -132,7 +133,16 @@ DECOMP_SIZE_ASSERT(ShimmerRegionMain, 0x50);
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     int GetState() const { return _state; }
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
+    virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
+    virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
 
+protected:
+    virtual void SetState(int);                                    // vtable+0x6C
+
+public:
     int _state;                        // 0x4C
     char field_50[0xBC - 0x50];        // 0x50
 };
@@ -164,21 +174,29 @@ DECOMP_SIZE_ASSERT(PropellerMain, 0xD0);
 
 class SwitchMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~SwitchMain();
     virtual bool TestActivate() const;
+    virtual void TimerEvent(unsigned int);
     virtual void Message(SwampScript* source, int message, void* data);
+    void SetOnAnimName(const SwampString& name);
 
-    char field_BC[0x13C - 0xBC];       // 0xBC
+    char field_BC[0x139 - 0xBC];       // 0xBC
+    bool _oneWayThrow;                 // 0x139
+    char field_13A[0x13C - 0x13A];     // 0x13A
 };
 DECOMP_SIZE_ASSERT(SwitchMain, 0x13C);
 
 class BasicWallSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    BasicWallSwitchMain(SwampSceneNode* node);
+    virtual void Activate();
     virtual void AnimationFinished();
 };
 DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 
 class Switch_PropellerMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    Switch_PropellerMain(SwampSceneNode* node);
     virtual bool TestActivate() const;
     virtual void Message(SwampScript* source, int message, void* data);
 
@@ -188,11 +206,36 @@ DECOMP_SIZE_ASSERT(Switch_PropellerMain, 0x140);
 
 class Switch_ShimmerMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    Switch_ShimmerMain(SwampSceneNode* node, char letter);
     virtual void AnimationFinished();
 
     char _letter;                      // 0x13C
 };
 DECOMP_SIZE_ASSERT(Switch_ShimmerMain, 0x140);
+
+class Switch_ShimmerAMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_ShimmerAMain(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_ShimmerAMain, 0x140);
+
+class Switch_ShimmerBMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_ShimmerBMain(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_ShimmerBMain, 0x140);
+
+class Switch_ShimmerCMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_ShimmerCMain(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_ShimmerCMain, 0x140);
+
+class Switch_ShimmerDMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_ShimmerDMain(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_ShimmerDMain, 0x140);
 
 // FUNCTION: USA 0x000A3926
 // PROTOTYPE: PREVIEW 0x0048EA02 identical
@@ -237,6 +280,14 @@ void PropellerMain::SetShimmer(char letter, bool on)
         ((ShimmerRegionMain*)p->GetScript())->_shimmer->SetOption(SwampSceneNode::DontDraw, !on, false);
 }
 
+// FUNCTION: USA 0x000A42A7
+// NAME: proto-pdb:default.pdb
+Switch_PropellerMain::Switch_PropellerMain(SwampSceneNode* node) : BasicWallSwitchMain(node), _propeller(0)
+{
+    SetOnAnimName("switchswamp_down");
+    _oneWayThrow = true;
+}
+
 // FUNCTION: USA 0x000A42F7
 // PROTOTYPE: PREVIEW 0x0048F326 identical
 // NAME: proto-pdb:default.pdb
@@ -252,6 +303,14 @@ void Switch_PropellerMain::Message(SwampScript* source, int message, void* data)
         _propeller = p->GetScript();
 }
 
+// FUNCTION: USA 0x000A4358
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerMain::Switch_ShimmerMain(SwampSceneNode* node, char letter) : BasicWallSwitchMain(node), _letter(letter)
+{
+    SetOnAnimName("switchswamp_down");
+    _oneWayThrow = true;
+}
+
 // FUNCTION: USA 0x000A43AA
 // PROTOTYPE: PREVIEW 0x0048F3D9 identical
 // NAME: proto-pdb:default.pdb
@@ -263,4 +322,32 @@ void Switch_ShimmerMain::AnimationFinished()
         p->GetScript()->Message(this, PropellerMain::MESSAGE_SHIMMERSWITCH, (void*)_letter);
     }
     BasicWallSwitchMain::AnimationFinished();
+}
+
+// FUNCTION: USA 0x000A4408
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerAMain::Switch_ShimmerAMain(SwampSceneNode* node)
+    : Switch_ShimmerMain(node, 'A')
+{
+}
+
+// FUNCTION: USA 0x000A4422
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerBMain::Switch_ShimmerBMain(SwampSceneNode* node)
+    : Switch_ShimmerMain(node, 'B')
+{
+}
+
+// FUNCTION: USA 0x000A443C
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerCMain::Switch_ShimmerCMain(SwampSceneNode* node)
+    : Switch_ShimmerMain(node, 'C')
+{
+}
+
+// FUNCTION: USA 0x000A4456
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerDMain::Switch_ShimmerDMain(SwampSceneNode* node)
+    : Switch_ShimmerMain(node, 'D')
+{
 }

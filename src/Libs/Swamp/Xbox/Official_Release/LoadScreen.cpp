@@ -242,22 +242,25 @@ LoadScreen::LoadScreen()
 // PROTOTYPE: PREVIEW 0x004C79A4 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 79.41, bytes mismatch (retail: renderer in memory, ebx = 0, g_swamp reloaded, loop head not rotated; ours keeps renderer in ebx and rotates the loop) (4.3 T9.c3)
+// best: match_one objdiff 93.07, bytes mismatch +0xB (5.2 T12.c22; was 79.41): body from `xor ebx, ebx` on is byte-equal; only the
+// first 0x28 B differ: retail loads and stores renderer first, then reloads g_swamp for the input; renderer declared first
+// keeps it in ebx (no ebx = 0), declared after the input lines gives retail's allocation but its load comes last (LoadScreen() same reload wall)
 void LoadScreen::Transition(bool bFromGame, float time)
 {
-    SwampRenderer& renderer = g_swamp->GetRenderer();
     // !FAKE: c2 register allocation; stand-in local; the PDB records no local for the input (edi in retail)
     SwampInput* p = &g_swamp->GetInput();
-    float startTime = p->GetSessionTime();
     p->IgnoreInput(true);
-    // !FAKE: c2 register allocation; stand-in local; the PDB records no local for the elapsed time (x87 in retail)
+    float startTime = p->GetSessionTime();
+    // !FAKE: c2 register allocation; declared after the input lines so renderer stays in memory (retail loads it first)
+    SwampRenderer& renderer = g_swamp->GetRenderer();
+    // !FAKE: c2 loop shape; stand-in local; the PDB records no local for the session time (one load at the loop head in retail)
     for (;;) {
-        float v1 = p->GetSessionTime() - startTime;
-        if (v1 > time)
+        float v1 = p->GetSessionTime();
+        if (v1 - startTime > time)
             break;
         float transition = 1.0f;
         if (time != 0.0f)
-            transition = v1 / time;
+            transition = (v1 - startTime) / time;
         Update();
         Update(bFromGame, transition);
         g_swamp->BeginScene();

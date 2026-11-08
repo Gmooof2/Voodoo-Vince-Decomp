@@ -37,7 +37,8 @@ CLI: relink.py link [--section A[,B..]]   (T3, T4; no --section: whole image, T5
   (LINK_FLAGS) -> derived/relink/retail-<sha8>/link/<A+B..>/<A+B..>.exe + .map. Any LINK message -> exit 1.
 CLI: relink.py check --section A[,B..] (--originals | --units U[,V..] [--control no-order|noref])   (T3, T4)
   link, then xbe_write.write(); on its refusal xbe_write.write_section() per section; compare each XBE digest to retail.
-  --units (T4.c2): matched-set units by basename stem; our objects .run/<phase>/build/<basename> (tools/build.py).
+  --units (T4.c2): matched-set units by full unit name, else a unique basename stem (5.1 T14; was: stem only); our
+  objects .run/<phase>/build/<build.obj_rels() path> (tools/build.py). Whole image (T6) keys by full unit name.
   Each matched row's [va, va+size) and each of our image data sections ([VA of a symbol in it by name - its value,
   +size)) is a hole: the covering cut object is split into pieces (COMDATs in .text), the hole gets no piece; our
   function symbol takes the hole's /ORDER slot (+ /INCLUDE), our data object sits between the data pieces on the
@@ -81,6 +82,11 @@ C++ EH substitution (T7): a section of ours the matched functions reach (kept cl
   static, it rides its group); `.xdata$x` a .rdata hole (LINK merges .xdata into .rdata itself, MERGED). LINK sorts
   `$`-groups after the plain pieces, so a cut piece past such a hole is renamed `<group>~` (`.text$x~`, `.xdata$x~`,
   long names as `/<strtab offset>`). After link every placed section and `$` static is checked at its VA (exit 1).
+  5.1 T4: `.xdata$x` is renamed `.rdata$<va8>` and sorts with T12 (was: the `.xdata$x~` group path above); a slot
+  reloc to a weak external compares in same() by its default's name. --control samevt / xdata-order: their checks.
+  5.1 T13: `.data` too: our .data data holes and plain .data cut pieces -> `.data$<va8>` (--control data-order).
+  5.1 T14: a type-0 STATIC `$L` label of a code hole no reloc of its object targets is not looked up (C0305;
+  --control label-unref); units keyed by full name (C0304; --control unit-key).
 Folded members and shared literals (3.4 T6.1, C0136/C0135): a kept plain `.text` COMDAT code section of ours (our
   out-of-line copy of a folded member, `??_I`) takes its hole's /ORDER slot by its COMDAT symbol; our external naming
   another public at offset 0 of such a hole (C0130 alias pins) -> a weak external to that symbol (weak.obj, SEARCH_ALIAS),
@@ -829,7 +835,8 @@ def _weak_plant(o, path, mine, defs):
 
 
 def _ours(units, cfg_path, layout, bdir=None, list_path=None, control=None):
-    """--units U[,V..] -> our compiled objects (bdir or .run/<phase>/build/<basename of the matched-set unit>) with
+    """--units U[,V..] -> our compiled objects (bdir or .run/<phase>/build/<build.obj_rels() path of the matched-set
+    unit>; 5.1 T4.c2, was <basename of the matched-set unit>) with
     their matched rows, undefined externals and image data sections ({sec, va, size, num}: VA from a symbol in the
     section by name, byname then config/retail/symbols_pin.txt). list_path: matched list (default MATCHED; T7 gate).
     control weak (4.5 T16.2.c4): _weak_plant on the first object that allows it, before the kept walk."""
@@ -841,13 +848,18 @@ def _ours(units, cfg_path, layout, bdir=None, list_path=None, control=None):
         stems.setdefault(PureWindowsPath(r["unit"]).stem, set()).add(r["unit"])
     byname = _our_names(cfg_path)
     pins = coff_info.load_names([PINS])[0]
+    import build
+    rels = build.obj_rels()  # 5.1 T4.c2: obj at its source path, not the unit basename
     objs, rx, planted = [], None, False  # rx: (x, retail bytes), read on the first section only a reloc site places (T7)
+    full = {r["unit"] for r in rows}
     for u in units.split(","):
-        s = stems.get(u, set())
-        if len(s) != 1:
+        s = {u} if u in full else stems.get(u, set())  # 5.1 T14 (C0304): a full unit name first, else a unique stem
+        if len(s) != 1:  # (CLI --units); was: s = stems.get(u, set())
             refuse(f"unit {u!r}: {len(s)} matched-set units with that basename stem {sorted(s)}")
         unit = next(iter(s))
-        path = (Path(bdir) if bdir else byte_compare._phase_run_dir() / "build") / PureWindowsPath(unit).name
+        # was: path = (...) / PureWindowsPath(unit).name
+        path = (Path(bdir) if bdir else byte_compare._phase_run_dir() / "build") / rels.get(
+            unit.lower(), PureWindowsPath(unit).name)
         if not path.is_file():
             refuse(f"our object missing: {path} (run tools/build.py --src src --out {path.parent})")
         o = _obj_load(path.read_bytes())
@@ -1114,12 +1126,15 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
             s = o["secs"][num[id(x)] - 1]
             sk = next((e for e in o["syms"] if e[2] == num[id(x)] and e[4] == 3 and e[1] == 0
                        and _obj_name(o, e[0]) == x.get("grp", ".text")), None)
+            tg = [_weak_tag(o, o["syms"][k]) for _off, k, _t in s["relocs"]]  # 5.1 T4 (C0255 limit 1): a weak
             if not s["chars"] & 0x1000 or sk is None or len(sk[5]) < 18 or sk[5][14] in (1, 5) \
-                    or any(o["syms"][k][4] != 2 for _off, k, _t in s["relocs"]):
-                return False  # not a COMDAT, NODUPLICATES/associative, or a reloc to a static
+                    or any(e[4] != 2 for e in tg):  # external (`??_E` vtable slot) -> its default, by its name
+                return False  # not a COMDAT, NODUPLICATES/associative, or a reloc to a static (or a weak's default)
+            # was: or any(o["syms"][k][4] != 2 for _off, k, _t in s["relocs"]) (a weak `??_E` reloc -> never merged)
             sel.append((sk[5][14], bytes(s["raw"]), s["size"],
-                        [(off, typ, (tva if fold else str)(_obj_name(o, o["syms"][k][0])))
-                         for off, k, typ in s["relocs"]]))
+                        [(off, typ, (tva if fold else str)(_obj_name(o, e[0])))
+                         for (off, _k, typ), e in zip(s["relocs"], tg)]))
+            # was: [(off, typ, (tva if fold else str)(_obj_name(o, o["syms"][k][0]))) for off, k, typ in s["relocs"]]
         return sel[0] == sel[1]
     if control == "fold":  # 4.3 T2: a planted copy, one fold-alias copy with its byte 0 flipped -> overlap refusal
         pf = next(((h, g) for h in holes for g in holes if g["lo"] == h["lo"] and g["sym"] != h["sym"] and same(g, h)),
@@ -1171,20 +1186,33 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
         t["name8"] = h8 if h8[:4] != b"\0\0\0\0" else f"/{struct.unpack_from('<I', h8, 4)[0]}".encode().ljust(8, b"\0")
     # T12: .rdata in VA order: every plain .rdata cut piece and .rdata data section of ours -> `.rdata$<va8>`, which
     # LINK sorts by name, so each lands at its retail VA (ours no longer placed whole at its first hole, C0126/C0133)
-    rsort = [h for h in holes if h.get("data") and h["sec"] == h["grp"] == ".rdata"  # (not past a `$` group hole:
-             and not any(g["sec"] == ".rdata" and g["grp"] != ".rdata" and g["hi"] <= h["lo"] for g in holes)] \
-        if control != "rdata-unsorted" else []  # those stay on the T7 path)
-    nrs = 0
-    grouped = [h for h in holes if h.get("grp", h["sec"]) != h["sec"]]  # T7: LINK sorts our `.text$x` stub (and
+    # 5.1 T4 (C0255 limit 2): our `.xdata$x` (EH FuncInfo/throw info, a .rdata hole) joins: `.rdata$<va8>` by its VA
+    # 5.1 T13 (C0302 wall 2): `.data` joins: our .data data holes (`??_R0` type descriptors, one object's at
+    # non-adjacent VAs) and plain .data cut pieces -> `.data$<va8>`; was: .data on the T7 path (object whole at its
+    # first hole: retail bytes between two of its sections shifted, the .data vsize wall)
+    sortg = {".rdata": (".rdata", ".xdata$x"), ".data": (".data",)}  # section -> its groups sorted by VA
+    rsort = [h for h in holes if h.get("data") and h["grp"] in sortg.get(h["sec"], ())  # (not past a `$` group
+             and not (control == "rdata-unsorted" and h["sec"] == ".rdata")  # hole of its section: those stay on
+             and not any(g["sec"] == h["sec"] and g["grp"] not in sortg[h["sec"]] and g["hi"] <= h["lo"]
+                         for g in holes)]  # the T7 path)
+    # was: rdg = (".rdata", ".xdata$x"); [h ... if h["sec"] == ".rdata" and h["grp"] in rdg and not any(g["sec"] ==
+    # ".rdata" and g["grp"] not in rdg ...)] if control != "rdata-unsorted" else []
+    # was: h["sec"] == h["grp"] == ".rdata" ... and g["grp"] != ".rdata" (`.xdata$x` on the T7 path: retail bytes
+    # between two of ours refused, every .rdata hole past one unsorted)
+    rsecs = {h["sec"] for h in rsort}  # 5.1 T13: sections sorted by VA (was: .rdata only)
+    nrs = dict.fromkeys(rsecs, 0)  # was: nrs = 0 (.rdata only)
+    rsd = {id(h) for h in rsort}  # 5.1 T4: a sorted `.xdata$x` is no `$` group; was: every grp != sec hole grouped
+    grouped = [h for h in holes if h.get("grp", h["sec"]) != h["sec"]
+               and id(h) not in rsd]  # T7: LINK sorts our `.text$x` stub (and
     # `.xdata$x`, merged into .rdata by LINK itself) after every plain-named piece of that section, so a cut piece
     for c in cuts:  # past such a hole takes a name sorting after its group: `<group>~` (layout ladder rung 3)
         before = [h for h in grouped if h["sec"] == c["sec"] and h["hi"] <= c["a"]]
         after = [h for h in grouped if h["sec"] == c["sec"] and c["b"] <= h["lo"]]
         if not before:
-            if rsort and c["sec"] == ".rdata":
-                rename(c["o"], c["num"], f".rdata${c['a']:08X}")
+            if c["sec"] in rsecs:  # was: if rsort and c["sec"] == ".rdata": ... f".rdata${c['a']:08X}"; nrs += 1
+                rename(c["o"], c["num"], f"{c['sec']}${c['a']:08X}")
                 c["dirty"] = True
-                nrs += 1
+                nrs[c["sec"]] += 1
             continue
         if any(g["grp"] == h["grp"] for g in before for h in after):
             refuse(f"{c['sec']} 0x{c['a']:08X}..0x{c['b']:08X}: retail bytes between two of our {before[0]['grp']} "
@@ -1193,9 +1221,10 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
         rename(c["o"], c["num"], nm)
         c["dirty"] = True
         sst_grouped.append(f"{c['sec']} piece 0x{c['a']:08X} -> {nm}")
-    if rsort:
-        sst_grouped.append(f".rdata VA order (T12): {len(rsort)} sections of ours, "
-                           f"{nrs} cut pieces -> .rdata$<va8>")
+    for sn, tk in ((".rdata", "T12"), (".data", "T13")):  # was: if rsort: one .rdata line
+        if sn in rsecs:
+            sst_grouped.append(f"{sn} VA order ({tk}): {sum(h['sec'] == sn for h in rsort)} sections of ours, "
+                               f"{nrs[sn]} cut pieces -> {sn}$<va8>")
 
     hlos = [h["lo"] for h in holes]  # 4.4 T3: sorted and disjoint after the dedupe (overlap refusal above)
 
@@ -1224,6 +1253,15 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
                 refuse(f"{c['path'].name}: external {nm} defined outside {c['sec']}")
             else:
                 defs.setdefault(nm, []).append((c, k, c["a"] + e[1]))
+    if control == "site-past-buffer":  # 5.3 T2: a cut's external reloc field planted past its section raw (raw cut
+        pc = next(((c, t, r) for c in cuts for k, t in enumerate(c["o"]["secs"], 1) if k == c["num"]  # to field + 3)
+                   for r in t["relocs"] if c["o"]["syms"][r[1]][4] == 2 and c["o"]["syms"][r[1]][2] == 0
+                   and r[2] in (REL_DIR32, REL_REL32)), None)
+        if pc is None:
+            refuse("control site-past-buffer: no cut with an external reloc")
+        pc[1]["raw"] = pc[1]["raw"][:pc[2][0] + 3]
+        print(f"control site-past-buffer: {pc[0]['path'].name} raw cut to {len(pc[1]['raw'])} B under the field at "
+              f"0x{pc[2][0]:X}")
     sites = {}  # name -> [(cut, reloc, S)]; S from the retail field (DIR32 u32 - field, REL32 u32 + site + 4 - field)
     for c in cuts:
         o = c["o"]
@@ -1238,6 +1276,10 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
                 off = xbe_info.va_to_off(x, site)
                 if off is None:
                     refuse(f"reloc site 0x{site:08X} not raw-backed")
+                for buf, at, what in ((t["raw"], r[0], f"{c['path'].name} {c['sec']} raw"), (rx, off, "retail XBE")):
+                    if at + 4 > len(buf):  # 5.3 T2: was an uncaught struct.error (5.2 T12.c15, 0x0008BFB5)
+                        refuse(f"reloc field past its buffer: {c['path'].name} section {k} ({c['sec']}) offset "
+                               f"0x{r[0]:X} (site 0x{site:08X}), {what} offset 0x{at:X} + 4 > buffer {len(buf)} B")
                 ret, field = struct.unpack_from("<I", rx, off)[0], struct.unpack_from("<I", t["raw"], r[0])[0]
                 sv = (ret - field) if r[2] == REL_DIR32 else (ret + site + 4 - field)
                 sites.setdefault(_obj_name(o, e[0]), []).append((c, r, sv & 0xFFFFFFFF))
@@ -1427,13 +1469,15 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
     for h in [d for h in rsort for d in [h, *h.get("dups", [])]]:  # 3.4 T6.1: a duplicate copy too (LINK may keep it)
         p = h["ob"]["path"]
         if p not in ocopy:
-            ocopy[p] = (_obj_load(p.read_bytes()), od / "ours" / p.name)
-        rename(ocopy[p][0], h["num"], f".rdata${h['lo']:08X}")
+            # was: od / "ours" / p.name (5.1 T14.c3, C0309: core/ and french_quarter/Switch.obj overwrote each other)
+            ocopy[p] = (_obj_load(p.read_bytes()), od / "ours" / f"{len(ocopy):03d}_{p.name}")
+        rename(ocopy[p][0], h["num"], f"{h['sec']}${h['lo']:08X}")  # was: f".rdata${h['lo']:08X}" (5.1 T13: .data)
     for nm, lo in sorted({(h["sym"], h["lo"]) for h, _g in folds}):  # 4.3 T2: every COMDAT copy of ours of an extra
         for ob in [ob for ob in sub["objs"] if nm in ob["defs"]]:  # name -> `<name>@fold_<va8>` (unreferenced:
             p = ob["path"]  # /OPT:REF drops it); its object's references -> a new undefined `<name>`, weak to the kept
             if p not in ocopy:
-                ocopy[p] = (_obj_load(p.read_bytes()), od / "ours" / p.name)
+                # was: od / "ours" / p.name (5.1 T14.c3: staged name unique per object path, C0309)
+                ocopy[p] = (_obj_load(p.read_bytes()), od / "ours" / f"{len(ocopy):03d}_{p.name}")
             o = ocopy[p][0]
             k = next(i for i, e in enumerate(o["syms"]) if e[4] == 2 and e[2] > 0 and _obj_name(o, e[0]) == nm)
             if not o["secs"][o["syms"][k][2] - 1]["chars"] & 0x1000:
@@ -1444,6 +1488,8 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
                 for r in t["relocs"]:
                     if r[1] == k and r[2] in (REL_DIR32, REL_REL32):
                         r[1] = len(o["syms"]) - 1
+    if control == "unit-key" and len({p.name.lower() for p in ocopy}) == len(ocopy):  # 5.1 T14.c3: the control's teeth
+        refuse("control unit-key: no two staged objects of ours share a basename")
     for o, q in ocopy.values():
         q.parent.mkdir(exist_ok=True)
         q.write_bytes(_obj_dump(o))
@@ -1646,8 +1692,14 @@ def _our_vas(sub, st, peb, x):
     want = [r["symbol"] for ob in sub["objs"] for r in ob["rows"]] + [
         nm for ob in sub["objs"] for d in ob["data"] for e in ob["o"]["syms"]
         if e[2] == d["num"] and (nm := _obj_name(ob["o"], e[0])) != d["sec"]]
-    want += [nm for ob in sub["objs"] for d in ob.get("code", []) for e in ob["o"]["syms"]
-             if e[2] == d["num"] and (nm := _obj_name(ob["o"], e[0])) != d["sec"]]
+    # was: want += [nm for ob in sub["objs"] for d in ob.get("code", []) for e in ob["o"]["syms"]
+    #              if e[2] == d["num"] and (nm := _obj_name(ob["o"], e[0])) != d["sec"]]
+    want += [nm for ob in sub["objs"] for tg in [{k for t in ob["o"]["secs"] for _f, k, _t in t["relocs"]}]
+             for d in ob.get("code", []) for i, e in enumerate(ob["o"]["syms"])
+             if e[2] == d["num"] and (nm := _obj_name(ob["o"], e[0])) != d["sec"]
+             and not (nm.startswith("$L") and e[4] == 3 and e[3] == 0 and i not in tg)]  # 5.1 T14 (C0305): a
+    # type-0 STATIC `$L` label no reloc of its object (any section, .debug too) targets: no map line, no referrer;
+    # its section is checked by `placed` (check_whole)
     got = _map_vas(st["map"], set(want), delta)
     for ob in sub["objs"]:  # a static (`$T318`: no map line) -> the linked DIR32 field of a placed section of ours
         o = ob["o"]  # (T7: matched functions, then the stub and data sections a resolved symbol anchors; fixpoint)
@@ -1683,7 +1735,7 @@ def _all_ours(cfg_path, layout, control=None, list_path=None, bdir=None):
     rd = byte_compare._phase_run_dir() / "relink"
     if bdir is not None:
         bdir = Path(bdir)
-        built = sorted(bdir.glob("*.obj"))
+        built = sorted(bdir.rglob("*.obj"))  # 5.1 T4.c2: objs in source-path subdirs; was: glob("*.obj")
     else:
         bdir = rd / "build"
         if bdir.exists():
@@ -1694,9 +1746,61 @@ def _all_ours(cfg_path, layout, control=None, list_path=None, bdir=None):
             refuse(f"build: {e}")
         except build.BuildFailed as e:
             refuse(f"build: {len(e.failures)} unit(s) failed: {', '.join(sorted(f['unit'] for f in e.failures))}")
-    rows = tomllib.loads(Path(list_path or MATCHED).read_text(encoding="utf-8")).get("function", [])
-    stems = sorted({PureWindowsPath(r["unit"]).stem for r in rows})
-    sub = _ours(",".join(stems), cfg_path, layout, bdir, list_path, control)
+    lp = list_path or MATCHED
+    if control == "unit-key":  # 5.1 T14 (C0304): a list copy (relink/control/) moving the row of a one-row unit (the
+        lrows = tomllib.loads(Path(lp).read_text(encoding="utf-8")).get("function", [])  # donor) to a second unit
+        byu = {}  # of the first unit's basename in another dir; its object (where _ours looks for a unit not in
+        for r in lrows:  # units.toml: the basename in bdir) a copy of the donor's with one byte (no reloc field) of
+            byu.setdefault(r["unit"], []).append(r)  # that row flipped. (Splitting a two-row unit: the half without
+        rels = build.obj_rels()  # the EH row refuses its associative `.xdata$x`, 0 VAs.)
+
+        def staged(n):  # 5.1 T14.c3 (C0309): the unit's object has a data section _link stages (rsort `.rdata$`/
+            p = bdir / rels.get(n.lower(), PureWindowsPath(n).name)  # `.data$`), as the real Switch pair: both
+            if not p.is_file():  # same-basename objects staged under ours/
+                return False
+            o = _obj_load(p.read_bytes())
+            refd = {o["syms"][k][2] for t in o["secs"] for _off, k, _t in t["relocs"]}
+            return any(_obj_name(o, t["name8"]) in (".rdata", ".data", ".xdata$x") and t["size"]
+                       and (not t["chars"] & 0x1000 or num in refd) for num, t in enumerate(o["secs"], 1))
+        u = next((n for n in sorted(byu) if staged(n)), None)  # was: u = min(byu) if byu else None
+        dn = next((n for n in sorted(byu) if len(byu[n]) == 1  # (its copy gets a staged `.data` after _ours)
+                   and PureWindowsPath(n).stem != PureWindowsPath(u).stem), None) if u else None
+        if dn is None:
+            refuse("control unit-key: no one-row donor unit of another basename stem")
+        r, u2 = byu[dn][0], str(PureWindowsPath(u).parent / "relink_control" / PureWindowsPath(u).name)
+        src, q = bdir / rels.get(dn.lower(), PureWindowsPath(dn).name), bdir / rels.get(u2.lower(), PureWindowsPath(u2).name)
+        if not src.is_file() or q.exists():
+            refuse(f"control unit-key: {src} missing or {q} exists")
+        o = _obj_load(src.read_bytes())
+        num = next((e[2] for e in o["syms"] if e[4] == 2 and e[2] > 0 and _obj_name(o, e[0]) == r["symbol"]), 0)
+        t = o["secs"][num - 1] if num else None
+        off = None if t is None else next((i for i in range(t["size"])
+                                           if not any(ro <= i < ro + 4 for ro, _k, _t in t["relocs"])), None)
+        if off is None:
+            refuse(f"control unit-key: {r['symbol']}: no section or no byte outside a reloc field")
+        t["raw"] = t["raw"][:off] + bytes([t["raw"][off] ^ 0xFF]) + t["raw"][off + 1:]
+        q.write_bytes(_obj_dump(o))
+        cd = rd / "control"
+        if cd.exists():
+            shutil.rmtree(cd)
+        cd.mkdir(parents=True)
+        out, cur = [], None
+        for ln in Path(lp).read_text(encoding="utf-8").splitlines(keepends=True):
+            if ln.startswith("symbol = "):
+                cur = tomllib.loads(ln)["symbol"]
+            out.append(f"unit = {json.dumps(u2)}\n" if ln.startswith("unit = ") and cur == r["symbol"] else ln)
+        lp = cd / "matched_set.toml"
+        lp.write_text("".join(out), encoding="utf-8")
+        if sum(1 for x in tomllib.loads(lp.read_text(encoding="utf-8")).get("function", []) if x["unit"] == u2) != 1:
+            refuse(f"control unit-key: list copy {lp} does not move {r['symbol']} to {u2}")
+        print(f"control unit-key: {r['symbol']} moved from {dn} to {u2} (stem of {u}), object "
+              f"{q.relative_to(REPO).as_posix()} copy of {src.name} "
+              f"(+0x{off:X} flipped), list {lp.relative_to(REPO).as_posix()}")
+    # was: rows = tomllib.loads(Path(list_path or MATCHED)...) (5.1 T14: lp, the unit-key list copy under control)
+    rows = tomllib.loads(Path(lp).read_text(encoding="utf-8")).get("function", [])
+    # was: stems = sorted({PureWindowsPath(r["unit"]).stem for r in rows}); _ours(",".join(stems), ...)
+    units = sorted({r["unit"] for r in rows})  # 5.1 T14 (C0304): full unit names (two Switch.obj units)
+    sub = _ours(",".join(units), cfg_path, layout, bdir, lp, control)
     if control == "weak" and not any("relink/control/" in ob["path"].as_posix() for ob in sub["objs"]):
         refuse("control weak: no matched row with a DIR32/REL32 reloc to an external beside a non-row COMDAT .text "
                "no reloc reaches")
@@ -1786,6 +1890,135 @@ def _all_ours(cfg_path, layout, control=None, list_path=None, bdir=None):
                             "kept": {num}})
         print(f"control samename: {r['symbol']} 0x{r['va']:08X} copy {q.name} (+0x{off:X} flipped), "
               f"{cd.relative_to(REPO).as_posix()}")
+    # was: control in ("samevt", "xdata-order", "data-order") (5.1 T14: +label-unref)
+    # was: control in ("samevt", "xdata-order", "data-order", "label-unref") (5.1 T14.c3: +unit-key)
+    if control in ("samevt", "xdata-order", "data-order", "label-unref", "unit-key"):  # 5.1 T4: synthetic objects before _link's dedupe/sort
+        used = [(h["va"], h["va"] + h["size"]) for ob in sub["objs"] for h in ob["data"] + ob.get("code", [])] + \
+            [(r["va"], r["va"] + r["size"]) for ob in sub["objs"] for r in ob["rows"]]  # walk (C0296)
+        named = {v for vs in list(sub["byname"].values()) + list(sub["pins"].values()) for v in vs}
+        rs = next(s for s in layout if s["name"] == ".rdata")
+        rx2 = _retail_bytes(cfg_path)
+
+        def free(va, n, s=None):  # retail bytes of s (.rdata) [va, va+n): none of ours, no name inside, raw-backed
+            s = s or rs  # and not all zero (5.1 T13: s a parameter; was: .rdata only)
+            fo = xbe_info.va_to_off(rx2[0], va)
+            return (s["va"] <= va and va + n <= s["va"] + s["vsize"] and fo is not None
+                    and not any(a < va + n and va < b for a, b in used) and not any(va <= v < va + n for v in named)
+                    and any(rx2[1][fo:fo + n]))
+        cd = rd / "control"
+        if cd.exists() and control != "unit-key":  # was: if cd.exists(): (5.1 T14.c3: unit-key's list copy is there)
+            shutil.rmtree(cd)
+        cd.mkdir(parents=True, exist_ok=True)  # was: cd.mkdir(parents=True)
+    if control == "unit-key":  # 5.1 T14.c3 (C0309): the u2 copy (q) gets one plain 8 B `.data` section of the retail
+        ob = next(ob for ob in sub["objs"] if ob["unit"] == u2)  # bytes at a free .data VA (digest unchanged), so
+        ds = next(s for s in layout if s["name"] == ".data")  # _link stages it beside u's object: same basename
+        top = min([h["va"] for o2 in sub["objs"] for h in o2["data"] if h["rsec"] == ".data" and h["sec"] != ".data"]
+                  + [ds["va"] + ds["vsize"]])  # (before any `$` group hole of ours in .data, as data-order)
+        va = next((v for v in range((ds["va"] + 0xF) & ~0xF, top - 8, 0x10)
+                   if free(v, 8, ds) and xbe_info.va_to_off(rx2[0], v + 7) is not None), None)
+        if va is None:
+            refuse("control unit-key: no free .data VA")
+        o, nm, fo = ob["o"], "__unitkey_control_data", xbe_info.va_to_off(rx2[0], va)
+        o["secs"].append({"name8": b".data\0\0\0", "vsz": 0, "va": 0, "size": 8, "raw": bytes(rx2[1][fo:fo + 8]),
+                          "relocs": [], "chars": 0xC0300040})
+        num = len(o["secs"])
+        o["syms"] += [[b".data\0\0\0", 0, num, 0, 3, struct.pack("<IHH", 8, 0, 0).ljust(18, b"\0")],
+                      [_obj_name8(o, nm), 0, num, 0, 2, b""]]
+        ob["defs"][nm] = (num, 0)
+        ob["path"].write_bytes(_obj_dump(o))
+        ob["data"].append(_placed(ob["path"], layout, ".data", va, o["secs"][-1], num))
+        print(f"control unit-key: .data 0x{va:08X} (8 retail bytes, {nm}) in {ob['path'].name}, staged by _link "
+              f"beside {next(x['path'] for x in sub['objs'] if x['unit'] == u).relative_to(REPO).as_posix()}")
+    if control == "samevt":  # 5.1 T4 (C0255 limit 1): two byte-identical vtable COMDATs under two names at one free
+        va = next((v for v in range(rs["va"], rs["va"] + rs["vsize"] - 4, 4) if free(v, 4)), None)  # .rdata VA,
+        if va is None:  # slot 0 a DIR32 to a weak `??_E` (class 105) -> `??_G`: never merged (two names, data)
+            refuse("control samevt: no free .rdata VA")
+        for tag, nm in zip("ab", ("??_7logic_error@std@@6B@", "??_7out_of_range@std@@6B@")):
+            o = _obj_load(_coff([(".rdata", 0x40301040, 4)], [(nm, 0, 1, 0)]))
+            o["secs"][0]["raw"] = bytes(4)
+            o["syms"][0][5] = struct.pack("<IHHIHB", 4, 1, 0, 0, 0, 2).ljust(18, b"\0")
+            o["syms"].append([_obj_name8(o, "??_Glogic_error@std@@UAEPAXI@Z"), 0, 0, 0x20, 2, b""])
+            gi = sum(1 + len(e[5]) // 18 for e in o["syms"][:-1])
+            o["syms"].append([_obj_name8(o, "??_Elogic_error@std@@UAEPAXI@Z"), 0, 0, 0x20, 105,
+                              struct.pack("<II", gi, 3).ljust(18, b"\0")])
+            o["secs"][0]["relocs"] = [(0, len(o["syms"]) - 1, REL_DIR32)]
+            q = cd / f"samevt_{tag}.obj"
+            q.write_bytes(_obj_dump(o))
+            sub["objs"].append({"unit": q.name, "path": q, "o": o, "rows": [], "defs": {nm: (1, 0)}, "und": [],
+                                "data": [_placed(q, layout, ".rdata", va, o["secs"][0], 1)], "code": [], "unref": 0,
+                                "kept": {1}})
+        print(f"control samevt: 0x{va:08X} two vtable names in samevt_a.obj and samevt_b.obj (slot 0 weak ??_E), "
+              f"{cd.relative_to(REPO).as_posix()}")
+    if control == "xdata-order":  # 5.1 T4 (C0255 limit 2): two synthetic `.xdata$x` (8 B each, retail bytes between)
+        xs = sorted(h["va"] for ob in sub["objs"] for h in ob["data"] if h["sec"] == ".xdata$x")  # past our first
+        if not xs:  # `.xdata$x`; each holds the other's retail bytes (VAs swapped): a .rdata digest FAIL
+            refuse("control xdata-order: no .xdata$x section of ours")
+        pv = (xs[0] + 0x2F) & ~0xF
+        while pv + 0x18 <= rs["va"] + rs["vsize"] and not (
+                free(pv, 0x18) and rx2[1][xbe_info.va_to_off(rx2[0], pv):][:8]
+                != rx2[1][xbe_info.va_to_off(rx2[0], pv + 0x10):][:8]):
+            pv += 0x10
+        if pv + 0x18 > rs["va"] + rs["vsize"]:
+            refuse("control xdata-order: no free .rdata VA pair")
+        for tag, va, src in (("a", pv, pv + 0x10), ("b", pv + 0x10, pv)):
+            nm = f"__xdata_control_{tag}"
+            o = _obj_load(_coff([(".xdata$x", 0x40300040, 8)], [(nm, 0, 1, 0)]))
+            fo = xbe_info.va_to_off(rx2[0], src)
+            o["secs"][0]["raw"] = bytes(rx2[1][fo:fo + 8])
+            q = cd / f"xdata_{tag}.obj"
+            q.write_bytes(_obj_dump(o))
+            sub["objs"].append({"unit": q.name, "path": q, "o": o, "rows": [], "defs": {nm: (1, 0)}, "und": [],
+                                "data": [_placed(q, layout, ".xdata$x", va, o["secs"][0], 1)], "code": [], "unref": 0,
+                                "kept": {1}})
+        print(f"control xdata-order: .xdata$x 0x{pv:08X} and 0x{pv + 0x10:08X} in xdata_a.obj and xdata_b.obj, "
+              f"retail bytes swapped, {cd.relative_to(REPO).as_posix()}")
+    if control == "data-order":  # 5.1 T13 (C0302 wall 2): ONE synthetic object, two 8 B `.data` sections at free .data
+        ds = next(s for s in layout if s["name"] == ".data")  # VAs pv and pv+0x10 (retail bytes between), each holding
+        grp = [h["va"] for ob in sub["objs"] for h in ob["data"] if h["rsec"] == ".data" and h["sec"] != ".data"]
+        top = min(grp + [ds["va"] + ds["vsize"]])  # the other's retail bytes: one object's .data at non-adjacent VAs
+        pv = (ds["va"] + 0xF) & ~0xF  # (before any `$` group hole of ours in .data: those stay on the old path)
+        while pv + 0x18 <= top and not (
+                free(pv, 0x18, ds) and xbe_info.va_to_off(rx2[0], pv + 0x17) is not None
+                and rx2[1][xbe_info.va_to_off(rx2[0], pv):][:8] != rx2[1][xbe_info.va_to_off(rx2[0], pv + 0x10):][:8]):
+            pv += 0x10
+        if pv + 0x18 > top:
+            refuse("control data-order: no free .data VA pair")
+        nms = ("__data_control_a", "__data_control_b")
+        o = _obj_load(_coff([(".data", 0xC0300040, 8)] * 2, [(nm, 0, k, 0) for k, nm in enumerate(nms, 1)]))
+        for k, src in enumerate((pv + 0x10, pv)):  # plain (not COMDAT): an unreferenced COMDAT is dropped by /OPT:REF
+            fo = xbe_info.va_to_off(rx2[0], src)
+            o["secs"][k]["raw"] = bytes(rx2[1][fo:fo + 8])
+        q = cd / "data_order.obj"
+        q.write_bytes(_obj_dump(o))
+        sub["objs"].append({"unit": q.name, "path": q, "o": o, "rows": [], "defs": {nm: (k, 0) for k, nm in
+                                                                                     enumerate(nms, 1)},
+                            "und": [], "data": [_placed(q, layout, ".data", va, o["secs"][k - 1], k)
+                                                for k, va in ((1, pv), (2, pv + 0x10))],
+                            "code": [], "unref": 0, "kept": {1, 2}})
+        print(f"control data-order: .data 0x{pv:08X} and 0x{pv + 0x10:08X} in one object data_order.obj, "
+              f"retail bytes swapped, {cd.relative_to(REPO).as_posix()}")
+    if control == "label-unref":  # 5.1 T14 (C0305): a synthetic code hole (COMDAT .text, ALIGN_1, symbol at 0, 8 free
+        ts = next(s for s in layout if s["name"] == ".text")  # retail .text bytes copied: digests equal) with two
+        va = next((v for v in range(ts["va"], ts["va"] + ts["vsize"] - 8) if free(v, 8, ts)), None)  # type-0 STATIC
+        if va is None:  # labels: $Lctl_unref (no reloc) and $Lctl_ref (DIR32 target of an unreferenced COMDAT
+            refuse("control label-unref: no free .text VA")  # .rdata of the same object, which /OPT:REF drops)
+        nms = ("__text_control_label", "__rdata_control_label")
+        o = _obj_load(_coff([(".text", 0x60101020, 8), (".rdata", 0x40101040, 4)],
+                            [(nms[0], 0, 1, 0x20), (nms[1], 0, 2, 0)]))
+        fo = xbe_info.va_to_off(rx2[0], va)
+        o["secs"][0]["raw"] = bytes(rx2[1][fo:fo + 8])
+        o["syms"].append([_obj_name8(o, "$Lctl_ref"), 1, 1, 0, 3, b""])
+        o["syms"].append([_obj_name8(o, "$Lctl_unref"), 2, 1, 0, 3, b""])
+        o["secs"][1]["relocs"] = [(0, len(o["syms"]) - 2, REL_DIR32)]
+        o["syms"][0][5] = struct.pack("<IHHIHB", 8, 0, 0, 0, 0, 2).ljust(18, b"\0")
+        o["syms"][1][5] = struct.pack("<IHHIHB", 4, 1, 0, 0, 0, 2).ljust(18, b"\0")
+        q = cd / "label_unref.obj"
+        q.write_bytes(_obj_dump(o))
+        sub["objs"].append({"unit": q.name, "path": q, "o": o, "rows": [], "defs": {nms[0]: (1, 0), nms[1]: (2, 0)},
+                            "und": [], "data": [], "code": [_placed(q, layout, ".text", va, o["secs"][0], 1)],
+                            "unref": 1, "kept": {1}})
+        print(f"control label-unref: .text 0x{va:08X} (8 retail bytes) in label_unref.obj, $Lctl_ref +1 (DIR32 from "
+              f"its dropped .rdata COMDAT), $Lctl_unref +2 (no reloc), {cd.relative_to(REPO).as_posix()}")
     # was (4.4 T3): control weak planted here, after _ours (TagIndex = the row itself), so its _weak_tag walk never
     # saw the weak reloc; 4.5 T16.2.c4 plants it in _ours before the kept walk (_weak_plant)
     if control != "one-function":
@@ -1927,7 +2160,10 @@ def gate_check(list_path, bdir, cfg_path=None, control=None):
     return rc, buf.getvalue().splitlines()
 
 
-WHOLE_CONTROLS = ("one-function", "rdata-unsorted", "entry", "literal", "fold", "samename", "weak")
+WHOLE_CONTROLS = ("one-function", "rdata-unsorted", "entry", "literal", "fold", "samename", "weak",
+                  "samevt", "xdata-order", "data-order",  # 5.1 T4: +samevt, +xdata-order; 5.1 T13: +data-order
+                  "label-unref", "unit-key",  # 5.1 T14: +label-unref, +unit-key
+                  "site-past-buffer")  # 5.3 T2
 
 
 def check_section(args):
@@ -2021,7 +2257,8 @@ def main(argv):
     c.add_argument("--section", help="A[,B..] (default: whole image; --originals -> link/all/, else ours -> "
                                      "link/all=ours/relinked.xbe, T6)")
     c.add_argument("--originals", action="store_true")
-    c.add_argument("--units", help="matched-set units by basename stem: our objects substituted (T4.c2)")
+    c.add_argument("--units", help="matched-set units by full unit name, else a unique basename stem (5.1 T14; was: "
+                                     "stem only): our objects substituted (T4.c2)")
     c.add_argument("--control", choices=("no-order", "noref") + WHOLE_CONTROLS,
                    help="with --units: no /ORDER, or /OPT:NOREF; whole image (T6): one-function (ret -> int3), "
                         "rdata-unsorted (T12: no .rdata VA order), entry (3.4 T6.1: our first .text function to the "

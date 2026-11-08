@@ -2,7 +2,7 @@
 #include "../../../../include/decomp.h"
 #include <string.h>
 #pragma intrinsic(memcpy) // src proto-pdb:default.pdb memcpy
-#pragma intrinsic(memcmp) // !FAKE: compiler directive; retail basic_string::rfind inlines char_traits<char>::compare as repe cmpsb (match_one 57.93 -> 100.0)
+#pragma intrinsic(memcmp) // !FAKE: preprocessor; #pragma intrinsic(memcmp) compiler directive; retail basic_string::rfind inlines char_traits<char>::compare as repe cmpsb (match_one 57.93 -> 100.0)
 
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
@@ -160,9 +160,11 @@ public:
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     virtual void Invalidate();                                     // vtable+0x14
+protected:
     virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
     virtual void Update();                                         // vtable+0x1C
     virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
 
     SwampScript* GetScript() const;
     unsigned int GetZone() const;
@@ -282,11 +284,15 @@ public:
     char field_4[0x20 - 0x4];          // 0x04
     SwampSceneNode* _node;             // 0x20
     char field_24[0x4C - 0x24];        // 0x24
+
+protected:
+    SwampScript(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class HannahStartBattleRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    HannahStartBattleRegionMain(SwampSceneNode* node);
     virtual void LeavingRegion(SwampSceneNode* node);
     virtual void FrameTick();
 };
@@ -525,6 +531,16 @@ void HannahMain::SetAttackLevel(int level)
     _attackLevel = level;
 }
 
+// FUNCTION: USA 0x00028CCB
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1: vptr store ??_7HannahStartBattleRegionMain 0x001CC718 unnamed; code bytes equal)
+HannahStartBattleRegionMain::HannahStartBattleRegionMain(SwampSceneNode* node)
+    : SwampScript(node)
+{
+}
+#endif
+
 // FUNCTION: USA 0x00028D58
 // PROTOTYPE: PREVIEW 0x00417B90 identical
 // NAME: proto-pdb:default.pdb
@@ -540,7 +556,39 @@ QuickRand::QuickRand(unsigned __int64 seed)
     GetRandom();
 }
 
-struct D3DVertexBuffer; // NAME: proto-pdb:default.pdb
+struct D3DResource; // NAME: proto-pdb:default.pdb
+extern "C" unsigned long __stdcall D3DResource_Release(D3DResource* pThis); // src proto-pdb:default.pdb D3DResource_Release
+
+struct D3DResource { // NAME: proto-pdb:default.pdb
+    unsigned long __stdcall Release() { return D3DResource_Release(this); }
+
+    unsigned long Common;              // 0x00
+    unsigned long Data;                // 0x04
+    unsigned long Lock;                // 0x08
+};
+DECOMP_SIZE_ASSERT(D3DResource, 0xC);
+
+struct D3DVertexBuffer : public D3DResource { // NAME: proto-pdb:default.pdb
+};
+DECOMP_SIZE_ASSERT(D3DVertexBuffer, 0xC);
+
+template <class T> void RELEASE(T*& obj); // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x00028D42
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); precheck relink refuses `our movieplayer.obj: external
+// ??$RELEASE@UD3DTexture@@@@YAXAAPAUD3DTexture@@@Z 0x00028D42 lies in a replaced range` (fold-alias caller, C0233
+// Fix 1: MoviePlayer.cpp needs this body to emit its alias; 5.3 T6.c13)
+template <class T>
+void RELEASE(T*& obj)
+{
+    if (obj) {
+        obj->Release();
+        obj = 0;
+    }
+}
+#endif
 extern "C" void __stdcall D3DDevice_SetStreamSource(unsigned int, D3DVertexBuffer*, unsigned int); // src proto-pdb:default.pdb D3DDevice_SetStreamSource
 extern "C" void __fastcall D3DDevice_SetVertexShaderConstant1(int, const void*); // src proto-pdb:default.pdb D3DDevice_SetVertexShaderConstant1
 extern "C" void __fastcall D3DDevice_SetVertexShaderConstant4(int, const void*); // src proto-pdb:default.pdb D3DDevice_SetVertexShaderConstant4
@@ -624,13 +672,24 @@ extern "C" D3DVertexBuffer* __stdcall D3DDevice_CreateVertexBuffer2(unsigned int
 extern "C" unsigned char* __stdcall D3DVertexBuffer_Lock2(D3DVertexBuffer* vb, unsigned long flags); // src proto-pdb:default.pdb D3DVertexBuffer_Lock2
 extern "C" long __stdcall D3DXGetErrorStringA(long hr, char* buffer, unsigned int size); // src proto-pdb:default.pdb D3DXGetErrorStringA
 
-class WindyBits { // NAME: proto-pdb:default.pdb
+// FUNCTION: USA 0x0002942C
+// NAME: proto-pdb:default.pdb
+class WindyBits : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     struct Floater { // NAME: proto-pdb:default.pdb
         char pos[0xC];                 // 0x00
         unsigned int color;            // 0x0C
     };
+    WindyBits(unsigned int numBits);
+    virtual ~WindyBits();
+protected:
+    virtual void Render(const Matrix& m) const;
+public:
+
+    unsigned int _numBits;             // 0xA4
+    D3DVertexBuffer* _vertexBuffer;    // 0xA8
 };
+DECOMP_SIZE_ASSERT(WindyBits, 0xAC);
 
 class SwampRenderer { // NAME: proto-pdb:default.pdb
 public:
@@ -649,7 +708,7 @@ DECOMP_SIZE_ASSERT(SwampRenderer, 0x38C);
 // NAME: proto-pdb:default.pdb
 void SwampRenderer::SetRenderState(_D3DRENDERSTATETYPE state, unsigned long value)
 {
-    // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState body (retail expands it here)
+    // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState body; retail expands it here
     if (state < D3DRS_SIMPLE_MAX)
         D3DDevice_SetRenderState_Simple(D3DSIMPLERENDERSTATEENCODE[state], value);
     else if (state < D3DRS_DEFERRED_MAX) {
@@ -744,7 +803,6 @@ long SwampRenderer::SetStreamSource(D3DVertexBuffer* vb, unsigned int stride)
 
 // FUNCTION: USA 0x00029068
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // best 92.91 (T14.c5): x87 spill order in the p1 term (retail keeps t1a.x on the stack, stores y/z; ours stores x/y) after ~25 attempts
 void VinceBlowBack::FrameTick()
 {
     _time += g_swamp->_input->GetElapsedTime();
@@ -752,81 +810,69 @@ void VinceBlowBack::FrameTick()
         _time = _totalTime;
         InvalidateScript();
     }
-    // !FAKE: register local; v0 is the x87-held u (no PDB record: register locals on the FP stack are not emitted)
+    // !FAKE: c2 register allocation; register local v0; v0 is the x87-held u (no PDB record: register locals on the FP stack are not emitted)
     float v0 = _time / _totalTime;
     float u2 = v0 * v0;
     float u3 = u2 * v0;
     float iu = 1.0f - v0;
-    float iu3 = iu * iu * iu;
-    // !FAKE: inliner; t3..s012, d, c are hand forms of the inlined Vector3 free operators (no PDB record, D78)
+    float v9 = iu * iu; // !FAKE: c2 register allocation; x87-held register local (no PDB record)
+    float iu3 = iu * v9;
+    // !FAKE: inliner; v1..v8 (neutral names) are hand forms of the inlined Vector3 free operators; no PDB record (D78), no before/after recorded
     const Vector3& p3 = _controlPoint[3];
-    Vector3 t3;
-    t3.x = u3 * p3.x;
-    t3.y = u3 * p3.y;
-    t3.z = u3 * p3.z;
-    Vector3 t2;
+    Vector3 v1;
+    v1.x = u3 * p3.x;
+    v1.y = u3 * p3.y;
+    v1.z = u3 * p3.z;
+    Vector3 v2;
     {
         const Vector3& p2 = _controlPoint[2];
-        Vector3 t2a;
-        t2a.x = p2.x * 3.0f;
-        t2a.y = p2.y * 3.0f;
-        t2a.z = p2.z * 3.0f;
-        Vector3 t2b;
-        t2b.x = t2a.x * u2;
-        t2b.y = t2a.y * u2;
-        t2b.z = t2a.z * u2;
-        t2.x = t2b.x * iu;
-        t2.y = t2b.y * iu;
-        t2.z = t2b.z * iu;
+        const Vector3& t2a = Vector3(p2.x * 3.0f, p2.y * 3.0f, p2.z * 3.0f); // !FAKE: inliner; ref-bound temporary
+        const Vector3& t2b = Vector3(t2a.x * u2, t2a.y * u2, t2a.z * u2);     // !FAKE: inliner; ref-bound temporary
+        v2.x = t2b.x * iu;
+        v2.y = t2b.y * iu;
+        v2.z = t2b.z * iu;
     }
-    Vector3 t1;
+    Vector3 v3;
     {
         const Vector3& p1 = _controlPoint[1];
-        Vector3 t1a;
-        t1a.x = p1.x * 3.0f;
-        t1a.y = p1.y * 3.0f;
-        t1a.z = p1.z * 3.0f;
-        Vector3 t1b;
-        t1b.x = t1a.x * v0;
-        t1b.y = t1a.y * v0;
-        t1b.z = t1a.z * v0;
-        t1.x = t1b.x * (iu * iu);
-        t1.y = t1b.y * (iu * iu);
-        t1.z = t1b.z * (iu * iu);
+        const Vector3& t1a = Vector3(p1.x * 3.0f, p1.y * 3.0f, p1.z * 3.0f); // !FAKE: inliner; ref-bound temporary
+        const Vector3& t1b = Vector3(t1a.x * v0, t1a.y * v0, t1a.z * v0);     // !FAKE: inliner; ref-bound temporary
+        v3.x = t1b.x * v9;
+        v3.y = t1b.y * v9;
+        v3.z = t1b.z * v9;
     }
     const Vector3& p0 = _controlPoint[0];
-    Vector3 t0;
-    t0.x = iu3 * p0.x;
-    t0.y = iu3 * p0.y;
-    t0.z = iu3 * p0.z;
-    Vector3 s01;
-    s01.x = t0.x + t1.x;
-    s01.y = t0.y + t1.y;
-    s01.z = t0.z + t1.z;
-    Vector3 s012;
-    s012.x = s01.x + t2.x;
-    s012.y = s01.y + t2.y;
-    s012.z = s01.z + t2.z;
+    Vector3 v4;
+    v4.x = iu3 * p0.x;
+    v4.y = iu3 * p0.y;
+    v4.z = iu3 * p0.z;
+    Vector3 v5;
+    v5.x = v4.x + v3.x;
+    v5.y = v4.y + v3.y;
+    v5.z = v4.z + v3.z;
+    Vector3 v6;
+    v6.x = v5.x + v2.x;
+    v6.y = v5.y + v2.y;
+    v6.z = v5.z + v2.z;
     Vector3 newloc;
-    newloc.x = s012.x + t3.x;
-    newloc.y = s012.y + t3.y;
-    newloc.z = s012.z + t3.z;
+    newloc.x = v6.x + v1.x;
+    newloc.y = v6.y + v1.y;
+    newloc.z = v6.z + v1.z;
     Vector3 oldloc = _node->GetLocation();
     _node->SetLocation(newloc);
     g_swamp->GetRegionManager().CheckForRegionCrossings(_node, oldloc, newloc, false);
     {
-        Vector3 d;
-        d.x = newloc.x - oldloc.x;
-        d.y = newloc.y - oldloc.y;
-        d.z = newloc.z - oldloc.z;
-        Vector3 c;
-        c.x = d.x + _vincecam->GetLocation().x;
-        c.y = d.y + _vincecam->GetLocation().y;
-        c.z = d.z + _vincecam->GetLocation().z;
-        _vincecam->SetLocation(c);
+        Vector3 v7;
+        v7.x = newloc.x - oldloc.x;
+        v7.y = newloc.y - oldloc.y;
+        v7.z = newloc.z - oldloc.z;
+        Vector3 v8;
+        v8.x = v7.x + _vincecam->GetLocation().x;
+        v8.y = v7.y + _vincecam->GetLocation().y;
+        v8.z = v7.z + _vincecam->GetLocation().z;
+        _vincecam->SetLocation(v8);
     }
 }
-#endif
 
 // FUNCTION: USA 0x00028CE3
 // NAME: proto-pdb:default.pdb
@@ -845,6 +891,13 @@ template <class T> D3DVertexBuffer* SwampRenderer::CreateVertexBuffer(const T* v
 }
 template D3DVertexBuffer* SwampRenderer::CreateVertexBuffer<WindyBits::Floater>(const WindyBits::Floater*,
     unsigned int) const;
+
+// FUNCTION: USA 0x00029288
+// NAME: proto-pdb:default.pdb
+WindyBits::~WindyBits()
+{
+    RELEASE(_vertexBuffer);
+}
 
 // FUNCTION: USA 0x000292A6
 // NAME: proto-pdb:default.pdb
@@ -867,7 +920,7 @@ void HannahMain::AnimationTrigger(const SwampString& name, float value, float pr
 {
     if (_state == 4 && value > 0.0f) {
         {
-            // !FAKE: inliner; stand-in locals, hand form of the inlined SwampSceneNode::SetVisible(false, false);
+            // !FAKE: inliner; stand-in locals, hand form of the inlined SwampSceneNode::SetVisible(false, false); COMDAT clash:
             // its in-class body emits a COMDAT named like CrawdadJimmys' matched row 0x00019DA1
             SwampString v0("lighthouse");
             Critter* p = pManager->Find(v0);
@@ -924,7 +977,7 @@ void Critter::SetSpecies(SwampString s)
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceBlowBack::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("HurricaneHanna\\Hannah.cpp", 31) VinceBlowBack(node);
 }
 
@@ -937,20 +990,24 @@ void pin_emit_HannahMain_dtor(HannahMain* p)
     p->HannahMain::~HannahMain();
 }
 
+// ??_GHannahMain 0x0002A085 unmatched, no draft (5.3 T6.c13): companion wall: a virtual ??_G is emitted only with its
+// class vtable; ??0HannahMain 0x00029E9F is not a passing row. Lift: match the ctor.
+// ?EnteringRegion@FireRegionMain 0x00029271 unmatched, no draft; fold-name wall: FireRegionMain is FireRegion.obj's;
+// this unit's copy is HannahStartBattleRegionMain::EnteringRegion (not pinned); match_one `not defined in Hannah.obj`.
+// Lift: pin/rename the row to ?EnteringRegion@HannahStartBattleRegionMain@@UAEXPAVSwampSceneNode@@@Z.
+
 // FUNCTION: USA 0x0002A0FC
 // PROTOTYPE: PREVIEW 0x00418EB9 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* HannahMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\hurricanehanna\\Hannah.h", 48) HannahMain(node);
 }
 
 // FUNCTION: USA 0x0002A123
 // PROTOTYPE: PREVIEW 0x00418EE0 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 95.75, bytes mismatch (frame slot packing of the inlined Vector3 temps; Create arg regalloc)
 void HannahMain::TossCrap()
 {
     if (!_battleOn)
@@ -962,40 +1019,45 @@ void HannahMain::TossCrap()
     startloc += GetCritter()->GetWorldPosition();
     Vector3 vinceloc = vince->GetWorldPosition();
     SwampString name = _debrisNames.Fetch();
-    Critter* crap = pManager->Create("", "HannahDebris", name.c_str(), g_swamp->GetModelManager().Load(name + "_base"),
-                                     startloc, GetCritter()->GetFacing(), GetNode()->GetZone());
+    // !FAKE: c2 register allocation; stand-in locals assigned in the call args (C0245); retail loads the model manager
+    // and GetZone's this before the c_str spill, then pManager into esi (match_one 99.25 -> 100.0)
+    CritterManager* v7;
+    const char* v4;
+    ModelManager* v5;
+    SwampSceneNode* v6;
+    Critter* crap = (v7 = pManager)->Create("", "HannahDebris", (v4 = name.c_str()), (v5 = &g_swamp->GetModelManager())->Load(name + "_base"),
+                                     startloc, GetCritter()->GetFacing(), (v6 = GetNode())->GetZone());
     crap->SetSpecies(name);
     Vector3 vel = crap->GetVelocityToTarget(startloc, vinceloc, crap->GetGravity(), gSettings.GetHannahDebrisLobFactor());
-    Vector3 diff;
-    diff.x = vinceloc.x - startloc.x;
-    diff.z = vinceloc.z - startloc.z;
+    // !FAKE: inliner; ref-bound temporary; the inlined x-z length's operand
+    Vector3& d = Vector3();
+    d.x = vinceloc.x - startloc.x;
+    d.z = vinceloc.z - startloc.z;
     // !FAKE: inliner; stand-in local; hand form of the inlined x-z length
-    float v0 = diff.z * diff.z + diff.x * diff.x;
+    float v0 = d.z * d.z + d.x * d.x;
     float dist = FastReciprocalSquareRoot(v0) * v0;
-    diff = vel;
-    v0 = diff.z * diff.z + diff.x * diff.x;
+    d = vel;
+    v0 = d.z * d.z + d.x * d.x;
     float crapspeed = FastReciprocalSquareRoot(v0) * v0;
     float v1 = dist / crapspeed; // !FAKE: inliner; stand-in local; hand form of the inlined Vector3 * float
     Vector3 vincevel = vince->GetVelocity();
     vincevel.y = 0.0f;
     vinceloc += Vector3(vincevel.x * v1, vincevel.y * v1, vincevel.z * v1);
-    diff.x = vinceloc.x - startloc.x;
-    diff.y = vinceloc.y - startloc.y;
-    diff.z = vinceloc.z - startloc.z;
     Vector3 destloc;
     {
-        Vector3 v2; // !FAKE: inliner; stand-in local; hand form of the inlined Vector3 * float
-        v2.x = diff.x * 0.5f;
-        v2.y = diff.y * 0.5f;
-        v2.z = diff.z * 0.5f;
+        // !FAKE: inliner; ref-bound temporaries; hand form of the inlined (vinceloc - startloc) * 0.5f + startloc
+        const Vector3& d = Vector3(vinceloc.x - startloc.x, vinceloc.y - startloc.y, vinceloc.z - startloc.z);
+        const Vector3& v2 = Vector3(d.x * 0.5f, d.y * 0.5f, d.z * 0.5f);
         destloc = Vector3(v2.x + startloc.x, v2.y + startloc.y, v2.z + startloc.z);
     }
     vel = crap->GetVelocityToTarget(startloc, destloc, crap->GetGravity(), gSettings.GetHannahDebrisLobFactor());
     float v3 = (_attackLevel - 1) * 0.062831856f; // !FAKE: c2 register allocation; stand-in local; one angle value
-    Quaternion(Vector3(0.0f, 1.0f, 0.0f), BeepLib::RandomFloat(-v3, v3)).Apply(vel, diff);
-    vel = diff;
+    {
+        Vector3 diff;
+        Quaternion(Vector3(0.0f, 1.0f, 0.0f), BeepLib::RandomFloat(-v3, v3)).Apply(vel, diff);
+        vel = diff;
+    }
     crapspeed = gSettings.GetParamFloat(format("HANNAH_DEBRIS_SPEED_%d", _attackLevel), 1.0f);
     crap->SetVelocity(Vector3(vel.x * crapspeed, vel.y * crapspeed, vel.z * crapspeed));
     SoundManager::PlaySound("hurrspit", 0x20, GetNode(), true, 0.0f, 0.0f);
 }
-#endif

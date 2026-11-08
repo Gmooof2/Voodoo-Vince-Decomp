@@ -9,6 +9,8 @@ public:
     basic_string(const E* ptr);
     basic_string(const basic_string& _Right);
     ~basic_string() { _Tidy(true); }
+    basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
+    basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
     basic_string& operator+=(const basic_string& _Right) { return append(_Right); }
     basic_string& append(const basic_string& _Right) { return append(_Right, 0, npos); }
     basic_string& append(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
@@ -123,6 +125,14 @@ private:
 };
 DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
+// FUNCTION: USA 0x000EC802
+// NAME: proto-pdb:default.pdb
+struct LevelScript::ProgressHint { // NAME: proto-pdb:default.pdb
+    SwampString _name;                 // 0x00
+    unsigned int _time;                // 0x1C
+};
+DECOMP_SIZE_ASSERT(LevelScript::ProgressHint, 0x20);
+
 // FUNCTION: USA 0x000EC5D0
 // PROTOTYPE: PREVIEW 0x004D78EF identical
 // NAME: proto-pdb:default.pdb
@@ -164,6 +174,13 @@ SwampString LevelScript::Save()
     SwampString str = SwampScript::Save();
     str += format("\t\tprogresshintlevel=%i;\n", _progressHintLevel);
     return str;
+}
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ProgressHint::operator= in this unit (no matched
+// function odr-uses it); this assignment odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_ProgressHint_assign(LevelScript::ProgressHint* p, const LevelScript::ProgressHint& v)
+{
+    *p = v;
 }
 
 // FUNCTION: USA 0x000ECDD8

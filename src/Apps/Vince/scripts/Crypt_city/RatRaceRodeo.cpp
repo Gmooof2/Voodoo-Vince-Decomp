@@ -399,7 +399,7 @@ void MrsGMain::TimerEvent(unsigned int timerId)
 // NAME: proto-pdb:default.pdb
 SwampScript* ExitRampMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 348) ExitRampMain(node);
 }
 
@@ -408,7 +408,7 @@ SwampScript* ExitRampMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* EntranceRampMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 379) EntranceRampMain(node);
 }
 
@@ -417,7 +417,7 @@ SwampScript* EntranceRampMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* FloorHoleMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 287) FloorHoleMain(node);
 }
 
@@ -426,7 +426,7 @@ SwampScript* FloorHoleMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* MrsGMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 210) MrsGMain(node);
 }
 
@@ -645,7 +645,7 @@ DECOMP_SIZE_ASSERT(RodeoRatMain, 0x128);
 // NAME: proto-pdb:default.pdb
 SwampScript* RodeoRatMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 35) RodeoRatMain(node);
 }
 
@@ -705,7 +705,7 @@ DECOMP_SIZE_ASSERT(RockChunkMain, 0xBC);
 // NAME: proto-pdb:default.pdb
 SwampScript* RockChunkMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 317) RockChunkMain(node);
 }
 
@@ -764,7 +764,7 @@ DECOMP_SIZE_ASSERT(VinceOnRatMain, 0xF4);
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceOnRatMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 140) VinceOnRatMain(node);
 }
 
@@ -807,7 +807,7 @@ DECOMP_SIZE_ASSERT(MrsGCollapsedMain, 0x110);
 // NAME: proto-pdb:default.pdb
 SwampScript* MrsGCollapsedMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 410) MrsGCollapsedMain(node);
 }
 
@@ -886,6 +886,12 @@ void pin_emit_VinceOnRatMain_dtor(VinceOnRatMain* p)
 {
     p->VinceOnRatMain::~VinceOnRatMain();
 }
+
+// ??_GRodeoRatMain 0x000649D0, ??_GVinceOnRatMain 0x0006606F, ??_GWeaponMain 0x00066B4C, ??_GRockChunkMain 0x00067BF9,
+// ??_GMrsGMain 0x00067E78 unmatched, no draft (5.3 T6.c13): companion wall: a virtual ??_G is emitted only with its
+// class vtable, i.e. the ctor; ??0 of RodeoRatMain (0x00064515), VinceOnRatMain (0x00065C84), WeaponMain (0x0012150E),
+// RockChunkMain (0x000640D5, guarded above: site-corr pins), MrsGMain (0x00067C3F) are not passing rows.
+// Lift: match the ctor (RockChunkMain: corr-verify its vtable and _chunkCount pins).
 
 class Vince : public Critter { // NAME: proto-pdb:default.pdb
 public:
@@ -1017,15 +1023,13 @@ void StartBattleRegionMain::EnteringRegion(SwampSceneNode* node)
 // FUNCTION: USA 0x00067F08
 // PROTOTYPE: PREVIEW 0x004544BF identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 98.89, bytes mismatch (ebx/edi swapped: retail zero in edi, Find result/p/it in ebx)
-// 4.3 T16.c12 also tried (all 98.89): tmp in its own block, tmp declared before p, iterator declared first
 void MrsGMain::Activate()
 {
-    // !FAKE: c2 register allocation; dummy local; pManager read before the GetZone call (95.25 -> 98.89)
+    // !FAKE: c2 register allocation; dummy local; pManager read before the GetZone call (95.25 -> 98.89);
+    // also assigned at the Find call so both pManager reads share the Find-result register (ebx/edi as retail)
     CritterManager* p;
     // !FAKE: c1xx front end; stand-in local; ends the string temporary before the call (not a PDB local)
-    Critter* tmp = pManager->Find("rodeorat");
+    Critter* tmp = (p = pManager)->Find("rodeorat");
     tmp->GetScript()->Message(this, RodeoRatMain::MESSAGE_STARTRIDE, 0);
     _fallingChunkPositions.clear();
     std::vector<Critter*> rocklocs;
@@ -1037,7 +1041,6 @@ void MrsGMain::Activate()
     SetState(STATE_INITIAL_IDLE);
     RegisterFrameTick();
 }
-#endif
 
 class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -1178,7 +1181,7 @@ void MrsGMain::AnimationTrigger(const SwampString& name, float value, float prev
                 SwampString modelname = format("fallingChunk%02i", v0 + 1);
                 Critter* chunk;
                 {
-                    // !FAKE: c1xx front end + c2 register allocation; stand-in locals v1, v2, v4-v6, p in an inner block (not PDB locals);
+                    // !FAKE: c1xx front end + c2 register allocation; stand-in locals v1, v2, v4-v6, p in an inner block (not PDB locals); load order:
                     // retail builds the string/Quaternion temporaries and reads _node, the model manager, the position and pManager
                     // before GetZone (temporary args 76.91 -> block 92.94 -> 98.83 -> 100; Quaternion(x,y,z) ctor stayed out of line)
                     SwampString v2("RockChunk");
@@ -1215,7 +1218,7 @@ void RockChunkMain::FrameTick()
             MoveMe(gSettings._ratRaceRubbleGravity);
             // !FAKE: c2 register allocation; stand-in local; retail holds Vince in esi across the calls (not a PDB local)
             Vince* p = pManager->GetVince();
-            // !FAKE: inliner; hand form of the Vector3 difference (no free operator in the PDB): stand-ins v1, v2
+            // !FAKE: inliner; hand form of the Vector3 difference, stand-ins v1, v2; no free operator in the PDB, no before/after recorded
             const Vector3& v1 = _node->GetWorldPosition();
             const Vector3& v2 = p->GetWorldPosition();
             Vector3 tovince(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);

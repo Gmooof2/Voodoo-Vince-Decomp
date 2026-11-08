@@ -7,6 +7,7 @@ template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
     basic_string(const E* ptr);
+    basic_string(const basic_string& _Right);
     ~basic_string() { _Tidy(true); }
     basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
     basic_string& assign(const E* _Ptr);
@@ -24,6 +25,7 @@ template <class E, class T, class A> inline bool operator==(const basic_string<E
 }
 template <class T, class A = allocator<T> > class vector {
 public:
+    vector() : _Myfirst(0), _Mylast(0), _Myend(0) {}
     ~vector() { _Tidy(); }
     class iterator {
     public:
@@ -56,13 +58,18 @@ private:
 };
 template <class T, class A = allocator<T> > class deque {
 public:
+    deque() : _Map(0), _Mapsize(0), _Myoff(0), _Mysize(0) {}
     ~deque() { _Tidy(); }
 
 protected:
     void _Tidy();
 
 private:
-    char _pad00[0x14];
+    char _Alval;                       // 0x00
+    T** _Map;                          // 0x04
+    unsigned int _Mapsize;             // 0x08
+    unsigned int _Myoff;               // 0x0C
+    unsigned int _Mysize;              // 0x10
 };
 }
 
@@ -85,8 +92,10 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
     float z;                           // 0x08
 };
 
+#ifdef NON_MATCHING // D78, D117: default.pdb records no free Vector3 operator (5.2 T20)
 inline Vector3 operator+(const Vector3& a, const Vector3& b) { return Vector3(a.x + b.x, a.y + b.y, a.z + b.z); }
 inline Vector3 operator-(const Vector3& a, const Vector3& b) { return Vector3(a.x - b.x, a.y - b.y, a.z - b.z); }
+#endif
 
 struct Quaternion { // NAME: proto-pdb:default.pdb
     Quaternion() {}
@@ -107,6 +116,7 @@ const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
 template <class T> class SwampShuffleQueue { // NAME: proto-pdb:default.pdb
 public:
     T Fetch();
+    void PushBack(T);
 
     std::deque<T> _queue;              // 0x00
 };
@@ -181,9 +191,13 @@ class Critter; // NAME: proto-pdb:default.pdb
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode*);
     Critter* GetCritter() { return (Critter*)_node; }
     virtual ~CritterMain();
     virtual void Message(SwampScript*, int, void*);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -215,6 +229,24 @@ void KosmoBotLegsMain::CollidedWith(CollisionType type, SwampSceneNode* nodehitb
     HitBy(type, nodehitby, cr);
 }
 
+class OnBotRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    OnBotRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
+    virtual void LeavingRegion(SwampSceneNode* node);
+};
+
+// FUNCTION: USA 0x00049BD5
+// PROTOTYPE: PREVIEW 0x004374DC ambiguous
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1; wall: same instructions, ??_7OnBotRegionMain@@6B@ vptr store has no retail VA row, C0203)
+OnBotRegionMain::OnBotRegionMain(SwampSceneNode* node)
+    : SwampScript(node)
+{
+}
+#endif
+
 class Camera_elevatorMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     Camera_elevatorMain(SwampSceneNode* node);
@@ -229,7 +261,7 @@ DECOMP_SIZE_ASSERT(Camera_elevatorMain, 0x4C);
 // NAME: proto-pdb:default.pdb
 SwampScript* Camera_elevatorMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("BumperCarBumpoff\\Kosmo.cpp", 18) Camera_elevatorMain(node);
 }
 
@@ -286,8 +318,11 @@ public:
     ResourceHandle<AnimationControl> TransitionAnimation(ResourceHandle<AnimationResource>, float, bool, bool);
     ResourceHandle<AnimationControl> GetCurrentAnimation() const { return _currentAnim; }
     void GetBoneOrientation(int, Quaternion&, Vector3&) const;
+    void SetMovingPlatform(bool b) { _movingPlatform = b; }
 
-    char field_A4[0x140 - 0xA4];       // 0xA4
+    char field_A4[0xC0 - 0xA4];        // 0xA4
+    bool _movingPlatform;              // 0xC0
+    char field_C1[0x140 - 0xC1];       // 0xC1
     ResourceHandle<AnimationControl> _currentAnim; // 0x140
     char field_144[0x200 - 0x144];     // 0x144
 };
@@ -317,6 +352,10 @@ public:
 
 extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
+// FUNCTION: USA 0x0004C9B8
+// NAME: proto-pdb:default.pdb
+// ??_GKosmoBotHeadMain (alias ??_EKosmoBotHeadMain) unmatched, no draft; wall: a virtual ??_G is emitted only with the class vtable, i.e. with its ctor
+// ??0KosmoBotHeadMain 0x0004C846 (candidates fail: 1 provisional target) (C0320); match_one: `not defined in Kosmo.obj` (5.3 T6)
 // FUNCTION: USA 0x0004C9D4
 // NAME: proto-pdb:default.pdb
 class KosmoBotHeadMain : public CritterMain { // NAME: proto-pdb:default.pdb
@@ -370,6 +409,9 @@ void pin_emit_KosmoBotHeadMain_dtor(KosmoBotHeadMain* p)
     p->KosmoBotHeadMain::~KosmoBotHeadMain();
 }
 
+// FUNCTION: USA 0x0004D2C1
+// NAME: proto-pdb:default.pdb
+// ??_GKosmoBotMidriffMain: compiler-generated with the vtable the ctor ??0KosmoBotMidriffMain below emits; calls ??1 out of line
 // FUNCTION: USA 0x0004D2DD
 // NAME: proto-pdb:default.pdb
 class KosmoBotMidriffMain : public CritterMain { // NAME: proto-pdb:default.pdb
@@ -385,6 +427,7 @@ public:
         STATE_ATTACK = 2,
         STATE_DEAD = 4
     };
+    KosmoBotMidriffMain(SwampSceneNode* node);
     virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
     virtual void Message(SwampScript* from, int message, void* data);
     virtual void SetState(int state);
@@ -393,6 +436,16 @@ public:
     SwampShuffleQueue<SwampString> _handSmackSounds; // 0xCC
 };
 DECOMP_SIZE_ASSERT(KosmoBotMidriffMain, 0xE0);
+
+// FUNCTION: USA 0x0004D24A
+// NAME: proto-pdb:default.pdb
+KosmoBotMidriffMain::KosmoBotMidriffMain(SwampSceneNode* node) : CritterMain(node)
+{
+    GetCritter()->SetMovingPlatform(true);
+    for (int i = 1; i <= 4; i++)
+        _handSmackSounds.PushBack(format("kbm_handimp%02d", i));
+    SetState(STATE_STILL);
+}
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1KosmoBotMidriffMain@@UAE@XZ in this unit (no
 // matched function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
@@ -564,6 +617,30 @@ void AssDoorRegionMain::LeavingRegion(SwampSceneNode* node)
     }
 }
 
+// FUNCTION: USA 0x0004B162
+// PROTOTYPE: PREVIEW 0x00438CB2 ambiguous
+// NAME: proto-pdb:default.pdb
+void OnBotRegionMain::EnteringRegion(SwampSceneNode* node)
+{
+    if (node == pManager->GetVince()) {
+        // !FAKE: c1xx front end; stand-in local; ends the string temporary before GetScript (BumperTargetMain form)
+        Critter* tmp = pManager->Find("kosmobotmidriff");
+        tmp->GetScript()->Message(this, KosmoBotMidriffMain::MESSAGE_VINCEONBOT, 0);
+    }
+}
+
+// FUNCTION: USA 0x0004B1BD
+// PROTOTYPE: PREVIEW 0x00438D0D ambiguous
+// NAME: proto-pdb:default.pdb
+void OnBotRegionMain::LeavingRegion(SwampSceneNode* node)
+{
+    if (node == pManager->GetVince()) {
+        // !FAKE: c1xx front end; stand-in local; ends the string temporary before GetScript (BumperTargetMain form)
+        Critter* tmp = pManager->Find("kosmobotmidriff");
+        tmp->GetScript()->Message(this, KosmoBotMidriffMain::MESSAGE_VINCEOFFBOT, 0);
+    }
+}
+
 class SoundManager { // NAME: proto-pdb:default.pdb
 public:
     static void PlaySound(const SwampString&, unsigned int, SwampSceneNode*, bool, float, float);
@@ -578,7 +655,8 @@ public:
 // FUNCTION: USA 0x0004AE71
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 99.54, bytes mismatch (instructions equal; frame slots differ: a string temp and a GetWorldRotation temp sit above pos, retail packs them below rot; C0225 open slot order)
+// best: match_one objdiff 99.90, bytes mismatch +0x58 (instructions equal, frame 0xc0 equal; v1/v5 slot sits at +0xc above rot, retail +0x40 above pos with the GetWorldPosition temp; T12.c10)
+// at-stop 20 (T12.c10b): ours keeps the two GetWorldRotation temps as separate $T (GetWorldPosition temp packs into their slot); retail behaves as one temp live across both, so GetWorldPosition packs with v1 instead. Inner block for v1 gives v1 = first rotation temp (frame 0xb4, 99.54); elided `*&` init 96.70
 void KosmoBotHeadMain::AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone)
 {
     if (name == "launchmissile") {
@@ -600,9 +678,8 @@ void KosmoBotHeadMain::AnimationTrigger(const SwampString& name, float value, fl
                 v6->Apply(pos, tmp);
                 v0 = tmp;
                 pos = v0 + p->GetWorldPosition();
-            }
-            {
-                // !FAKE: inliner; hand form of the inline Quaternion operator* (C0221)
+                // !FAKE: c2 frame layout; one block for both rotation temps so they pool below rot (frame 0xc0)
+                // !FAKE: inliner; hand form of the inline Quaternion operator*; no before/after recorded (C0221)
                 const Quaternion* v12 = &GetNode()->GetWorldRotation();
                 Quaternion v1(*v12);
                 v1 *= rot;
@@ -613,7 +690,7 @@ void KosmoBotHeadMain::AnimationTrigger(const SwampString& name, float value, fl
                 rot.Apply(Vector3(0.0f, 0.0f, 1.0f), tmp);
                 v2 = tmp;
                 Quaternion v5(v2);
-                // !FAKE: c2 register allocation; stand-in locals assigned in the call order retail loads them (C0221)
+                // !FAKE: c2 register allocation; stand-in locals assigned in the call order retail loads them; no before/after recorded (C0221)
                 CritterManager* v6;
                 SwampSceneNode* v10;
                 ModelManager* v11;

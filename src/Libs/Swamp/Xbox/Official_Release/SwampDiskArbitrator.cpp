@@ -68,7 +68,7 @@ private:
     T* _Mylast;                        // 0x08
     T* _Myend;                         // 0x0C
 };
-// !FAKE: c1xx front end; verbatim VC 7.1 vector::size body, defined out of class so /Ob1 keeps the retail call
+// !FAKE: c1xx front end; verbatim VC 7.1 vector::size body, defined out of class; so /Ob1 keeps the retail call
 template <class T, class A> unsigned int vector<T, A>::size() const
 {
     return (_Myfirst == 0 ? 0 : _Mylast - _Myfirst);

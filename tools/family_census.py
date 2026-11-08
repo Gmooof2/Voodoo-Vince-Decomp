@@ -331,6 +331,8 @@ def populations(env):
     n["identical"] = sum(1 for r in env["protos"] if r["class"] == "identical")
     n["pool"], n["matched"] = len(pool), sum(1 for r in pool if r["done"])
     n["unmatched"] = n["pool"] - n["matched"]
+    amb = [r for r in env["cand"] if r["lane"] == "ambiguous"]  # 5.3 T3: counted, not census rows
+    n["ambiguous pool"], n["ambiguous matched"] = len(amb), sum(1 for r in amb if r["done"])
     n["delinked-not-pool"] = n["tail"] + n["fold"] + n["no symbol"] + n["boundary"]
     rows.sort(key=lambda r: (r["va"], r["pop"]))
     return rows, n
@@ -426,6 +428,8 @@ def render(env, rows, n):
           "Claim type: row and byte counts of proto-identical rows, none claimed matched.",
           f"Denominators: rows {dr} = {n['unmatched']} unmatched pool + {n['uncut']} uncut; bytes {db} = "
           f"{size_of(pr)} pool + {size_of(ur)} uncut. p = pool, u = uncut. Sorts: count desc, bytes desc, name asc.",
+          f"Ambiguous lane (candidates.jsonl lane ambiguous, 5.3 T3): pool rows {n['ambiguous pool']}, matched "
+          f"{n['ambiguous matched']}; counted here only, not in the census rows or the sums.",
           "", sums_line, "", tally_line, ""]
 
     # 2. size bins

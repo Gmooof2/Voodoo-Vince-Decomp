@@ -52,6 +52,6 @@ void KosmobotPreludeCutscene::AnimationFinished(unsigned int id)
 // NAME: proto-pdb:default.pdb
 SwampScript* KosmobotPreludeCutscene::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("BumperCarBumpoff\\BumperCarCutscenes.cpp", 19) KosmobotPreludeCutscene(node);
 }

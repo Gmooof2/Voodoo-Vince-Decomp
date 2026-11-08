@@ -72,6 +72,7 @@ Vector3 Normalize(const Vector3&); // NAME: proto-pdb:default.pdb
 float FastReciprocalSquareRoot(float); // NAME: proto-pdb:default.pdb
 
 struct AABox;      // NAME: proto-pdb:default.pdb
+struct Matrix;     // NAME: proto-pdb:default.pdb
 struct Quaternion { // NAME: proto-pdb:default.pdb
     void Set(float, float, float);
     void Apply(const Vector3&, Vector3&) const;
@@ -88,6 +89,12 @@ public:
     virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+protected:
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
 
     const Vector3& SetLocation(const Vector3&);
     Vector3 GetFacing() const;
@@ -105,6 +112,12 @@ DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 class SwampCamera : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~SwampCamera();
+    virtual Vector3 GetViewPosition() const;                       // vtable+0x24
+    virtual Matrix GetViewMatrix() const;                          // vtable+0x28
+    virtual const Matrix& GetProjectionMatrix() const;             // vtable+0x2C
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
     void SetFOV(float);
     float GetFOV() const { return _fov; }
     float GetNearPlane() const { return _nearPlane; }
@@ -118,12 +131,20 @@ DECOMP_SIZE_ASSERT(SwampCamera, 0x10C);
 
 class GameCam : public SwampCamera { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~GameCam() {}
+    virtual void Activate();                                       // vtable+0x30
+    virtual void LosingControl();                                  // vtable+0x34
+    virtual Vector3 GetViewPosition() const;                       // vtable+0x24
     char field_10C[0x11C - 0x10C];     // 0x10C
+
+protected:
+    virtual void Update();                                         // vtable+0x1C
 };
 DECOMP_SIZE_ASSERT(GameCam, 0x11C);
 
 class VinceCam : public GameCam { // NAME: proto-pdb:default.pdb
 public:
+    ~VinceCam();
     void CopyCamera(GameCam* pcam);
     void SetDefaultVals();
     void SetSpeed(float speed) { _speed = speed; }
@@ -347,6 +368,8 @@ extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // math.h fabs(float) overload for the ResetLocation draft below (inline fabs needs /Oi, C0221)
 extern "C" double __cdecl fabs(double);
+// !FAKE: c1xx front end; file-scope #pragma intrinsic before the overload body; the unit has no /Oi, retail inlines fabs (match_one 87.38 -> 95.92)
+#pragma intrinsic(fabs)
 inline float fabs(float _X)
 {
     return (float)fabs((double)_X);
@@ -357,43 +380,58 @@ inline float fabs(float _X)
 // PROTOTYPE: PREVIEW 0x004F6079 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 95.92 with --control "/O1 /Oy /Oi" (inline fabs needs /Oi; 87.38 at the unit's /O1 /Oy), bytes mismatch: frame 0x4C vs 0x40 (retail packs myloc into dir's slot and flatvect into lookat's, as inlined free Vector3 operators would, no PDB record (D78)); was 95.28 before the v2/v3 stand-ins (T16.c19)
+// best: match_one objdiff 96.08 at /O1 /Oy (T12.c5b, 20 attempts), bytes mismatch at +0xFC: frame 0x40 and every slot match retail; retail keeps the radius on x87 for the z product (fld; fmul st(1); fstp st(0)), ours folds fmul [dir.z]; then v1 add operand order and pop edi/fcom scheduling
+// T12.c26 lever A (`const float& v` on v4 or _orbitRadius, member stores, z-product stand-in) neutral: 96.08, +0xFC
 void VinceCam::ResetLocation(bool behind)
 {
     Critter* vince = pManager->GetVince();
-    Vector3 lookat = _holdTarget ? _heldTargetPos : vince->GetWorldPosition();
-    Vector3 dir = _directionFixed ? _fixedDirection : vince->GetFacing();
-    if (behind && !_directionFixed)
-        dir = Vector3(-dir.x, -dir.y, -dir.z);
-    _fixedTimer = 0.0f;
-    _adjustTimer = 0.0f;
-    _positionFixed = false;
-    _peeking = false;
-    _wasInTunnel = false;
-    _moveBehindTimer = 0.0f;
-    _bumpedAlpha = 0.0f;
-    _lostTimer = 0.0f;
-    _rampUp = 1.0f;
-    _vinceFloatTimer = 0.0f;
-    // !FAKE: inliner; hand form of the inlined Vector3 operators (no PDB record); stand-ins v5, v4, v0, v1, p (C0191)
-    Vector3 v5(0.0f, _elevation, 0.0f);
-    float v4 = _orbitRadius;
-    const Vector3& v0 = Vector3(dir.x * v4, dir.y * v4, dir.z * v4);
-    const Vector3& v1 = Vector3(v0.x + lookat.x, v0.y + lookat.y, v0.z + lookat.z);
-    Vector3 myloc = Vector3(v1.x + v5.x, v1.y + v5.y, v1.z + v5.z);
-    SetLocation(myloc);
-    SetFOV(_baseFOV);
-    Vector3 viewvect(lookat.x - myloc.x, lookat.y - myloc.y, lookat.z - myloc.z);
-    Vector3 flatvect = viewvect;
-    flatvect.y = 0.0f;
-    float dist = flatvect.x * flatvect.x + flatvect.z * flatvect.z;
-    dist = dist * FastReciprocalSquareRoot(dist);
-    // !FAKE: c2 expression reassociation; stand-ins v3, v2; one expression sinks the 0.05f factor past the divide
-    float v3 = (fabs(viewvect.y) > 0.001f) ? fabs(viewvect.y) : 0.001f;
-    float v2 = _lookAhead * 0.05f;
-    dist = v2 / v3 * dist * 0.75f;
-    const Vector3* p = &Normalize(flatvect);
-    viewvect += Vector3(dist * p->x, dist * p->y, dist * p->z);
+    Vector3 viewvect;
+    // !FAKE: c2 stack packing; sibling blocks; retail shares lookat/flatvect and dir/myloc slots (PDB), our cl shares named slots only across sibling blocks (frame 0x4C -> 0x40, match_one 95.92 -> 96.08)
+    {
+        Vector3 lookat = _holdTarget ? _heldTargetPos : vince->GetWorldPosition();
+        // !FAKE: inliner; hand form of the inlined Vector3 operators (no PDB record); stand-ins v5, v4, v0, v1, p as pointers to temporaries carried into the sibling block (C0191)
+        const Vector3* v5;
+        const Vector3* v1;
+        {
+            Vector3 dir = _directionFixed ? _fixedDirection : vince->GetFacing();
+            if (behind && !_directionFixed)
+                dir = Vector3(-dir.x, -dir.y, -dir.z);
+            _fixedTimer = 0.0f;
+            _adjustTimer = 0.0f;
+            _positionFixed = false;
+            _peeking = false;
+            _wasInTunnel = false;
+            _moveBehindTimer = 0.0f;
+            _bumpedAlpha = 0.0f;
+            _lostTimer = 0.0f;
+            _rampUp = 1.0f;
+            _vinceFloatTimer = 0.0f;
+            v5 = &Vector3(0.0f, _elevation, 0.0f);
+            float v4 = _orbitRadius;
+            Vector3 v0(dir.x * v4, dir.y * v4, dir.z * v4);
+            v1 = &Vector3(lookat.x + v0.x, lookat.y + v0.y, lookat.z + v0.z);
+        }
+        {
+            Vector3 myloc = Vector3(v1->x + v5->x, v1->y + v5->y, v1->z + v5->z);
+            SetLocation(myloc);
+            SetFOV(_baseFOV);
+            viewvect.x = lookat.x - myloc.x;
+            viewvect.y = lookat.y - myloc.y;
+            viewvect.z = lookat.z - myloc.z;
+        }
+    }
+    {
+        Vector3 flatvect = viewvect;
+        flatvect.y = 0.0f;
+        float dist = flatvect.x * flatvect.x + flatvect.z * flatvect.z;
+        dist = dist * FastReciprocalSquareRoot(dist);
+        // !FAKE: c2 expression reassociation; stand-ins v3, v2; one expression sinks the 0.05f factor past the divide
+        float v3 = (fabs(viewvect.y) > 0.001f) ? fabs(viewvect.y) : 0.001f;
+        float v2 = _lookAhead * 0.05f;
+        dist = v2 / v3 * dist * 0.75f;
+        const Vector3* p = &Normalize(flatvect);
+        viewvect += Vector3(dist * p->x, dist * p->y, dist * p->z);
+    }
     viewvect.Normalize();
     SetFacing(viewvect);
 }
@@ -490,6 +528,12 @@ private:
 };
 DECOMP_SIZE_ASSERT(CameraHelperRegionMain, 0x9C);
 
+// FUNCTION: USA 0x0010BB5F
+// NAME: proto-pdb:default.pdb
+VinceCam::~VinceCam()
+{
+}
+
 // FUNCTION: USA 0x0010BB6A
 // NAME: proto-pdb:default.pdb
 CameraHelperRegionMain::CameraHelperRegionMain(SwampSceneNode* node)
@@ -502,15 +546,13 @@ CameraHelperRegionMain::CameraHelperRegionMain(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CameraHelperRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\VinceCam.h", 212) CameraHelperRegionMain(node);
 }
 
 // FUNCTION: USA 0x0010DF74
 // PROTOTYPE: PREVIEW 0x004F88BA identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 99.568, bytes mismatch (masked 0): after camerafixangle's fmul, cl schedules lea ecx (temp dtor) above fstp fixangle; retail stores first
 void CameraHelperRegionMain::Load(const BeepTDF& tdf)
 {
     _flags = 0;
@@ -571,7 +613,8 @@ void CameraHelperRegionMain::Load(const BeepTDF& tdf)
         }
     }
     // !FAKE: c1xx front end; cast; retail multiplies by a float literal (fmul dword), the double product gives fmul qword (match_one 99.557 -> 99.568)
-    float fixangle = (float)tdf.GetFloatRecord("camerafixangle", -1.0) * 0.0174532925f;
+    // !FAKE: c2 instruction scheduling; cast; the outer redundant (float) puts fstp fixangle above the temp dtor's lea ecx (match_one 99.568 -> 100.0)
+    float fixangle = (float)((float)tdf.GetFloatRecord("camerafixangle", -1.0) * 0.0174532925f);
     if (fixangle >= 0.0f) {
         _flags |= FIX_DIRECTION;
         Quaternion q;
@@ -606,7 +649,6 @@ void CameraHelperRegionMain::Load(const BeepTDF& tdf)
     _delay = tdf.GetFloatRecord("cameradelay", 1.0);
     _flags |= DELAY;
 }
-#endif
 
 // FUNCTION: USA 0x0010E48D
 // PROTOTYPE: PREVIEW 0x004F8DD3 identical

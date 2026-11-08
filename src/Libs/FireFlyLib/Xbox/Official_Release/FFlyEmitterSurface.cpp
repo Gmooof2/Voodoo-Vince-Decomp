@@ -17,7 +17,9 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
+#ifdef NON_MATCHING // D78, D117: default.pdb records no free Vector3 operator (5.2 T20)
 inline Vector3 operator-(const Vector3& a, const Vector3& b) { return Vector3(a.x - b.x, a.y - b.y, a.z - b.z); }
+#endif
 
 struct Vector4 { // NAME: proto-pdb:default.pdb
     float x;                           // 0x00
@@ -123,6 +125,10 @@ public:
 };
 DECOMP_SIZE_ASSERT(FFlyPointSurf, 0x4);
 
+// FUNCTION: USA 0x0006F150
+// NAME: proto-pdb:default.pdb
+// ??_GFFlySphereSurf: compiler-generated with the vtable the ctor emits; match_one objdiff 100.0, bytes match (masked 0);
+// wall (5.3 T6.c3 precheck): matched_set refuses, symbols_pin.txt 0x0006F150 pin has no size; lift = size the pin
 class FFlySphereSurf : public FFlyEmitterSurface { // NAME: proto-pdb:default.pdb
 public:
     virtual int Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, float param2, unsigned int max);
@@ -157,7 +163,7 @@ DECOMP_SIZE_ASSERT(FFlyAlignedSphereSurf, 0x4);
 // NAME: proto-pdb:default.pdb
 FFlyEmitterSurface* FFlyEmitterSurface::Create(unsigned int type)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__
     switch (type) {
     case POINT:
         return new("FFlyEmitterSurface.cpp", 24) FFlyPointSurf;
@@ -190,7 +196,7 @@ int FFlyPointSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, fl
     float angle2;
     emitter.GetTransformMatrix().AffineMultiply(emitter.GetWorldMatrix(), mtx);
     Vector3 v(0.0f, 0.0f, 0.0f);
-    // !FAKE: stand-in for retail's unnamed Apply result at [ebp-0x44]
+    // !FAKE: c2 frame slots; stand-in local v0; it stands for retail's unnamed Apply result at [ebp-0x44]
     Vector3 v0;
     mtx.Apply(v, v0);
     for (unsigned int i = 0; i < max; i++, p++) {
@@ -203,17 +209,19 @@ int FFlyPointSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, fl
             angle2 = angleCtrl->Evaluate(t);
             v.Set(sinf(angle1) * (sinf(angle2) * speed), cosf(angle2) * speed, cosf(angle1) * (sinf(angle2) * speed));
             mtx.ApplyNormal(v, v);
-            p->_lastPosition = p->_position - v;
+            // !FAKE: inliner; stand-in local v1 and member stores, hand form of a Vector3 difference (no free operator in the PDB, D78)
+            Vector3 v1;
+            v1.x = p->_position.x - v.x;
+            v1.y = p->_position.y - v.y;
+            v1.z = p->_position.z - v.z;
+            p->_lastPosition = v1;
         }
     }
     return count;
 }
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x0006F2B5
 // NAME: proto-pdb:default.pdb
-// best: match_one 95.15 under /O1 /Oy /Oi; retail stores the x random straight into pos.x and puts count below pos
-// (-0x10); every pos form here (ctor, Set, per-component, y stand-in) keeps a temp or flips the frame (wall-regalloc)
 int FFlySphereSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, float param2, unsigned int max)
 {
     int count = 0;
@@ -227,30 +235,50 @@ int FFlySphereSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, f
         if (p->_flags & FFlyParticle::SPAWNING) {
             count++;
             p->_flags = FFlyParticle::ALIVE;
-            Vector3 pos(g_fflyRand.GetRandomFloat(-1.0f, 1.0f), g_fflyRand.GetRandomFloat(-1.0f, 1.0f), g_fflyRand.GetRandomFloat(-1.0f, 1.0f));
+            // !FAKE: c2 frame slots and x87 code; stand-in local v1 (retail's first random, y) and per-component pos stores
+            float v1 = g_fflyRand.GetRandomFloat(-1.0f, 1.0f);
+            Vector3 pos;
+            pos.x = g_fflyRand.GetRandomFloat(-1.0f, 1.0f);
+            pos.y = v1;
+            pos.z = g_fflyRand.GetRandomFloat(-1.0f, 1.0f);
             // !FAKE: inliner; hand form of the ApproxLength body (D117); /O1 keeps the inline call out of line
-            float v0 = pos.LengthSquared();
+            float v0 = v1 * v1 + pos.x * pos.x + pos.z * pos.z;
             v0 = FastReciprocalSquareRoot(v0) * v0;
-            pos *= g_fflyRand.GetRandomFloat(param2, param1) / v0;
+            // !FAKE: c2 x87 code; double stand-in s keeps the scale on st(0) past the z product (fstp st(0), C0323)
+            double s = g_fflyRand.GetRandomFloat(param2, param1) / v0;
+            pos.x *= s;
+            pos.y *= s;
+            pos.z *= s;
             mtx.Apply(pos, p->_position);
             float speed = speedCtrl->Evaluate(t) * step;
             float angle1 = g_fflyRand.GetRandomFloat() * 6.2831855f;
             float angle2 = angleCtrl->Evaluate(t);
             Vector3 v;
-            v.Set(sinf(angle1) * (sinf(angle2) * speed), cosf(angle2) * speed, cosf(angle1) * (sinf(angle2) * speed));
+            // !FAKE: c2 scheduling; stand-in local v3 and per-component stores (Ellipse's form)
+            float v3 = sinf(angle2) * speed;
+            v.x = sinf(angle1) * v3;
+            v.y = cosf(angle2) * speed;
+            v.z = cosf(angle1) * v3;
             mtx.ApplyNormal(v, v);
-            p->_lastPosition = p->_position - v;
+            // !FAKE: inliner; stand-in local v2 and member stores, hand form of a Vector3 difference (no free operator in the PDB, D78)
+            Vector3 v2;
+            v2.x = p->_position.x - v.x;
+            v2.y = p->_position.y - v.y;
+            v2.z = p->_position.z - v.z;
+            p->_lastPosition = v2;
         }
     }
     return count;
 }
-#endif
 
 #ifdef NON_MATCHING
 // FUNCTION: USA 0x0006F7B1
 // NAME: proto-pdb:default.pdb
-// best: match_one 95.24 under /O1 /Oy /Oi; only the ApplyNormal `lea/push` pair is scheduled after the velocity
-// stores in retail, before them in ours; 5 velocity forms tried (wall-schedule)
+// best: match_one 95.24 under /O1 /Oy /Oi; at-stop 5.2 T12.c8b (20 runs); pos code = retail; only the ApplyNormal
+// lea/push: retail after the last velocity store, ours hoisted. Dead: v3/per-component/ctor/Set/double v3/operator[]/
+// pointer/comma-arg/label velocity forms, decl moves (91.38-95.24); ctor pos w/o stand-ins parks x (74.60-76.19).
+// Sphere's same block moved only with an upstream double stand-in (C0323): look upstream (logs T12.c8, T12.c8b)
+// T12.c24 run 20: top-declared speed/angles + v3 Set 93.65; ~300 free probes (pos order/types, decls, velocity) none better
 int FFlyPlaneSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, float param2, unsigned int max)
 {
     int count = 0;
@@ -264,7 +292,7 @@ int FFlyPlaneSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, fl
         if (p->_flags & FFlyParticle::SPAWNING) {
             count++;
             p->_flags = FFlyParticle::ALIVE;
-            // !FAKE: stand-in; retail negates both bounds before the first random
+            // !FAKE: c2 x87 code; stand-in local v1; retail negates both bounds before the first random
             float v1 = -param2;
             float v2 = -param1;
             Vector3 pos;
@@ -285,11 +313,8 @@ int FFlyPlaneSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, fl
 }
 #endif
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x0006F479
 // NAME: proto-pdb:default.pdb
-// best: match_one 94.41 under /O1 /Oy /Oi; only the ApplyNormal `lea/push` pair placement inside the velocity
-// block differs; 5 velocity forms tried (wall-schedule)
 int FFlyEllipseSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, float param2, unsigned int max)
 {
     int count = 0;
@@ -307,7 +332,7 @@ int FFlyEllipseSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, 
             pos.x = g_fflyRand.GetRandomFloat(-1.0f, 1.0f);
             pos.y = 0.0f;
             pos.z = g_fflyRand.GetRandomFloat(-1.0f, 1.0f);
-            // !FAKE: inliner; hand form of a 2D length (retail sums x and z only), len holds the squared length first
+            // !FAKE: inliner; hand form of a 2D length, len holds the squared length first; retail sums x and z only
             float len = pos.x * pos.x + pos.z * pos.z;
             len = 1.0f / (FastReciprocalSquareRoot(len) * len);
             pos.x = (g_fflyRand.GetRandomFloat() * pos.x) * len * param1;
@@ -317,20 +342,31 @@ int FFlyEllipseSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, 
             float angle1 = g_fflyRand.GetRandomFloat() * 6.2831855f;
             float angle2 = angleCtrl->Evaluate(t);
             Vector3 v;
-            v.Set(sinf(angle1) * (sinf(angle2) * speed), cosf(angle2) * speed, cosf(angle1) * (sinf(angle2) * speed));
+            // !FAKE: c2 scheduling; stand-in local v3 and per-component stores; ApplyNormal lea/push placement (match_one 94.41 -> 95.80 -> 100.0)
+            float v3 = sinf(angle2) * speed;
+            v.x = sinf(angle1) * v3;
+            v.y = cosf(angle2) * speed;
+            v.z = cosf(angle1) * v3;
             mtx.ApplyNormal(v, v);
-            p->_lastPosition = p->_position - v;
+            // !FAKE: inliner; stand-in local v0 and member stores, hand form of a Vector3 difference (no free operator in the PDB, D78)
+            Vector3 v0;
+            v0.x = p->_position.x - v.x;
+            v0.y = p->_position.y - v.y;
+            v0.z = p->_position.z - v.z;
+            p->_lastPosition = v0;
         }
     }
     return count;
 }
-#endif
 
 #ifdef NON_MATCHING
 // FUNCTION: USA 0x0006F61F
 // NAME: proto-pdb:default.pdb
 // best: match_one 98.86 under /O1 /Oy /Oi; retail scales x and z only (y known 0), ours also scales y; explicit
 // x/z forms (94.04) lose the scale's st(0) lifetime and the ApplyNormal push placement (wall-x87-lifetime)
+// at-stop 5.2 T12.c8 (20 runs) lead: `pos.x = rand; pos.Set(pos.x, 0.0f, rand);` + LengthSquared (y*y folds) +
+// `s = ...; pos.x *= s; pos.z *= s;` gives retail's length and scale exactly (92.54); left: the fldz/y store lands
+// after the 2nd GetRandomFloat call (retail before it) and the velocity block's lea/push schedule
 int FFlyRingSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, float param2, unsigned int max)
 {
     int count = 0;
@@ -348,7 +384,7 @@ int FFlyRingSurf::Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, flo
             pos.x = g_fflyRand.GetRandomFloat(-1.0f, 1.0f);
             pos.y = 0.0f;
             pos.z = g_fflyRand.GetRandomFloat(-1.0f, 1.0f);
-            // !FAKE: inliner; hand form of a 2D length (retail sums x and z only)
+            // !FAKE: inliner; hand form of a 2D length; retail sums x and z only
             float v0 = pos.x * pos.x + pos.z * pos.z;
             v0 = FastReciprocalSquareRoot(v0) * v0;
             pos *= g_fflyRand.GetRandomFloat(param2, param1) / v0;

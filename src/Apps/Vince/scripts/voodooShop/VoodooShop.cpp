@@ -83,10 +83,16 @@ public:
 
     ~vector() { _Tidy(); }
     iterator begin() { return (iterator(_Myfirst)); }
+    size_type capacity() const
+    {
+        return (_Myfirst == 0 ? 0 : _Myend - _Myfirst);
+    }
     size_type size() const
     {
         return (_Myfirst == 0 ? 0 : _Mylast - _Myfirst);
     }
+    void push_back(const _Ty& _Val); // retail calls it out of line
+    void clear() { _Tidy(); }
     _Ty& operator[](size_type _Pos) { return (*(begin() + _Pos)); }
     iterator insert(iterator _Where, const _Ty& _Val)
     {
@@ -120,9 +126,18 @@ struct _FILETIME { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(_FILETIME, 0x8);
 
+class AABox;      // NAME: proto-pdb:default.pdb
+class Vector3;    // NAME: proto-pdb:default.pdb
+class Quaternion; // NAME: proto-pdb:default.pdb
+
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     virtual ~SwampSceneNode();                             // vtable+0x00
+    virtual const AABox& GetBounds() const;                // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;              // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;           // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);         // vtable+0x10
+    virtual void Invalidate();                             // vtable+0x14
 
     char field_4[0xA4 - 0x4];          // 0x04
 };
@@ -130,11 +145,27 @@ DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 class FrontEndMenu : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    // FUNCTION: USA 0x00138DBB
+    // NAME: proto-pdb:default.pdb
+    // FUNCTION: USA 0x00138FA3
+    // NAME: proto-pdb:default.pdb
+    // ??_G and ??4 CaptionLine: compiler-generated, emitted by pin_emit_CaptionLine_delete/_assign (5.3 T6.c12)
+    struct CaptionLine { // NAME: proto-pdb:default.pdb
+        CaptionLine(const unsigned short* wstr, unsigned int flags) : _wstr(wstr), _flags(flags) {}
+
+        SwampWString _wstr;            // 0x00
+        unsigned int _flags;           // 0x1C
+    };
+
     virtual ~FrontEndMenu();
+    void ClearCaption() { _captions.clear(); }
+    void PushCaption(const unsigned short*, unsigned int);
     void SetCaption(const unsigned short*, unsigned int);
 
-    char field_A4[0xFC - 0xA4];        // 0xA4
+    char field_A4[0xEC - 0xA4];        // 0xA4
+    std::vector<CaptionLine> _captions; // 0xEC
 };
+DECOMP_SIZE_ASSERT(FrontEndMenu::CaptionLine, 0x20);
 DECOMP_SIZE_ASSERT(FrontEndMenu, 0xFC);
 
 class FrontEndUI : public FrontEndMenu { // NAME: proto-pdb:default.pdb
@@ -215,6 +246,8 @@ public:
         SwampWString _gameName;        // 0x44
     };
 
+    virtual void Invalidate();
+
     char field_D4[0xE4 - 0xD4];        // 0xD4
 private:
     void UpdatePics();
@@ -267,6 +300,11 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 // NAME: proto-pdb:default.pdb
 template unsigned int std::vector<LevelScript::ProgressHint,std::allocator<LevelScript::ProgressHint> >::size()const;
 
+// FUNCTION: USA 0x0013883C
+// PROTOTYPE: PREVIEW 0x00522A8D identical
+// NAME: proto-pdb:default.pdb
+template unsigned int std::vector<SavedGamesScreen::SavedGameInfo,std::allocator<SavedGamesScreen::SavedGameInfo> >::capacity()const;
+
 // FUNCTION: USA 0x00138C71
 // PROTOTYPE: PREVIEW 0x00522DAA identical
 // NAME: proto-pdb:default.pdb
@@ -302,6 +340,33 @@ void pin_emit_SavedGameInfo_copy(void* p, const SavedGamesScreen::SavedGameInfo&
     new (p) SavedGamesScreen::SavedGameInfo(v);
 }
 
+// !FAKE: c1xx front end; scaffold delete; retail emits ??_GCaptionLine@FrontEndMenu@@QAEPAXI@Z in this unit (no
+// matched function deletes a CaptionLine); this delete-expression emits it instead (matched_set [[emitter]] row)
+void pin_emit_CaptionLine_delete(FrontEndMenu::CaptionLine* p)
+{
+    delete p;
+}
+
+// ??0Subtitle@HUDUI@@QAE@ABU01@@Z row (fold alias ??0CaptionLine@FrontEndMenu@@QAE@ABU01@@Z at 0x00138EA1):
+// fold-name wall (C0320, C0377). Subtitle@HUDUI belongs to HUDUI.cpp: match_one `not defined in VoodooShop.obj`.
+// Lift: re-cut 0x00138EA1 in the delink object under ??0CaptionLine (or move the row to that name).
+#ifdef NON_MATCHING
+// best: match_one ??0CaptionLine objdiff None (delink object names the VA ??0Subtitle), bytes match (masked 0)
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit CaptionLine copy ctor in this unit (no matched
+// function odr-uses it); this placement new odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_CaptionLine_copy(void* p, const FrontEndMenu::CaptionLine& v)
+{
+    new (p) FrontEndMenu::CaptionLine(v);
+}
+#endif
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit CaptionLine copy assignment in this unit (no
+// matched function odr-uses it); this assignment odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_CaptionLine_assign(FrontEndMenu::CaptionLine* p, const FrontEndMenu::CaptionLine& v)
+{
+    *p = v;
+}
+
 class SwampCamera : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     char field_A4[0xC4 - 0xA4];        // 0xA4
@@ -325,6 +390,11 @@ public:
 };
 DECOMP_SIZE_ASSERT(AnimCam, 0x128);
 
+// FUNCTION: USA 0x0013A54A
+// NAME: proto-pdb:default.pdb
+// ??_GVoodooShopLevelMain (alias ??_EVoodooShopLevelMain) unmatched, no draft; wall: a virtual ??_G is emitted only with
+// the class vtable, i.e. with its ctor ??0VoodooShopLevelMain 0x0013AAE9 (0x3A9, not a candidate row; ??1 0x0013A51E a
+// fail row) (C0320, C0377); match_one: `not defined in VoodooShop.obj`. Lift: match the ctor (and ??1) as companions.
 class VoodooShopLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     void SetCamera(const char* name, bool reverse);
@@ -349,6 +419,17 @@ void VoodooShopLevelMain::SetCamera(const char* name, bool reverse)
     AnimCam* cam = AnimCam::SwitchTo(name, 0.0f, reverse, 0.0f);
     cam->_speed = reverse ? -3 : 3;
     _controlOff = true;
+}
+
+// FUNCTION: USA 0x00139123
+// PROTOTYPE: PREVIEW 0x00523175 identical
+// NAME: proto-pdb:default.pdb
+void SavedGamesScreen::Invalidate()
+{
+    for (int i = 0; i < 3; i++)
+        _pictures[i].SetTexture("");
+    _selectBar.SetTexture("");
+    UINode::Invalidate();
 }
 
 // FUNCTION: USA 0x00139B9E
@@ -392,6 +473,25 @@ template SavedGamesScreen::SavedGameInfo * std::vector<SavedGamesScreen::SavedGa
 // PROTOTYPE: PREVIEW 0x005242DD identical
 // NAME: proto-pdb:default.pdb
 template std::vector<SavedGamesScreen::SavedGameInfo,std::allocator<SavedGamesScreen::SavedGameInfo> >::iterator std::vector<SavedGamesScreen::SavedGameInfo,std::allocator<SavedGamesScreen::SavedGameInfo> >::insert(std::vector<SavedGamesScreen::SavedGameInfo,std::allocator<SavedGamesScreen::SavedGameInfo> >::iterator,SavedGamesScreen::SavedGameInfo const &);
+
+// FUNCTION: USA 0x0013A445
+// PROTOTYPE: PREVIEW 0x00524322 identical
+// NAME: proto-pdb:default.pdb
+void FrontEndMenu::PushCaption(const unsigned short* caption, unsigned int flags)
+{
+    CaptionLine line(caption, flags);
+    _captions.push_back(line);
+}
+
+// FUNCTION: USA 0x0013A47F
+// PROTOTYPE: PREVIEW 0x0052435C identical
+// NAME: proto-pdb:default.pdb
+void FrontEndMenu::SetCaption(const unsigned short* caption, unsigned int flags)
+{
+    ClearCaption();
+    CaptionLine line(caption, flags);
+    _captions.push_back(line);
+}
 
 // FUNCTION: USA 0x0013A4C0
 // PROTOTYPE: PREVIEW 0x0052439D identical

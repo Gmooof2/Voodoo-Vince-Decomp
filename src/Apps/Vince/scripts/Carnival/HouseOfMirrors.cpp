@@ -4,6 +4,13 @@ namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
 private:
     unsigned int _pad00[0x1C / 4];
 };
@@ -48,6 +55,9 @@ public:
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
 
+protected:
+    SwampScript(SwampSceneNode* node);
+public:
     char field_4[0x1C];                // 0x04 (_name; not reached)
     SwampSceneNode* _node;             // 0x20
     char field_24[0x28];               // 0x24 (_parent .. _saveLoadVars; not reached)
@@ -68,7 +78,8 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 enum { // NAME: proto-pdb:default.pdb
     MESSAGE_VINCEDIED = 0x2,
-    MESSAGE_GAMESTART = 0x6
+    MESSAGE_GAMESTART = 0x6,
+    MESSAGE_WHOSYOURDADDY = 0x7
 };
 
 class Level { // NAME: proto-pdb:default.pdb
@@ -102,18 +113,24 @@ extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class SwitchMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
-    char field_BC[0x13C - 0xBC];       // 0xBC (not reached)
+    void SetOnAnimName(const SwampString&);
+
+    char field_BC[0x139 - 0xBC];       // 0xBC (not reached)
+    bool _oneWayThrow;                 // 0x139
+    char field_13A[0x13C - 0x13A];     // 0x13A (_multiTarget; not reached)
 };
 DECOMP_SIZE_ASSERT(SwitchMain, 0x13C);
 
 class BasicWallSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    BasicWallSwitchMain(SwampSceneNode* node);
     virtual void Activate();
 };
 DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 
 class Switch_GeneratorMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    Switch_GeneratorMain(SwampSceneNode* node);
     virtual void Activate();
 };
 
@@ -172,6 +189,49 @@ void BattleDoorsMain::Message(SwampScript* source, int message, void* data)
     }
 }
 
+class EvilVinceMirrorBrokenMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    EvilVinceMirrorBrokenMain(SwampSceneNode* node);
+    virtual void Message(SwampScript* source, int message, void* data);
+
+    SwampScript* _parent;              // 0x4C
+};
+DECOMP_SIZE_ASSERT(EvilVinceMirrorBrokenMain, 0x50);
+
+// FUNCTION: USA 0x00043095
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 60.0, bytes provisional (masked 1 = vptr store ??_7EvilVinceMirrorBrokenMain 0x001D0D38,
+// no retail name; va_dis no difference): data-pin wall, source is final; 5.3 T12.1.c2
+EvilVinceMirrorBrokenMain::EvilVinceMirrorBrokenMain(SwampSceneNode* node) : SwampScript(node), _parent(0)
+{
+}
+#endif
+
+class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    LevelScript(SwampSceneNode* node, bool isZone);
+
+    char field_4C[0x64 - 0x4C];        // 0x4C (_isZone ..; not reached)
+};
+DECOMP_SIZE_ASSERT(LevelScript, 0x64);
+
+class HouseOMirrorsRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    HouseOMirrorsRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(HouseOMirrorsRegionMain, 0x64);
+
+// FUNCTION: USA 0x0004321D
+// PROTOTYPE: PREVIEW 0x00431547 identical
+// NAME: proto-pdb:default.pdb
+void EvilVinceMirrorBrokenMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message == MESSAGE_WHOSYOURDADDY)
+        _parent = source;
+}
+
 // FUNCTION: USA 0x00043265
 // NAME: proto-pdb:default.pdb
 void MirrorMonsterRegionMain::Message(SwampScript* source, int message, void* data)
@@ -185,4 +245,85 @@ void MirrorMonsterRegionMain::Message(SwampScript* source, int message, void* da
         _child = pManager->Find(_monster);
         break;
     }
+}
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x10];               // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+
+    T* _Resource;                      // 0x00
+};
+
+class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~MonsterMain();
+
+    char field_BC[0x240 - 0xBC];       // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
+
+// FUNCTION: USA 0x00043A1F
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = vptr store ??_7Switch_GeneratorMain 0x001D0F68,
+// no retail name): data-pin wall, source is final; 5.3 T12.1.c2
+Switch_GeneratorMain::Switch_GeneratorMain(SwampSceneNode* node) : BasicWallSwitchMain(node)
+{
+    SetOnAnimName("SwitchCarnival_down");
+    _oneWayThrow = true;
+}
+#endif
+
+// FUNCTION: USA 0x00043F41
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 40.9, bytes provisional (masked 1 = vptr store ??_7HouseOMirrorsRegionMain 0x001D1158,
+// no retail name; va_dis no difference): data-pin wall, source is final; 5.3 T12.1.c2
+HouseOMirrorsRegionMain::HouseOMirrorsRegionMain(SwampSceneNode* node) : LevelScript(node, true)
+{
+}
+#endif
+
+// FUNCTION: USA 0x00044022
+// PROTOTYPE: PREVIEW 0x00432133 identical
+// NAME: proto-pdb:default.pdb
+class FireBugMain : public MonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<AnimationResource> _animIdle;                // 0x240
+    ResourceHandle<AnimationResource> _animFly;                 // 0x244
+    ResourceHandle<AnimationResource> _animAttackStraight;      // 0x248
+    ResourceHandle<AnimationResource> _animAttackDown;          // 0x24C
+    ResourceHandle<AnimationResource> _animAttackLeft;          // 0x250
+    ResourceHandle<AnimationResource> _animAttackRight;         // 0x254
+    ResourceHandle<AnimationResource> _animRapidAttackStraight; // 0x258
+    ResourceHandle<AnimationResource> _animRapidAttackDown;     // 0x25C
+    ResourceHandle<AnimationResource> _animRapidAttackLeft;     // 0x260
+    ResourceHandle<AnimationResource> _animRapidAttackRight;    // 0x264
+    ResourceHandle<AnimationResource> _animWindup;              // 0x268
+    int _barrelBone;                   // 0x26C
+    char field_270[0x4];               // 0x270 (_loopSound; not reached)
+};
+DECOMP_SIZE_ASSERT(FireBugMain, 0x274);
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1FireBugMain@@UAE@XZ in this unit (no vptr store,
+// so no declared dtor; no matched function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_FireBugMain_dtor(FireBugMain* p)
+{
+    p->FireBugMain::~FireBugMain();
 }

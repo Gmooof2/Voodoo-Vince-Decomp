@@ -183,6 +183,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(OverheatUI, 0x174);
 
+// FUNCTION: USA 0x00057807
+// NAME: proto-pdb:default.pdb
 class ShootingUI : public UINode { // NAME: proto-pdb:default.pdb
 public:
     void SetAimPosition(float x, float y) { _x = x; _y = y; }
@@ -256,6 +258,13 @@ void pin_emit_OverheatUI_dtor(OverheatUI* p)
     p->OverheatUI::~OverheatUI();
 }
 
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1ShootingUI@@UAE@XZ in this unit (no matched
+// function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_ShootingUI_dtor(ShootingUI* p)
+{
+    p->ShootingUI::~ShootingUI();
+}
+
 // FUNCTION: USA 0x00057200
 // PROTOTYPE: PREVIEW 0x00443B47 identical
 // NAME: proto-pdb:default.pdb
@@ -299,11 +308,11 @@ Matrix AirplaneCam::GetViewMatrix() const
     Matrix matView;
     Quaternion q = GetWorldRotation();
     Vector3 row3;
-    // !FAKE: inliner; hand form of the by-value Quaternion::Inverse and Norm, which /O1 keeps out of line (C0125)
+    // !FAKE: inliner; hand form of the by-value Quaternion::Inverse and Norm; /O1 keeps them out of line (C0125)
     float tmp = FastReciprocalSquareRoot(q.v.x * q.v.x + q.w * q.w + q.v.y * q.v.y + q.v.z * q.v.z);
     Quaternion qinv(-(q.v.x * tmp), -(q.v.y * tmp), -(q.v.z * tmp), q.w * tmp);
     qinv.Matrix(matView);
-    // !FAKE: inliner; hand form of the by-value Quaternion::Apply, which /O1 keeps out of line (C0191)
+    // !FAKE: inliner; hand form of the by-value Quaternion::Apply; /O1 keeps it out of line (C0191)
     {
         const Vector3* p = &GetWorldPosition();
         Vector3 v0;
@@ -311,7 +320,7 @@ Matrix AirplaneCam::GetViewMatrix() const
         row3 = v0;
     }
     {
-        // !FAKE: inliner; hand form of the Vector4 ctor (dropped above)
+        // !FAKE: inliner; hand form of the Vector4 ctor (dropped above); no before/after recorded
         Vector4 v1;
         v1.x = -row3.x;
         v1.y = -row3.y;

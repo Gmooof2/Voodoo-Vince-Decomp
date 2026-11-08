@@ -39,7 +39,7 @@ template<class _Elem, class _Traits = char_traits<_Elem>, class _Ax = allocator<
 class basic_string {
 public:
     enum { _BUF_SIZE = 16 / sizeof(_Elem) < 1 ? 1 : 16 / sizeof(_Elem) };
-    // !FAKE: inliner; hand form of the VC 7.1 default ctor's _Tidy(): retail inlines _Tidy(false) but calls
+    // !FAKE: inliner; hand form of the VC 7.1 default ctor's _Tidy(); retail inlines _Tidy(false) but calls
     // _Tidy(true) by name, so _Tidy stays declared only (C0245)
     basic_string()
     {
@@ -220,7 +220,7 @@ public:
     void pop_front();
 
 protected:
-    // !FAKE: c2 noreturn; retail 0x0001D5C2 (named fold alias) is called out of line and _Growmap does not reload
+    // !FAKE: c2 noreturn; declaration-only __declspec(noreturn) _Xlen; retail 0x0001D5C2 (named fold alias) is called out of line and _Growmap does not reload
     // eax after it; the VC 7.1 body (throw length_error) gives that but emits unnamed throw-info data (C0236)
     __declspec(noreturn) void _Xlen() const;
     void _Growmap(size_type _Count)
@@ -461,7 +461,7 @@ public:
 };
 class TextureManager : public ResourceManager<TextureResource> { // NAME: proto-pdb:default.pdb
 };
-// !FAKE: C0154 decl-only explicit specialization: the TextureResource copy is SwampResourceManager.cpp's matched
+// !FAKE: c1xx front end; C0154 decl-only explicit specialization; the TextureResource copy is SwampResourceManager.cpp's matched
 // row (same name, no fold merge), so the call stays external to it
 template <> void ResourceManager<TextureResource>::OutputContents() const;
 
@@ -489,7 +489,7 @@ std::string GetLangCode(); // NAME: proto-pdb:default.pdb
 class SwampLoader { // NAME: proto-pdb:default.pdb
 public:
     struct Bundle { // NAME: proto-pdb:default.pdb
-        // !FAKE: front end (implicit member emission); user-declared copy ctor; PDB param `__that` marks it compiler-generated, but with it removed cl emits none here (no copy in this unit): "match_one: REFUSED bytes: symbol ??0Bundle@SwampLoader@@QAE@ABU01@@Z not defined in SwampLoader.obj"
+        // !FAKE: c1xx front end (implicit member emission); user-declared copy ctor; PDB param `__that` marks it compiler-generated, but with it removed cl emits none here (no copy in this unit): "match_one: REFUSED bytes: symbol ??0Bundle@SwampLoader@@QAE@ABU01@@Z not defined in SwampLoader.obj"
         Bundle(const Bundle&);
         Bundle() {}
         ~Bundle();
@@ -502,7 +502,7 @@ public:
     };
 
     struct UnpackJob { // NAME: proto-pdb:default.pdb
-        // !FAKE: front end (implicit member emission); user-declared copy ctor, as Bundle above (PDB param `__that`)
+        // !FAKE: c1xx front end (implicit member emission); user-declared copy ctor; as Bundle above (PDB param `__that`)
         UnpackJob(const UnpackJob&);
         UnpackJob() {}
         ~UnpackJob();
@@ -556,19 +556,19 @@ void BundleWrapper::SetProtection(unsigned long flags)
     XPhysicalProtect(_bundle, _size, flags);
 }
 
-#ifdef NON_MATCHING
-// row USA 0x000DA765, PREVIEW 0x004C5C96 identical
-// best: match_one objdiff 100.0, bytes match; wall: provenance_lint nested operator (C0212): no NAME tag, so
-// no FUNCTION tag (4.3 T12.c21)
+// FUNCTION: USA 0x000DA765
+// PROTOTYPE: PREVIEW 0x004C5C96 identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.3 T12.c21); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template SwampLoader::Bundle const & std::deque<SwampLoader::Bundle,std::allocator<SwampLoader::Bundle> >::const_iterator::operator*()const;
-#endif
 
-#ifdef NON_MATCHING
-// row USA 0x000DA786, PREVIEW 0x004C5CB7 identical
-// best: match_one objdiff 100.0, bytes match; wall: provenance_lint nested operator (C0212): no NAME tag, so
-// no FUNCTION tag (4.3 T12.c21)
+// FUNCTION: USA 0x000DA786
+// PROTOTYPE: PREVIEW 0x004C5CB7 identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.3 T12.c21); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template SwampLoader::UnpackJob const & std::deque<SwampLoader::UnpackJob,std::allocator<SwampLoader::UnpackJob> >::const_iterator::operator*()const;
-#endif
 
 // FUNCTION: USA 0x000DA7A4
 // NAME: proto-pdb:default.pdb
@@ -578,7 +578,7 @@ BundleWrapper::BundleWrapper(unsigned int size, unsigned int flags) : _bundle(0)
     if (flags & 4) {
         _bundle = 0;
     } else {
-        // !FAKE: byte cast takes retail's `mov dl, cl` (plain `flags & 1` reads the dword, match_one 99.72)
+        // !FAKE: c2 instruction selection; byte cast; it takes retail's `mov dl, cl` (plain `flags & 1` reads the dword, match_one 99.72)
         unsigned long protect = (unsigned char)(flags & 1) ? 4 : 2;
         if (flags & 2)
             protect |= 0x100000;
@@ -642,8 +642,6 @@ template <class T> Ptr<T>& Ptr<T>::operator=(T* obj)
 // retail 0x000BDC97 (called out of line, home unit not this one); with this body and QueueUnpackJob's compiled,
 // cl's same-unit summary lets SwampLoader::Update keep the new Ptr in esi across the call (Update 85.71 -> 100)
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: retail body shape (0x000BDC97); kept under the marker with QueueUnpackJob and Update, which need it
 template <class T> Ptr<T>& Ptr<T>::operator=(const Ptr<T>& p)
 {
     if (_Object)
@@ -653,7 +651,6 @@ template <class T> Ptr<T>& Ptr<T>::operator=(const Ptr<T>& p)
         _Object->AddRef();
     return *this;
 }
-#endif
 // FUNCTION: USA 0x000DA976
 // PROTOTYPE: PREVIEW 0x004C5EA7 identical
 // NAME: proto-pdb:default.pdb
@@ -815,7 +812,7 @@ SwampLoader::SwampLoader(const std::string& basepath, const std::string& area, b
             b._dontDiscardFlag = false;
         }
         b._startTime = 0.0;
-        // !FAKE: retail string literal and line numbers; the original passes its build's __FILE__/__LINE__
+        // !FAKE: retail string literal; __FILE__/__LINE__ text and line numbers; the original passes its build's __FILE__/__LINE__
         b._filename = path + "world.hot";
         b._loader = new("SwampLoader.cpp", 225) BundleBackgroundLoader(b._filename, 6);
         b._completionMarker = 3;
@@ -866,8 +863,6 @@ SwampLoader::SwampLoader(const std::string& basepath, const std::string& area, b
 // FUNCTION: USA 0x000DB9F4
 // PROTOTYPE: PREVIEW 0x004C6F2B identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 95.81, bytes mismatch (store job._zlibStream scheduled before mov edi,esi/push esi; retail after; 14 drafts)
 void SwampLoader::QueueUnpackJob(Ptr<BundleWrapper>& source, const HottieFile* fileInfo, Ptr<BundleWrapper>& dest,
                                  unsigned int completionMarker, bool dontDiscardFlag)
 {
@@ -888,13 +883,10 @@ void SwampLoader::QueueUnpackJob(Ptr<BundleWrapper>& source, const HottieFile* f
     p->avail_out = fileInfo->sizeDataUncompressed;
     _unpackJobs.push_back(job);
 }
-#endif
 
 // FUNCTION: USA 0x000DBAA0
 // PROTOTYPE: PREVIEW 0x004C6FD7 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 85.71 alone; 100.0 + bytes once QueueUnpackJob and Ptr::operator=(const Ptr&) compile (cl same-unit summary); blocked by QueueUnpackJob 95.81
 bool SwampLoader::Update()
 {
     if (_bundles.empty() && _unpackJobs.empty())
@@ -958,7 +950,6 @@ bool SwampLoader::Update()
     }
     return false;
 }
-#endif
 
 // FUNCTION: USA 0x000DBE1F
 // NAME: proto-pdb:default.pdb

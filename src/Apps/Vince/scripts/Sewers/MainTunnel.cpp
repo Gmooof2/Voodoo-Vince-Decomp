@@ -6,6 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string();
     basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
 protected:
@@ -52,8 +53,10 @@ class AnimationControl;      // NAME: proto-pdb:default.pdb
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
     ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    ResourceHandle& operator=(const ResourceHandle& h);
     bool IsValid() const { return _Resource != 0; }
 
     T* _Resource;                      // 0x00
@@ -79,6 +82,15 @@ public:
 };
 
 class ModelManager : public ResourceManager<ModelResource> { // NAME: proto-pdb:default.pdb
+};
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x34 - 0x24];        // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
 };
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
@@ -126,10 +138,13 @@ class Swamp { // NAME: proto-pdb:default.pdb
 public:
     SwampInput& GetInput() const { return *_input; }
     ModelManager& GetModelManager() const { return *_modelManager; }
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
 
     char field_0[0x4];                 // 0x00
     SwampInput* _input;                // 0x04
-    char field_8[0x28 - 0x8];          // 0x08
+    char field_8[0x18 - 0x8];          // 0x08
+    AnimationManager* _animationManager; // 0x18
+    char field_1C[0x28 - 0x1C];        // 0x1C
     ModelManager* _modelManager;       // 0x28
 };
 
@@ -170,6 +185,11 @@ public:
     void RegisterFrameTick();
     void UnRegisterFrameTick();
     SwampSceneNode* GetNode() { return _node; }
+protected:
+    SwampScript(SwampSceneNode* node);
+    void RegisterSaveLoadVar(const SwampString&, SwampString*, const char*);
+    void RegisterSaveLoadVar(const SwampString&, bool*, bool);
+public:
 
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
@@ -179,11 +199,17 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
     virtual void Message(SwampScript*, int, void*);                // vtable+0x34
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
 
     int _state;                        // 0x4C
     char field_50[0x6C];               // 0x50
@@ -234,6 +260,7 @@ public:
         STATE_ON = 2
     };
     virtual void Activate();
+    virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -278,6 +305,7 @@ public:
         STATE_CLOSED = 0,
         STATE_OPEN = 1
     };
+    DoorRockBlockMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
 private:
     virtual void SetState(int state);
@@ -329,11 +357,14 @@ public:
         STATE_OPENING = 1,
         STATE_OPEN = 2
     };
+    ArmorDilloChuteMain(SwampSceneNode* node);
     virtual void Activate();
+    virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void FrameTick();
 private:
     virtual void SetState(int state);
+    static SwampScript* creationFunc(SwampSceneNode* node);
 public:
     ResourceHandle<AnimationResource> _animIdle; // 0xBC
     ResourceHandle<AnimationResource> _animOpen; // 0xC0
@@ -425,6 +456,15 @@ void DoorRockBlockMain::Message(SwampScript* source, int message, void* data)
     }
 }
 
+// FUNCTION: USA 0x000A0417
+// NAME: proto-pdb:default.pdb
+DoorRockBlockMain::DoorRockBlockMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _cleared = false;
+    RegisterSaveLoadVar("cleared", &_cleared, false);
+    SetState(STATE_CLOSED);
+}
+
 // FUNCTION: USA 0x0009F83D
 // PROTOTYPE: PREVIEW 0x0048A8C1 identical
 // NAME: proto-pdb:default.pdb
@@ -442,6 +482,24 @@ void SwitchBoxGateMain::Message(SwampScript* source, int message, void* data)
     }
 }
 
+class BoxGateHintRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    BoxGateHintRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(BoxGateHintRegionMain, 0x4C);
+
+// FUNCTION: USA 0x0009F87B
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match; relink wall: its vtable's ??_E slot is the 12-name fold 0x00025012
+// without ??_EBoxGateHintRegionMain, so our ??_G links as extra .text (precheck: unlisted `.text vsize 0x145178 does
+// not give XBE 0x14515C`, listed `our ranges overlap at 0x00025012`; C0217); lift: fold-alias pin; 5.3 T12.1.c2
+BoxGateHintRegionMain::BoxGateHintRegionMain(SwampSceneNode* node) : SwampScript(node)
+{
+}
+#endif
+
 // FUNCTION: USA 0x0009F893
 // PROTOTYPE: PREVIEW 0x0048A917 identical
 // NAME: proto-pdb:default.pdb
@@ -457,7 +515,7 @@ void MainTunnelRegionMain::Message(SwampScript* source, int message, void* data)
 // NAME: proto-pdb:default.pdb
 void WheelPlatformAMain::FrameTick()
 {
-    // !FAKE: local; retail holds _node in edi across the state case (no PDB local)
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail holds _node in edi across the state case
     GatorNode* node = (GatorNode*)_node;
     switch (_state) {
     case STATE_SPEEDING_UP: {
@@ -482,7 +540,7 @@ void WheelPlatformAMain::FrameTick()
 // NAME: proto-pdb:default.pdb
 void WheelPlatformAMain::SetState(int state)
 {
-    // !FAKE: local; retail loads _node into ecx before the _state store (no PDB local)
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail loads _node into ecx before the _state store
     GatorNode* node = (GatorNode*)_node;
     _state = state;
     switch (state) {
@@ -509,7 +567,7 @@ void WheelPlatformAMain::SetState(int state)
 void ReverseElevatorMain::SetState(int state)
 {
     _state = state;
-    // !FAKE: local; retail holds _node in esi across the cases (no PDB local)
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail holds _node in esi across the cases
     GatorNode* node = (GatorNode*)_node;
     switch (state) {
     case STATE_OFF:
@@ -534,7 +592,7 @@ void ReverseElevatorMain::SetState(int state)
 void ArmorDilloChuteMain::SetState(int state)
 {
     _state = state;
-    // !FAKE: local; retail holds _node in esi across both calls of the closed case (no PDB local)
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail holds _node in esi across both calls of the closed case
     GatorNode* node = (GatorNode*)_node;
     switch (state) {
     case STATE_CLOSED:
@@ -556,7 +614,7 @@ void ArmorDilloChuteMain::SetState(int state)
 void DoorRockBlockMain::SetState(int state)
 {
     _state = state;
-    // !FAKE: local; retail holds _node in esi across the state cases (no PDB local)
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail holds _node in esi across the state cases
     GatorNode* node = (GatorNode*)_node;
     switch (state) {
     case STATE_CLOSED:
@@ -583,6 +641,18 @@ void MainTunnelRegionMain::EnteringRegion(SwampSceneNode* node)
     }
 }
 
+// FUNCTION: USA 0x0009FB0D
+// NAME: proto-pdb:default.pdb
+WheelPlatformAMain::WheelPlatformAMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _on = false;
+    _sound = 0;
+    _animIdle = g_swamp->GetAnimationManager().Load("wheelPlatformA_idle");
+    ((GatorNode*)_node)->StartAnimation(_animIdle, true, false);
+    RegisterSaveLoadVar("on", &_on, false);
+    SetState(STATE_OFF);
+}
+
 // FUNCTION: USA 0x0009FBC3
 // PROTOTYPE: PREVIEW 0x0048AC47 identical
 // NAME: proto-pdb:default.pdb
@@ -596,6 +666,19 @@ void WheelPlatformAMain::Activate()
         _sound->SetMinDistance(5.0f);
         _sound->Play();
     }
+}
+
+// FUNCTION: USA 0x0009FC4C
+// NAME: proto-pdb:default.pdb
+ReverseElevatorMain::ReverseElevatorMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _on = false;
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail loads the manager once, spilled to the node slot
+    AnimationManager& tmp = g_swamp->GetAnimationManager();
+    _animIdle = tmp.Load("reverseElevator_idle");
+    _animActivate = tmp.Load("reverseElevator_activate");
+    RegisterSaveLoadVar("on", &_on, false);
+    SetState(STATE_OFF);
 }
 
 // FUNCTION: USA 0x0009FD3B
@@ -612,12 +695,48 @@ void ReverseElevatorMain::Activate()
     }
 }
 
+// FUNCTION: USA 0x0009FDAF
+// NAME: proto-pdb:default.pdb
+ArmorDilloChuteMain::ArmorDilloChuteMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _dilloCount = 0;
+    _nextDilloCountdown = 0.0f;
+    _open = false;
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail loads the manager once, spilled to the node slot
+    AnimationManager& tmp = g_swamp->GetAnimationManager();
+    _animIdle = tmp.Load("armordilloChute_idle");
+    _animOpen = tmp.Load("armordilloChute_open");
+    RegisterSaveLoadVar("open", &_open, false);
+    SetState(STATE_CLOSED);
+    RegisterFrameTick();
+}
+
+class DoorRockBlockHintRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    DoorRockBlockHintRegionMain(SwampSceneNode* node);
+    virtual void EnteringRegion(SwampSceneNode* node);
+
+    SwampString _target;               // 0x4C
+};
+DECOMP_SIZE_ASSERT(DoorRockBlockHintRegionMain, 0x68);
+
+// FUNCTION: USA 0x000A052A
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store ??_7DoorRockBlockHintRegionMain 0x001E7F38,
+// literal "Target" 0x001E7F2C; neither has a retail name: data-pin wall, source is final; 5.3 T12.1.c2)
+DoorRockBlockHintRegionMain::DoorRockBlockHintRegionMain(SwampSceneNode* node) : SwampScript(node)
+{
+    RegisterSaveLoadVar("Target", &_target, "");
+}
+#endif
+
 // FUNCTION: USA 0x000A0602
 // PROTOTYPE: PREVIEW 0x0048B686 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* WheelPlatformAMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 38) WheelPlatformAMain(node);
 }
 
@@ -626,16 +745,27 @@ SwampScript* WheelPlatformAMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* ReverseElevatorMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 66) ReverseElevatorMain(node);
 }
+
+// FUNCTION: USA 0x000A0650
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 14.285714, bytes match (masked 0); cut-extent wall C0093/C0140: retail cut symbol 0x120 vs row 0x27 (5.3 T5.c2)
+SwampScript* ArmorDilloChuteMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 96) ArmorDilloChuteMain(node);
+}
+#endif
 
 // FUNCTION: USA 0x000A0A59
 // PROTOTYPE: PREVIEW 0x0048BAEC identical
 // NAME: proto-pdb:default.pdb
 SwampScript* MainTunnelRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 19) MainTunnelRegionMain(node);
 }
 
@@ -762,6 +892,6 @@ ChuteKillerDilloMain::ChuteKillerDilloMain(SwampSceneNode* node) : KillerDilloMa
 // NAME: proto-pdb:default.pdb
 SwampScript* ChuteKillerDilloMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 129) ChuteKillerDilloMain(node);
 }

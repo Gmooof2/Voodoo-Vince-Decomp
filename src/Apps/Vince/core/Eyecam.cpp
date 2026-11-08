@@ -215,7 +215,7 @@ EyeUI::~EyeUI()
     for (SwampSceneNode::iterator hit = g_swamp->_scene->GetRootNode()->begin(9);
          hit != g_swamp->_scene->GetRootNode()->end(); ++hit) {
         if (*hit != this) {
-            // !FAKE: inliner; hand form of a find loop with a dummy flag local (std::find stays out of line under /O1);
+            // !FAKE: inliner; hand form of a find loop with a dummy flag local; std::find stays out of line under /O1;
             // retail branches from the hit straight past SetOption (match_one 76.84 call -> 87.86 -> 98.21 -> 100.0
             // with the PDB begin/end)
             std::vector<const SwampSceneNode*, std::allocator<const SwampSceneNode*> >::iterator v0 = _invisibleHUDs.begin();

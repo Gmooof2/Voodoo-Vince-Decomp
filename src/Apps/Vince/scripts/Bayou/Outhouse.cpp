@@ -102,12 +102,18 @@ public:
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
     char field_24[0x28];               // 0x24
+
+protected:
+    SwampScript(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual ~CritterMain();
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -125,8 +131,12 @@ public:
         STATE_ON = 2,
         STATE_TURNINGOFF = 3
     };
+    virtual ~SwitchMain();
+    virtual bool TestActivate() const;
     virtual void Message(SwampScript*, int, void*);
     virtual void TimerEvent(unsigned int);
+    void SetOnAnimName(const SwampString& name);
+    void SetOffAnimName(const SwampString& name);
     void SetDelay(float delay) { _delay = delay; }
     float GetDelay() const { return _delay; }
 
@@ -137,6 +147,10 @@ public:
 DECOMP_SIZE_ASSERT(SwitchMain, 0x13C);
 
 class BasicWallSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    BasicWallSwitchMain(SwampSceneNode* node);
+    virtual void Activate();
+    virtual void AnimationFinished();
 };
 DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 
@@ -146,6 +160,7 @@ public:
         TIMER_STARTTICK = 1
     };
 private:
+    Switch_DoorOuthouseMain(SwampSceneNode* node);
     virtual void SetState(int state);
     virtual void TimerEvent(unsigned int id);
     virtual void Message(SwampScript* source, int message, void* data);
@@ -168,6 +183,23 @@ void Switch_DoorOuthouseMain::Message(SwampScript* source, int message, void* da
     BasicWallSwitchMain::Message(source, message, data);
 }
 
+class OuthouseDoorRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    OuthouseDoorRegionMain(SwampSceneNode* node);
+    virtual void LeavingRegion(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(OuthouseDoorRegionMain, 0x4C);
+
+// FUNCTION: USA 0x00022898
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 29.6, bytes provisional (masked 1: vptr store ??_7OuthouseDoorRegionMain 0x001CB040 unnamed; code bytes equal)
+OuthouseDoorRegionMain::OuthouseDoorRegionMain(SwampSceneNode* node)
+    : SwampScript(node)
+{
+}
+#endif
+
 // FUNCTION: USA 0x000228E4
 // PROTOTYPE: PREVIEW 0x004117B7 identical
 // NAME: proto-pdb:default.pdb
@@ -189,6 +221,15 @@ void Switch_DoorOuthouseMain::SetState(int state)
         break;
     }
     _state = state;
+}
+
+// FUNCTION: USA 0x00022AA5
+// NAME: proto-pdb:default.pdb
+Switch_DoorOuthouseMain::Switch_DoorOuthouseMain(SwampSceneNode* node) : BasicWallSwitchMain(node), _tickSound(0)
+{
+    SetOnAnimName("switchswamp_down");
+    SetOffAnimName("");
+    SetDelay(gSettings.GetEWWOuthouseDoorTime());
 }
 
 // FUNCTION: USA 0x00022B1D

@@ -113,12 +113,12 @@ DECOMP_SIZE_ASSERT(MultiModel, 0x14);
 // NAME: proto-pdb:default.pdb
 void MultiAnimation::Load(const SwampString& baseName, const char* formatString, int startindex)
 {
-    bool v0 = g_swamp->_animationManager->EnableMissingResourceMessages(false); // !FAKE: no PDB local for the old flag
-    for (int v1 = startindex;; v1++) { // !FAKE: no PDB local for the index
+    bool v0 = g_swamp->_animationManager->EnableMissingResourceMessages(false); // !FAKE: provenance; stand-in local v0; no PDB local for the old flag
+    for (int v1 = startindex;; v1++) { // !FAKE: provenance; stand-in loop index v1; no PDB local for the index
         SwampString filename = format(formatString, baseName.c_str(), v1);
         ResourceHandle<AnimationResource> ah = g_swamp->_animationManager->Load(filename);
         if (!ah.IsValid()) {
-            AnimationManager* v2 = g_swamp->_animationManager; // !FAKE: manager loaded before the args as retail
+            AnimationManager* v2 = g_swamp->_animationManager; // !FAKE: c1xx front end; stand-in local v2; manager loaded before the args as retail, no before/after recorded
             ah = v2->Load(baseName);
             if (ah.IsValid())
                 _animQueue.PushBack(ah);
@@ -134,12 +134,12 @@ void MultiAnimation::Load(const SwampString& baseName, const char* formatString,
 // NAME: proto-pdb:default.pdb
 void MultiModel::Load(const SwampString& baseName, const char* formatString, int startindex)
 {
-    bool v0 = g_swamp->_modelManager->EnableMissingResourceMessages(false); // !FAKE: no PDB local for the old flag
-    for (int v1 = startindex;; v1++) { // !FAKE: no PDB local for the index
+    bool v0 = g_swamp->_modelManager->EnableMissingResourceMessages(false); // !FAKE: provenance; stand-in local v0; no PDB local for the old flag
+    for (int v1 = startindex;; v1++) { // !FAKE: provenance; stand-in loop index v1; no PDB local for the index
         SwampString filename = format(formatString, baseName.c_str(), v1);
         ResourceHandle<ModelResource> mh = g_swamp->_modelManager->Load(filename);
         if (!mh.IsValid()) {
-            ModelManager* v2 = g_swamp->_modelManager; // !FAKE: manager loaded before the args as retail
+            ModelManager* v2 = g_swamp->_modelManager; // !FAKE: c1xx front end; stand-in local v2; manager loaded before the args as retail, no before/after recorded
             mh = v2->Load(baseName);
             if (mh.IsValid())
                 _modelQueue.PushBack(mh);

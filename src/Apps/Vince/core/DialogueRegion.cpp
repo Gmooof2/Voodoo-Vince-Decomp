@@ -130,9 +130,13 @@ public:
         MESSAGE_HINTOFF = 0x14
     };
 
+    DialogueRegionMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
 
     SwampString _onscreenText;         // 0x4C
     SwampString _dialogueFilename;     // 0x68
@@ -191,12 +195,20 @@ void VinceThinkAloud::SoundFinished(const SwampString& name)
     }
 }
 
+// FUNCTION: USA 0x00122122
+// NAME: proto-pdb:default.pdb
+SwampScript* DialogueRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\core\\DialogueRegion.h", 18) DialogueRegionMain(node);
+}
+
 // FUNCTION: USA 0x00122173
 // PROTOTYPE: PREVIEW 0x0050AE41 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceThinkAloud::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\DialogueRegion.h", 44) VinceThinkAloud(node);
 }
 

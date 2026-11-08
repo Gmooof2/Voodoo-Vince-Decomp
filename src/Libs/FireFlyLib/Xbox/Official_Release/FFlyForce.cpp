@@ -68,6 +68,10 @@ public:
 };
 DECOMP_SIZE_ASSERT(FFlyFloor, 0xC);
 
+// FUNCTION: USA 0x0014F5A1
+// NAME: proto-pdb:default.pdb
+// ??_GFFlyWind: compiler-generated with the vtable the ctor emits; match_one objdiff 100.0, bytes match (masked 0);
+// wall (5.3 T6.c3 precheck): matched_set refuses, symbols_pin.txt 0x0014F5A1 pin has no size; lift = size the pin
 class FFlyWind : public FFlyForce { // NAME: proto-pdb:default.pdb
 public:
     struct Params { // NAME: proto-pdb:default.pdb
@@ -147,7 +151,7 @@ void FFlyWind::Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count)
 {
     float maxSpeed = emitter.GetTimeStep() * _data.maxSpeed;
     for (unsigned int i = 0; i < count; i++, p++) {
-        // !FAKE: inliner; pointer locals + hand form of retail's inlined (p->_position - p->_lastPosition).Length();
+        // !FAKE: inliner; pointer locals + hand form of retail's inlined (p->_position - p->_lastPosition).Length(); match_one 97.85 -> 100.0, because
         // the two operand pointers fix esi at p+0x18 (scalar form: p+0x14, match_one 97.85 -> 100.0, C0191)
         const Vector3* v3 = &p->_position;
         const Vector3* v4 = &p->_lastPosition;
@@ -156,7 +160,7 @@ void FFlyWind::Apply(FFlyEmitter& emitter, FFlyParticle* p, unsigned int count)
         float v2 = v3->z - v4->z;
         float tmp = v0 * v0 + v1 * v1 + v2 * v2;
         if (tmp * FastReciprocalSquareRoot(tmp) < maxSpeed) {
-            // !FAKE: inliner; hand form of retail's inlined Vector3::operator+= (out of line in our /O1 build)
+            // !FAKE: inliner; hand form of retail's inlined Vector3::operator+=; out of line in our /O1 build
             p->_acceleration.x += _data.wind.x;
             p->_acceleration.y += _data.wind.y;
             p->_acceleration.z += _data.wind.z;
@@ -199,7 +203,7 @@ FFlyAttractor::FFlyAttractor()
 // NAME: proto-pdb:default.pdb
 FFlyForce* FFlyForce::Create(unsigned int type)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     switch (type) {
     case WIND:
         return new("FFlyForce.cpp", 21) FFlyWind;

@@ -6,7 +6,10 @@ template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
     basic_string(const E* _Ptr);
+    basic_string(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
     ~basic_string() { _Tidy(true); }
+    const E* c_str() const { return (_Myptr()); }
+    const E* _Myptr() const { return (16 <= _Myres ? _Bx._Ptr : _Bx._Buf); }
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, (unsigned int)-1); }
     basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
     basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
@@ -16,9 +19,17 @@ protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    unsigned int _pad00[0x1C / 4];
+    char _Alval;                       // 0x00
+    union {
+        E _Buf[16];
+        E* _Ptr;
+    } _Bx;                             // 0x04
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
 };
+template <class E, class T, class A> basic_string<E, T, A> operator+(const basic_string<E, T, A>& _Left, const E* _Right);
 }
+extern "C" int __cdecl _strnicmp(const char*, const char*, unsigned int);
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 class BeepTDF;               // NAME: proto-pdb:default.pdb
@@ -36,20 +47,41 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
+#ifdef NON_MATCHING // D78, D117: default.pdb records no free Vector3 operator (5.2 T20)
 inline Vector3 operator+(const Vector3& a, const Vector3& b) { return Vector3(a.x + b.x, a.y + b.y, a.z + b.z); }
 inline Vector3 operator-(const Vector3& a, const Vector3& b) { return Vector3(a.x - b.x, a.y - b.y, a.z - b.z); }
 inline Vector3 operator*(float f, const Vector3& v) { return Vector3(v.x * f, v.y * f, v.z * f); }
+#endif
 
 namespace BeepLib { // NAME: proto-pdb:default.pdb
 double RandomFloat(float, float);
 }
 struct AABox;                // NAME: proto-pdb:default.pdb
-struct Quaternion;           // NAME: proto-pdb:default.pdb
-struct Matrix;               // NAME: proto-pdb:default.pdb
+
+struct Quaternion { // NAME: proto-pdb:default.pdb
+    Quaternion() {}
+    Quaternion(float x, float y, float z) { Set(x, y, z); }
+    Quaternion(float x, float y, float z, float _w) : v(x, y, z), w(_w) {}
+    void Set(float, float, float);
+
+    Vector3 v;                         // 0x00
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Quaternion, 0x10);
+
+struct Matrix { // NAME: proto-pdb:default.pdb
+    void Orient(const Vector3&, const Vector3&);
+    void Euler(float&, float&, float&) const;
+
+    char field_0[0x40];                // 0x00 (row; not reached)
+};
+DECOMP_SIZE_ASSERT(Matrix, 0x40);
+
 class SwampScript;           // NAME: proto-pdb:default.pdb
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
+    void AddRef() { ++_RefCount; }
     void SubRef() { --_RefCount; }
 
     char field_0[0x1C];                // 0x00
@@ -67,10 +99,22 @@ class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
     ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
     bool IsValid() const { return _Resource != 0; }
 
     T* _Resource;                      // 0x00
+};
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+class ModelManager : public ResourceManager<ModelResource> { // NAME: proto-pdb:default.pdb
 };
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
@@ -79,7 +123,11 @@ public:
         DontDraw = 0x2
     };
     void SetOption(unsigned int option, bool value, bool recursive);
+    void RemoveTreeFromScene();
+    void AddChild(SwampSceneNode*);
     SwampScript* GetScript() const;
+    void SetScript(const SwampString&);
+    const Quaternion& SetRotation(const Quaternion&);
     virtual ~SwampSceneNode();                                     // vtable+0x00
     virtual const AABox& GetBounds() const;                        // vtable+0x04
     virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
@@ -93,6 +141,12 @@ public:
     char field_4[0xA0];                // 0x04
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+class SoundNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual void Invalidate();
+    void Stop();
+};
 
 class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -121,7 +175,9 @@ public:
 
     char field_B4[0xC5 - 0xB4];        // 0xB4 (_model .. _dirtyAnimation; not reached)
     bool _edgeGlow;                    // 0xC5
-    char field_C6[0x200 - 0xC6];       // 0xC6 (not reached)
+    char field_C6[0x18C - 0xC6];       // 0xC6 (not reached)
+    unsigned int _animTriggerFlags;    // 0x18C
+    char field_190[0x200 - 0x190];     // 0x190 (not reached)
 };
 DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
@@ -140,6 +196,7 @@ class CritterManager { // NAME: proto-pdb:default.pdb
 public:
     Vince* GetVince() const { return _vinceCache; }
     Critter* Find(const SwampString&);
+    Critter* Create(const SwampString&, const SwampString&, const char*, ResourceHandle<ModelResource>, const Vector3&, const Quaternion&, unsigned int);
 
     char field_0[0x28];                // 0x00
     Vince* _vinceCache;                // 0x28
@@ -152,6 +209,28 @@ public:
     float _whammyProjectileSpeed;      // 0x70
 };
 extern Globals gSettings; // NAME: proto-pdb:default.pdb
+
+class SwampInput { // NAME: proto-pdb:default.pdb
+public:
+    float GetElapsedTime() const { return _elapsed; }
+
+    float _elapsed;                    // 0x00
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    SwampInput& GetInput() const { return *_input; }
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
+    ModelManager& GetModelManager() const { return *_modelManager; }
+
+    char field_0[0x4];                 // 0x00
+    SwampInput* _input;                // 0x04
+    char field_8[0x18 - 0x8];          // 0x08
+    AnimationManager* _animationManager; // 0x18
+    char field_1C[0x28 - 0x1C];        // 0x1C
+    ModelManager* _modelManager;       // 0x28
+};
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
 class GameCam { // NAME: proto-pdb:default.pdb
 public:
@@ -196,6 +275,10 @@ public:
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
 
+protected:
+    SwampScript(SwampSceneNode* node);
+
+public:
     char field_4[0x1C];                // 0x04 (_name; not reached)
     SwampSceneNode* _node;             // 0x20
     SwampScript* _parent;              // 0x24
@@ -235,11 +318,14 @@ public:
         MESSAGE_SET_RESPONSE_SCRIPT = 0x15
     };
     WhammyProjectileMain(SwampSceneNode* node);
+    virtual void FrameTick();
     virtual void Message(SwampScript*, int, void*);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void InitCurve();
     void UpdateCoefficients();
+
+    static int _soundCount;
 
     char field_4C[0x50 - 0x4C];        // 0x4C (_effect; not reached)
     Vector3 _p1;                       // 0x50
@@ -251,13 +337,17 @@ private:
     float _ageMax;                     // 0xB4
     SwampString _target;               // 0xB8
     SwampString _scriptName;           // 0xD4
-    char field_F0[0xF4 - 0xF0];        // 0xF0 (_soundNode; not reached)
+    SoundNode* _soundNode;             // 0xF0
 };
 DECOMP_SIZE_ASSERT(WhammyProjectileMain, 0xF4);
 
+// FUNCTION: USA 0x00133D9D
+// PROTOTYPE: PREVIEW 0x0051DFC0 identical
+// NAME: proto-pdb:default.pdb
 class WhammyResultScript : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
-    virtual void KillMonsterNow();                                 // vtable+0x64
+    WhammyResultScript(SwampSceneNode* node);
+    virtual void KillMonsterNow();                                // vtable+0x64
 
     ResourceHandle<ModelResource> _modelRestore; // 0x4C
 };
@@ -273,6 +363,10 @@ private:
 };
 DECOMP_SIZE_ASSERT(WhammyResultFlattenMain, 0x54);
 
+// FUNCTION: USA 0x001349D9
+// PROTOTYPE: PREVIEW 0x0051E7EA identical
+// NAME: proto-pdb:default.pdb
+// ??1WhammyResultFrozenMain: compiler-generated (implicit, no vptr store); emitted by pin_emit_WhammyResultFrozenMain_dtor
 class WhammyResultFrozenMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
 public:
     enum Timers { // NAME: proto-pdb:default.pdb
@@ -322,7 +416,12 @@ DECOMP_SIZE_ASSERT(WhammyResultCutMain, 0x58);
 
 class WhammyResultDisintegrateMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
 public:
+    enum Timers { // NAME: proto-pdb:default.pdb
+        TIMER_STARTANIM = 0x0,
+        TIMER_FINISH = 0x1
+    };
     WhammyResultDisintegrateMain(SwampSceneNode* node);
+    virtual void TimerEvent(unsigned int);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -369,6 +468,14 @@ private:
     char field_50[0x58 - 0x50];        // 0x50 (not reached)
 };
 DECOMP_SIZE_ASSERT(WhammyResultBurstMain, 0x58);
+
+class WhammyResultTwisterMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual void AnimationFinished();
+
+    ResourceHandle<AnimationResource> _animTwister; // 0x50
+};
+DECOMP_SIZE_ASSERT(WhammyResultTwisterMain, 0x54);
 
 class VinceWhammyMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
@@ -419,6 +526,50 @@ private:
     bool _finished;                    // 0x98
 };
 DECOMP_SIZE_ASSERT(WhammyPropMain, 0x9C);
+
+// ??_GWhammyProjectileMain 0x00133F3D, ??_GWhammyResultFrozenMain 0x001349BD, ??_GVinceWhammyMain 0x00134E35,
+// ??_GWhammyPropMain 0x00135F1E unmatched, no draft (5.3 T6.c15): companion wall: a virtual ??_G is emitted only with
+// its class vtable; the retail ??1 of each is implicit (no vptr store) and the ctors (0x00133E96, 0x0013469C,
+// 0x00134D1B, 0x00135939) are not passing rows. Lift: match the class ctor.
+// ??_GVinceFlat 0x001348F8 unmatched, no draft: unsized pin (size `-`, precheck ADD refuses) and fold-name wall
+// (VinceFlat/BasketStopper* live in other units; the fold also holds this unit's WhammyResult{Flatten,Poke,Jackhammer,
+// Toxic,Twister}Main, whose ctors are not rows). Lift: size the pin, pin a this-unit name, match that class's ctor.
+
+// FUNCTION: USA 0x001338F3
+// PROTOTYPE: PREVIEW 0x0051DB07 identical
+// NAME: proto-pdb:default.pdb
+void WhammyResultDisintegrateMain::TimerEvent(unsigned int timerId)
+{
+    switch (timerId) {
+    case TIMER_FINISH:
+        AnimationFinished();
+        break;
+    }
+}
+
+// FUNCTION: USA 0x00133902
+// PROTOTYPE: PREVIEW 0x0051DB16 identical
+// NAME: proto-pdb:default.pdb
+void WhammyResultTwisterMain::AnimationFinished()
+{
+    KillMonsterNow();
+    InvalidateScript();
+}
+
+// !FAKE: inliner; scaffold call; odr-uses the implicit ??1WhammyResultScript@@UAE@XZ before the ctor's vtable emits
+// ??_GWhammyResultScript, so ??_G inlines it as retail does (retail's derived dtors in this unit are unmatched;
+// without it ??_G calls ??1 out of line) (matched_set [[emitter]] row)
+void pin_emit_WhammyResultScript_dtor(WhammyResultScript* p)
+{
+    p->WhammyResultScript::~WhammyResultScript();
+}
+
+// FUNCTION: USA 0x00133912
+// PROTOTYPE: PREVIEW 0x0051DB35 identical
+// NAME: proto-pdb:default.pdb
+WhammyResultScript::WhammyResultScript(SwampSceneNode* node) : SwampScript(node)
+{
+}
 
 // FUNCTION: USA 0x0013392E
 // PROTOTYPE: PREVIEW 0x0051DB51 identical
@@ -484,7 +635,7 @@ void VinceWhammyMain::SetState(int state)
 // NAME: proto-pdb:default.pdb
 void WhammyResultScript::KillMonsterNow()
 {
-    // !FAKE: stand-in local (no PDB local); retail keeps _node in edi across both virtual calls
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail keeps _node in edi across both virtual calls
     Critter* critter = (Critter*)_node;
     if (_modelRestore.IsValid())
         critter->SetModel(_modelRestore);
@@ -499,7 +650,7 @@ void WhammyResultScript::KillMonsterNow()
 void WhammyResultFrozenMain::TimerEvent(unsigned int timerId)
 {
     if (timerId == TIMER_FINISH) {
-        // !FAKE: stand-in local (no PDB local); retail loads _node once for both uses
+        // !FAKE: c2 register allocation; stand-in local (no PDB local); trial 5.2 T14: without it the zero moves ebx->edx (no push ebx) and _node is reloaded into ecx before StartAnimation
         Critter* critter = (Critter*)_node;
         critter->SetEdgeGlow(false);
         if (_animRecover.IsValid())
@@ -514,7 +665,7 @@ void WhammyResultFrozenMain::TimerEvent(unsigned int timerId)
 // NAME: proto-pdb:default.pdb
 void WhammyResultFrozenMain::AnimationFinished()
 {
-    // !FAKE: stand-in local (no PDB local); retail loads _parent before the InvalidateScript call
+    // !FAKE: c1xx evaluation order; stand-in local (no PDB local); trial 5.2 T14: without it _parent loads after the InvalidateScript call and esi holds this instead of _parent
     SwampScript* parent = _parent;
     InvalidateScript();
     parent->Message(0, 10, 0);
@@ -525,7 +676,7 @@ void WhammyResultFrozenMain::AnimationFinished()
 // NAME: proto-pdb:default.pdb
 SwampScript* WaitForWhammyProjectileMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("core\\Whammy.cpp", 256) WaitForWhammyProjectileMain(node);
 }
 
@@ -534,7 +685,7 @@ SwampScript* WaitForWhammyProjectileMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyProjectileMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("core\\Whammy.cpp", 31) WhammyProjectileMain(node);
 }
 
@@ -548,19 +699,88 @@ void pin_emit_WhammyProjectileMain_dtor(WhammyProjectileMain* p)
     p->WhammyProjectileMain::~WhammyProjectileMain();
 }
 
+// FUNCTION: USA 0x00133F82
+// PROTOTYPE: PREVIEW 0x0051E1A5 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 92.11, bytes mismatch (forward's x87 schedule, early &pos push); retail inlines nested free
+// Vector3 operator+/operator* (no PDB record, D78) that our /O1 keeps out of line; hand forms below
+void WhammyProjectileMain::FrameTick()
+{
+    _age += g_swamp->GetInput().GetElapsedTime();
+    float pct = _age / _ageMax;
+    Critter* critter = pManager->Find(_target);
+    if (!critter) {
+        InvalidateScript();
+    } else if (pct > 1.0f) {
+        critter->GetScript()->InvalidateScript();
+        critter->SetScript(_scriptName);
+        if (_soundNode) {
+            _soundNode->Stop();
+            _soundNode->Invalidate();
+            _soundNode = 0;
+            _soundCount--;
+        }
+        InvalidateScript();
+    } else {
+        UpdateCoefficients();
+        Matrix m;
+        Vector3 pos;
+        float xr, yr;
+        Vector3 dCoeff[3];
+        dCoeff[2] = Vector3(_coeff[3].x * 3.0f, _coeff[3].y * 3.0f, _coeff[3].z * 3.0f);
+        dCoeff[1] = Vector3(_coeff[2].x * 2.0f, _coeff[2].y * 2.0f, _coeff[2].z * 2.0f);
+        dCoeff[0] = _coeff[1];
+        Vector3 forward;
+        {
+            // !FAKE: inliner; hand form of retail's inlined free Vector3 operators; stand-ins v0-v2 (92.11 with, 66.4 without)
+            Vector3 v0(dCoeff[2].x * pct, dCoeff[2].y * pct, dCoeff[2].z * pct);
+            Vector3 v1(dCoeff[1].x + v0.x, dCoeff[1].y + v0.y, dCoeff[1].z + v0.z);
+            Vector3 v2(v1.x * pct, v1.y * pct, v1.z * pct);
+            forward.x = v2.x + dCoeff[0].x;
+            forward.y = v2.y + dCoeff[0].y;
+            forward.z = v2.z + dCoeff[0].z;
+        }
+        float zr;
+        m.Orient(forward, Vector3(0.0f, 1.0f, 0.0f));
+        m.Euler(xr, yr, zr);
+        {
+            // !FAKE: inliner; hand form of retail's inlined Quaternion(float, float, float); stand-in q; no before/after recorded
+            Quaternion q;
+            q.Set(xr, yr, zr);
+            _node->SetRotation(q);
+        }
+        {
+            // !FAKE: inliner; hand form of retail's inlined free Vector3 operators; stand-ins v3-v9 (88.93 -> 92.11 with refs)
+            Vector3 v3(_coeff[3].x * pct, _coeff[3].y * pct, _coeff[3].z * pct);
+            Vector3 v4(v3.x + _coeff[2].x, v3.y + _coeff[2].y, v3.z + _coeff[2].z);
+            Vector3 v5(v4.x * pct, v4.y * pct, v4.z * pct);
+            const Vector3& v6 = _coeff[1];
+            Vector3 v7(v5.x + v6.x, v5.y + v6.y, v5.z + v6.z);
+            Vector3 v8(v7.x * pct, v7.y * pct, v7.z * pct);
+            const Vector3& v9 = _coeff[0];
+            pos.x = v8.x + v9.x;
+            pos.y = v8.y + v9.y;
+            pos.z = v8.z + v9.z;
+        }
+        _node->SetWorldPosition(pos);
+    }
+}
+#endif
+
 // FUNCTION: USA 0x00134207
 // NAME: proto-pdb:default.pdb
 void WhammyPropMain::AnimationFinished()
 {
     if (_cameraShake < 0.0f) {
-        // !FAKE: stand-in local; the PDB lists none
+        // !FAKE: provenance; stand-in local (the PDB lists none); trial 5.2 T14: not removable, cam is a Find call result used twice (test and call), inlining it repeats the call
         GameCam* cam = g_CameraManager->Find(_cameraName);
         if (cam)
             cam->SetShakeFactor(0.0f, -1.0f);
     }
     _node->SetOption(SwampSceneNode::DontDraw, true, false);
     _finished = true;
-    // !FAKE: stand-in local; the PDB lists none
+    // !FAKE: c2 register allocation; stand-in local (the PDB lists none); trial 5.2 T14: without it edi no longer holds vince, _vinceCache is reloaded from pManager at each later use
     Vince* vince = pManager->GetVince();
     vince->GetScript()->InvalidateScript();
     if (_restoreVinceModel)
@@ -568,12 +788,19 @@ void WhammyPropMain::AnimationFinished()
     vince->GetScript()->Message(0, VinceMain::MESSAGE_WHAMMY_CLEANUP, 0);
 }
 
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ~WhammyResultFrozenMain in this unit (no matched
+// function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_WhammyResultFrozenMain_dtor(WhammyResultFrozenMain* p)
+{
+    p->WhammyResultFrozenMain::~WhammyResultFrozenMain();
+}
+
 // FUNCTION: USA 0x001349FC
 // PROTOTYPE: PREVIEW 0x0051EC00 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultFlattenMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 98) WhammyResultFlattenMain(node);
 }
 
@@ -582,7 +809,7 @@ SwampScript* WhammyResultFlattenMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultFrozenMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 119) WhammyResultFrozenMain(node);
 }
 
@@ -591,7 +818,7 @@ SwampScript* WhammyResultFrozenMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultCutHorizontalMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 142) WhammyResultCutHorizontalMain(node);
 }
 
@@ -600,7 +827,7 @@ SwampScript* WhammyResultCutHorizontalMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultCutVerticalMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 163) WhammyResultCutVerticalMain(node);
 }
 
@@ -609,7 +836,7 @@ SwampScript* WhammyResultCutVerticalMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultCutMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 184) WhammyResultCutMain(node);
 }
 
@@ -621,7 +848,7 @@ SwampScript* WhammyResultCutMain::creationFunc(SwampSceneNode* node)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* WhammyResultDisintegrateMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 205) WhammyResultDisintegrateMain(node);
 }
 #endif
@@ -631,7 +858,7 @@ SwampScript* WhammyResultDisintegrateMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultPokeMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 246) WhammyResultPokeMain(node);
 }
 
@@ -640,7 +867,7 @@ SwampScript* WhammyResultPokeMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultJackhammerMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 266) WhammyResultJackhammerMain(node);
 }
 
@@ -649,7 +876,7 @@ SwampScript* WhammyResultJackhammerMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultToxicMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 286) WhammyResultToxicMain(node);
 }
 
@@ -658,7 +885,7 @@ SwampScript* WhammyResultToxicMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyResultBurstMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 306) WhammyResultBurstMain(node);
 }
 
@@ -710,8 +937,32 @@ void VinceWhammyMain::Message(SwampScript* source, int message, void* data)
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceWhammyMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 16) VinceWhammyMain(node);
+}
+
+// FUNCTION: USA 0x00135529
+// PROTOTYPE: PREVIEW 0x0051F719 identical
+// NAME: proto-pdb:default.pdb
+void VinceWhammyMain::CreateProp()
+{
+    if (_strnicmp(_whammyName.c_str(), "whammy", 6) == 0) {
+        SwampString propName(_whammyName, 6, (unsigned int)-1);
+        SwampString modelName = propName + "_base";
+        SwampString animName = propName + "_attack001";
+        ResourceHandle<ModelResource> model = g_swamp->GetModelManager().Load(modelName);
+        ResourceHandle<AnimationResource> anim = g_swamp->GetAnimationManager().Load(animName);
+        if (model.IsValid() && anim.IsValid()) {
+            _prop = pManager->Create(propName, "WhammyProp", propName.c_str(), model,
+                Vector3(0.0f, 0.0f, 0.0f), Quaternion(0.0f, 0.0f, 0.0f, 1.0f), 0);
+            _prop->RemoveTreeFromScene();
+            _node->AddChild(_prop);
+            _prop->_animTriggerFlags = 0x100;
+            _prop->StartAnimation(anim, false, false);
+            return;
+        }
+    }
+    InvalidateScript();
 }
 
 // FUNCTION: USA 0x00135F3A
@@ -729,6 +980,6 @@ void pin_emit_WhammyPropMain_dtor(WhammyPropMain* p)
 // NAME: proto-pdb:default.pdb
 SwampScript* WhammyPropMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 54) WhammyPropMain(node);
 }

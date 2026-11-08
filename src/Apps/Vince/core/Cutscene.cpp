@@ -73,6 +73,8 @@ protected:
     void RegisterSaveLoadVar(const SwampString&, bool*, bool);
 
 public:
+    void RegisterFrameTick();
+
     char field_4[0x48];                // 0x04
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
@@ -208,6 +210,8 @@ private:
 
 class CutsceneDriver : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CutsceneDriver(SwampSceneNode* node);
+    virtual void FrameTick();
     virtual void AnimationFinished(unsigned int);                  // vtable+0x64
     virtual void AnimationTrigger(unsigned int, const SwampString&, float, float, unsigned int); // vtable+0x68
 protected:
@@ -229,13 +233,15 @@ protected:
 
 public:
     static void BeginPlayback();
+    static void StopStream();
 
     AnimCam* _cam;                     // 0x4C
     bool _cancelled;                   // 0x50
     bool _autostop;                    // 0x51
     char field_52[0x2];                // 0x52
     int _state;                        // 0x54
-    char field_58[0x20];               // 0x58
+    float _cameraShake;                // 0x58
+    SwampString _cameraName;           // 0x5C
 };
 DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 
@@ -323,6 +329,13 @@ GatorNode* CutsceneDriver::NewNode(unsigned int id)
     return p;
 }
 
+// FUNCTION: USA 0x001086AE
+// NAME: proto-pdb:default.pdb
+void CutsceneDriver::StopStream()
+{
+    _stream->Stop();
+}
+
 #ifdef NON_MATCHING
 // best: match_one objdiff 89.09, bytes mismatch (masked 2)
 // FUNCTION: USA 0x001086CE
@@ -394,6 +407,18 @@ void CutsceneRegionMain::Message(SwampScript* source, int message, void* data)
     if (message == MESSAGE_QUERYTRIGGERED)
         *(bool*)data = _triggered;
 }
+
+// FUNCTION: USA 0x001089BD
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match; wall: precheck relink `our ranges overlap at 0x001089F9`: the ctor emits
+// ??_7CutsceneDriver, whose slot 0 ??_GCutsceneDriver folds at 0x001089F9, pinned only as ??_GCameraHelperRegionMain (5.3 T6.c8)
+CutsceneDriver::CutsceneDriver(SwampSceneNode* node)
+    : SwampScript(node), _cam(0), _cancelled(false), _autostop(true), _state(-1), _cameraShake(0.0f)
+{
+    RegisterFrameTick();
+}
+#endif
 
 // FUNCTION: USA 0x00108B62
 // PROTOTYPE: PREVIEW 0x004F34C8 identical

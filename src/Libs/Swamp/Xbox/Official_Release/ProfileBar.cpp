@@ -35,7 +35,7 @@ DECOMP_SIZE_ASSERT(ProfileBar::ProfileEntry, 0x30);
 DECOMP_SIZE_ASSERT(ProfileBar, 0x40);
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 // _Lbound stays visible: its fold VA 0x000D7CEC is the ZoneNode-alias row below; our ProfileEntry copy is byte-equal and
 // merges as a fold duplicate (C0233 fix 1)
@@ -85,7 +85,7 @@ template ProfileBar::ProfileEntry * & std::map<unsigned int,ProfileBar::ProfileE
 // NAME: proto-pdb:default.pdb
 void ProfileBar::Register(const SwampString& name, unsigned int id, unsigned int color)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     ProfileEntry* e = new("ProfileBar.cpp", 59) ProfileEntry;
     e->name = name;
     e->currentTime = 0.0;
@@ -113,7 +113,7 @@ unsigned int ProfileBar::Register(const SwampString& name, unsigned int color)
     }
 }
 
-// !FAKE: the delinked retail object names this fold VA by the ZoneNode alias; objdiff pairs by name (C0234)
+// !FAKE: linker COMDAT folding; ZoneNode alias declaration; the delinked retail object names this fold VA by the ZoneNode alias, objdiff pairs by name (C0234)
 class ZoneNode; // NAME: proto-pdb:default.pdb
 
 // FUNCTION: USA 0x000D7CEC

@@ -27,7 +27,10 @@ struct Vector2 { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(Vector2, 0x8);
 
 struct Vector3;               // NAME: proto-pdb:default.pdb
-class BeepTDF;                // NAME: proto-pdb:default.pdb
+class BeepTDF { // NAME: proto-pdb:default.pdb
+public:
+    int GetIntRecord(const SwampString& id, int def) const;
+};
 class CollisionResultObject;  // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 
@@ -198,6 +201,7 @@ public:
     virtual void Activate();
     virtual void FrameTick();
     virtual void Message(SwampScript* source, int message, void* data);
+    virtual void Load(const BeepTDF& tdf);
     virtual void SetState(int);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -265,6 +269,14 @@ void GeneratorMain::FrameTick()
     }
 }
 
+// FUNCTION: USA 0x0003B147
+// PROTOTYPE: PREVIEW 0x0042983E identical
+// NAME: proto-pdb:default.pdb
+void GeneratorMain::Load(const BeepTDF& tdf)
+{
+    SetState(tdf.GetIntRecord("state", 0));
+}
+
 // FUNCTION: USA 0x0003B186
 // PROTOTYPE: PREVIEW 0x0042987D identical
 // NAME: proto-pdb:default.pdb
@@ -303,6 +315,6 @@ void GeneratorMain::Message(SwampScript* source, int message, void* data)
 // NAME: proto-pdb:default.pdb
 SwampScript* GeneratorMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\Generator.h", 11) GeneratorMain(node);
 }

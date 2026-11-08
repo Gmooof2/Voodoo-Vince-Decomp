@@ -36,6 +36,18 @@ void RELEASE(T*& obj) // NAME: proto-pdb:default.pdb
 // NAME: proto-pdb:default.pdb
 template void RELEASE<IDirectSoundStream>(IDirectSoundStream*&);
 
+extern "C" long __stdcall IDirectSoundStream_SetPosition(IDirectSoundStream*, float, float, float, unsigned long); // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x000D8BD2
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1): callee _IDirectSoundStream_SetPosition@20 (proto-pdb public) has only the ghidra name IDirectSoundStream_SetPosition at 0x0017A28A in symbols.txt
+long __stdcall IDirectSoundStream::SetPosition(float x, float y, float z, unsigned long dwApply)
+{
+    return IDirectSoundStream_SetPosition(this, x, y, z, dwApply);
+}
+#endif
+
 extern "C" void __stdcall DirectSoundDoWork(); // NAME: proto-pdb:default.pdb
 
 class ResourceCache { // NAME: proto-pdb:default.pdb

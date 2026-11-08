@@ -164,7 +164,9 @@ D3DResource* CXBPackedResource::GetResource(const char* strName) const
 // PROTOTYPE: PREVIEW 0x0050E106 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 96.19, bytes mismatch (retail reloads g_swamp after the GetCamera test; ours reuses eax)
+// best: match_one objdiff 96.19, bytes mismatch (retail reloads g_swamp after the GetCamera test; ours reuses eax;
+// T10.c1 also tried early returns, == 0, camera local, const Swamp* local, named Matrix, no v0 (76.5): <= 96.19)
+// T12.c17: goto, do/while(0), while-break, empty then, member read, bool local, scene ref: all CSE g_swamp (96.19); at-stop 20
 void VinceLoadScreen::RenderGameScene()
 {
     if (HasPersistedImage()) {

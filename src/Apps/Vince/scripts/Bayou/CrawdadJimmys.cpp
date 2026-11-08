@@ -463,7 +463,7 @@ void CrawdadJimmyMain::GiveHint(int item)
 // NAME: proto-pdb:default.pdb
 SwampScript* Activator_FanBoatAMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("CrawdadJimmys\\CrawdadJimmys.cpp", 560) Activator_FanBoatAMain(node);
 }
 
@@ -472,7 +472,7 @@ SwampScript* Activator_FanBoatAMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* Activator_FanBoatBMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("CrawdadJimmys\\CrawdadJimmys.cpp", 569) Activator_FanBoatBMain(node);
 }
 
@@ -481,7 +481,7 @@ SwampScript* Activator_FanBoatBMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* Activator_FanBoatCMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("CrawdadJimmys\\CrawdadJimmys.cpp", 578) Activator_FanBoatCMain(node);
 }
 
@@ -490,7 +490,7 @@ SwampScript* Activator_FanBoatCMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CrawdadJimmyMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\crawdadjimmys\\CrawdadJimmys.h", 14) CrawdadJimmyMain(node);
 }
 
@@ -536,7 +536,7 @@ void pin_emit_BasicDoorMain_dtor(BasicDoorMain* p)
 // NAME: proto-pdb:default.pdb
 SwampScript* GrateExitMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("CrawdadJimmys\\CrawdadJimmys.cpp", 535) GrateExitMain(node);
 }
 
@@ -545,7 +545,7 @@ SwampScript* GrateExitMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* TimberGateMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("CrawdadJimmys\\CrawdadJimmys.cpp", 521) TimberGateMain(node);
 }
 

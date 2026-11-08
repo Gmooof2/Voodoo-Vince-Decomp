@@ -58,12 +58,16 @@ struct FFlyCubicKey { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(FFlyCubicKey, 0x18);
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class FFlyController { // NAME: proto-pdb:default.pdb
 public:
-    virtual ~FFlyController();                                   // vtable+0x00
+    FFlyController() : _min(0), _max(0) {}
+    virtual ~FFlyController();                                  // vtable+0x00
     virtual void Initialize(float& min, float& max);             // vtable+0x04
     virtual float Evaluate(double t) const = 0;                  // vtable+0x08
     virtual void Set(const FFlyCtrlData& data);                  // vtable+0x0C
+    static FFlyController* Create(unsigned int type);
     static void GenerateCubicCoeff(const std::vector<FFlyCtrlData::Key, std::allocator<FFlyCtrlData::Key> >& keys,
                                    std::vector<FFlyCubicKey, std::allocator<FFlyCubicKey> >& cubicKeys);
 
@@ -98,6 +102,7 @@ DECOMP_SIZE_ASSERT(FFlyMinMaxCtrlV3, 0xC);
 
 class FFlyLinearCurveCtrl : public FFlyController { // NAME: proto-pdb:default.pdb
 public:
+    FFlyLinearCurveCtrl();
     virtual float Evaluate(double t) const;
     virtual void Set(const FFlyCtrlData& data);
 
@@ -108,6 +113,7 @@ DECOMP_SIZE_ASSERT(FFlyLinearCurveCtrl, 0x20);
 
 class FFlyCubicCurveCtrl : public FFlyController { // NAME: proto-pdb:default.pdb
 public:
+    FFlyCubicCurveCtrl();
     virtual float Evaluate(double t) const;
     virtual void Set(const FFlyCtrlData& data);
 
@@ -137,13 +143,36 @@ public:
 DECOMP_SIZE_ASSERT(FFlyCubicCurveCtrlV3, 0x40);
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> void vector<FFlyCtrlData::Key,std::allocator<FFlyCtrlData::Key> >::_Xlen()const;
+template <> void vector<FFlyCubicKey,std::allocator<FFlyCubicKey> >::reserve(size_type);
+template <> void vector<FFlyCubicKey,std::allocator<FFlyCubicKey> >::push_back(const FFlyCubicKey&);
 template <> FFlyCtrlData::Key* _Uninitialized_copy<FFlyCtrlData::Key*,FFlyCtrlData::Key*,allocator<FFlyCtrlData::Key> >(FFlyCtrlData::Key*,FFlyCtrlData::Key*,FFlyCtrlData::Key*,allocator<FFlyCtrlData::Key>&);
 }
 #endif
+
+// FUNCTION: USA 0x0006DEB5 FOLDED
+// PROTOTYPE: PREVIEW 0x0045A12B identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: byte-identical fold copy of 0x0006DEB5; the matched set lists one row per VA (FFlyControllerV3's), and a defined unlisted copy fails the gate's *objects* extra
+void FFlyController::Initialize(float& min, float& max)
+{
+    _min = &min;
+    _max = &max;
+}
+#endif
+
+// FUNCTION: USA 0x0006DEB5 FOLDED
+// PROTOTYPE: PREVIEW 0x0045A12B identical
+// NAME: proto-pdb:default.pdb
+void FFlyControllerV3::Initialize(Vector3& min, Vector3& max)
+{
+    _min = &min;
+    _max = &max;
+}
 
 // FUNCTION: USA 0x0006DEE3
 // PROTOTYPE: PREVIEW 0x004BE1D2 identical
@@ -173,7 +202,7 @@ float FFlyMinMaxCtrl::Evaluate(double t) const
 // NAME: proto-pdb:default.pdb
 void FFlyMinMaxCtrlV3::Evaluate(double t, Vector3& result) const
 {
-    // !FAKE: stand-in reference locals mn, mx (no PDB locals); retail keeps _min/_max in esi/edi across the
+    // !FAKE: c2 register allocation; stand-in reference locals mn, mx (no PDB locals); retail keeps _min/_max in esi/edi across the
     // result stores, the member form reloads them (match_one 78.68 -> 100)
     const Vector3& mn = *_min;
     const Vector3& mx = *_max;
@@ -284,13 +313,60 @@ template <> bool std::vector<FFlyCtrlData::Key,std::allocator<FFlyCtrlData::Key>
         return (false);
     else if (max_size() < _Capacity) {
         _Xlen();
-        __assume(0); // !FAKE: noreturn restated (C0237)
+        __assume(0); // !FAKE: c2 noreturn; __assume(0) restating noreturn; no before/after recorded (C0237)
     } else {
         _Myfirst = this->_Alval.allocate(_Capacity);
         _Mylast = _Myfirst;
         _Myend = _Myfirst + _Capacity;
     }
     return (true);
+}
+
+// FUNCTION: USA 0x0006EE68
+// PROTOTYPE: PREVIEW 0x0045B115 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (relink wall: the inline ctors emit ??_7FFlyController@@6B@, no retail VA pin)
+FFlyController* FFlyController::Create(unsigned int type)
+{
+    switch (type) {
+    case 1:
+        return new("FFlyController.cpp", 20) FFlyMinMaxCtrl;
+    case 2:
+        return new("FFlyController.cpp", 23) FFlyLinearCurveCtrl;
+    case 3:
+        return new("FFlyController.cpp", 26) FFlyCubicCurveCtrl;
+    }
+    return 0;
+}
+#endif
+
+// FUNCTION: USA 0x0006EF40
+// PROTOTYPE: PREVIEW 0x0045B1ED identical
+// NAME: proto-pdb:default.pdb
+void FFlyController::GenerateCubicCoeff(const std::vector<FFlyCtrlData::Key, std::allocator<FFlyCtrlData::Key> >& input,
+                                        std::vector<FFlyCubicKey, std::allocator<FFlyCubicKey> >& output)
+{
+    output.clear();
+    if (input.size() < 2)
+        return;
+    output.reserve(input.size() - 1);
+    std::vector<FFlyCtrlData::Key, std::allocator<FFlyCtrlData::Key> >::const_iterator v0 = input.begin();
+    // !FAKE: c2 register allocation; reordered statement (++v1 before ++v0); edi/esi swapped without it (match_one 98.90 -> 100.0)
+    for (std::vector<FFlyCtrlData::Key, std::allocator<FFlyCtrlData::Key> >::const_iterator v1 = v0 + 1;
+         v1 != input.end(); ++v1, ++v0) {
+        // !FAKE: c2 register allocation; dummy locals; retail keeps both tangents on the x87 stack (match_one 79.44 -> 98.90)
+        float v2 = v0->outTan;
+        float v3 = v1->inTan;
+        FFlyCubicKey ckey;
+        ckey.time[0] = v0->time;
+        ckey.time[1] = v1->time;
+        ckey.coeff[0] = 2.0f * (v0->value - v1->value) + v3 + v2;
+        ckey.coeff[1] = 3.0f * (v1->value - v0->value) - 2.0f * v2 - v3;
+        ckey.coeff[2] = v2;
+        ckey.coeff[3] = v0->value;
+        output.push_back(ckey);
+    }
 }
 
 // FUNCTION: USA 0x0006EFD6

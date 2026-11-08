@@ -228,6 +228,13 @@ void operator delete(void* p)
         FreeMemory(p, AllocationRecord::NEW);
 }
 
+// FUNCTION: USA 0x00033EB4
+// NAME: proto-pdb:default.pdb
+void* operator new[](unsigned int size, const char* file, int line)
+{
+    return AllocateMemory(size, file, line, AllocationRecord::ARRAY);
+}
+
 // FUNCTION: USA 0x00033ECB
 // PROTOTYPE: PREVIEW 0x00422651 identical
 // NAME: proto-pdb:default.pdb

@@ -4,7 +4,7 @@
 #pragma warning(disable: 4530) // no /EH in the unit flags; as Oven.cpp
 #include <xstring>
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization before <string> (as init.cpp): <stdexcept>'s logic_error
+// !FAKE: c1xx front end; declaration-only explicit specialization before <string> (as init.cpp); <stdexcept>'s logic_error
 // instantiates the copy ctor (C2908 after it); retail calls it out of line (0x00011753)
 template <> std::basic_string<char,std::char_traits<char>,std::allocator<char> >::basic_string(const std::basic_string<char,std::char_traits<char>,std::allocator<char> >&);
 #endif
@@ -16,7 +16,7 @@ typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > S
 class Popup; // NAME: proto-pdb:default.pdb
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> std::basic_string<char,std::char_traits<char>,std::allocator<char> >::const_iterator basic_string<char,std::char_traits<char>,std::allocator<char> >::end()const;
@@ -91,7 +91,7 @@ public:
 };
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132, C0154); retail calls it out of line (0x000185BB, fold alias)
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132, C0154); retail calls it out of line (0x000185BB, fold alias)
 namespace std {
 template <> void deque<ResourceHandle<AnimationResource>,std::allocator<ResourceHandle<AnimationResource> > >::_Tidy();
 }
@@ -199,6 +199,7 @@ extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
 namespace BeepLib { // NAME: proto-pdb:default.pdb
 unsigned int Random(); // NAME: proto-pdb:default.pdb
+double RandomFloat(float lo, float hi); // NAME: proto-pdb:default.pdb
 }
 
 class SwampScript { // NAME: proto-pdb:default.pdb
@@ -237,6 +238,10 @@ public:
     void RegisterFrameTick();
     void UnRegisterFrameTick();
 
+protected:
+    SwampScript(SwampSceneNode* node); // retail ??0SwampScript@@IAE@PAVSwampSceneNode@@@Z
+
+public:
     char field_4[0x1C];                // 0x04 (_name; not reached)
     SwampSceneNode* _node;             // 0x20
     char field_24[0x28];               // 0x24 (_parent .. _saveLoadVars; not reached)
@@ -264,6 +269,7 @@ public:
         TIMER_POPUP = 0,
         TIMER_DONE = 1
     };
+    Popup(CritterMain* tomb);
     virtual void Activate();
     virtual void TimerEvent(unsigned int timerId);
 
@@ -318,9 +324,9 @@ protected:
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
-    // !FAKE: access; Popup::TimerEvent reaches _popupManager directly (retail GetPuzzleScript()+0x4C)
+    // !FAKE: c1xx front end; friend declaration (access); Popup::TimerEvent reaches _popupManager directly (retail GetPuzzleScript()+0x4C)
     friend class Popup;
-    // !FAKE: access; MoleGateMain::Message reaches _popupManager directly (retail GetPuzzleScript()+0x4C)
+    // !FAKE: c1xx front end; friend declaration (access); MoleGateMain::Message reaches _popupManager directly (retail GetPuzzleScript()+0x4C)
     friend class MoleGateMain;
 
     // retail: Random() % rows is `and 7`, % cols is `div 5`
@@ -336,6 +342,10 @@ private:
 };
 DECOMP_SIZE_ASSERT(MondoMolePuzzleRegionMain, 0x2EC);
 
+// FUNCTION: USA 0x0005F9A5 FOLDED
+// PROTOTYPE: PREVIEW 0x004583BE identical
+// NAME: proto-pdb:default.pdb
+// retail ??_G inlines ~MoleTombMain with no vptr store: the class declares no dtor (C0029)
 class MoleTombMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum { // NAME: proto-pdb:default.pdb
@@ -348,7 +358,6 @@ public:
     MoleTombMain(SwampSceneNode* node);
     virtual void Activate();
     virtual void Load(const BeepTDF& tdf);
-    virtual ~MoleTombMain();
 private:
     void CreateMole();
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -403,7 +412,19 @@ DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
 // retail ??1 has no vptr store: the class declares no dtor (C0029)
 class MondoMoleMain : public MonsterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_IDLE_REST = 0,
+        STATE_IDLE_READY = 1,
+        STATE_IDLE_LAUGH = 2,
+        STATE_HIDE_REST = 3,
+        STATE_HIDE_READY = 4
+    };
+    enum Timers { // NAME: proto-pdb:default.pdb
+        TIMER_HIDE_REST = 0,
+        TIMER_BORED = 1
+    };
     virtual void Activate();
+    virtual void SetState(int state);
 
     bool _active;                      // 0x240
     float _targetTimer;                // 0x244
@@ -428,6 +449,7 @@ class GateMoleMain : public MondoMoleMain { // NAME: proto-pdb:default.pdb
 public:
     GateMoleMain(SwampSceneNode* node);
     virtual void Activate();
+    virtual void SetState(int state);
     void SetTombScript(CritterMain* tomb) { _tomb = tomb; }
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -449,6 +471,16 @@ void MondoMolePuzzleRegionMain::Message(SwampScript* source, int message, void* 
     }
 }
 
+// FUNCTION: USA 0x0005EDDC
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); precheck relink `our ranges overlap at 0x00025012`:
+// the ctor emits ??_7Popup, whose slot 0 ??_GPopup@@UAEPAXI@Z folds at 0x00025012 and is not pinned there by name
+Popup::Popup(CritterMain* tomb) : SwampScript(0), _tomb(tomb)
+{
+}
+#endif
+
 // FUNCTION: USA 0x0005EDF9
 // PROTOTYPE: PREVIEW 0x0044B238 identical
 // NAME: proto-pdb:default.pdb
@@ -464,6 +496,16 @@ void Popup::Activate()
 MoleHole::MoleHole()
 {
     _occupied = false;
+}
+
+// FUNCTION: USA 0x0005EE2D
+// PROTOTYPE: PREVIEW 0x0044B26C identical
+// NAME: proto-pdb:default.pdb
+void GateMoleMain::SetState(int state)
+{
+    MondoMoleMain::SetState(state);
+    if (_state == STATE_HIDE_READY)
+        RegisterTimerEvent(TIMER_BORED, BeepLib::RandomFloat(5.0f, 20.0f), false);
 }
 
 // FUNCTION: USA 0x0005EEB1
@@ -484,11 +526,11 @@ void PopupManager::InitQueue()
 // NAME: proto-pdb:default.pdb
 void MoleGateMain::Load(const BeepTDF& tdf)
 {
-    // !FAKE: stand-in local; the PDB lists none
-    int state = tdf.GetIntRecord("state", STATE_OPEN);
-    if (state == STATE_OPEN)
+    // !FAKE: provenance; stand-in local (the PDB lists none); trial 5.2 T14: not removable, v0 is a GetIntRecord call result used twice, inlining it repeats the call
+    int v0 = tdf.GetIntRecord("state", STATE_OPEN);
+    if (v0 == STATE_OPEN)
         Message(this, MESSAGE_GATE_INSTANTOPEN, 0);
-    SetState(state);
+    SetState(v0);
     if (GetCritter()->GetName().compare("molegate_a") == 0)
         _solved = tdf.GetBoolRecord("solved", false);
 }
@@ -528,7 +570,7 @@ void MondoMolePuzzleRegionMain::EnteringRegion(SwampSceneNode* node)
         if (!_solved) {
             if (!_started) {
                 gate->GetScript()->Message(this, MoleGateMain::MESSAGE_GATE_CLOSE, 0);
-                // !FAKE: stand-in local; ends the string temporary before GetScript (retail edi); the PDB lists none
+                // !FAKE: EH state; stand-in local (the PDB lists none); it ends the string temporary before GetScript (retail edi)
                 Critter* gateB = pManager->Find("molegate_b");
                 gateB->GetScript()->Message(this, MoleGateMain::MESSAGE_GATE_CLOSE, 0);
                 AnimCam::SwitchTo("camera_moleGatesClose", 0.0f, false, 0.0f);
@@ -572,7 +614,7 @@ void MondoMolePuzzleRegionMain::FrameTick()
 // NAME: proto-pdb:default.pdb
 MondoMolePuzzleRegionMain* MondoMolePuzzleRegionMain::GetPuzzleScript()
 {
-    // !FAKE: stand-in local; the PDB lists none
+    // !FAKE: c1xx temporary lifetime; stand-in local (the PDB lists none); trial 5.2 T14: without it GetScript is called before the SwampString temporary's destructor and esi no longer holds region
     RegionTrigger* region = g_swamp->GetRegionManager().Find("MondoMolePuzzle");
     return (MondoMolePuzzleRegionMain*)region->GetScript();
 }
@@ -583,11 +625,13 @@ MondoMolePuzzleRegionMain* MondoMolePuzzleRegionMain::GetPuzzleScript()
 #ifdef NON_MATCHING
 // best: match_one objdiff 94.80, bytes mismatch (frame and slots equal; retail stores pManager to [ebp-8] after
 // Quaternion::Set and loads _node into edi before it; plain pManager-> is loaded at the call, frame 0x80)
+// T12.c20 wall: the PDB has no CritterManager getter (only Swamp::Get*Manager); ~35 probed stand-in placements of
+// pManager (statement, object, comma in each argument) all load it before Set; a _node stand-in fixes edi only (89.15)
 void MoleTombMain::CreateMole()
 {
-    // !FAKE: stand-in local; the PDB lists none
+    // !FAKE: c1xx evaluation order; stand-in local (the PDB lists none); trial 5.2 T14: without it GetPuzzleScript is called after the Quaternion setup and ebx holds pManager, not moleCount
     int moleCount = MondoMolePuzzleRegionMain::GetPuzzleScript()->GetMoleCount();
-    // !FAKE: c2 register allocation; stand-in locals assigned in the call order retail loads them (C0221, Kosmo.cpp)
+    // !FAKE: c2 frame layout; stand-in local assigned in the call order retail loads it; trial 5.2 T14: without it pManager loads at the Create call, not spilled to [ebp-8] early; frame 0x84->0x80, slots move
     CritterManager* cm;
     _mole = (cm = pManager)->Create(format("gatemole%d", moleCount),
                              "gatemole", "mondomole", g_swamp->GetModelManager().Load("mondoMole_base"),
@@ -603,11 +647,11 @@ void MoleTombMain::CreateMole()
 // NAME: proto-pdb:default.pdb
 void MoleTombMain::Load(const BeepTDF& tdf)
 {
-    // !FAKE: stand-in local; the PDB lists none
+    // !FAKE: provenance; stand-in local (the PDB lists none); trial 5.2 T14: not removable, state is a GetIntRecord call result used twice, inlining it repeats the call
     int state = tdf.GetIntRecord("state", STATE_DOWN);
     SetState(state);
     if (state == STATE_UP) {
-        // !FAKE: stand-in local; the AddRef/SubRef copy needs a named handle, no PDB local
+        // !FAKE: provenance; stand-in local (no PDB local); the AddRef/SubRef copy needs a named handle
         ResourceHandle<AnimationControl> anim = GetCritter()->StartAnimation(_rise, false, true);
         GetCritter()->SetAnimSpeed(0.0f);
     }
@@ -619,7 +663,7 @@ void Popup::TimerEvent(unsigned int timerId)
 {
     switch (timerId) {
     case TIMER_POPUP: {
-        // !FAKE: stand-in local; the PDB lists none
+        // !FAKE: c1xx evaluation order; stand-in local (the PDB lists none); trial 5.2 T14: without it the name's last char is read after AnimCam::Return and bl no longer holds c (no push ebx)
         char c = *_tomb->GetCritter()->GetName().rbegin();
         AnimCam::Return(0.0f);
         AnimCam::SwitchTo(format("camera_moleTomb_%c", c), 0.0f, false, 0.0f);
@@ -639,7 +683,7 @@ void Popup::TimerEvent(unsigned int timerId)
 // NAME: proto-pdb:default.pdb
 SwampScript* MondoMolePuzzleRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("GatekeeperJam\\MoleGatePuzzle.cpp", 135) MondoMolePuzzleRegionMain(node);
 }
 
@@ -648,7 +692,7 @@ SwampScript* MondoMolePuzzleRegionMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 void GateMoleMain::Activate()
 {
-    // !FAKE: stand-in locals; the PDB lists none
+    // !FAKE: provenance; stand-in locals (the PDB lists none); trial 5.2 T14: not removable, the do-while test and the body reuse the GetPuzzleScript and Random results
     MondoMolePuzzleRegionMain* puzzle;
     int row;
     int col;
@@ -672,7 +716,7 @@ void MoleGateMain::Message(SwampScript* from, int message, void* data)
         if (GetCritter()->GetName().compare("molegate_a") == 0) {
             MondoMolePuzzleRegionMain::GetPuzzleScript()->Message(this, 2, 0);
             Message(this, MESSAGE_GATE_OPEN, 0);
-            // !FAKE: stand-in local; ends the string temporary before GetScript (retail ebx); the PDB lists none
+            // !FAKE: EH state; stand-in local (the PDB lists none); it ends the string temporary before GetScript (retail ebx)
             Critter* gateB = pManager->Find("molegate_b");
             gateB->GetScript()->Message(this, MESSAGE_GATE_OPEN, 0);
         }
@@ -691,7 +735,7 @@ void MoleGateMain::Message(SwampScript* from, int message, void* data)
         }
         break;
     case MESSAGE_GATE_INSTANTOPEN: {
-        // !FAKE: stand-in local; the AddRef/SubRef copy needs a named handle, no PDB local
+        // !FAKE: provenance; stand-in local (no PDB local); the AddRef/SubRef copy needs a named handle
         ResourceHandle<AnimationControl> anim = GetCritter()->StartAnimation(_open, false, false);
         anim().SetAnimationTime(anim().GetAnimationLength());
         SetState(STATE_OPEN);
@@ -715,12 +759,25 @@ void MoleTombMain::Activate()
         CreateMole();
 }
 
+#ifdef NON_MATCHING
+// best: ??_GMoleTombMain match_one objdiff 100.0, bytes match (relink wall: the implicit copy ctor also emits
+// ??_7CritterMain/??_7SwampScript and ??_GCritterMain, which a cut object defines; lift: match the ctor 0x5F92A)
+// !FAKE: c1xx front end; scaffold copy construction and qualified dtor call; retail emits ??_7MoleTombMain and its
+// ??_G here from the ctor 0x5F92A (not matched yet); the implicit copy ctor's vptr store emits them instead, and the
+// dtor call lets ??_G inline the implicit ~MoleTombMain (call ??1 without it: match_one 68.75 -> 100) ([[emitter]] row)
+void pin_emit_MoleTombMain_vtable(void* p, MoleTombMain* s)
+{
+    new(p) MoleTombMain(*s);
+    s->MoleTombMain::~MoleTombMain();
+}
+#endif
+
 // FUNCTION: USA 0x0005FA8D
 // PROTOTYPE: PREVIEW 0x0044BEF7 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* MoleTombMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("GatekeeperJam\\MoleGatePuzzle.cpp", 58) MoleTombMain(node);
 }
 
@@ -732,7 +789,7 @@ SwampScript* MoleTombMain::creationFunc(SwampSceneNode* node)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* MoleTomb_AMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("GatekeeperJam\\MoleGatePuzzle.cpp", 673) MoleTomb_AMain(node);
 }
 #endif
@@ -742,6 +799,6 @@ SwampScript* MoleTomb_AMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* GateMoleMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("GatekeeperJam\\MoleGatePuzzle.cpp", 108) GateMoleMain(node);
 }

@@ -64,12 +64,48 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x34 - 0x24];        // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    ResourceHandle& operator=(const ResourceHandle& h);
+
     T* _Resource;                      // 0x00
 };
-class AnimationResource;     // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
+
+    char field_0[0x18];                // 0x00
+    AnimationManager* _animationManager; // 0x18
+};
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -117,10 +153,16 @@ class CollisionResultObject : public BSPQueryResultObject { // NAME: proto-pdb:d
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
     Critter* GetCritter() { return (Critter*)_node; }
 
     int _state;                        // 0x4C
@@ -144,6 +186,8 @@ public:
 DECOMP_SIZE_ASSERT(SwampParticleManager, 0x2C);
 extern SwampParticleManager* g_particleManager; // NAME: proto-pdb:default.pdb
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class SwitchSafeMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum Timers { // NAME: proto-pdb:default.pdb
@@ -161,12 +205,15 @@ public:
         MESSAGE_POPUP = 0x14
     };
 
+    SwitchSafeMain(SwampSceneNode* node);
+    virtual void TimerEvent(unsigned int);
     virtual void AnimationFinished();
     virtual void Message(SwampScript*, int, void*);
     virtual void HitBy(CollisionType type, SwampSceneNode* critterHitBy, const Ptr<CollisionResultObject>& cr);
     void SetSparks(bool);
 private:
     void ResetPopupTimer();
+    static SwampScript* creationFunc(SwampSceneNode* node);
 public:
 
     ResourceHandle<AnimationResource> _on;  // 0xBC
@@ -180,6 +227,15 @@ DECOMP_SIZE_ASSERT(SwitchSafeMain, 0xC4);
 void SwitchSafeMain::ResetPopupTimer()
 {
     RegisterTimerEvent(TIMER_POPUP, 1.0f, false);
+}
+
+// FUNCTION: USA 0x0007EA26
+// NAME: proto-pdb:default.pdb
+SwitchSafeMain::SwitchSafeMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _state = STATE_UP;
+    _off = g_swamp->GetAnimationManager().Load("switchSafe_off");
+    _on = g_swamp->GetAnimationManager().Load("switchSafe_on");
 }
 
 // FUNCTION: USA 0x0007EADD
@@ -236,6 +292,14 @@ void SwitchSafeMain::Message(SwampScript* source, int message, void* data)
         SetSparks(false);
         break;
     }
+}
+
+// FUNCTION: USA 0x0007ECF4
+// NAME: proto-pdb:default.pdb
+SwampScript* SwitchSafeMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\docks\\SwitchSafe.h", 11) SwitchSafeMain(node);
 }
 
 // FUNCTION: USA 0x0007ED1B

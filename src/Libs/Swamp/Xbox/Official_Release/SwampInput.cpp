@@ -426,7 +426,8 @@ const SwampInput::InputRecord& SwampInput::GetRecord()
 // FUNCTION: USA 0x000ADAF7
 // PROTOTYPE: PREVIEW 0x0049897E identical
 // NAME: proto-pdb:default.pdb
-void SwampGamePad::SetState(const _XINPUT_GAMEPAD& newState)
+// !FAKE: c1xx front end; `inline` drops cl's same-unit register summary (C0251): Update keeps no edx across the call
+inline void SwampGamePad::SetState(const _XINPUT_GAMEPAD& newState)
 {
     _previous = _current;
     _current = newState;
@@ -479,8 +480,6 @@ void SwampInput::PlayRumble(int player, const ResourceHandle<RumbleResource>& ru
 // FUNCTION: USA 0x000ADE70
 // PROTOTYPE: PREVIEW 0x00498CF7 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 97.01, bytes mismatch (masked 0 since T9.c46 pins): x87 clamp fcom vs retail fld/fld st(1)/fcompp; SetState-visible regalloc (edx loop)
 void SwampInput::Update()
 {
     int i;
@@ -489,8 +488,11 @@ void SwampInput::Update()
         _sessionTimeInternal = BeepLib::GetTime() - _createTime;
         _actualElapsed = _sessionTimeInternal - last_time;
         if (!_pauseGame) {
-            _elapsed = (_actualElapsed > _frameMaximum ? _frameMaximum : _actualElapsed) * _simSpeed;
-            _gameTimeInternal += _elapsed;
+            // !FAKE: c1xx front end; neutral stand-in local; retail adds to _gameTimeInternal before storing _elapsed;
+            // the (double) compare gives retail's `fld K; fld st(1); fcompp`
+            const double e = (_frameMaximum < (double)_actualElapsed ? _frameMaximum : _actualElapsed) * _simSpeed;
+            _gameTimeInternal += e;
+            _elapsed = e;
         } else {
             _elapsed = 0.0f;
         }
@@ -542,7 +544,6 @@ void SwampInput::Update()
     _gameTimePublic = _gameTimeInternal;
     _sessionTimePublic = _sessionTimeInternal;
 }
-#endif
 
 // FUNCTION: USA 0x000AE197
 // PROTOTYPE: PREVIEW 0x0049901E identical

@@ -4,6 +4,10 @@ namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
+public:
+    basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
+    basic_string& assign(const E* _Ptr);
+
 private:
     unsigned int _pad00[0x1C / 4];
 };
@@ -13,8 +17,17 @@ typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > S
 class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
-struct Vector3;              // NAME: proto-pdb:default.pdb
 class SwampSceneNode;        // NAME: proto-pdb:default.pdb
+class AABox;                 // NAME: proto-pdb:default.pdb
+
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    void Normalize();
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -112,13 +125,50 @@ public:
         DontDraw = 0x2
     };
 
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+
     void SetOption(unsigned int option, bool value, bool recursive);
+    SwampScript* GetScript() const;
+
+    char field_4[0xA0];                // 0x04
 };
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 // src proto-pdb:default.pdb GatorNode base CollidableCylinder : CollidableNode : SwampSceneNode, all at 0x0; not modelled
 class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>& anim, bool restart, bool loop);
+
+    char field_A4[0x15C];              // 0xA4
+};
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
+
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+public:
+    void SetVelocity(const Vector3& v) { _Velocity = v; }
+
+    char field_200[0xC];               // 0x200
+    Vector3 _Velocity;                 // 0x20C
+    char field_218[0xB0];              // 0x218
+};
+DECOMP_SIZE_ASSERT(Critter, 0x2C8);
+
+class DamageSourceInfo { // NAME: proto-pdb:default.pdb
+public:
+    DamageSourceInfo();
+    ~DamageSourceInfo();
+
+    SwampString sourceType;            // 0x00
+    SwampString attackType;            // 0x1C
+    float _multiplier;                 // 0x38
+    bool _canBlock;                    // 0x3C
+};
+DECOMP_SIZE_ASSERT(DamageSourceInfo, 0x40);
+
+enum { // NAME: proto-pdb:default.pdb
+    MESSAGE_DAMAGE = 0x0
 };
 
 class TerradactylMain : public CritterMain { // NAME: proto-pdb:default.pdb
@@ -137,6 +187,7 @@ public:
     virtual void Load(const BeepTDF& tdf);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+    void DamageVince(SwampSceneNode* pvince);
 
     ResourceHandle<AnimationResource> _animFlyPath; // 0xBC
     SwampString _terryAnimName;        // 0xC0
@@ -148,7 +199,7 @@ DECOMP_SIZE_ASSERT(TerradactylMain, 0xDC);
 // NAME: proto-pdb:default.pdb
 SwampScript* TerradactylMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\museum\\Terradactyl.h", 7) TerradactylMain(node);
 }
 
@@ -178,4 +229,27 @@ void TerradactylMain::Load(const BeepTDF& tdf)
 {
     CritterMain::Load(tdf);
     _animFlyPath = g_swamp->GetAnimationManager().Load(_terryAnimName);
+}
+
+// FUNCTION: USA 0x0008BBA1
+// PROTOTYPE: PREVIEW 0x004776C4 identical
+// NAME: proto-pdb:default.pdb
+void TerradactylMain::DamageVince(SwampSceneNode* pvince)
+{
+    DamageSourceInfo dsi;
+    dsi.sourceType = "turbodactyl";
+    dsi.attackType = "bump";
+    pvince->GetScript()->Message(this, MESSAGE_DAMAGE, &dsi);
+    // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference; retail inlines it, no before/after recorded (C0191)
+    const Vector3* v0 = &_node->GetWorldPosition();
+    const Vector3* v1 = &pvince->GetWorldPosition();
+    Vector3 diff;
+    diff.x = v1->x - v0->x;
+    diff.y = v1->y - v0->y;
+    diff.z = v1->z - v0->z;
+    diff.Normalize();
+    diff.x *= 2.0f;
+    diff.z *= 2.0f;
+    diff.y = 2.0f;
+    static_cast<Critter*>(pvince)->SetVelocity(diff);
 }

@@ -1,12 +1,28 @@
 // UNIT: src/Libs/Swamp/Xbox/Official_Release/SwampResourceManager.cpp OBJ: Xbox\Official_Release\SwampResourceManager.obj OPT: /O1 /Oy
 #include "../../../../include/decomp.h"
 
+class exception { // NAME: proto-pdb:default.pdb
+public:
+    exception(const exception& v1); // out of line in retail (logic_error copy ctor calls it)
+    virtual ~exception();
+    virtual const char* what() const;
+
+private:
+    const char* _m_what;               // 0x04
+    int _m_doFree;                     // 0x08
+};
+
 namespace std { // NAME: proto-pdb:default.pdb
 template<class _Elem>
 struct char_traits {};
 
+template <class T> inline void _Destroy(T* _Ptr) { (_Ptr)->~T(); }
 template<class _Ty>
-class allocator {};
+class allocator { // VC 7.1 xmemory, the members _Tree::erase uses
+public:
+    void deallocate(_Ty* _Ptr, unsigned int) { operator delete(_Ptr); }
+    void destroy(_Ty* _Ptr) { _Destroy(_Ptr); }
+};
 
 template<class _Elem, class _Traits = char_traits<_Elem>, class _Ax = allocator<_Elem> >
 class basic_string {
@@ -22,6 +38,7 @@ public:
     };
 
     basic_string() { _Myres = _BUF_SIZE - 1; _Eos(0); }
+    basic_string(const _Elem* _Ptr);
     basic_string(const basic_string& _Right);
     ~basic_string() { _Tidy(true, 0); }
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
@@ -105,6 +122,25 @@ template <class T1, class T2> struct pair {
     T1 first;                          // 0x00
     T2 second;
 };
+template <class T> inline void swap(T& _Left, T& _Right)
+{
+    T _Tmp = _Left;
+    _Left = _Right, _Right = _Tmp;
+}
+class logic_error : public exception { // NAME: proto-pdb:default.pdb
+public:
+    explicit logic_error(const basic_string<char, char_traits<char>, allocator<char> >& _Message);
+    virtual ~logic_error();
+    virtual const char* what() const;
+
+private:
+    basic_string<char, char_traits<char>, allocator<char> > _Str; // 0x0C
+};
+class out_of_range : public logic_error { // NAME: proto-pdb:default.pdb
+public:
+    explicit out_of_range(const basic_string<char, char_traits<char>, allocator<char> >& _Message) : logic_error(_Message) {}
+    virtual ~out_of_range() {}
+};
 template <class K, class T, class Pr, class A, bool Mfl> class _Tmap_traits {
 public:
     typedef K key_type;
@@ -139,7 +175,26 @@ public:
         bool operator==(const const_iterator& _Right) const { return _Ptr == _Right._Ptr; }
         const value_type& operator*() const { return _Ptr->_Myval; }
         const value_type* operator->() const { return &**this; }
-        void _Inc();
+        // _Inc body visible (C0245): cl then keeps CollectGarbage's iterator in esi across the delete calls; it
+        // stays out of line, emitting this unit's alias at fold VA 0x000ECEA5
+        void _Inc()
+        {
+            if (_Ptr->_Isnil)
+                ;
+            else if (!_Ptr->_Right->_Isnil) {
+                // _Ptr = _Min(_Right(_Ptr)), the VC 7.1 static helper written out
+                _Node* _Pnode = _Ptr->_Right;
+                while (!_Pnode->_Left->_Isnil)
+                    _Pnode = _Pnode->_Left;
+                _Ptr = _Pnode;
+            } else {
+                _Node* _Pnode;
+                while (!(_Pnode = _Ptr->_Parent)->_Isnil && _Ptr == _Pnode->_Right)
+                    _Ptr = _Pnode;
+                _Ptr = _Pnode;
+            }
+        }
+        _Node* _Mynode() const { return (_Ptr); }
         _Node* _Ptr;
     };
     class iterator : public const_iterator {
@@ -148,16 +203,62 @@ public:
     };
     const_iterator begin() const { return const_iterator(_Myhead->_Left); }
     const_iterator end() const { return const_iterator(_Myhead); }
+    iterator begin() { return iterator(_Myhead->_Left); }
+    iterator end() { return iterator(_Myhead); }
     pair<iterator, bool> insert(const value_type& _Val);
+    iterator erase(iterator _Where);
     const_iterator find(const typename Tr::key_type& _Keyval) const;
 
 protected:
+    typedef _Node* _Nodeptr;
+    enum _Redbl { _Red, _Black };
+
+    static char& _Color(_Nodeptr _Pnode) { return ((char&)(*_Pnode)._Color); }
+    static char& _Isnil(_Nodeptr _Pnode) { return ((char&)(*_Pnode)._Isnil); }
+    static _Nodeptr& _Left(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Left); }
+    static _Nodeptr& _Parent(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Parent); }
+    static _Nodeptr& _Right(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Right); }
+
     _Tree() { _Init(); }
     void _Init();
+    _Nodeptr& _Lmost() { return (_Left(_Myhead)); }
+    _Nodeptr& _Rmost() { return (_Right(_Myhead)); }
+    _Nodeptr& _Root() { return (_Parent(_Myhead)); }
+    static _Nodeptr _Max(_Nodeptr _Pnode)
+    {
+        while (!_Isnil(_Right(_Pnode)))
+            _Pnode = _Right(_Pnode);
+        return (_Pnode);
+    }
+    static _Nodeptr _Min(_Nodeptr _Pnode)
+    {
+        while (!_Isnil(_Left(_Pnode)))
+            _Pnode = _Left(_Pnode);
+        return (_Pnode);
+    }
+    void _Lrotate(_Nodeptr _Wherenode)
+    {
+        _Nodeptr _Pnode = _Right(_Wherenode);
+        _Right(_Wherenode) = _Left(_Pnode);
+
+        if (!_Isnil(_Left(_Pnode)))
+            _Parent(_Left(_Pnode)) = _Wherenode;
+        _Parent(_Pnode) = _Parent(_Wherenode);
+
+        if (_Wherenode == _Root())
+            _Root() = _Pnode;
+        else if (_Wherenode == _Left(_Parent(_Wherenode)))
+            _Left(_Parent(_Wherenode)) = _Pnode;
+        else
+            _Right(_Parent(_Wherenode)) = _Pnode;
+
+        _Left(_Pnode) = _Wherenode;
+        _Parent(_Wherenode) = _Pnode;
+    }
     void _Rrotate(_Node* _Wherenode);
 
 private:
-    char _Alval;                       // 0x00
+    allocator<_Node> _Alnod;           // 0x00
     _Node* _Myhead;                    // 0x04
     unsigned int _Mysize;              // 0x08
 };
@@ -219,6 +320,7 @@ DECOMP_SIZE_ASSERT(BeepTDF, 0x58);
 
 void* operator new(unsigned int size, const char* file, int line); // NAME: proto-pdb:default.pdb
 void* operator new[](unsigned int size, const char* file, int line); // NAME: proto-pdb:default.pdb
+inline void* operator new(unsigned int, void* _Where) { return (_Where); }
 extern "C" void* __stdcall XPhysicalAlloc(unsigned long, unsigned long, unsigned long, unsigned long); // NAME: proto-pdb:default.pdb
 extern "C" void __stdcall XPhysicalProtect(void*, unsigned long, unsigned long); // NAME: proto-pdb:default.pdb
 
@@ -285,6 +387,16 @@ DECOMP_SIZE_ASSERT(BundleWrapper, 0x14);
 
 template <class T> class Ptr { // NAME: proto-pdb:default.pdb
 public:
+    Ptr(const Ptr<T>& p) : _Object(p._Object)
+    {
+        if (_Object)
+            _Object->AddRef();
+    }
+    ~Ptr()
+    {
+        if (_Object)
+            _Object->SubRef();
+    }
     Ptr<T>& operator=(const Ptr<T>& p);
     T* operator->() { return _Object; }
 
@@ -425,6 +537,10 @@ std::string MakeLower(const std::string& s);
 template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
 public:
     typedef std::multimap<std::string, T*> NameMap;
+    // FUNCTION: USA 0x000BDCC0
+    // NAME: proto-pdb:default.pdb
+    // FUNCTION: USA 0x000BE020
+    // NAME: proto-pdb:default.pdb
     struct ResourceBundle { // NAME: proto-pdb:default.pdb
         Ptr<BundleWrapper> _bundle;    // 0x00
         bool _dontDiscard;             // 0x04
@@ -436,6 +552,7 @@ public:
     HottieRawData GetDataInBundle(const std::string& filename, Ptr<BundleWrapper>& bundleptr);
     BeepTDF* GetTDFInBundle(const std::string& filename);
     ResourceHandle<T> Load(const std::string& name);
+    void CollectGarbage();
 
 protected:
     T* Find(const std::string& name) const;
@@ -675,6 +792,13 @@ template <class T> Ptr<T>& Ptr<T>::operator=(const Ptr<T>& p)
 }
 template Ptr<BundleWrapper>& Ptr<BundleWrapper>::operator=(const Ptr<BundleWrapper>& p);
 
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ResourceBundle copy ctor in this unit (no
+// matched function odr-uses it); this placement new odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_ResourceBundle_copy(void* p, const ResourceManager<TextureResource>::ResourceBundle& v)
+{
+    new (p) ResourceManager<TextureResource>::ResourceBundle(v);
+}
+
 // FUNCTION: USA 0x000BDD40
 // PROTOTYPE: PREVIEW 0x004A8A95 identical
 // NAME: proto-pdb:default.pdb
@@ -773,6 +897,13 @@ void ResourceCache::FreeHunk(void* ptr)
         FreeHunk(((char*)ptr - (char*)_memory) / _blockSize);
 }
 
+// !FAKE: c1xx front end; scaffold delete; retail emits the ResourceBundle scalar deleting dtor in this unit (no
+// matched function deletes one); this delete-expression emits it instead (matched_set [[emitter]] row)
+void pin_emit_ResourceBundle_delete(ResourceManager<TextureResource>::ResourceBundle* p)
+{
+    delete p;
+}
+
 // FUNCTION: USA 0x000BE048
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but SwampAnimationResource.obj calls the AnimationResource alias of 0x000BE048 as an external; our copy is no hole (unreachable from our rows) and links as extra .text (4.3 T13.c26)
@@ -869,8 +1000,43 @@ template VertexShaderResource* ResourceManager<VertexShaderResource>::Find(const
 // FUNCTION: USA 0x000BE397
 // PROTOTYPE: PREVIEW 0x004A90B1 identical
 // NAME: proto-pdb:default.pdb
-// !FAKE: deduced-argument form of the gen_stl line (provenance_lint reads the spaced return type as the name)
+// !FAKE: c1xx front end; deduced-argument explicit instantiation form of the gen_stl line; provenance_lint reads the spaced return type as the name
 template std::string std::operator+(const std::string&, const char);
+
+// FUNCTION: USA 0x000BF36B
+// NAME: proto-pdb:default.pdb
+template <class T> void ResourceManager<T>::CollectGarbage()
+{
+    for (typename NameMap::iterator oit = _Objects.begin(); oit != _Objects.end();) {
+        if (oit->second->_RefCount == 0) {
+            delete oit->second;
+            oit = _Objects.erase(oit);
+        } else {
+            ++oit;
+        }
+    }
+}
+template void ResourceManager<AnimationResource>::CollectGarbage();
+
+// FUNCTION: USA 0x000BF3C4
+// NAME: proto-pdb:default.pdb
+template void ResourceManager<FireFlyResource>::CollectGarbage();
+
+// FUNCTION: USA 0x000BF41D
+// NAME: proto-pdb:default.pdb
+template void ResourceManager<RumbleResource>::CollectGarbage();
+
+// FUNCTION: USA 0x000BF476
+// NAME: proto-pdb:default.pdb
+template void ResourceManager<MaterialResource>::CollectGarbage();
+
+// FUNCTION: USA 0x000BF4CF
+// NAME: proto-pdb:default.pdb
+template void ResourceManager<ModelResource>::CollectGarbage();
+
+// FUNCTION: USA 0x000BF581
+// NAME: proto-pdb:default.pdb
+template void ResourceManager<TextureResource>::CollectGarbage();
 
 // FUNCTION: USA 0x000C0299
 // NAME: proto-pdb:default.pdb
@@ -955,6 +1121,143 @@ void pin_emit_TreeNod_set_string_delete(
 }
 
 namespace std {
+// VC 7.1 <xtree> erase verbatim (_THROW expanded): retail calls erase out of line at the fold 0x00011B38
+// (row: Init.cpp _Tree<string,void*>::erase); each instance here emits a pick-any alias that relink merges
+// into the row (C0233 Fix 1, C0270)
+template <class Tr> typename _Tree<Tr>::iterator _Tree<Tr>::erase(iterator _Where)
+{
+    if (_Isnil(_Where._Mynode()))
+        throw out_of_range("invalid map/set<T> iterator");
+    _Nodeptr _Erasednode = _Where._Mynode();
+    ++_Where;
+
+    _Nodeptr _Fixnode;
+    _Nodeptr _Fixnodeparent;
+    _Nodeptr _Pnode = _Erasednode;
+
+    if (_Isnil(_Left(_Pnode)))
+        _Fixnode = _Right(_Pnode);
+    else if (_Isnil(_Right(_Pnode)))
+        _Fixnode = _Left(_Pnode);
+    else {
+        _Pnode = _Where._Mynode();
+        _Fixnode = _Right(_Pnode);
+    }
+
+    if (_Pnode == _Erasednode) {
+        _Fixnodeparent = _Parent(_Erasednode);
+        if (!_Isnil(_Fixnode))
+            _Parent(_Fixnode) = _Fixnodeparent;
+
+        if (_Root() == _Erasednode)
+            _Root() = _Fixnode;
+        else if (_Left(_Fixnodeparent) == _Erasednode)
+            _Left(_Fixnodeparent) = _Fixnode;
+        else
+            _Right(_Fixnodeparent) = _Fixnode;
+
+        if (_Lmost() == _Erasednode)
+            _Lmost() = _Isnil(_Fixnode) ? _Fixnodeparent : _Min(_Fixnode);
+
+        if (_Rmost() == _Erasednode)
+            _Rmost() = _Isnil(_Fixnode) ? _Fixnodeparent : _Max(_Fixnode);
+    } else {
+        _Parent(_Left(_Erasednode)) = _Pnode;
+        _Left(_Pnode) = _Left(_Erasednode);
+
+        if (_Pnode == _Right(_Erasednode))
+            _Fixnodeparent = _Pnode;
+        else {
+            _Fixnodeparent = _Parent(_Pnode);
+            if (!_Isnil(_Fixnode))
+                _Parent(_Fixnode) = _Fixnodeparent;
+            _Left(_Fixnodeparent) = _Fixnode;
+            _Right(_Pnode) = _Right(_Erasednode);
+            _Parent(_Right(_Erasednode)) = _Pnode;
+        }
+
+        if (_Root() == _Erasednode)
+            _Root() = _Pnode;
+        else if (_Left(_Parent(_Erasednode)) == _Erasednode)
+            _Left(_Parent(_Erasednode)) = _Pnode;
+        else
+            _Right(_Parent(_Erasednode)) = _Pnode;
+
+        _Parent(_Pnode) = _Parent(_Erasednode);
+        std::swap(_Color(_Pnode), _Color(_Erasednode));
+    }
+
+    if (_Color(_Erasednode) == _Black) {
+        for (; _Fixnode != _Root() && _Color(_Fixnode) == _Black; _Fixnodeparent = _Parent(_Fixnode))
+            if (_Fixnode == _Left(_Fixnodeparent)) {
+                _Pnode = _Right(_Fixnodeparent);
+                if (_Color(_Pnode) == _Red) {
+                    _Color(_Pnode) = _Black;
+                    _Color(_Fixnodeparent) = _Red;
+                    _Lrotate(_Fixnodeparent);
+                    _Pnode = _Right(_Fixnodeparent);
+                }
+
+                if (_Isnil(_Pnode))
+                    _Fixnode = _Fixnodeparent;
+                else if (_Color(_Left(_Pnode)) == _Black && _Color(_Right(_Pnode)) == _Black) {
+                    _Color(_Pnode) = _Red;
+                    _Fixnode = _Fixnodeparent;
+                } else {
+                    if (_Color(_Right(_Pnode)) == _Black) {
+                        _Color(_Left(_Pnode)) = _Black;
+                        _Color(_Pnode) = _Red;
+                        _Rrotate(_Pnode);
+                        _Pnode = _Right(_Fixnodeparent);
+                    }
+
+                    _Color(_Pnode) = _Color(_Fixnodeparent);
+                    _Color(_Fixnodeparent) = _Black;
+                    _Color(_Right(_Pnode)) = _Black;
+                    _Lrotate(_Fixnodeparent);
+                    break;
+                }
+            } else {
+                _Pnode = _Left(_Fixnodeparent);
+                if (_Color(_Pnode) == _Red) {
+                    _Color(_Pnode) = _Black;
+                    _Color(_Fixnodeparent) = _Red;
+                    _Rrotate(_Fixnodeparent);
+                    _Pnode = _Left(_Fixnodeparent);
+                }
+                if (_Isnil(_Pnode))
+                    _Fixnode = _Fixnodeparent;
+                else if (_Color(_Right(_Pnode)) == _Black && _Color(_Left(_Pnode)) == _Black) {
+                    _Color(_Pnode) = _Red;
+                    _Fixnode = _Fixnodeparent;
+                } else {
+                    if (_Color(_Left(_Pnode)) == _Black) {
+                        _Color(_Right(_Pnode)) = _Black;
+                        _Color(_Pnode) = _Red;
+                        _Lrotate(_Pnode);
+                        _Pnode = _Left(_Fixnodeparent);
+                    }
+
+                    _Color(_Pnode) = _Color(_Fixnodeparent);
+                    _Color(_Fixnodeparent) = _Black;
+                    _Color(_Left(_Pnode)) = _Black;
+                    _Rrotate(_Fixnodeparent);
+                    break;
+                }
+            }
+
+        _Color(_Fixnode) = _Black;
+    }
+
+    this->_Alnod.destroy(_Erasednode);
+    this->_Alnod.deallocate(_Erasednode, 1);
+
+    if (0 < _Mysize)
+        --_Mysize;
+
+    return (_Where);
+}
+
 template <class Tr> void _Tree<Tr>::_Rrotate(_Node* _Wherenode)
 {
     _Node* _Pnode = _Wherenode->_Left;

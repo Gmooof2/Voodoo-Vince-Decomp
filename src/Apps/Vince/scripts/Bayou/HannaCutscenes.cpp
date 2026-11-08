@@ -169,6 +169,6 @@ void HannaDeathCutscene::SetState(int state)
 // NAME: proto-pdb:default.pdb
 SwampScript* HannaDeathCutscene::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("HurricaneHanna\\HannaCutscenes.cpp", 136) HannaDeathCutscene(node);
 }

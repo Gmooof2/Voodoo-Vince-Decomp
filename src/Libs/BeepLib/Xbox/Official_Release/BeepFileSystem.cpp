@@ -243,10 +243,10 @@ SwampString FileSystem::FindDiskFile(const SwampString& filename) const
 {
     SwampString name(filename);
     std::replace(name.begin(), name.end(), '\\', '/');
-    Directories::const_iterator v0 = _Dirs.begin(); // !FAKE: no PDB local for the directory iterator
+    Directories::const_iterator v0 = _Dirs.begin(); // !FAKE: provenance; stand-in local v0; no PDB local for the directory iterator
     if (name.c_str()[0] == '.' || name.c_str()[0] == '/' || name.find(":") != SwampString::npos)
         v0 = _Dirs.end() - 1;
-    // !FAKE: guarded do/while with the replace chars set once: retail hoists them (its replace body is visible,
+    // !FAKE: c2 loop-invariant hoisting; guarded do/while with the replace chars set once; retail hoists them (its replace body is visible,
     // which here would emit another unit's matched row 0x0003562A)
     if (v0 != _Dirs.end()) {
         const char v3 = '\\'; // !FAKE
@@ -257,7 +257,7 @@ SwampString FileSystem::FindDiskFile(const SwampString& filename) const
                 SwampString searchstring(fullpath);
                 std::replace(searchstring.begin(), searchstring.end(), v4, v3);
                 _WIN32_FIND_DATAA fdata;
-                void* v2 = FindFirstFileA(searchstring.c_str(), &fdata); // !FAKE: no PDB local for the handle
+                void* v2 = FindFirstFileA(searchstring.c_str(), &fdata); // !FAKE: provenance; stand-in local v2; no PDB local for the handle
                 if (v2 != (void*)-1) {
                     CloseHandle(v2);
                     if ((fdata.dwFileAttributes & 0x10) == 0)

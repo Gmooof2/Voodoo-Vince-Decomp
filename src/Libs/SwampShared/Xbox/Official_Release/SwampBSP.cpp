@@ -291,7 +291,27 @@ public:
             --this->_Myoff;
             return (*this);
         }
+        iterator& operator+=(difference_type _Off)
+        {
+            this->_Myoff += _Off;
+            return (*this);
+        }
+        iterator operator+(difference_type _Off) const
+        {
+            iterator _Tmp = *this;
+            return (_Tmp += _Off);
+        }
     };
+    iterator begin() { return (iterator(_Myoff, this)); }
+    iterator end() { return (iterator(_Myoff + _Mysize, this)); }
+    void resize(size_type _Newsize, _Ty _Val)
+    {
+        if (_Mysize < _Newsize)
+            _Insert_n(end(), _Newsize - _Mysize, _Val);
+        else if (_Newsize < _Mysize)
+            erase(begin() + _Newsize, end());
+    }
+    iterator erase(iterator _First, iterator _Last);
     void push_front(const _Ty& _Val)
     {
         if (_Myoff % _DEQUESIZ == 0 && _Mapsize <= (_Mysize + _DEQUESIZ) / _DEQUESIZ)
@@ -324,7 +344,7 @@ protected:
     void _Growmap(size_type _Count)
     {
         if (max_size() / _DEQUESIZ - _Mapsize < _Count) {
-            // !FAKE: noreturn; retail's inline _Xlen throws, decl-only ours needs __assume(0) (C0268)
+            // !FAKE: c2 noreturn; __assume(0) after the decl-only _Xlen; retail's inline _Xlen throws, decl-only ours needs __assume(0) (C0268)
             _Xlen();
             __assume(0);
         }
@@ -337,7 +357,7 @@ protected:
         _Mapptr _Newmap = this->_Almap.allocate(_Mapsize + _Count);
         _Mapptr _Myptr = _Newmap + _Myboff;
         _Myptr = _Uninitialized_copy(_Map + _Myboff, _Map + _Mapsize, _Myptr, this->_Almap);
-        // !FAKE: c1xx evaluation order; copy nested in a direct fill_n call, retail pushes the fill's temp and count
+        // !FAKE: c1xx evaluation order; copy nested in a direct fill_n call; retail pushes the fill's temp and count
         // before the copy (VC 7.1 header assigns _Myptr, then _Uninitialized_fill_n)
         if (_Myboff <= _Count) {
             fill_n(_Uninitialized_copy(_Map, _Map + _Myboff, _Myptr, this->_Almap), _Count - _Myboff, (_Tptr)0);
@@ -353,6 +373,7 @@ protected:
         _Mapsize += _Count;
     }
     void _Xlen() const;
+    void _Insert_n(iterator _Where, size_type _Count, const _Ty& _Val);
 
     allocator<_Tptr> _Almap;           // 0x00
     _Ax _Alval;                        // 0x01
@@ -384,12 +405,12 @@ BSP::~BSP()
     delete[] _triCheckedMarkers;
 }
 
-#ifdef NON_MATCHING
-// row USA 0x000DE742, PREVIEW 0x004C9AFD identical
-// best: match_one objdiff 100.0, bytes match; wall: provenance_lint nested operator (C0212): no NAME tag, so
-// no FUNCTION tag (4.4 T11.c8)
+// FUNCTION: USA 0x000DE742
+// PROTOTYPE: PREVIEW 0x004C9AFD identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.4 T11.c8); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template BSPQueryResultObject const & std::deque<BSPQueryResultObject,std::allocator<BSPQueryResultObject> >::const_iterator::operator*()const;
-#endif
 
 // FUNCTION: USA 0x000DE760
 // PROTOTYPE: PREVIEW 0x004C9B37 identical
@@ -469,3 +490,11 @@ template void std::deque<BSPQueryResultObject,std::allocator<BSPQueryResultObjec
 // PROTOTYPE: PREVIEW 0x004C9FCD identical
 // NAME: proto-pdb:default.pdb
 template void std::deque<BSPQueryResultObject,std::allocator<BSPQueryResultObject> >::push_back(BSPQueryResultObject const &);
+
+// FUNCTION: USA 0x000DF0EC
+// PROTOTYPE: PREVIEW 0x004CA4C3 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 91.94, bytes mismatch (frame: the erase-result temp at [ebp-8] where retail reuses [ebp+0x44] of _Val); the full VC 7.1 <deque> gives 100 and turns 91.94 again with only _Insert_n decl-only: needs the visible _Insert_n body (row 0x000DEC4E)
+template void std::deque<BSPQueryResultObject,std::allocator<BSPQueryResultObject> >::resize(unsigned int,BSPQueryResultObject);
+#endif

@@ -351,7 +351,7 @@ void VinceWalkOut::Message(SwampScript* source, int message, void* data)
             GetVince()->StartAnimation(g_swamp->GetAnimationManager()->Load(_animName), false, false);
             GetVince()->UpdateAnimation(0);
             Matrix m = GetVince()->GetBoneOrientation("move");
-            // !FAKE: inliner; hand form of retail's inlined by-value Quaternion::Apply (out of line in our /O1 build):
+            // !FAKE: inliner; hand form of retail's inlined by-value Quaternion::Apply; out of line in our /O1 build:
             // stand-ins v1 (result), v3 (the Vector4 -> Vector3 argument; as a temporary its slot is shared, 99.90) (C0191, C0214)
             Vector3 v1;
             Vector3 v3(m[3]);
@@ -373,6 +373,6 @@ void* operator new(unsigned int size, const char* file, int line);
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceWalkOut::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\VinceWalkOut.h", 6) VinceWalkOut(node);
 }

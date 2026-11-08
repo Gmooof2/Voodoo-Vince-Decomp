@@ -2,21 +2,25 @@
 #include "../../../../include/decomp.h"
 
 #pragma warning(disable: 4530) // no /EH in the unit flags; as init.cpp
+#include <xstring>
+
+#ifndef NON_MATCHING
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0090, C0302); erase's out_of_range throw calls the string ctor,
+// copy ctor and _Tidy out of line in retail; their header bodies would emit other units' string rows here
+template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(const char*);
+template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(
+    const std::basic_string<char, std::char_traits<char>, std::allocator<char> >&);
+template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Tidy(bool, unsigned int);
+#endif
 #include <set>
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0231 lever 1); retail _Init calls _Buynode out of line (named
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0231 lever 1); retail _Init calls _Buynode out of line (named
 // 0x0003835D); its header body would emit an __ehhandler$ funclet here
 template <> std::_Tree<std::_Tset_traits<unsigned __int64, std::less<unsigned __int64>,
                                          std::allocator<unsigned __int64>, false> >::_Nodeptr
 std::_Tree<std::_Tset_traits<unsigned __int64, std::less<unsigned __int64>, std::allocator<unsigned __int64>,
                              false> >::_Buynode();
-// !FAKE: declaration-only explicit specialization of the guarded erase row (named 0x0003840A, C0233 fix 2); the
-// unreferenced ~set -> _Tidy chain would emit its out_of_range throw info and other units' string rows here
-template <> std::_Tree<std::_Tset_traits<unsigned __int64, std::less<unsigned __int64>,
-                                         std::allocator<unsigned __int64>, false> >::iterator
-std::_Tree<std::_Tset_traits<unsigned __int64, std::less<unsigned __int64>, std::allocator<unsigned __int64>,
-                             false> >::erase(iterator);
 #endif
 
 class BeepState { // NAME: proto-pdb:default.pdb
@@ -72,9 +76,4 @@ template void std::_Tree<std::_Tset_traits<unsigned __int64,std::less<unsigned _
 // FUNCTION: USA 0x0003840A
 // PROTOTYPE: PREVIEW 0x00426B01 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (4.4 T4.c6, with decl-only string ctor/copy ctor/_Tidy); relink wall:
-// throw data now pinned, but our .xdata$x __CT/__CTA3/__TI3 (0x001FCEBC..0x001FCF30) and EvilVince.obj .xdata$x
-// (0x001FD8A8) enclose retail bytes: "retail bytes between two of our .xdata$x sections" (relink.py:1143-1145)
 template std::_Tree<std::_Tset_traits<unsigned __int64,std::less<unsigned __int64>,std::allocator<unsigned __int64>,0> >::iterator std::_Tree<std::_Tset_traits<unsigned __int64,std::less<unsigned __int64>,std::allocator<unsigned __int64>,0> >::erase(std::_Tree<std::_Tset_traits<unsigned __int64,std::less<unsigned __int64>,std::allocator<unsigned __int64>,0> >::iterator);
-#endif

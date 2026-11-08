@@ -132,26 +132,26 @@ DECOMP_SIZE_ASSERT(FogZone, 0x130);
 // FUNCTION: USA 0x000D0BA2
 // PROTOTYPE: PREVIEW 0x004BBE5D identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 98.81, bytes mismatch (norm.x second product: retail fld edge1.y; fmul st(3), ours fld st(2); fmuls edge1.y)
 bool FogZone::IsPointInside(const Vector3& loc, const Vector3* verts, unsigned int numIndices,
                             const unsigned short* indices)
 {
     for (unsigned int i = 2; i < numIndices; i++) {
-        // !FAKE: provenance; neutral stand-ins p (strip vertex i), v0 (first strip edge), v1 (loc - p), register-only
+        // !FAKE: provenance; neutral stand-ins p (strip vertex i), v0 (first strip edge), v1 (loc - p); register-only
         // in retail; the PDB records only edge1, norm
         const Vector3& p = verts[indices[i]];
         Vector3 v0(p.x - verts[indices[i - 2]].x, p.y - verts[indices[i - 2]].y, p.z - verts[indices[i - 2]].z);
         Vector3 edge1(p.x - verts[indices[i - 1]].x, p.y - verts[indices[i - 1]].y, p.z - verts[indices[i - 1]].z);
+        // !FAKE: x87 operand order; reference stand-in b for edge1 in the norm.z first product sets retail's
+        // fld [edge1.y] / fld [edge1.x] operand choice in norm.x and norm.z (no PDB local)
+        const Vector3& b = edge1;
         Vector3 norm(v0.y * edge1.z - v0.z * edge1.y, v0.z * edge1.x - v0.x * edge1.z,
-                     v0.x * edge1.y - v0.y * edge1.x);
+                     v0.x * b.y - v0.y * edge1.x);
         Vector3 v1(loc.x - p.x, loc.y - p.y, loc.z - p.z);
         if ((norm.x * v1.x + norm.y * v1.y + norm.z * v1.z) * (int)(1 - (i & 1) * 2) >= 0.0f)
             return false;
     }
     return true;
 }
-#endif
 
 // FUNCTION: USA 0x000D12DE
 // PROTOTYPE: PREVIEW 0x004BC599 identical

@@ -194,7 +194,7 @@ public:
 DECOMP_SIZE_ASSERT(Matrix, 0x40);
 
 struct AABox;      // NAME: proto-pdb:default.pdb
-class Quaternion; // NAME: proto-pdb:default.pdb
+struct Quaternion; // NAME: proto-pdb:default.pdb
 
 extern "C" void __fastcall D3DDevice_SetRenderState_Simple(unsigned long, unsigned long); // NAME: proto-pdb:default.pdb
 extern "C" void __stdcall D3DDevice_DrawVerticesUP(unsigned long, unsigned int, const void*, unsigned int); // NAME: proto-pdb:default.pdb
@@ -214,7 +214,8 @@ class SwampScript; // NAME: proto-pdb:default.pdb
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     enum NodeOptions { // NAME: proto-pdb:default.pdb
-        DontDraw = 0x2
+        DontDraw = 0x2,
+        Unlit = 0x200
     };
     enum NodeRenderingSettings { // NAME: proto-pdb:default.pdb
         Alpha = 0x0
@@ -222,7 +223,7 @@ public:
 
     const Vector3& SetLocation(const Vector3& location);
     const Vector3& GetLocation() const { return _Location; }
-    // !FAKE: inliner; hand form of SetScale(float), inlined in retail and the prototype (z, y, x chained store)
+    // !FAKE: inliner; hand form of SetScale(float); inlined in retail and the prototype (z, y, x chained store)
     void SetScale(float f)
     {
         _Scale.x = _Scale.y = _Scale.z = f;
@@ -236,7 +237,9 @@ public:
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     virtual void Invalidate();                                     // vtable+0x14
+protected:
     virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+public:
     virtual void Update();                                         // vtable+0x1C
     virtual void Render(const Matrix&) const;                      // vtable+0x20
 
@@ -305,12 +308,21 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class Critter; // NAME: proto-pdb:default.pdb
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+    Critter* GetCritter() { return (Critter*)_node; }
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
 
     int _state;                        // 0x4C
     char field_50[0xBC - 0x50];        // 0x50
@@ -374,9 +386,28 @@ public:
 class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
 };
 
-class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    void SetCollidable(bool b) { _collidable = b; }
+
+    float _sphereRadius;               // 0xA4
+    bool _collidable;                  // 0xA8
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    float _height;                     // 0xAC
+    float _radius;                     // 0xB0
+};
+DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+};
+
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 };
 
 class CXBFont { // NAME: proto-pdb:default.pdb
@@ -390,6 +421,7 @@ const SwampString format(const char*, ...); // NAME: proto-pdb:default.pdb
 
 class UINode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    UINode();
     bool IsOffscreen() const;
     void SetOffscreenLoc(const Vector3& loc);
     void ResetOnscreenTimer();
@@ -465,6 +497,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(LivesUI, 0xE0);
 
+// FUNCTION: USA 0x000E8485
+// NAME: proto-pdb:default.pdb
 class SkullUI : public UINode { // NAME: proto-pdb:default.pdb
 public:
     static int GetSkullRowWidth();
@@ -530,12 +564,48 @@ DECOMP_SIZE_ASSERT(BeadsUIMain, 0x9C);
 class UIHealthMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     UIHealthMain(SwampSceneNode* node);
+    virtual void FrameTick();
+    virtual void Message(SwampScript* source, int message, void* data);
 
-    char field_BC[0xE0 - 0xBC];        // 0xBC
+    Vector3 _dest;                     // 0xBC
+    Vector3 _start;                    // 0xC8
+    float _moveTime;                   // 0xD4
+    float _destTime;                   // 0xD8
+    SwampScript* _owner;               // 0xDC
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(UIHealthMain, 0xE0);
+
+class UIPageMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    UIPageMain(SwampSceneNode* node);
+    virtual void FrameTick();
+    virtual void Message(SwampScript* source, int message, void* data);
+
+    Vector3 _dest;                     // 0xBC
+    Vector3 _start;                    // 0xC8
+    float _moveTime;                   // 0xD4
+    float _destTime;                   // 0xD8
+    SwampScript* _owner;               // 0xDC
+};
+DECOMP_SIZE_ASSERT(UIPageMain, 0xE0);
+
+class UIHeartMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    UIHeartMain(SwampSceneNode* node);
+    virtual void FrameTick();
+    virtual void Message(SwampScript* source, int message, void* data);
+
+    Vector3 _dest;                     // 0xBC
+    Vector3 _start;                    // 0xC8
+    float _moveTime;                   // 0xD4
+    float _destTime;                   // 0xD8
+    SwampScript* _owner;               // 0xDC
+};
+DECOMP_SIZE_ASSERT(UIHeartMain, 0xE0);
+
+Vector3 GetBeadDest(); // NAME: proto-pdb:default.pdb
 
 class UIBeadMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
@@ -595,10 +665,18 @@ DECOMP_SIZE_ASSERT(UIClusterMain, 0x70);
 class UIBagIconMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     UIBagIconMain(SwampSceneNode* node);
+    virtual void AnimationFinished();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(UIBagIconMain, 0xBC);
+
+class UIHeartIconMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    UIHeartIconMain(SwampSceneNode* node);
+    virtual void AnimationFinished();
+};
+DECOMP_SIZE_ASSERT(UIHeartIconMain, 0xBC);
 
 class SwampRenderer { // NAME: proto-pdb:default.pdb
 public:
@@ -691,6 +769,7 @@ public:
 template <class _Ty, class _Ax = allocator<_Ty> > class vector {
 public:
     typedef unsigned int size_type;
+    vector(const vector& _Right); // retail ??0?$vector@VAreaStats@@...@QAE@ABV01@@Z 0x000E96C2
     size_type size() const { return (_Myfirst == 0 ? 0 : _Mylast - _Myfirst); }
     size_type max_size() const { return (this->_Alval.max_size()); }
     _Ty& operator[](size_type _Pos) { return (*(_Myfirst + _Pos)); }
@@ -837,7 +916,9 @@ public:
 // FUNCTION: USA 0x000E0BEC
 // PROTOTYPE: PREVIEW 0x004CBF91 identical
 // NAME: proto-pdb:default.pdb
-bool UINode::IsOffscreen() const
+// !FAKE: c2 register allocation; inline keyword; an inline (on-demand COMDAT) callee gives HealthUI::Render no
+// register summary, so retail keeps the renderer in edi across the call (out of line: edx, match_one 99.31 -> 99.85, C0251)
+inline bool UINode::IsOffscreen() const
 {
     return _onScreenTimer < 0.0f;
 }
@@ -860,6 +941,15 @@ inline bool HealthUI::CounterIsCurrent()
 inline bool ClustersUI::IsAnimating()
 {
     return _throbSin >= 0.0f;
+}
+
+// FUNCTION: USA 0x000E0C5F
+// PROTOTYPE: PREVIEW 0x004CC08E identical
+// NAME: proto-pdb:default.pdb
+void UIPageMain::Message(SwampScript* source, int message, void* data)
+{
+    if (message == UIMain::MESSAGE_SETOWNER)
+        _owner = source;
 }
 
 // FUNCTION: USA 0x000E0C73
@@ -994,7 +1084,7 @@ void UINode::SetOffscreenLoc(const Vector3& loc)
     Vector3* v0 = &_offScreenLoc;
     *v0 = loc;
     SetLocation(loc);
-    // !FAKE: inliner; hand form of retail's inlined Vector3::Length (out of line in our /O1 build)
+    // !FAKE: inliner; hand form of retail's inlined Vector3::Length; out of line in our /O1 build
     float a = v0->x * v0->x + v0->y * v0->y + v0->z * v0->z;
     a = a * FastReciprocalSquareRoot(a);
     // !FAKE: c2 register allocation; temporary; retail loads _uiZoomonTime once and squares the copy
@@ -1006,6 +1096,34 @@ void UINode::SetOffscreenLoc(const Vector3& loc)
         _accel = Vector3(a * p->x, a * p->y, a * p->z);
     } else {
         _accel = Vector3(0.0f, 0.0f, 0.0f);
+    }
+}
+
+// FUNCTION: USA 0x000E0F59
+// PROTOTYPE: PREVIEW 0x004CC66A identical
+// NAME: proto-pdb:default.pdb
+void UIPageMain::FrameTick()
+{
+    _moveTime += _self->_realElapsed;
+    if (_moveTime >= _destTime) {
+        _moveTime = _destTime;
+        _owner->Message(this, UIMain::MESSAGE_BUMPCOUNTER, (void*)1);
+        InvalidateScript();
+    }
+    // !FAKE: inliner; hand form of retail's inlined Vector3 arithmetic; no free operator in the PDB; block-scoped
+    // temps for retail's shared stack slots, pointer local for retail's lea of _dest; D117 (as UIBeadMain::FrameTick)
+    Vector3 v1;
+    {
+        const Vector3* p = &_dest;
+        Vector3 v0(p->x - _start.x, p->y - _start.y, p->z - _start.z);
+        float tmp = _moveTime / _destTime;
+        v1.x = v0.x * tmp;
+        v1.y = v0.y * tmp;
+        v1.z = v0.z * tmp;
+    }
+    {
+        Vector3 loc(v1.x + _start.x, v1.y + _start.y, v1.z + _start.z);
+        _node->SetLocation(loc);
     }
 }
 
@@ -1021,6 +1139,17 @@ void HealthUIMain::FrameTick()
     }
 }
 
+// FUNCTION: USA 0x000E1053
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: probe bytes equal but the fmul operand: retail reads 0.125f at 0x21EE68 (unnamed .data float, unresolved),
+// ours __real@3e000000 (5.3 T9.c1). Its visible definition is what gives the UIBeadMain ctor retail's `add esp, 4`
+Vector3 GetBeadDest()
+{
+    return Vector3(pManager->_vinceCache->_maxSkulls * 0.125f - 1.5f, 1.1f, -5.75f);
+}
+#endif
+
 // FUNCTION: USA 0x000E1082
 // PROTOTYPE: PREVIEW 0x004CC335 identical
 // NAME: proto-pdb:default.pdb
@@ -1032,7 +1161,7 @@ void UIBeadMain::FrameTick()
         _owner->Message(this, UIMain::MESSAGE_BUMPCOUNTER, &_val);
         InvalidateScript();
     }
-    // !FAKE: inliner; hand form of retail's inlined Vector3 arithmetic (no free operator in the PDB), block-scoped
+    // !FAKE: inliner; hand form of retail's inlined Vector3 arithmetic; no free operator in the PDB; block-scoped
     // temps for retail's shared stack slots, pointer local for retail's lea of _dest; D117 (match_one 90.6 -> 100.0)
     Vector3 v1;
     {
@@ -1078,7 +1207,7 @@ void UIClusterMain::FrameTick()
         _owner->Message(this, UIMain::MESSAGE_BUMPCOUNTER, (void*)1);
         InvalidateScript();
     }
-    // !FAKE: inliner; hand form of retail's inlined Vector3 arithmetic (no free operator in the PDB), block-scoped
+    // !FAKE: inliner; hand form of retail's inlined Vector3 arithmetic; no free operator in the PDB; block-scoped
     // temps for retail's shared stack slots; D117 (match_one 93.8 -> 99.9 -> 100.0)
     Vector3 v1;
     {
@@ -1112,6 +1241,7 @@ DECOMP_SIZE_ASSERT(PagesUI, 0xEC);
 
 class PagesUIMain : public UIMain { // NAME: proto-pdb:default.pdb
 public:
+    virtual void AnimationFinished();
     virtual void FrameTick();
     PagesUI* GetUINode() { return (PagesUI*)_node; }
 
@@ -1206,19 +1336,21 @@ DECOMP_SIZE_ASSERT(UIVertex, 0x1C);
 // FUNCTION: USA 0x000E15BA
 // PROTOTYPE: PREVIEW 0x004CC90B identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 95.55, bytes mismatch: renderer in edx not edi (C0128 same-TU wall); retail sinks the x/midy stores past the health clamp
 void HealthUI::Render(const Matrix& m) const
 {
     SwampRenderer& renderer = g_swamp->GetRenderer();
     if (IsOffscreen())
         return;
-    float x = renderer.GetScreenSafeLeft() + GetLocation().x + 28.0f;
-    // !FAKE: c2 float conversion; stand-in local for the cvttss2si operands, reloaded per use; no PDB local
-    float v1 = _drawnHealth;
-    int health = (_mm_cvtt_ss2si(_mm_load_ss(&v1)) < 0) ? 0 : (v1 = _drawnHealth, _mm_cvtt_ss2si(_mm_load_ss(&v1)));
-    // !FAKE: c2 constant folding; grouped operands; the ungrouped chain folds 18 + 32 into one fadd
-    float midy = 32.0f + (renderer.GetScreenSafeTop() + GetLocation().y + 18.0f);
+    // !FAKE: c2 scheduling; stand-in local; retail computes x and top + y + 18 before the health clamp and stores x,
+    // adds 32 after it; no PDB local (match_one 95.55 -> 99.31)
+    float v4 = renderer.GetScreenSafeLeft() + GetLocation().x + 28.0f;
+    float midy = renderer.GetScreenSafeTop() + GetLocation().y + 18.0f;
+    // !FAKE: c2 stack packing; const-ref-bound temporaries for the cvttss2si operands; a named stand-in local is
+    // packed with midy, a compiler temp with dx as retail (no PDB local; match_one 99.85 -> 100)
+    int health = (_mm_cvtt_ss2si(_mm_load_ss(&static_cast<const float&>(+_drawnHealth))) < 0) ? 0
+        : _mm_cvtt_ss2si(_mm_load_ss(&static_cast<const float&>(+_drawnHealth)));
+    float x = v4;
+    midy += 32.0f;
     int lefttodraw = health;
     int totalbags = _drawnMaxHealth / 4;
     // !FAKE: c2 register allocation; dummy local; retail keeps the vertex color in edi to the last fill
@@ -1261,8 +1393,8 @@ void HealthUI::Render(const Matrix& m) const
         width += 2;
         renderer.SetTexture(0, tex);
         float dy = scale * 32.0f;
+        float dx = width * scale * 0.5f;
         {
-            float dx = width * scale * 0.5f;
             // !FAKE: c2 register allocation; stand-in locals; retail holds the quad edges and the u extent on the x87
             // stack before the tex and loc stores (as SkullUI::Render)
             float v5 = width * 0.5f + x - dx;
@@ -1322,7 +1454,30 @@ void HealthUI::Render(const Matrix& m) const
     }
     renderer.EnableDepthBuffering(wasDepth);
 }
-#endif
+
+class FontManager { // NAME: proto-pdb:default.pdb
+public:
+    CXBFont* Load(const char* name);
+};
+
+FontManager& GetFontManager(); // NAME: proto-pdb:default.pdb
+
+class HelpUI : public UINode { // NAME: proto-pdb:default.pdb
+public:
+    HelpUI();
+    virtual void Render(const Matrix& m) const;
+
+    CXBFont* _font;                    // 0xD4
+};
+DECOMP_SIZE_ASSERT(HelpUI, 0xD8);
+
+// FUNCTION: USA 0x000E1E7D
+// NAME: proto-pdb:default.pdb
+HelpUI::HelpUI()
+{
+    SetOffscreenLoc(Vector3(0.0f, 150.0f, 0.0f));
+    _font = GetFontManager().Load("pausecounters");
+}
 
 // FUNCTION: USA 0x000E1EC9
 // PROTOTYPE: PREVIEW 0x004CD21A identical
@@ -1526,11 +1681,75 @@ void UINode::RenderNumber(int num, float x, float y, float scale, unsigned int c
     _font->DrawText(x, y, color, s, flags, 0.0f);
 }
 
+// FUNCTION: USA 0x000E274C
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0) (5.3 T7.c5); wall: precheck relink `external
+// ?Message@UIHealthMain@@UAEXPAVSwampScript@@HPAX@Z 0x000E0C5F lies in a replaced range`: the ctor emits ??_7UIHealthMain,
+// whose FrameTick/Message slots name fold aliases at 0x000E0F59/0x000E0C5F owned by the matched UIPageMain rows; a
+// defined copy is an unlisted extra (C0322). Lift: relink resolving a fold-alias external to the row at its VA
+UIHealthMain::UIHealthMain(SwampSceneNode* node) : CritterMain(node)
+{
+    GetCritter()->SetCollidable(false);
+    _start = node->GetLocation();
+    _moveTime = 0.0f;
+    _dest = Vector3(1.7f, 1.12f, -5.75f);
+    _destTime = gSettings._uiZoomonTime;
+    RegisterFrameTick();
+}
+#endif
+
+// FUNCTION: USA 0x000E27C0
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match with GetBeadDest's definition visible (5.3 T9.c1; decl only: `pop ecx`
+// for retail's `add esp, 4`, 98.5). Wall: callee-dependent: GetBeadDest 0x000E1053 is a fail row (unresolved
+// 0x21EE68). Lift: resolve 0x21EE68, match GetBeadDest, unguard both together
+UIBeadMain::UIBeadMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _val = 1;
+    GetCritter()->SetCollidable(false);
+    _start = node->GetLocation();
+    _dest = GetBeadDest();
+    _moveTime = 0.0f;
+    _destTime = gSettings._uiZoomonTime;
+    RegisterFrameTick();
+}
+#endif
+
+// FUNCTION: USA 0x000E2993
+// NAME: proto-pdb:default.pdb
+UIPageMain::UIPageMain(SwampSceneNode* node) : CritterMain(node)
+{
+    GetCritter()->SetCollidable(false);
+    _start = node->GetLocation();
+    _moveTime = 0.0f;
+    _dest = Vector3(-1.33f, -0.02f, -5.75f);
+    _destTime = gSettings._uiZoomonTime;
+    RegisterFrameTick();
+}
+
+// FUNCTION: USA 0x000E2A07
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0) (5.3 T7.c5); wall: precheck relink `external
+// ?Message@UIHeartMain@@UAEXPAVSwampScript@@HPAX@Z 0x000E0C5F lies in a replaced range`: the ctor emits ??_7UIHeartMain,
+// whose FrameTick/Message slots name fold aliases at 0x000E0F59/0x000E0C5F owned by the matched UIPageMain rows; a
+// defined copy is an unlisted extra (C0322). Lift: relink resolving a fold-alias external to the row at its VA
+UIHeartMain::UIHeartMain(SwampSceneNode* node) : CritterMain(node)
+{
+    GetCritter()->SetCollidable(false);
+    _start = node->GetLocation();
+    _moveTime = 0.0f;
+    _dest = Vector3(-1.33f, -0.55f, -5.75f);
+    _destTime = gSettings._uiZoomonTime;
+    RegisterFrameTick();
+}
+#endif
+
 // FUNCTION: USA 0x000E2A7B
 // PROTOTYPE: PREVIEW 0x004CDDBB identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 97.92, bytes mismatch: retail schedules the loc.z immediate store one slot earlier (before fsub 32)
 void LivesUI::Render(const Matrix& m) const
 {
     // !FAKE: c2 register allocation; pointer local; retail loads g_swamp->_renderer once into edi before the early out
@@ -1541,8 +1760,7 @@ void LivesUI::Render(const Matrix& m) const
     const float LIVES_Y = p->GetScreenSafeTop() + GetLocation().y + 260.0f;
     // !FAKE: inliner; hand form of a scaled Vector3 temp; retail keeps the x product on the x87 stack (91.04 -> 97.92)
     Vector3 v1(GetLocation().x * -0.01f, GetLocation().y * -0.01f, GetLocation().z * -0.01f);
-    Vector3 loc(v1.x - 1.33f, v1.y - 0.55f, -5.75f);
-    _heart->SetLocation(loc);
+    _heart->SetLocation(Vector3(v1.x - 1.33f, v1.y - 0.55f, -5.75f));
     bool wasDepth = p->EnableDepthBuffering(false);
     p->SetVertexShader(0x144);
     p->SetBasicPixelShader();
@@ -1558,7 +1776,6 @@ void LivesUI::Render(const Matrix& m) const
     _heart->Render(m2);
     _heart->SetRenderingSetting(Alpha, v0, true);
 }
-#endif
 
 // FUNCTION: USA 0x000E2BE8
 // PROTOTYPE: PREVIEW 0x004CDF28 identical
@@ -1582,7 +1799,7 @@ void pin_emit_QuickMessage_copy(void* p, const HUDUI::QuickMessage& v)
 // NAME: proto-pdb:default.pdb
 SwampScript* UIHealthMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     return new("core\\HUDUI.cpp", 257) UIHealthMain(node);
 }
 
@@ -1591,7 +1808,7 @@ SwampScript* UIHealthMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* UIBeadMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     return new("core\\HUDUI.cpp", 759) UIBeadMain(node);
 }
 
@@ -1661,6 +1878,23 @@ void UINode::ResetOnscreenTimer()
     }
 }
 
+// FUNCTION: USA 0x000E3C23
+// NAME: proto-pdb:default.pdb
+UIBonusBagMain::UIBonusBagMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _moveNow = false;
+    _animDone = false;
+    GetCritter()->SetCollidable(false);
+    _start = _node->GetLocation();
+    _moveTime = 0.0f;
+    _dest = Vector3(1.3f, 0.937f, -5.75f);
+    _destTime = gSettings._uiZoomonTime;
+    _state = 0;
+    GetCritter()->StartAnimation(g_swamp->GetAnimationManager().Load("dustBag_get100th"), false, false);
+    RegisterFrameTick();
+    _node->SetOption(SwampSceneNode::Unlit, true, true);
+}
+
 // FUNCTION: USA 0x000E3D01
 // PROTOTYPE: PREVIEW 0x004CF051 identical
 // NAME: proto-pdb:default.pdb
@@ -1679,6 +1913,13 @@ UIClusterMain::UIClusterMain(SwampSceneNode* node) : SwampScript(node)
     RegisterFrameTick();
 }
 #endif
+
+// FUNCTION: USA 0x000E3E3B
+// NAME: proto-pdb:default.pdb
+void UIBagIconMain::AnimationFinished()
+{
+    GetCritter()->StartAnimation(g_swamp->GetAnimationManager().Load("dustBag_idle"), false, false);
+}
 
 // FUNCTION: USA 0x000E3F6F
 // PROTOTYPE: PREVIEW 0x004CF2BF identical
@@ -1738,6 +1979,20 @@ void PagesUI::RestartDefaultAnimations()
     _bug->StartAnimation(g_swamp->GetAnimationManager().Load("interfacegoldenjunebug_idle"), true, false);
 }
 
+// FUNCTION: USA 0x000E439F
+// NAME: proto-pdb:default.pdb
+void PagesUIMain::AnimationFinished()
+{
+    GetUINode()->RestartDefaultAnimations();
+}
+
+// FUNCTION: USA 0x000E4429
+// NAME: proto-pdb:default.pdb
+void UIHeartIconMain::AnimationFinished()
+{
+    GetCritter()->StartAnimation(g_swamp->GetAnimationManager().Load("extraLife_idle"), false, false);
+}
+
 // FUNCTION: USA 0x000E447C
 // PROTOTYPE: PREVIEW 0x004CF7CC identical
 // NAME: proto-pdb:default.pdb
@@ -1785,7 +2040,7 @@ UINode* HUDUI::FindUINode(const SwampString& name)
 // NAME: proto-pdb:default.pdb
 SwampScript* UIBonusBagMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     return new("core\\HUDUI.cpp", 1111) UIBonusBagMain(node);
 }
 
@@ -1812,7 +2067,7 @@ void UIBonusBagMain::FrameTick()
             HUDUI::Instance().FindUINode("clusters")->GetScript()->Message(this, UIMain::MESSAGE_FILLED, 0);
             InvalidateScript();
         }
-        // !FAKE: inliner; hand form of retail's inlined Vector3 arithmetic (no free operator in the PDB), block-scoped
+        // !FAKE: inliner; hand form of retail's inlined Vector3 arithmetic; no free operator in the PDB; block-scoped
         // temps for retail's shared stack slots, pointer local for retail's lea of _dest; D117 (as UIBeadMain::FrameTick)
         Vector3 v1;
         {
@@ -1837,7 +2092,7 @@ void UIBonusBagMain::FrameTick()
 // NAME: proto-pdb:default.pdb
 SwampScript* UIClusterMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     return new("core\\HUDUI.cpp", 1226) UIClusterMain(node);
 }
 
@@ -1846,8 +2101,23 @@ SwampScript* UIClusterMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* UIBagIconMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     return new("core\\HUDUI.cpp", 1292) UIBagIconMain(node);
+}
+
+// ??_GOptionsMenuGuts 0x000E1E61, ??_GPauseUI 0x000E6178, ??_GSkullUI 0x000E8469, ??_GHealthUI 0x000E88C5,
+// ??_GBeadsUI 0x000E8A5E unmatched, no draft (5.3 T6.c16): companion wall: a virtual ??_G is emitted only with its
+// class vtable; the ctors are fail rows (OptionsMenuGuts 0x000E4764, HealthUI 0x000E86A5) or not rows (PauseUI,
+// SkullUI, BeadsUI), and each ??1 stores no vptr. Lift: match a ctor.
+// ??_GVoodooShopVinceMain 0x000E2D89 unmatched, no draft: fold-name wall: the folded ??_G (calls ??1CritterMain) is
+// named for a class whose vtable is in VoodooShopVince.obj (match_one: not defined in HUDUI.obj). Lift: rename the
+// row to a HUDUI CritterMain-derived class and match that class's ctor.
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1SkullUI@@UAE@XZ in this unit (no vptr store, so
+// no declared dtor; no matched function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_SkullUI_dtor(SkullUI* p)
+{
+    p->SkullUI::~SkullUI();
 }
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1HealthUI@@UAE@XZ in this unit (no matched
@@ -1929,6 +2199,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(LevelStats, 0x2C);
 
+// FUNCTION: USA 0x000E9769
+// NAME: proto-pdb:default.pdb
+LevelStats::LevelStats(const LevelStats& p)
+    : _name(p._name), _areaStatsList(p._areaStatsList)
+{
+}
+
 class LevelLoader { // NAME: proto-pdb:default.pdb
 public:
     static LevelLoader& Instance();
@@ -1944,8 +2221,6 @@ public:
 // FUNCTION: USA 0x000EA1DD
 // PROTOTYPE: PREVIEW 0x004D548D identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 98.26, bytes mismatch: retail schedules the loc.z immediate store before fadd (ours 3 later)
 void PagesUI::Render(const Matrix& m) const
 {
     // !FAKE: c2 register allocation; pointer locals; retail loads the renderer into edi and the level into ebx once
@@ -1957,10 +2232,14 @@ void PagesUI::Render(const Matrix& m) const
     const float PAGES_Y = p->GetScreenSafeTop() + GetLocation().y + 199.0f;
     // !FAKE: inliner; hand form of a scaled Vector3 temp; retail keeps the x product on the x87 stack (C0220 kin)
     Vector3 v1(GetLocation().x * -0.01f, GetLocation().y * -0.01f, GetLocation().z * -0.01f);
-    Vector3 loc(v1.x - 1.33f, v1.y - 0.12f, -5.75f);
-    _page->SetLocation(loc);
-    _box->SetLocation(loc);
-    _bug->SetLocation(loc);
+    // !FAKE: c2 scheduling; nested block; a block-scoped loc is not ordered after the earlier renderer loads, so the
+    // loc.z immediate store schedules as retail (function scope: 3 slots late, match_one 98.26 -> 100)
+    {
+        Vector3 loc(v1.x - 1.33f, v1.y - 0.12f, -5.75f);
+        _page->SetLocation(loc);
+        _box->SetLocation(loc);
+        _bug->SetLocation(loc);
+    }
     bool wasDepth = p->EnableDepthBuffering(false);
     p->SetVertexShader(0x144);
     p->SetBasicPixelShader();
@@ -1975,7 +2254,6 @@ void PagesUI::Render(const Matrix& m) const
     m2.Translation(_page->GetLocation());
     (v0->GetPagesFound() && !v0->GetPagesRemaining() ? _box : _page)->Render(m2);
 }
-#endif
 
 class PauseUI : public UINode { // NAME: proto-pdb:default.pdb
 private:
@@ -2013,11 +2291,6 @@ void PauseUI::UpdateCounts()
     _areaCount = lstats.GetAreaCount();
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0) on both rows (4.4 T4.c5; throw-info now pinned); wall: relink
-// refuses `.rdata 0x001FCEF4..0x001FCF80: retail bytes between two of our .xdata$x sections (one LINK group cannot
-// interleave with them)`: the length_error throw-info lands in .xdata$x; and ??_7logic_error/??_R0 logic_error COMDAT
-// data overlap (0x001C77E8) when Init.obj's out_of_range throw rows are live too (relink places one copy per unit)
 // FUNCTION: USA 0x000E6BCF
 // PROTOTYPE: PREVIEW 0x004D1EA0 identical
 // NAME: proto-pdb:default.pdb
@@ -2027,4 +2300,3 @@ template void std::list<HUDUI::QuickMessage,std::allocator<HUDUI::QuickMessage> 
 // PROTOTYPE: PREVIEW 0x004D1F28 identical
 // NAME: proto-pdb:default.pdb
 template void std::list<HUDUI::Subtitle,std::allocator<HUDUI::Subtitle> >::_Incsize(unsigned int);
-#endif

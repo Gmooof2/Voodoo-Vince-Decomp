@@ -22,6 +22,8 @@ class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3 { // NAME: proto-pdb:default.pdb
+    void Set(float x_, float y_, float z_) { x = x_; y = y_; z = z_; }
+
     float x;                           // 0x00
     float y;                           // 0x04
     float z;                           // 0x08
@@ -30,7 +32,13 @@ DECOMP_SIZE_ASSERT(Vector3, 0xC);
 class SwampScript; // NAME: proto-pdb:default.pdb
 
 struct AABox;      // NAME: proto-pdb:default.pdb
-struct Quaternion; // NAME: proto-pdb:default.pdb
+struct Quaternion { // NAME: proto-pdb:default.pdb
+    void Set(float, float, float);
+
+    Vector3 v;                         // 0x00
+    float w;                           // 0x0C
+};
+DECOMP_SIZE_ASSERT(Quaternion, 0x10);
 struct Matrix;     // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
@@ -48,8 +56,12 @@ protected:
 
 public:
     SwampScript* GetScript() const;
+    const Quaternion& GetRotation() const { return _Rotation; }
+    void SetScript(const SwampString&);
 
-    char field_4[0xA4 - 0x4];          // 0x04
+    char field_4[0x40 - 0x4];          // 0x04
+    Quaternion _Rotation;              // 0x40
+    char field_50[0xA4 - 0x50];        // 0x50
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
@@ -84,6 +96,10 @@ public:
     virtual SwampString Save();                                    // vtable+0x58
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
+    void RegisterFrameTick();
+protected:
+    SwampScript(SwampSceneNode*);
+public:
 
     char field_4[0x20 - 0x4];          // 0x04
     SwampSceneNode* _node;             // 0x20
@@ -113,6 +129,9 @@ public:
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
     void CheckRegions();
+
+    char field_D8[0x20C - 0xD8];       // 0xD8
+    Vector3 _Velocity;                 // 0x20C
 };
 
 class Vince : public Critter { // NAME: proto-pdb:default.pdb
@@ -259,26 +278,6 @@ public:
 };
 DECOMP_SIZE_ASSERT(BumperCarMain, 0x19C);
 
-// FUNCTION: USA 0x00046B3B
-// PROTOTYPE: PREVIEW 0x004343CE identical
-// NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0 + bytes match; gate relink FAIL
-void BumperCarHud::Update()
-{
-    float pct;
-    if (_maxSpeed == 0.0f) {
-        pct = 0.0f;
-    } else {
-        pct = _curSpeed / _maxSpeed;
-        if (pct > 1.0f)
-            pct = 1.0f;
-    }
-    // !FAKE: retail double literals (__real@400ba5614d2562ef, __real@3fc41b2f7ba3bcbe); the original expression is
-    // unknown
-    _needle._rotation = pct * 3.455751993850178 - 0.1570796350201586;
-}
-#endif
 // FUNCTION: USA 0x00046BAF
 // PROTOTYPE: PREVIEW 0x00434442 identical
 // NAME: proto-pdb:default.pdb
@@ -337,6 +336,41 @@ void BumperCarMain::RestoreVinceCam()
     cam->TransitionTo(gSettings.GetCamOrbitRadius(), gSettings.GetCamElevation(), gSettings.GetCamLookAhead(), 3.0f);
     cam->_speed = _oldCamSpeed;
 }
+
+class BumperCarExitArea : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    BumperCarExitArea(SwampSceneNode* node);
+    virtual ~BumperCarExitArea();
+    virtual void FrameTick();
+    virtual void Message(SwampScript*, int, void*);
+
+    Quaternion _qstart;                // 0x4C
+    Quaternion _qend;                  // 0x5C
+    Vector3 _velstart;                 // 0x6C
+    Vector3 _velend;                   // 0x78
+    float _age;                        // 0x84
+};
+DECOMP_SIZE_ASSERT(BumperCarExitArea, 0x88);
+
+// FUNCTION: USA 0x00047B78
+// PROTOTYPE: PREVIEW 0x00435404 ambiguous
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 2); wall-vtable-relink (C0203): the vptr store's
+// retail vtable (Ghidra PTR_??_GUIClusterMain@@UAEPAXI@Z_*, named for its first slot) and the "noscript" literal (s_noscript_001c9b1c)
+// have no symbols.txt/symbols_pin.txt name
+BumperCarExitArea::BumperCarExitArea(SwampSceneNode* node) : SwampScript(node)
+{
+    _qend.Set(0.0f, 0.0f, 1.0f);
+    _velend.Set(0.0f, 0.0f, 1.0f);
+    _age = 0.0f;
+    _qstart = node->GetRotation();
+    _velstart = ((Critter*)node)->_Velocity;
+    _velstart.y = 0.0f;
+    RegisterFrameTick();
+    pManager->GetVince()->SetScript("noscript");
+}
+#endif
 
 // FUNCTION: USA 0x00048034
 // PROTOTYPE: PREVIEW 0x00435854 identical
@@ -462,6 +496,24 @@ public:
 };
 DECOMP_SIZE_ASSERT(BumperCarHud, 0x174);
 
+// FUNCTION: USA 0x00046B3B
+// PROTOTYPE: PREVIEW 0x004343CE identical
+// NAME: proto-pdb:default.pdb
+void BumperCarHud::Update()
+{
+    float pct;
+    if (_maxSpeed == 0.0f) {
+        pct = 0.0f;
+    } else {
+        pct = _curSpeed / _maxSpeed;
+        if (pct > 1.0f)
+            pct = 1.0f;
+    }
+    // !FAKE: c1xx front end; retail double literals (__real@400ba5614d2562ef, __real@3fc41b2f7ba3bcbe); the original expression is
+    // unknown
+    _needle._rotation = pct * 3.455751993850178 - 0.1570796350201586;
+}
+
 // FUNCTION: USA 0x00046B84
 // NAME: proto-pdb:default.pdb
 void BumperCarHud::Render(const Matrix& m) const
@@ -503,6 +555,6 @@ void* operator new(unsigned int size, const char* file, int line); // retail ??2
 // NAME: proto-pdb:default.pdb
 SwampScript* BumperCarMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\bumpercarbumpoff\\BumperCar.h", 35) BumperCarMain(node);
 }

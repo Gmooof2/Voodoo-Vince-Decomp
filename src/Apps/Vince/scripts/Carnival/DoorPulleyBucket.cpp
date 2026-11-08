@@ -146,7 +146,7 @@ void DoorPulleyBucketMain::FrameTick()
     Quaternion rot;
     GetBasicDoor()->GetBoneOrientation("ball_locator", rot, pos);
     {
-        // !FAKE: inliner; hand form of the PDB by-value Quaternion::Apply(v), which stays out of line at /O1
+        // !FAKE: inliner; hand form of the PDB by-value Quaternion::Apply(v); it stays out of line at /O1
         // (C0225, C0191; 78.9 -> 87.6); block-scoped tmp shares the GetWorldPosition temp slot
         Vector3 tmp;
         const Quaternion* p = &_node->GetWorldRotation();
@@ -154,7 +154,7 @@ void DoorPulleyBucketMain::FrameTick()
         pos = tmp;
     }
     pos += _node->GetWorldPosition();
-    // !FAKE: c2 register allocation; stand-in local (no PDB record): retail keeps Find's result in esi across the
+    // !FAKE: c2 register allocation; stand-in local (no PDB record); retail keeps Find's result in esi across the
     // string dtor (C0267; 87.6 -> 100)
     Critter* ball = pManager->Find("bowlingball");
     ball->SetWorldPosition(pos);
@@ -163,12 +163,8 @@ void DoorPulleyBucketMain::FrameTick()
 // FUNCTION: USA 0x0003C61A
 // PROTOTYPE: PREVIEW 0x0042AD2E identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100, bytes match; pin_rows refuses: ctor pin 0x0003C5A8 is site-corr
-// (symbols_pin.txt:3829); needs a disasm-verified ctor pin, source is final (generated, 4.4 T10)
 SwampScript* DoorPulleyBucketMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\DoorPulleyBucket.cpp", 9) DoorPulleyBucketMain(node);
 }
-#endif

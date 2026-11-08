@@ -1,5 +1,6 @@
 // UNIT: src/Apps/Vince/scripts/Crypt_city/LightBeam.cpp OBJ: Xbox\OfficialRelease\LightBeam.obj OPT: /O1 /Oy
 #include "../../../../include/decomp.h"
+#include <stdlib.h>
 #include <string.h>
 #pragma intrinsic(memcpy) // src proto-pdb:default.pdb memcpy
 
@@ -23,16 +24,45 @@ typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > S
 class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
-struct Vector3;              // NAME: proto-pdb:default.pdb
 class SwampScript;           // NAME: proto-pdb:default.pdb
+struct AABox;                // NAME: proto-pdb:default.pdb
+struct Quaternion;           // NAME: proto-pdb:default.pdb
+struct Matrix;               // NAME: proto-pdb:default.pdb
+
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    float x;                          // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+DECOMP_SIZE_ASSERT(Vector3, 0xC);
+
+class Globals { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x3AC];               // 0x00
+    Vector3 _fireflyLightLanternColor; // 0x3AC
+};
+
+extern Globals gSettings; // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     enum NodeOptions { DontDraw = 0x2 }; // NAME: proto-pdb:default.pdb
+    SwampSceneNode(int);
     virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+protected:
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
 
     SwampScript* GetScript() const;
     void SetOption(unsigned int option, bool on, bool recurse);
+    void SetScript(const SwampString&);
 
     char field_4[0xA4 - 0x4];          // 0x04
 };
@@ -116,7 +146,7 @@ DECOMP_SIZE_ASSERT(LightBeamMain, 0x4C);
 // NAME: proto-pdb:default.pdb
 SwampScript* LightBeamMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\LightBeam.h", 38) LightBeamMain(node);
 }
 
@@ -230,6 +260,7 @@ template <class T> void RELEASE(T*& p); // NAME: proto-pdb:default.pdb
 void operator delete[](void* p);
 
 struct SpotLightBeam { // NAME: proto-pdb:default.pdb
+    SpotLightBeam(float, float, float);
     ~SpotLightBeam();
 
     D3DVertexBuffer* verts;            // 0x00
@@ -296,14 +327,56 @@ protected:
     static bool _mirroringHappening;
 };
 
+// FUNCTION: USA 0x0006B08D
+// NAME: proto-pdb:default.pdb
+// ??_GLightBeam: compiler-generated with the vtable LightBeam's ctor emits (5.3 T6.c9)
 class LightBeam : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    LightBeam();
+    virtual ~LightBeam();
+    virtual void Render(const Matrix&) const;
+
 protected:
     void RenderBeam(bool bInside) const;
     void RenderLighting(bool bInside) const;
     static void SelectShaders(bool);
 
+    static unsigned int _referenceCount;
     static SpotLightBeam* _beam;
+
+    Vector3 _color;                    // 0xA4
 };
+DECOMP_SIZE_ASSERT(LightBeam, 0xB0);
+
+// FUNCTION: USA 0x0006B053
+// NAME: proto-pdb:default.pdb
+LightBeam::~LightBeam()
+{
+    if (--_referenceCount == 0) {
+        delete _beam;
+        _beam = 0;
+    }
+}
+
+// FUNCTION: USA 0x0006B0A9
+// NAME: proto-pdb:default.pdb
+LightBeam::LightBeam() : SwampSceneNode(0xD)
+{
+    _color = gSettings._fireflyLightLanternColor;
+    // !FAKE: inliner; hand form of the inline Vector3::operator/=(float) with a pointer local for its this; /O1 kept
+    // it out of line (match_one 87.53; hand form without p 99.74; with p 100.0)
+    float tmp = 1.0f / __max(__max(_color.x, _color.y), _color.z);
+    Vector3* p = &_color;
+    p->x *= tmp;
+    p->y *= tmp;
+    p->z *= tmp;
+    if (!_beam)
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
+        _beam = new("Gwistlethorpe\\LightBeam.cpp", 0xC7) SpotLightBeam(0.25f, 40.0f, 0.95f);
+    _referenceCount++;
+    SetOption(0x10, true, false);
+    SetScript("LightBeamMain");
+}
 
 // FUNCTION: USA 0x0006B384
 // PROTOTYPE: PREVIEW 0x00457747 identical
@@ -327,7 +400,7 @@ void LightBeam::RenderBeam(bool bInside) const
 // PROTOTYPE: PREVIEW 0x004577E8 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 98.90, bytes mismatch (retail reloads g_swamp before GetTextureManager; cl CSEs it, 12 forms)
+// best: match_one objdiff 98.90, bytes mismatch (retail reloads g_swamp before GetTextureManager; cl CSEs it, 30+ forms, flags too)
 void LightBeam::RenderLighting(bool bInside) const
 {
     if (DrawLevel::AreWeMirroring())

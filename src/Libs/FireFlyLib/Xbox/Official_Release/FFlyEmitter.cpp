@@ -653,7 +653,7 @@ void FFlyEmitter::Step()
             }
             _poolHi = hi;
         }
-        // !FAKE: c2 register allocation; neutral iterator local held in esi (the PDB lists no such local)
+        // !FAKE: c2 register allocation; neutral iterator local held in esi; the PDB lists no such local, no before/after recorded
         for (std::vector<FFlyForce*>::iterator v3 = _forces.begin(); v3 != _forces.end(); ++v3)
             (*v3)->Apply(*this, _pool, _poolHi);
         // !FAKE: c2 register allocation; neutral pointer local; pool cursor held in edx (the PDB lists no such local)
@@ -661,7 +661,7 @@ void FFlyEmitter::Step()
         for (int i = 0; i < _poolHi; i++, v4++) {
             if (v4->_flags & FFlyParticle::ALIVE) {
                 Vector3 temp = v4->_position;
-                // !FAKE: inliner; hand form of retail's inlined Vector3 operator temps (no PDB free operator, D78);
+                // !FAKE: inliner; hand form of retail's inlined Vector3 operator temps; no PDB free operator (D78);
                 // pointer locals for the reference operands, float local for the by-value scale (C0191)
                 const Vector3* v5a = &v4->_acceleration;
                 float v5s = _timeStepSqr;
@@ -703,7 +703,7 @@ void FFlyEmitter::Step()
                 }
                 p->_acceleration = _data._constAccel;
                 Vector3 temp = p->_position;
-                // !FAKE: inliner; hand form of retail's inlined Vector3 operator temps (no PDB free operator, D78);
+                // !FAKE: inliner; hand form of retail's inlined Vector3 operator temps; no PDB free operator (D78);
                 // pointer locals for the reference operands, float local for the by-value scale (C0191)
                 const Vector3* v9a = &p->_acceleration;
                 float v9s = _timeStepSqr;

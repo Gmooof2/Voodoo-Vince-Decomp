@@ -5,10 +5,17 @@ Inputs: derived/gate/last.json (`PY tools/gate.py`; or --last P), derived/xdk/re
   functions.jsonl} (`PY tools/xdk_report.py`), derived/delink/retail-<sha8>/report.json (objdiff report).
 Numerator: last.json rows with matched_set.is_done(row) (D28, the only done test): a = count, c = sum of row size.
   Each done row must have an objdiff ReportItem (unit name with `/`, name == symbol) of the same size, and its va
-  must be the entry of a counted functions.jsonl record; else exit 1 with the cause.
+  must be the entry of a counted functions.jsonl record or a listed gap function's va (sizes equal); else exit 1.
 Rule (binding): counted(class, dominant) = class == "game" or (class in {mixed, unidentified} and the section's
-  summary.sections[].dominant == "game"). B = counted functions.jsonl records; D = sum over sections of game bytes
-  + (mixed + unidentified where dominant == game).
+  summary.sections[].dominant == "game"). B = counted functions.jsonl records + listed gap functions; D = sum over
+  sections of game bytes + (mixed + unidentified where dominant == game) + sum of listed gap sizes (moved out of
+  that section's nonFunction in the reconcile).
+Gap list (T18 5.2): config/gap_functions.toml [[gap]] va, size, section, symbol, evidence, at, note: retail
+  functions with no functions.jsonl record, in B and D whether matched or not. Refused (2, `gap list: <va>: <why>`):
+  evidence not in {pin, call-site, vtable-slot}; pin without a func line at va in config/retail/symbols_pin.txt or
+  symbols.txt of status disasm-verified|corr-verified, or a sized pin != size; call-site/vtable-slot without `at`;
+  [va, va+size) not inside one section named `section` with dominant game; overlap with a functions.jsonl record
+  or another entry.
 Cut: default and --last runs refuse (2) first unless delink.cut_check passes (valid cut.complete, T1 2.1).
 Reconcile: per section and total, counted + excluded (xdk + xdk-label + linker + mixed/unidentified in non-game
   sections) + nonFunction == virtualSize (total == execSectionBytes == sum virtualSize); sum byClass == functions
@@ -17,13 +24,16 @@ Output: `functions: a of B (p%)   bytes: c of D (q%)`, sources, remainder, claim
   (D46). A default run that exits 0 writes docs/progress.md (generated, dated, with its command, D59); --last P and
   --self-test never write it; it is rewritten only when its body without the `Generated` stamp line differs (T6 2.1),
   else `unchanged` is printed. --self-test builds last.json in a scratch dir under .run/<phase>/ from
-  tests/gate/matched_set.toml (5 rows all pass + 1 row with a failed verdict) and runs two refusal controls.
+  tests/gate/matched_set.toml (5 rows all pass + 1 row with a failed verdict) and runs two refusal controls;
+  asserts the real gap list loads clean; gap controls no-evidence, non-game-section, record-overlap (scratch
+  lists) each pass unvalidated (rc 0) and refuse validated (rc 2).
 Exit: 0 ok; 1 a check failed; 2 refusal (stderr `progress: REFUSED <why>`).
 """
 import argparse
 import datetime
 import hashlib
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -42,6 +52,10 @@ CMD = "PY tools/progress.py"
 STAMP = "Generated "
 SPLIT = ("mixed", "unidentified")
 ALWAYS_EXCLUDED = ("xdk", "xdk-label", "linker")
+GAPS = REPO / "config" / "gap_functions.toml"
+GAP_EVIDENCE = {"pin", "call-site", "vtable-slot"}
+PIN_FILES = (REPO / "config" / "retail" / "symbols_pin.txt", REPO / "config" / "retail" / "symbols.txt")
+PIN_VERIFIED = {"disasm-verified", "corr-verified"}
 
 
 class Refuse(Exception):
@@ -56,8 +70,65 @@ def _counted(cls, dominant):
     return cls == "game" or (cls in SPLIT and dominant == "game")
 
 
-def load(last_path):
-    """-> inputs dict; raises Refuse."""
+def _pins():
+    """va -> [(size or None, status)] for `func` lines of symbols_pin.txt and symbols.txt."""
+    out = {}
+    for p in PIN_FILES:
+        for ln in p.read_text(encoding="utf-8").splitlines():
+            f = ln.split()
+            if len(f) < 4 or ln.startswith("#") or f[1] != "func":
+                continue
+            out.setdefault(int(f[0], 16), []).append((None if f[2] == "-" else int(f[2], 16), f[-1]))
+    return out
+
+
+def load_gaps(gap_path, summ, recs, validate=True):
+    """-> validated list of gap entries; raises Refuse `gap list: <va>: <why>`."""
+    import tomllib
+    gaps = tomllib.loads(gap_path.read_text(encoding="utf-8")).get("gap", [])
+    if not validate:
+        return gaps
+    pins = _pins()
+    spans = sorted((int(r["entry"], 16), int(r["entry"], 16) + r["size"]) for r in recs)
+    seen = []
+    for g in gaps:
+        va, size = g.get("va"), g.get("size")
+        tag = f"0x{va:08X}" if isinstance(va, int) else repr(va)
+
+        def bad(why):
+            raise Refuse(f"gap list: {tag}: {why}")
+        if not isinstance(va, int) or not isinstance(size, int) or size <= 0:
+            bad("va and size must be integers, size > 0")
+        ev = g.get("evidence")
+        if ev not in GAP_EVIDENCE:
+            bad(f"evidence {ev!r} not in {sorted(GAP_EVIDENCE)}")
+        if ev == "pin":
+            ok = [p for p in pins.get(va, []) if p[1] in PIN_VERIFIED]
+            if not ok:
+                bad(f"no func pin at va with status in {sorted(PIN_VERIFIED)}")
+            wrong = [p[0] for p in ok if p[0] is not None and p[0] != size]
+            if wrong:
+                bad(f"pin size 0x{wrong[0]:X} != entry size 0x{size:X}")
+        elif not isinstance(g.get("at"), int):
+            bad(f"evidence {ev} needs an `at` VA")
+        end = va + size
+        sec = [s for s in summ["sections"]
+               if int(s["va"], 16) <= va and end <= int(s["va"], 16) + s["virtualSize"]]
+        if not sec or sec[0]["name"] != g.get("section") or sec[0]["dominant"] != "game":
+            where = f"{sec[0]['name']} (dominant {sec[0]['dominant']})" if sec else "no single section"
+            bad(f"[va, va+size) in {where}; need section {g.get('section')!r} with dominant game")
+        for s0, e0 in spans:
+            if s0 < end and va < e0:
+                bad(f"overlaps functions.jsonl record 0x{s0:08X} size {e0 - s0}")
+        for s0, e0 in seen:
+            if s0 < end and va < e0:
+                bad(f"overlaps or duplicates list entry 0x{s0:08X}")
+        seen.append((va, end))
+    return gaps
+
+
+def load(last_path, gap_path=None, validate=True):
+    """-> inputs dict; raises Refuse. validate=False skips the gap-list checks (self-test controls only)."""
     pin = coff_info.pinned_sha()
     if not pin:
         raise Refuse("no retail_xbe pin in config/check.retail_xbe.sha")
@@ -82,31 +153,49 @@ def load(last_path):
     if not rp.is_file():
         raise Refuse(f"{_rel(rp)} missing (run the delink/objdiff report)")
     report = json.loads(rp.read_text(encoding="utf-8"))
+    gp = gap_path or GAPS
+    if not gp.is_file():
+        raise Refuse(f"gap list {gp} absent")
+    gaps = load_gaps(gp, summ, recs, validate)
     return {"last": last, "last_path": last_path, "summ": summ, "summ_path": sp, "recs": recs, "recs_path": fp,
-            "report": report, "report_path": rp}
+            "report": report, "report_path": rp, "gaps": gaps, "gaps_path": gp}
 
 
 def compute(inp):
     """-> (errors, figures, lines)."""
     summ, recs, errs, lines = inp["summ"], inp["recs"], [], []
     dom = {s["name"]: s["dominant"] for s in summ["sections"]}
+    gaps = {g["va"]: g for g in inp["gaps"]}
+    moved = {}
+    lines.append(f"listed gap functions ({_rel(inp['gaps_path'])}): {len(gaps)}")
+    for g in inp["gaps"]:
+        lines.append(f"  0x{g['va']:08X} size {g['size']} {g.get('section')} {g.get('symbol')} "
+                     f"evidence {g.get('evidence')}")
+        sec = [s["name"] for s in summ["sections"]
+               if int(s["va"], 16) <= g["va"] < int(s["va"], 16) + s["virtualSize"]]
+        name = sec[0] if sec else g.get("section")
+        moved[name] = moved.get(name, 0) + g["size"]
     # reconcile
-    lines.append("reconcile (bytes): counted + excluded + nonFunction == virtualSize")
+    lines.append("reconcile (bytes): counted + excluded + nonFunction == virtualSize "
+                 "(listed gap bytes moved from nonFunction to counted)")
     D = excl_t = nonf_t = vs_t = 0
     for s in summ["sections"]:
         game_dom = s["dominant"] == "game"
-        cnt = s["game"] + (sum(s[k] for k in SPLIT) if game_dom else 0)
+        mv = moved.get(s["name"], 0)
+        cnt = s["game"] + (sum(s[k] for k in SPLIT) if game_dom else 0) + mv
         exc = sum(s[k] for k in ALWAYS_EXCLUDED) + (0 if game_dom else sum(s[k] for k in SPLIT))
-        tot = cnt + exc + s["nonFunction"]
+        nonf = s["nonFunction"] - mv
+        tot = cnt + exc + nonf
         ok = tot == s["virtualSize"]
-        lines.append(f"  {s['name']} (dominant {s['dominant']}): {cnt} + {exc} + {s['nonFunction']} = {tot} "
-                     f"{'==' if ok else '!='} {s['virtualSize']} {'ok' if ok else 'FAIL'}")
+        lines.append(f"  {s['name']} (dominant {s['dominant']}): {cnt} + {exc} + {nonf} = {tot} "
+                     f"{'==' if ok else '!='} {s['virtualSize']} {'ok' if ok else 'FAIL'}"
+                     + (f" ({mv} listed gap bytes moved from nonFunction)" if mv else ""))
         if not ok:
             errs.append(f"reconcile {s['name']}: {tot} != {s['virtualSize']}")
-        D, excl_t, nonf_t, vs_t = D + cnt, excl_t + exc, nonf_t + s["nonFunction"], vs_t + s["virtualSize"]
+        D, excl_t, nonf_t, vs_t = D + cnt, excl_t + exc, nonf_t + nonf, vs_t + s["virtualSize"]
     b = summ["bucket"]
     tot = D + excl_t + nonf_t
-    ok = tot == b["execSectionBytes"] == vs_t and nonf_t == b["nonFunction"]
+    ok = tot == b["execSectionBytes"] == vs_t and nonf_t == b["nonFunction"] - sum(moved.values())
     lines.append(f"  total: {D} + {excl_t} + {nonf_t} = {tot}; execSectionBytes {b['execSectionBytes']}; "
                  f"sum virtualSize {vs_t} {'ok' if ok else 'FAIL'}")
     if not ok:
@@ -120,7 +209,7 @@ def compute(inp):
         errs.append(f"reconcile functions: {nby} / {fs['count']} / {len(recs)}")
     counted = {int(r["entry"], 16): r for r in recs if _counted(r["class"], dom.get(r["section"]))}
     entries = {int(r["entry"], 16): r for r in recs}
-    B = len(counted)
+    B = len(counted) + len(gaps)
     # numerator
     items = {}
     for u in inp["report"].get("units", []):
@@ -136,7 +225,11 @@ def compute(inp):
             errs.append(f"done row {row['symbol']}: no report.json item in unit {unit}")
         elif int(it["size"]) != row["size"]:
             errs.append(f"done row {row['symbol']}: report.json size {it['size']} != row size {row['size']}")
-        if row["va"] not in counted:
+        if row["va"] in gaps:
+            if gaps[row["va"]]["size"] != row["size"]:
+                errs.append(f"done row {row['symbol']} va 0x{row['va']:08X}: size {row['size']} != listed gap "
+                            f"size {gaps[row['va']]['size']}")
+        elif row["va"] not in counted:
             r = entries.get(row["va"])
             why = "no functions.jsonl entry" if r is None else f"class {r['class']} in {r['section']} not counted"
             errs.append(f"done row {row['symbol']} va 0x{row['va']:08X}: {why}")
@@ -149,20 +242,22 @@ def render(inp, fig):
     p = 100.0 * a / B if B else 0.0
     q = 100.0 * c / D if D else 0.0
     src = inp["summ"]["functions"]["source"]
+    n, m, gp = len(inp["gaps"]), sum(g["size"] for g in inp["gaps"]), _rel(inp["gaps_path"])
     return [f"functions: {a} of {B} ({p:.2f}%)   bytes: {c} of {D} ({q:.2f}%)",
             f"functions denominator: {_rel(inp['recs_path'])} (population {src}), records counted where class == "
-            f"game, or class in mixed/unidentified and the section's dominant == game",
+            f"game, or class in mixed/unidentified and the section's dominant == game + {n} listed gap functions "
+            f"({gp})",
             f"bytes denominator: {_rel(inp['summ_path'])} sections[], sum of game + (mixed + unidentified where "
-            f"dominant == game)",
+            f"dominant == game) + {m} bytes",
             f"remainder: {B - a} functions, {D - c} bytes",
             f"claim type: gate verdicts (D40), rows with matched_set.is_done in {_rel(inp['last_path'])}",
             f"last.json date: {inp['last'].get('date')}"]
 
 
-def run(last_path):
+def run(last_path, gap_path=None, validate=True):
     """-> (rc, figures or None, output lines)."""
     try:
-        inp = load(last_path)
+        inp = load(last_path, gap_path, validate)
     except Refuse as e:
         return 2, None, [f"progress: REFUSED {e}"]
     errs, fig, lines = compute(inp)
@@ -202,7 +297,32 @@ def self_test():
         results.append(ok)
         print(f"self-test fixture: rc {rc}, functions {fig['a'] if fig else '-'} == {want_a}, bytes "
               f"{fig['c'] if fig else '-'} == {want_c} {'ok' if ok else 'FAIL'}")
-        flip = dict(doc, xbe_sha1=("0" if pin[0] != "0" else "1") + pin[1:])
+        try:
+            ng, why = len(load(lp)["gaps"]), ""
+        except Refuse as e:
+            ng, why = 0, f" ({e})"
+        # 5.3 T17: was `ng > 0 and not why`; every entry is now a fresh xdk record (list empty by its own definition),
+        # so the check is that every [[gap]] header in the file loads (a silent drop still fails) and nothing refuses
+        nh = len(re.findall(r"(?m)^\[\[gap\]\]\s*$", GAPS.read_text(encoding="utf-8"))) if GAPS.is_file() else -1
+        ok = ng == nh and not why
+        results.append(ok)
+        print(f"self-test real gap list {_rel(GAPS)}: {ng} entries load clean{why} {'ok' if ok else 'FAIL'}")
+        # T18 (5.2): one scratch list per refusal kind; each must pass unvalidated (rc 0) and refuse validated (2)
+        ctl = {"no-evidence": 'va = 0x00018190\nsize = 10\nsection = ".text"\nsymbol = "c"\n',
+               "non-game-section": 'va = 0x00156160\nsize = 4\nsection = "D3D"\nsymbol = "c"\n'
+                                   'evidence = "call-site"\nat = 0x00011000\n',
+               "record-overlap": 'va = 0x000E1418\nsize = 18\nsection = ".text"\nsymbol = "c"\n'
+                                 'evidence = "call-site"\nat = 0x00011000\n'}
+        for name, body in ctl.items():
+            gp = d / f"gaps_{name}.toml"
+            gp.write_text("[[gap]]\n" + body, encoding="utf-8", newline="\n")
+            rc0, _, _ = run(lp, gp, validate=False)
+            rc1, _, l1 = run(lp, gp)
+            ok = rc0 == 0 and rc1 == 2
+            results.append(ok)
+            print(f"control gap {name}: unvalidated rc {rc0} == 0 (did not fail), validated rc {rc1} == 2 "
+                  f"{'ok' if ok else 'FAIL'} ({l1[-1]})")
+        flip =dict(doc, xbe_sha1=("0" if pin[0] != "0" else "1") + pin[1:])
         lp.write_text(json.dumps(flip, indent=1) + "\n", encoding="utf-8", newline="\n")
         rc, _, lines = run(lp)
         results.append(rc == 2)

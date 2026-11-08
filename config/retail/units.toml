@@ -42,7 +42,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T9.c1: ??_I@YGXPAXIHP6EX0@Z@Z (the unit's only proc) control "/O1 /Oy" 100 bytes match, "/O1" 100 (helper keeps its ebp frame either way, /Oy undecided), "/O2" 63.95, "/O2 /Oy-" 72.86
 
 [[unit]]
 name = "obj\\i386\\xapi0.obj"
@@ -677,7 +677,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge start unpinned-excluded; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge start unpinned-excluded; searched: anchor SwampGamePad::GetButtonState 0x00017923, 1 procs, BayouLevelMain::Message not masked-equal at 0x00017896; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-excluded; searched: anchor SwampGamePad::GetButtonState 0x00017923, 1 procs, BayouLevelMain::Message not masked-equal at 0x00017896; adjacent run of xboxkrnl.exe#196 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-excluded; searched: anchor SwampGamePad::GetButtonState 0x00017923, 1 procs, BayouLevelMain::Message not masked-equal at 0x00017896; adjacent run of xboxkrnl.exe#196 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-excluded; searched: anchor SwampGamePad::GetButtonState 0x00017923, 1 procs, BayouLevelMain::Message not masked-equal at 0x00017896; adjacent run of xboxkrnl.exe#196 is not its main run; M27 start: BayouLevelMain::Message proto 0x00406B04 class excluded, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -744,7 +745,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor JimmyEvilPlanCutscene::AnimationFinished 0x0001BF88, 10 procs, JimmyEvilPlanCutscene::SetState not masked-equal at 0x0001BFFF; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor JimmyEvilPlanCutscene::AnimationFinished 0x0001BF88, 10 procs, JimmyEvilPlanCutscene::SetState not masked-equal at 0x0001BFFF; neighbour SausageWorks.obj#227 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor JimmyEvilPlanCutscene::AnimationFinished 0x0001BF88, 10 procs, JimmyEvilPlanCutscene::SetState not masked-equal at 0x0001BFFF; neighbour SausageWorks.obj#227 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor JimmyEvilPlanCutscene::AnimationFinished 0x0001BF88, 10 procs, JimmyEvilPlanCutscene::SetState not masked-equal at 0x0001BFFF; neighbour SausageWorks.obj#227 start unpinned-near-identical; M27 end: JimmyEvilPlanCutscene::RegisterMe::RegisterMe proto 0x0040BA39 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@JimmyEvilPlanCutscene@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -768,7 +770,8 @@ procs_tail = 36
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-near-identical; inconsistent: 16 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor SausageMakerMain::Message 0x0001C83F, 1 procs, SausageConveyorBelt::SausageConveyorBelt not masked-equal at 0x0001C825; fails: no pin, chain fails; edge end unpinned-near-identical; searched: anchor SausageCritterMain::SetState 0x0001FDC2, 53 procs, SausageCritterMain::Message not masked-equal at 0x0001FFD8; fails: no pin, chain fails; inconsistent: 16 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor SausageMakerMain::Message 0x0001C83F, 1 procs, SausageConveyorBelt::SausageConveyorBelt not masked-equal at 0x0001C825; neighbour JimmyCutscenes.obj#214 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-near-identical; searched: anchor SausageCritterMain::SetState 0x0001FDC2, 53 procs, SausageCritterMain::Message not masked-equal at 0x0001FFD8; neighbour EarthWoodandWater.obj#215 start unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 16 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor SausageMakerMain::Message 0x0001C83F, 1 procs, SausageConveyorBelt::SausageConveyorBelt not masked-equal at 0x0001C825; neighbour JimmyCutscenes.obj#214 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-near-identical; searched: anchor SausageCritterMain::SetState 0x0001FDC2, 53 procs, SausageCritterMain::Message not masked-equal at 0x0001FFD8; neighbour EarthWoodandWater.obj#215 start unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 16 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor SausageMakerMain::Message 0x0001C83F, 1 procs, SausageConveyorBelt::SausageConveyorBelt not masked-equal at 0x0001C825; neighbour JimmyCutscenes.obj#214 end unpinned-ambiguous; M27 start: SausageConveyorBelt::SausageConveyorBelt proto 0x0040BA75 class near-identical candidateVA 0x0001C825, form (a): needs disasm-verified pin ??0SausageConveyorBelt@@QAE@XZ at 0x0001C825, form (b): no near-identical neighbour edge (JimmyCutscenes.obj#214 end: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-near-identical; searched: anchor SausageCritterMain::SetState 0x0001FDC2, 53 procs, SausageCritterMain::Message not masked-equal at 0x0001FFD8; neighbour EarthWoodandWater.obj#215 start unpinned-absent; M27 end: SausageGrinderMain::Message proto 0x004101A1 class near-identical candidateVA 0x00020F15, form (a): needs disasm-verified pin ?Message@SausageGrinderMain@@UAEXPAVSwampScript@@HPAX@Z at 0x00020F15, form (b): no Ghidra entry at 0x00020F15; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 16 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -792,7 +795,8 @@ procs_tail = 9
 delink = false
 # was: delink_reason = "edge start unpinned-absent"
 # was: delink_reason = "edge start unpinned-absent; searched: anchor ElevatorEWWMain::Message 0x000214C9, 1 procs, DoorSausageMain::Message not masked-equal at 0x00021483; fails: no pin, chain fails"
-delink_reason = "edge start unpinned-absent; searched: anchor ElevatorEWWMain::Message 0x000214C9, 1 procs, DoorSausageMain::Message not masked-equal at 0x00021483; neighbour SausageWorks.obj#227 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge start unpinned-absent; searched: anchor ElevatorEWWMain::Message 0x000214C9, 1 procs, DoorSausageMain::Message not masked-equal at 0x00021483; neighbour SausageWorks.obj#227 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge start unpinned-absent; searched: anchor ElevatorEWWMain::Message 0x000214C9, 1 procs, DoorSausageMain::Message not masked-equal at 0x00021483; neighbour SausageWorks.obj#227 end unpinned-near-identical; M27 start: DoorSausageMain::Message proto 0x004105AE class absent, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -879,7 +883,8 @@ procs_tail = 15
 delink = false
 # was: delink_reason = "edge end unpinned-absent; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-absent; searched: anchor GateRegistration::GateRegistration 0x0002472A, 2 procs, RaceStandings::RenderStats not masked-equal at 0x000247B1; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-absent; searched: anchor GateRegistration::GateRegistration 0x0002472A, 2 procs, RaceStandings::RenderStats not masked-equal at 0x000247B1; neighbour RacingOpponent.obj#226 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-absent; searched: anchor GateRegistration::GateRegistration 0x0002472A, 2 procs, RaceStandings::RenderStats not masked-equal at 0x000247B1; neighbour RacingOpponent.obj#226 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-absent; searched: anchor GateRegistration::GateRegistration 0x0002472A, 2 procs, RaceStandings::RenderStats not masked-equal at 0x000247B1; neighbour RacingOpponent.obj#226 start unpinned-ambiguous; M27 end: RaceStandings::RenderStats proto 0x0041368C class absent, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -903,7 +908,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor std::deque<std::basic_string<char,std::c 0x00024FB5, 2 procs, RaceStandings::CheckLapTime at 0x00024F55 not the only masked copy in gap 0x00024775-0x00024FB5 (uncapped scan); fails: no pin, chain fails"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor std::deque<std::basic_string<char,std::c 0x00024FB5, 2 procs, RaceStandings::CheckLapTime at 0x00024F55 not the only masked copy in gap 0x00024775-0x00024FB5 (uncapped scan); neighbour JimmysFanboat.obj#224 end unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor std::deque<std::basic_string<char,std::c 0x00024FB5, 2 procs, RaceStandings::CheckLapTime at 0x00024F55 not the only masked copy in gap 0x00024775-0x00024FB5 (uncapped scan); neighbour JimmysFanboat.obj#224 end unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor std::deque<std::basic_string<char,std::c 0x00024FB5, 2 procs, RaceStandings::CheckLapTime at 0x00024F55 not the only masked copy in gap 0x00024775-0x00024FB5 (uncapped scan); neighbour JimmysFanboat.obj#224 end unpinned-absent; M27 start: RaceStandings::CheckLapTime proto 0x00413E34 class ambiguous candidateVA null, form (a): needs disasm-verified pin ?CheckLapTime@RaceStandings@@SAXM@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1050,21 +1056,24 @@ objname = "d:\\beep\\Apps\\Vince\\scripts\\Bayou\\Xbox\\OfficialRelease\\BogWall
 source = "proto-pdb:default.pdb"
 kind = "game"
 text_start = 0x0002BFA9
-text_end = 0x0002DD80
+text_end = 0x0002DE5B
 edge_start = "anchor"
-edge_end = "unpinned-near-identical"
+edge_end = "near-candidate"
 procs = 85
 procs_identical = 21
 procs_tail = 11
-delink = false
+delink = true
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor CrawdaddyMain::Message 0x0002DC91, 1 procs, CrawdadTrapMain::TimerEvent not masked-equal at 0x0002DD80; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor CrawdaddyMain::Message 0x0002DC91, 1 procs, CrawdadTrapMain::TimerEvent not masked-equal at 0x0002DD80; neighbour FanBoat.obj#209 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor CrawdaddyMain::Message 0x0002DC91, 1 procs, CrawdadTrapMain::TimerEvent not masked-equal at 0x0002DD80; neighbour FanBoat.obj#209 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x0002BFA9-0x0002DE5B edges anchor/near-candidate
+# route: end near-candidate: candidate CrawdadTrapMain::TimerEvent 0x0002DD80+0xDB (Ghidra entry) next to FanBoat.obj#209 FanBoat::SetEngineSpeed 0x0002DE5B, no entry between, both in own anchor gaps; chain: anchor CrawdaddyMain::Message 0x0002DC91, 1 procs, CrawdadTrapMain::TimerEvent not masked-equal at 0x0002DD80
+# route: CrawdaddyMain::AnimationFinished proto 0x0041AAF5 -> 0x001324DC moved into Roach.obj#505
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T9.c8: ?IsStunned@Critter@@QBE_NXZ control "/O1 /Oy" 100.0 bytes match; /O2 84.0
 
 [[unit]]
 name = "Xbox\\OfficialRelease\\FanBoat.obj"
@@ -1073,22 +1082,26 @@ lib = "scripts\\Bayou\\Xbox\\OfficialRelease\\Bayou.lib"
 objname = "d:\\beep\\Apps\\Vince\\scripts\\Bayou\\Xbox\\OfficialRelease\\FanBoat.obj"
 source = "proto-pdb:default.pdb"
 kind = "game"
-text_start = 0x0002DE7C
+text_start = 0x0002DE5B
 text_end = 0x00033BEB
-edge_start = "unpinned-near-identical"
+edge_start = "near-candidate"
 edge_end = "neighbour"
 procs = 116
 procs_identical = 48
 procs_tail = 10
-delink = false
+delink = true
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor std::deque<FanBoatWake::WakeSegment,std: 0x0002DE7C, 4 procs, FanBoat::SetEngineSpeed not masked-equal at 0x0002DE2F; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor std::deque<FanBoatWake::WakeSegment,std: 0x0002DE7C, 4 procs, FanBoat::SetEngineSpeed not masked-equal at 0x0002DE2F; neighbour BogWallow.obj#212 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor std::deque<FanBoatWake::WakeSegment,std: 0x0002DE7C, 4 procs, FanBoat::SetEngineSpeed not masked-equal at 0x0002DE2F; neighbour BogWallow.obj#212 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x0002DE5B-0x00033BEB edges near-candidate/neighbour
+# route: start near-candidate: candidate FanBoat::SetEngineSpeed 0x0002DE5B+0x16 (Ghidra entry) next to BogWallow.obj#212 CrawdadTrapMain::TimerEvent 0x0002DD80, no entry between, both in own anchor gaps; chain: anchor std::deque<FanBoatWake::WakeSegment,std: 0x0002DE7C, 4 procs, FanBoat::SetEngineSpeed not masked-equal at 0x0002DE2F
+# route: std::vector<std::basic_string<char,std::char_tra proto 0x0041C8DA -> 0x001114D9 moved into Settings.obj#453
+# route: stray (D125): of FanBoat.obj#209: std::vector<std::basic_string<char,std::char_tra proto 0x0041C8C4 -> 0x00111476: single masked copy (proto_map hits 1), LIS bracket 0x00111413 BubbaGator.obj#499 .. 0x0011148C Settings.obj#453, in BubbaGator.obj#499; reason: copy bracketed by anchors of two different units; containing cut: BubbaGator.obj#499
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T8.c1: ?creationFunc@FanBoatMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z /O1 /Oy control pass; /O2 control fails (87.69)
 
 [[unit]]
 name = "Xbox\\Official_Release\\BeepAlloc.obj"
@@ -1598,7 +1611,8 @@ procs_tail = 4
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 10 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor FortuneCoinMain::AnimationFinished 0x0003C6E4, 16 procs, FortuneTellerMain::Message not masked-equal at 0x0003C74C; fails: no pin, chain fails; inconsistent: 10 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor FortuneCoinMain::AnimationFinished 0x0003C6E4, 16 procs, FortuneTellerMain::Message not masked-equal at 0x0003C74C; neighbour HiStriker.obj#251 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 10 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor FortuneCoinMain::AnimationFinished 0x0003C6E4, 16 procs, FortuneTellerMain::Message not masked-equal at 0x0003C74C; neighbour HiStriker.obj#251 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 10 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor FortuneCoinMain::AnimationFinished 0x0003C6E4, 16 procs, FortuneTellerMain::Message not masked-equal at 0x0003C74C; neighbour HiStriker.obj#251 start unpinned-excluded; M27 end: FortuneTellerDoorMain::RegisterMe::RegisterMe proto 0x0042B624 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@FortuneTellerDoorMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 10 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1622,7 +1636,8 @@ procs_tail = 4
 delink = false
 # was: delink_reason = "edge start unpinned-excluded; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge start unpinned-excluded; searched: anchor HiStrikerMain::HiStrikerMain 0x0003D204, 3 procs, HiStrkerWeightMain::Message not masked-equal at 0x0003D1B0; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-excluded; searched: anchor HiStrikerMain::HiStrikerMain 0x0003D204, 3 procs, HiStrkerWeightMain::Message not masked-equal at 0x0003D1B0; neighbour FortuneCoin.obj#250 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-excluded; searched: anchor HiStrikerMain::HiStrikerMain 0x0003D204, 3 procs, HiStrkerWeightMain::Message not masked-equal at 0x0003D1B0; neighbour FortuneCoin.obj#250 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-excluded; searched: anchor HiStrikerMain::HiStrikerMain 0x0003D204, 3 procs, HiStrkerWeightMain::Message not masked-equal at 0x0003D1B0; neighbour FortuneCoin.obj#250 end unpinned-ambiguous; M27 start: HiStrkerWeightMain::Message proto 0x0042B660 class excluded, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1668,7 +1683,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-ambiguous; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor BowlingBallMain::creationFunc 0x0003DFED, 1 procs, BowlingBallMain::BowlingBallMain not masked-equal at 0x0003DF74; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor BowlingBallMain::creationFunc 0x0003DFED, 3 procs, BowlingBall::creationFunc not masked-equal at 0x0003E014; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor BowlingBallMain::creationFunc 0x0003DFED, 3 procs, BowlingBall::creationFunc not masked-equal at 0x0003E014; neighbour Midway.obj#252 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor BowlingBallMain::creationFunc 0x0003DFED, 3 procs, BowlingBall::creationFunc not masked-equal at 0x0003E014; neighbour Midway.obj#252 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor BowlingBallMain::creationFunc 0x0003DFED, 3 procs, BowlingBall::creationFunc not masked-equal at 0x0003E014; neighbour Midway.obj#252 start unpinned-identical; M27 end: BowlingBallMain::RegisterMe::RegisterMe proto 0x0042C52B class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@BowlingBallMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1692,7 +1708,8 @@ procs_tail = 7
 delink = false
 # was: delink_reason = "edge start unpinned-identical; edge end unpinned-ambiguous; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-identical; searched: anchor TrapBubbaGatorMain::Activate 0x0003E0BC, 2 procs, BubbaGatorDoorsMain::Message not masked-equal at 0x0003E073; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor TrapBubbaGatorMain::creationFunc 0x0003EAD5, 2 procs, CageBubbaMain::RegisterMe::RegisterMe at 0x0003EAFF not the only masked copy in gap 0x0003EAFF-0x0003F927 (uncapped scan); fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-identical; searched: anchor TrapBubbaGatorMain::Activate 0x0003E0BC, 2 procs, BubbaGatorDoorsMain::Message not masked-equal at 0x0003E073; neighbour BowlingBall.obj#248 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor TrapBubbaGatorMain::creationFunc 0x0003EAD5, 2 procs, CageBubbaMain::RegisterMe::RegisterMe at 0x0003EAFF not the only masked copy in gap 0x0003EAFF-0x0003F927 (uncapped scan); neighbour MidwayCutscenes.obj#253 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-identical; searched: anchor TrapBubbaGatorMain::Activate 0x0003E0BC, 2 procs, BubbaGatorDoorsMain::Message not masked-equal at 0x0003E073; neighbour BowlingBall.obj#248 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor TrapBubbaGatorMain::creationFunc 0x0003EAD5, 2 procs, CageBubbaMain::RegisterMe::RegisterMe at 0x0003EAFF not the only masked copy in gap 0x0003EAFF-0x0003F927 (uncapped scan); neighbour MidwayCutscenes.obj#253 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-identical; searched: anchor TrapBubbaGatorMain::Activate 0x0003E0BC, 2 procs, BubbaGatorDoorsMain::Message not masked-equal at 0x0003E073; neighbour BowlingBall.obj#248 end unpinned-ambiguous; M27 start: BubbaGatorDoorsMain::Message proto 0x0042C567 class identical, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor TrapBubbaGatorMain::creationFunc 0x0003EAD5, 2 procs, CageBubbaMain::RegisterMe::RegisterMe at 0x0003EAFF not the only masked copy in gap 0x0003EAFF-0x0003F927 (uncapped scan); neighbour MidwayCutscenes.obj#253 start unpinned-identical; M27 end: TrapBubbaGatorMain::RegisterMe::RegisterMe proto 0x0042CFE0 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@TrapBubbaGatorMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1716,7 +1733,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge start unpinned-identical; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-identical; searched: anchor CarnivalEntranceCutscene::creationFunc 0x0003F927, 5 procs, CarnivalEntranceCutscene::AnimationFinis not masked-equal at 0x0003EB69; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-identical; searched: anchor CarnivalEntranceCutscene::creationFunc 0x0003F927, 5 procs, CarnivalEntranceCutscene::AnimationFinis not masked-equal at 0x0003EB69; neighbour Midway.obj#252 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-identical; searched: anchor CarnivalEntranceCutscene::creationFunc 0x0003F927, 5 procs, CarnivalEntranceCutscene::AnimationFinis not masked-equal at 0x0003EB69; neighbour Midway.obj#252 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-identical; searched: anchor CarnivalEntranceCutscene::creationFunc 0x0003F927, 5 procs, CarnivalEntranceCutscene::AnimationFinis not masked-equal at 0x0003EB69; neighbour Midway.obj#252 end unpinned-ambiguous; M27 start: CarnivalEntranceCutscene::AnimationFinished proto 0x0042D01C class identical, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1741,7 +1759,7 @@ delink = true
 # was: delink_reason = "inconsistent: 1 procs outside range"
 # was: delink_reason = "inconsistent: 1 procs outside range, 0 explained; searched: DoorDMain::creationFunc proto 0x0043059C -> 0x0003D044: single masked copy (proto_map hits 1), LIS bracket 0x0003C6E4 FortuneCoin.obj#250 .. 0x0003D204 HiStriker.obj#251, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x0003F98A-0x0004300B edges anchor/neighbour
-# route: stray stays uncut (D120): DoorDMain::creationFunc proto 0x0043059C -> 0x0003D044: single masked copy (proto_map hits 1), LIS bracket 0x0003C6E4 FortuneCoin.obj#250 .. 0x0003D204 HiStriker.obj#251, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of ScareHouse.obj#257: DoorDMain::creationFunc proto 0x0043059C -> 0x0003D044: single masked copy (proto_map hits 1), LIS bracket 0x0003C6E4 FortuneCoin.obj#250 .. 0x0003D204 HiStriker.obj#251, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1766,8 +1784,8 @@ delink = true
 # was: delink_reason = "inconsistent: 2 procs outside range"
 # was: delink_reason = "inconsistent: 2 procs outside range, 0 explained; searched: EvilVinceMirrorMain::InvalidateScript proto 0x004314AC -> 0x000A6021: single masked copy (proto_map hits 1), LIS bracket 0x000A5CA8 WrathOfJanice.obj#363 .. 0x000A6042 JaniceBoss.obj#361, in no unit range | HouseOMirrorsRegionMain::creationFunc proto 0x0043210F -> 0x00070263: single masked copy (proto_map hits 1), LIS bracket 0x00070263 bakeryMain.obj#309 .. 0x000702FF DocksMain.obj#312, in bakeryMain.obj#309; fails: copy in a gap between unit ranges | copy bracketed by anchors of two different units"
 # route: range 0x0004300B-0x00044948 edges anchor/anchor
-# route: stray stays uncut (D120): EvilVinceMirrorMain::InvalidateScript proto 0x004314AC -> 0x000A6021: single masked copy (proto_map hits 1), LIS bracket 0x000A5CA8 WrathOfJanice.obj#363 .. 0x000A6042 JaniceBoss.obj#361, in no unit range; reason: copy in a gap between unit ranges
-# route: stray stays uncut (D120): HouseOMirrorsRegionMain::creationFunc proto 0x0043210F -> 0x00070263: single masked copy (proto_map hits 1), LIS bracket 0x00070263 bakeryMain.obj#309 .. 0x000702FF DocksMain.obj#312, in bakeryMain.obj#309; reason: copy bracketed by anchors of two different units
+# route: stray (D125): of HouseOfMirrors.obj#260: EvilVinceMirrorMain::InvalidateScript proto 0x004314AC -> 0x000A6021: single masked copy (proto_map hits 1), LIS bracket 0x000A5CA8 WrathOfJanice.obj#363 .. 0x000A6042 JaniceBoss.obj#361, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
+# route: stray (D125): of HouseOfMirrors.obj#260: HouseOMirrorsRegionMain::creationFunc proto 0x0043210F -> 0x00070263: single masked copy (proto_map hits 1), LIS bracket 0x00070263 bakeryMain.obj#309 .. 0x000702FF DocksMain.obj#312, in bakeryMain.obj#309; reason: copy bracketed by anchors of two different units; containing cut: bakeryMain.obj#309
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1921,7 +1939,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor KosmoAppearsLORCutscene::creationFunc 0x00051EB1, 3 procs, KosmoAppearsLORCutscene::RegisterMe::Reg at 0x00051ED8 not the only masked copy in gap 0x00051ED8-0x00051FCF (uncapped scan); fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor KosmoAppearsLORCutscene::creationFunc 0x00051EB1, 3 procs, KosmoAppearsLORCutscene::RegisterMe::Reg at 0x00051ED8 not the only masked copy in gap 0x00051ED8-0x00051FCF (uncapped scan); neighbour InsideKosmobot.obj#268 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor KosmoAppearsLORCutscene::creationFunc 0x00051EB1, 3 procs, KosmoAppearsLORCutscene::RegisterMe::Reg at 0x00051ED8 not the only masked copy in gap 0x00051ED8-0x00051FCF (uncapped scan); neighbour InsideKosmobot.obj#268 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor KosmoAppearsLORCutscene::creationFunc 0x00051EB1, 3 procs, KosmoAppearsLORCutscene::RegisterMe::Reg at 0x00051ED8 not the only masked copy in gap 0x00051ED8-0x00051FCF (uncapped scan); neighbour InsideKosmobot.obj#268 start unpinned-ambiguous; M27 end: VinceRidesChopperCutscene::RegisterMe::RegisterM proto 0x0043ED48 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@VinceRidesChopperCutscene@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1945,7 +1964,8 @@ procs_tail = 17
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-absent; inconsistent: 4 procs outside range"
 # was: delink_reason = "edge end unpinned-absent; searched: anchor MainBrainMain::`scalar deleting destruct 0x00053274, 24 procs, MainBrainMain::creationFunc not masked-equal at 0x0005329D; fails: no pin, chain fails; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-absent; searched: anchor MainBrainMain::`scalar deleting destruct 0x00053274, 24 procs, MainBrainMain::creationFunc not masked-equal at 0x0005329D; neighbour CircusCannon.obj#267 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-absent; searched: anchor MainBrainMain::`scalar deleting destruct 0x00053274, 24 procs, MainBrainMain::creationFunc not masked-equal at 0x0005329D; neighbour CircusCannon.obj#267 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-absent; searched: anchor MainBrainMain::`scalar deleting destruct 0x00053274, 24 procs, MainBrainMain::creationFunc not masked-equal at 0x0005329D; neighbour CircusCannon.obj#267 start unpinned-near-identical; M27 end: MainBrainMain::Message proto 0x004403FF class absent, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -1969,7 +1989,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 7 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor CircusCannonMain::AnimationFinished 0x000542DA, 8 procs, CircusCannon::CircusCannon not masked-equal at 0x00053E6A; fails: no pin, chain fails; inconsistent: 7 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor CircusCannonMain::AnimationFinished 0x000542DA, 8 procs, CircusCannon::CircusCannon not masked-equal at 0x00053E6A; neighbour InsideKosmobot.obj#268 end unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 7 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor CircusCannonMain::AnimationFinished 0x000542DA, 8 procs, CircusCannon::CircusCannon not masked-equal at 0x00053E6A; neighbour InsideKosmobot.obj#268 end unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 7 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor CircusCannonMain::AnimationFinished 0x000542DA, 8 procs, CircusCannon::CircusCannon not masked-equal at 0x00053E6A; neighbour InsideKosmobot.obj#268 end unpinned-absent; M27 start: CircusCannon::CircusCannon proto 0x004408F4 class near-identical candidateVA 0x00053E99, form (a): needs disasm-verified pin ??0CircusCannon@@QAE@XZ at 0x00053E99, form (b): no near-identical neighbour edge (InsideKosmobot.obj#268 end: absent); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 7 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2057,7 +2078,7 @@ delink = true
 # was: delink_reason = "inconsistent: 1 procs outside range"
 # was: delink_reason = "inconsistent: 1 procs outside range, 0 explained; searched: ZombieGuidanceCounselorRegionMain::Message proto 0x00444272 -> 0x00070505: single masked copy (proto_map hits 1), LIS bracket 0x000704A5 DocksMain.obj#312 .. 0x00070514 Mainstreet.obj#317, in DocksMain.obj#312; fails: copy bracketed by anchors of two different units"
 # route: range 0x000579DE-0x0005C095 edges anchor/neighbour
-# route: stray stays uncut (D120): ZombieGuidanceCounselorRegionMain::Message proto 0x00444272 -> 0x00070505: single masked copy (proto_map hits 1), LIS bracket 0x000704A5 DocksMain.obj#312 .. 0x00070514 Mainstreet.obj#317, in DocksMain.obj#312; reason: copy bracketed by anchors of two different units
+# route: stray (D125): of ZombieGuidanceCounselor.obj#278: ZombieGuidanceCounselorRegionMain::Message proto 0x00444272 -> 0x00070505: single masked copy (proto_map hits 1), LIS bracket 0x000704A5 DocksMain.obj#312 .. 0x00070514 Mainstreet.obj#317, in DocksMain.obj#312; reason: copy bracketed by anchors of two different units; containing cut: DocksMain.obj#312
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2216,7 +2237,7 @@ delink = true
 # route: range 0x0005EDC6-0x000601E7 edges anchor/chain
 # route: end chain: anchor GateMoleMain::creationFunc 0x00060184, 1 procs, gap 0x000601AB-0x00060313 scanned, unique
 # route: std::deque<Popup *,std::allocator<Popup *> >::po proto 0x0044B308 -> 0x00057F1D moved into ZombieGuidanceCounselor.obj#278
-# route: stray stays uncut (D120): MoleGateMain::creationFunc proto 0x0044C0F3 -> 0x0006CA2D: single masked copy (proto_map hits 1), LIS bracket 0x0006C734 Bell.obj#284 .. 0x0006CB83 FFlyEmitter.obj#294, in Bell.obj#284; reason: copy bracketed by anchors of two different units
+# route: stray (D125): of MoleGatePuzzle.obj#281: MoleGateMain::creationFunc proto 0x0044C0F3 -> 0x0006CA2D: single masked copy (proto_map hits 1), LIS bracket 0x0006C734 Bell.obj#284 .. 0x0006CB83 FFlyEmitter.obj#294, in Bell.obj#284; reason: copy bracketed by anchors of two different units; containing cut: Bell.obj#284
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2264,7 +2285,8 @@ procs_tail = 9
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor SkeletonJazzGuyCCMain::creationFunc 0x0006256F, 10 procs, SkeletonJazzGuyCCMain::Message not masked-equal at 0x0006273C; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor SkeletonJazzGuyCCMain::creationFunc 0x0006256F, 10 procs, SkeletonJazzGuyCCMain::Message not masked-equal at 0x0006273C; neighbour GatekeeperJamCutscenes.obj#280 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor SkeletonJazzGuyCCMain::creationFunc 0x0006256F, 10 procs, SkeletonJazzGuyCCMain::Message not masked-equal at 0x0006273C; neighbour GatekeeperJamCutscenes.obj#280 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor SkeletonJazzGuyCCMain::creationFunc 0x0006256F, 10 procs, SkeletonJazzGuyCCMain::Message not masked-equal at 0x0006273C; neighbour GatekeeperJamCutscenes.obj#280 start unpinned-identical; M27 end: SkeletonJazzGuyCCCollapseMain::RegisterMe::Regis proto 0x0044F1A8 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@SkeletonJazzGuyCCCollapseMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2288,7 +2310,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-identical; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-identical; searched: anchor TheGatesOpenCutscene::SetState 0x0006393C, 6 procs, TheGatesOpenCutscene::AnimationFinished not masked-equal at 0x00062C4D; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-identical; searched: anchor TheGatesOpenCutscene::SetState 0x0006393C, 6 procs, TheGatesOpenCutscene::AnimationFinished not masked-equal at 0x00062C4D; neighbour GatekeeperJam.obj#279 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-identical; searched: anchor TheGatesOpenCutscene::SetState 0x0006393C, 6 procs, TheGatesOpenCutscene::AnimationFinished not masked-equal at 0x00062C4D; neighbour GatekeeperJam.obj#279 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-identical; searched: anchor TheGatesOpenCutscene::SetState 0x0006393C, 6 procs, TheGatesOpenCutscene::AnimationFinished not masked-equal at 0x00062C4D; neighbour GatekeeperJam.obj#279 end unpinned-ambiguous; M27 start: TheGatesOpenCutscene::AnimationFinished proto 0x0044F1E4 class identical, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2533,7 +2556,7 @@ delink = true
 # route: std::vector<FFlyCtrlData::Key,std::allocator<FFl proto 0x0045A13C -> 0x00035E7B moved into BeepState.obj#234
 # route: std::vector<FFlyCtrlData::Key,std::allocator<FFl proto 0x0045A14F -> 0x00035E68 moved into BeepState.obj#234
 # route: std::_Construct<FFlyCtrlData::Key,FFlyCtrlData:: proto 0x0045A320 -> 0x00035F9F moved into BeepState.obj#234
-# route: stray stays uncut (D120): std::_Copy_backward_opt<FFlyCubicKey *,FFlyCubic proto 0x0045A1AE -> 0x000D2F17: single masked copy (proto_map hits 1), LIS bracket 0x000D2E8A SwampAnimationResource.obj#380 .. 0x000D2F41 SwampDiskArbitrator.obj#384, in SwampDiskArbitrator.obj#384; reason: copy bracketed by anchors of two different units
+# route: stray (D125): of FFlyController.obj#292: std::_Copy_backward_opt<FFlyCubicKey *,FFlyCubic proto 0x0045A1AE -> 0x000D2F17: single masked copy (proto_map hits 1), LIS bracket 0x000D2E8A SwampAnimationResource.obj#380 .. 0x000D2F41 SwampDiskArbitrator.obj#384, in SwampDiskArbitrator.obj#384; reason: copy bracketed by anchors of two different units; containing cut: SwampDiskArbitrator.obj#384
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2717,7 +2740,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor MuseumRegionMain::creationFunc 0x0007586A, 3 procs, MuseumRegionMain::RegisterMe::RegisterMe at 0x00075891 not the only masked copy in gap 0x00075891-0x0007598B (uncapped scan); fails: no pin, chain fails"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor MuseumRegionMain::creationFunc 0x0007586A, 3 procs, MuseumRegionMain::RegisterMe::RegisterMe at 0x00075891 not the only masked copy in gap 0x00075891-0x0007598B (uncapped scan); neighbour TrainingFrog.obj#299 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor MuseumRegionMain::creationFunc 0x0007586A, 3 procs, MuseumRegionMain::RegisterMe::RegisterMe at 0x00075891 not the only masked copy in gap 0x00075891-0x0007598B (uncapped scan); neighbour TrainingFrog.obj#299 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor MuseumRegionMain::creationFunc 0x0007586A, 3 procs, MuseumRegionMain::RegisterMe::RegisterMe at 0x00075891 not the only masked copy in gap 0x00075891-0x0007598B (uncapped scan); neighbour TrainingFrog.obj#299 start unpinned-excluded; M27 end: MuseumUpperDeckRegionMain::RegisterMe::RegisterM proto 0x004619AF class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@MuseumUpperDeckRegionMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2741,7 +2765,8 @@ procs_tail = 5
 delink = false
 # was: delink_reason = "edge start unpinned-excluded; edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-excluded; searched: anchor TrainingFrogMain::Save 0x0007598B, 5 procs, TrainingFrogMain::Message not masked-equal at 0x0007594E; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor TrainingFrogBMain::creationFunc 0x00075FA0, 6 procs, TrainingFrogAMain::`scalar deleting dest not masked-equal at 0x00075FC7; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-excluded; searched: anchor TrainingFrogMain::Save 0x0007598B, 5 procs, TrainingFrogMain::Message not masked-equal at 0x0007594E; neighbour Museum.obj#327 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor TrainingFrogBMain::creationFunc 0x00075FA0, 6 procs, TrainingFrogAMain::`scalar deleting dest not masked-equal at 0x00075FC7; neighbour VinceMeetsKosmoCutscene.obj#301 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-excluded; searched: anchor TrainingFrogMain::Save 0x0007598B, 5 procs, TrainingFrogMain::Message not masked-equal at 0x0007594E; neighbour Museum.obj#327 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor TrainingFrogBMain::creationFunc 0x00075FA0, 6 procs, TrainingFrogAMain::`scalar deleting dest not masked-equal at 0x00075FC7; neighbour VinceMeetsKosmoCutscene.obj#301 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-excluded; searched: anchor TrainingFrogMain::Save 0x0007598B, 5 procs, TrainingFrogMain::Message not masked-equal at 0x0007594E; neighbour Museum.obj#327 end unpinned-ambiguous; M27 start: TrainingFrogMain::Message proto 0x004619EB class excluded, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor TrainingFrogBMain::creationFunc 0x00075FA0, 6 procs, TrainingFrogAMain::`scalar deleting dest not masked-equal at 0x00075FC7; neighbour VinceMeetsKosmoCutscene.obj#301 start unpinned-ambiguous; M27 end: TrainingFrogBAltMain::RegisterMe::RegisterMe proto 0x00462077 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@TrainingFrogBAltMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2765,7 +2790,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor KosmoEnter::FrameTick 0x000760BF, 2 procs, FirstVoodooIconCutscene::AnimationFinish not masked-equal at 0x000760A3; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor KosmoEnter::FrameTick 0x000760BF, 2 procs, FirstVoodooIconCutscene::AnimationFinish not masked-equal at 0x000760A3; neighbour TrainingFrog.obj#299 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor KosmoEnter::FrameTick 0x000760BF, 2 procs, FirstVoodooIconCutscene::AnimationFinish not masked-equal at 0x000760A3; neighbour TrainingFrog.obj#299 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor KosmoEnter::FrameTick 0x000760BF, 2 procs, FirstVoodooIconCutscene::AnimationFinish not masked-equal at 0x000760A3; neighbour TrainingFrog.obj#299 end unpinned-ambiguous; M27 start: FirstVoodooIconCutscene::AnimationFinished proto 0x004620B3 class ambiguous candidateVA null, form (a): needs disasm-verified pin ?AnimationFinished@HannaDeathCutscene@@UAEXI@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2923,7 +2949,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "/O1 /Oy"  # was "unknown"; 4.4 T12: ?Message@WallSwitchMain@@UAEXPAVSwampScript@@HPAX@Z control "/O1 /Oy" PASS; /O2 control fails (69.155174, C0264)
+opt = "/O1 /Oy"  # was "unknown"; 4.4 T12: ?Message@WallSwitchMain@@UAEXPAVSwampScript@@HPAX@Z control "/O1 /Oy" PASS; /O2 control fails (69.155174, C0264); 5.3 T5: ?creationFunc@WallSwitchMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z control "/O2" fails (87.69231, C0135); plain /O1 /Oy PASS
 
 [[unit]]
 name = "Xbox\\OfficialRelease\\BigPig.obj"
@@ -2942,7 +2968,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor BigPigMain::creationFunc 0x0007DC26, 4 procs, bigPigExitDoorsMain::creationFunc not masked-equal at 0x0007DC4D; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor BigPigMain::creationFunc 0x0007DC26, 4 procs, bigPigExitDoorsMain::creationFunc not masked-equal at 0x0007DC4D; neighbour Cymbals.obj#311 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor BigPigMain::creationFunc 0x0007DC26, 4 procs, bigPigExitDoorsMain::creationFunc not masked-equal at 0x0007DC4D; neighbour Cymbals.obj#311 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor BigPigMain::creationFunc 0x0007DC26, 4 procs, bigPigExitDoorsMain::creationFunc not masked-equal at 0x0007DC4D; neighbour Cymbals.obj#311 start unpinned-ambiguous; M27 end: bigPigExitDoorsMain::RegisterMe::RegisterMe proto 0x00469C93 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@bigPigExitDoorsMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -2966,7 +2993,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor CymbalsMain::Activate 0x0007DE31, 4 procs, NocymbaldropRegionMain::NocymbaldropRegi not masked-equal at 0x0007DD55; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor CymbalsMain::Activate 0x0007DE31, 4 procs, NocymbaldropRegionMain::NocymbaldropRegi not masked-equal at 0x0007DD55; neighbour BigPig.obj#310 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor CymbalsMain::Activate 0x0007DE31, 4 procs, NocymbaldropRegionMain::NocymbaldropRegi not masked-equal at 0x0007DD55; neighbour BigPig.obj#310 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor CymbalsMain::Activate 0x0007DE31, 4 procs, NocymbaldropRegionMain::NocymbaldropRegi not masked-equal at 0x0007DD55; neighbour BigPig.obj#310 end unpinned-ambiguous; M27 start: NocymbaldropRegionMain::NocymbaldropRegionMain proto 0x00469CCF class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0NocymbaldropRegionMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3057,13 +3085,14 @@ delink = true
 # route: range 0x0007F1D4-0x000815F5 edges neighbour-fixed/neighbour
 # route: start neighbour-fixed: neighbour KosmoPigCutscene.obj#313 end chain 0x0007F1D4 (units.toml) in own anchor gap 0x0007F14A-0x0007F1F1; chain: anchor ReggieWreckageMain::GainingControl 0x0007F1F1, 2 procs, WrenchMain::HitBy not masked-equal at 0x0007F1D4
 # route: std::deque<ReggieWreckageMain::ReggieTaunt,std:: proto 0x0046C4CB -> 0x0005CF1A moved into VinceSpring.obj#276
-# route: stray stays uncut (D120): WrenchMain::HitBy proto 0x0046B0DE -> 0x0013240F: single masked copy (proto_map hits 1), LIS bracket 0x00132347 FanCeiling.obj#473 .. 0x00132414 Roach.obj#505, in FanCeiling.obj#473; reason: copy bracketed by anchors of two different units
-# route: stray stays uncut (D120): std::deque<ReggieWreckageMain::ReggieTaunt,std:: proto 0x0046B10E -> 0x0005C44F: single masked copy (proto_map hits 1), LIS bracket 0x0005C276 Spring.obj#274 .. 0x0005C472 VinceSpring.obj#276, in Spring.obj#274; reason: copy bracketed by anchors of two different units
+# route: stray (D125): of GasPumps.obj#316: WrenchMain::HitBy proto 0x0046B0DE -> 0x0013240F: single masked copy (proto_map hits 1), LIS bracket 0x00132347 FanCeiling.obj#473 .. 0x00132414 Roach.obj#505, in FanCeiling.obj#473; reason: copy bracketed by anchors of two different units; containing cut: FanCeiling.obj#473
+# route: stray (D125): of GasPumps.obj#316: std::deque<ReggieWreckageMain::ReggieTaunt,std:: proto 0x0046B10E -> 0x0005C44F: single masked copy (proto_map hits 1), LIS bracket 0x0005C276 Spring.obj#274 .. 0x0005C472 VinceSpring.obj#276, in Spring.obj#274; reason: copy bracketed by anchors of two different units; containing cut: Spring.obj#274
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "/O1 /Oy"  # was "unknown"; 4.4 T10: ?creationFunc@WrenchMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z control "/O1 /Oy" PASS; /O2 control fails (87.69231, C0135)
+opt = "/O1 /Oy /Ob1"  # was "/O1 /Oy"; 5.2 T9.c11: ?Save@ReggieMain control "/O1 /Oy /Ob1" PASS 100 (retail calls GasPumpMain::Save out of line); "/O1 /Oy" 74.81; 19/19 matched rows PASS under /Ob1 (C0121)
+# was "unknown"; 4.4 T10: ?creationFunc@WrenchMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z control "/O1 /Oy" PASS; /O2 control fails (87.69231, C0135)
 
 [[unit]]
 name = "Xbox\\OfficialRelease\\PipeGas.obj"
@@ -3124,7 +3153,8 @@ procs_tail = 5
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor SteamRollerMain::Activate 0x00083DBF, 4 procs, WallBlockingSquareMain::RegisterMe::Regi at 0x00083E48 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); fails: no pin, chain fails"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor SteamRollerMain::Activate 0x00083DBF, 4 procs, WallBlockingSquareMain::RegisterMe::Regi at 0x00083E48 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); neighbour ClockPlatform.obj#321 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor SteamRollerMain::Activate 0x00083DBF, 4 procs, WallBlockingSquareMain::RegisterMe::Regi at 0x00083E48 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); neighbour ClockPlatform.obj#321 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor SteamRollerMain::Activate 0x00083DBF, 4 procs, WallBlockingSquareMain::RegisterMe::Regi at 0x00083E48 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); neighbour ClockPlatform.obj#321 start unpinned-ambiguous; M27 end: VinceSteamrollerCutscene::RegisterMe::RegisterMe proto 0x0046FDA2 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@VinceSteamrollerCutscene@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3148,7 +3178,8 @@ procs_tail = 15
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor DigitalClockHud::DigitalClockHud 0x00083F7A, 3 procs, ClockHandLittleMain::ClockHandLittleMain at 0x00083F38 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); fails: no pin, chain fails"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor DigitalClockHud::DigitalClockHud 0x00083F7A, 3 procs, ClockHandLittleMain::ClockHandLittleMain at 0x00083F38 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); neighbour ReggiePrimoCutscenes.obj#319 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor DigitalClockHud::DigitalClockHud 0x00083F7A, 3 procs, ClockHandLittleMain::ClockHandLittleMain at 0x00083F38 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); neighbour ReggiePrimoCutscenes.obj#319 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor DigitalClockHud::DigitalClockHud 0x00083F7A, 3 procs, ClockHandLittleMain::ClockHandLittleMain at 0x00083F38 not the only masked copy in gap 0x00083E48-0x00083F7A (uncapped scan); neighbour ReggiePrimoCutscenes.obj#319 end unpinned-ambiguous; M27 start: ClockHandLittleMain::ClockHandLittleMain proto 0x0046FDDE class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0ClockHandLittleMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3172,7 +3203,8 @@ procs_tail = 5
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor StatueHorseMain::creationFunc 0x00086961, 6 procs, Apple::creationFunc not masked-equal at 0x00086988; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor StatueHorseMain::creationFunc 0x00086961, 6 procs, Apple::creationFunc not masked-equal at 0x00086988; neighbour SquareCutscenes.obj#323 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor StatueHorseMain::creationFunc 0x00086961, 6 procs, Apple::creationFunc not masked-equal at 0x00086988; neighbour SquareCutscenes.obj#323 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor StatueHorseMain::creationFunc 0x00086961, 6 procs, Apple::creationFunc not masked-equal at 0x00086988; neighbour SquareCutscenes.obj#323 start unpinned-identical; M27 end: VinceThrowApple::RegisterMe::RegisterMe proto 0x00472841 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@VinceThrowApple@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3196,7 +3228,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-identical; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-identical; searched: anchor GatekeeperNoOpenCutscene::SetState 0x00086D97, 4 procs, GatekeeperNoOpenCutscene::AnimationFinis not masked-equal at 0x00086AF9; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-identical; searched: anchor GatekeeperNoOpenCutscene::SetState 0x00086D97, 4 procs, GatekeeperNoOpenCutscene::AnimationFinis not masked-equal at 0x00086AF9; neighbour HorseStatue.obj#322 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-identical; searched: anchor GatekeeperNoOpenCutscene::SetState 0x00086D97, 4 procs, GatekeeperNoOpenCutscene::AnimationFinis not masked-equal at 0x00086AF9; neighbour HorseStatue.obj#322 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-identical; searched: anchor GatekeeperNoOpenCutscene::SetState 0x00086D97, 4 procs, GatekeeperNoOpenCutscene::AnimationFinis not masked-equal at 0x00086AF9; neighbour HorseStatue.obj#322 end unpinned-ambiguous; M27 start: GatekeeperNoOpenCutscene::AnimationFinished proto 0x0047287D class identical, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3242,7 +3275,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 5 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceBeatsDinoCutscene::SetState 0x00089EE2, 10 procs, VinceBeatsDinoCutscene::TimerEvent not masked-equal at 0x0008A264; fails: no pin, chain fails; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceBeatsDinoCutscene::SetState 0x00089EE2, 10 procs, VinceBeatsDinoCutscene::TimerEvent not masked-equal at 0x0008A264; neighbour MuseumDome.obj#328 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceBeatsDinoCutscene::SetState 0x00089EE2, 10 procs, VinceBeatsDinoCutscene::TimerEvent not masked-equal at 0x0008A264; neighbour MuseumDome.obj#328 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceBeatsDinoCutscene::SetState 0x00089EE2, 10 procs, VinceBeatsDinoCutscene::TimerEvent not masked-equal at 0x0008A264; neighbour MuseumDome.obj#328 start unpinned-near-identical; M27 end: VinceBeatsDinoCutscene::RegisterMe::RegisterMe proto 0x00476150 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@VinceBeatsDinoCutscene@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3266,7 +3300,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor DoorDomeMain::creationFunc 0x0008A90F, 3 procs, DoorDomeMain::Message not masked-equal at 0x0008A6F4; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor DoorDomeMain::creationFunc 0x0008A90F, 3 procs, DoorDomeMain::Message not masked-equal at 0x0008A6F4; neighbour DinoCutscenes.obj#326 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor DoorDomeMain::creationFunc 0x0008A90F, 3 procs, DoorDomeMain::Message not masked-equal at 0x0008A6F4; neighbour DinoCutscenes.obj#326 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor DoorDomeMain::creationFunc 0x0008A90F, 3 procs, DoorDomeMain::Message not masked-equal at 0x0008A6F4; neighbour DinoCutscenes.obj#326 end unpinned-ambiguous; M27 start: DoorDomeMain::Message proto 0x0047618C class near-identical candidateVA 0x0008A6CF, form (a): needs disasm-verified pin ?Message@DoorDomeMain@@UAEXPAVSwampScript@@HPAX@Z at 0x0008A6CF, form (b): no near-identical neighbour edge (DinoCutscenes.obj#326 end: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3290,7 +3325,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor WalkWayIntactMain::creationFunc 0x0008B0AE, 2 procs, WalkWayIntactMain::RegisterMe::RegisterM at 0x0008B0D2 not the only masked copy in gap 0x0008B0D2-0x0008B20D (uncapped scan); fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor WalkWayIntactMain::creationFunc 0x0008B0AE, 2 procs, WalkWayIntactMain::RegisterMe::RegisterM at 0x0008B0D2 not the only masked copy in gap 0x0008B0D2-0x0008B20D (uncapped scan); neighbour Pterybomb.obj#330 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor WalkWayIntactMain::creationFunc 0x0008B0AE, 2 procs, WalkWayIntactMain::RegisterMe::RegisterM at 0x0008B0D2 not the only masked copy in gap 0x0008B0D2-0x0008B20D (uncapped scan); neighbour Pterybomb.obj#330 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor WalkWayIntactMain::creationFunc 0x0008B0AE, 2 procs, WalkWayIntactMain::RegisterMe::RegisterM at 0x0008B0D2 not the only masked copy in gap 0x0008B0D2-0x0008B20D (uncapped scan); neighbour Pterybomb.obj#330 start unpinned-near-identical; M27 end: WalkwayDebrisMain::RegisterMe::RegisterMe proto 0x00476BD0 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@WalkwayDebrisMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3314,7 +3350,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor PterybombMain::BOOM 0x0008B20D, 1 procs, PterybombMain::PterybombMain not masked-equal at 0x0008B14A; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor PterybombMain::BOOM 0x0008B20D, 1 procs, PterybombMain::PterybombMain not masked-equal at 0x0008B14A; neighbour MuseumWalkWay.obj#329 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor PterybombMain::BOOM 0x0008B20D, 1 procs, PterybombMain::PterybombMain not masked-equal at 0x0008B14A; neighbour MuseumWalkWay.obj#329 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor PterybombMain::BOOM 0x0008B20D, 1 procs, PterybombMain::PterybombMain not masked-equal at 0x0008B14A; neighbour MuseumWalkWay.obj#329 end unpinned-ambiguous; M27 start: PterybombMain::PterybombMain proto 0x00476C0C class near-identical candidateVA 0x0008B14A, form (a): needs disasm-verified pin ??0PterybombMain@@QAE@PAVSwampSceneNode@@@Z at 0x0008B14A, present pin ??0PterybombMain@@QAE@PAVSwampSceneNode@@@Z 0x0008B14A status near-corr, form (b): no near-identical neighbour edge (MuseumWalkWay.obj#329 end: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3428,7 +3465,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor ZapHatMain::ShowStuff 0x0008C51E, 6 procs, ZapHatMain::Message not masked-equal at 0x0008C560; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor ZapHatMain::ShowStuff 0x0008C51E, 6 procs, ZapHatMain::Message not masked-equal at 0x0008C560; neighbour ManorHouse.obj#338 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor ZapHatMain::ShowStuff 0x0008C51E, 6 procs, ZapHatMain::Message not masked-equal at 0x0008C560; neighbour ManorHouse.obj#338 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor ZapHatMain::ShowStuff 0x0008C51E, 6 procs, ZapHatMain::Message not masked-equal at 0x0008C560; neighbour ManorHouse.obj#338 start unpinned-excluded; M27 end: ZapHatMain::RegisterMe::RegisterMe proto 0x00478218 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@ZapHatMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3452,7 +3490,8 @@ procs_tail = 0
 delink = false
 # was: delink_reason = "edge start unpinned-excluded; edge end unpinned-ambiguous"
 # was: delink_reason = "edge start unpinned-excluded; searched: anchor ManorHouseLevelMain::Load 0x0008C7E3, 1 procs, ManorHouseLevelMain::Message not masked-equal at 0x0008C747; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor ManorHouseLevelMain::ManorHouseLevelMain 0x0008CA7C, 1 procs, ManorHouseLevelMain::`scalar deleting de not masked-equal at 0x0008CAAB; fails: no pin, chain fails"
-delink_reason = "edge start unpinned-excluded; searched: anchor ManorHouseLevelMain::Load 0x0008C7E3, 1 procs, ManorHouseLevelMain::Message not masked-equal at 0x0008C747; neighbour ZapHat.obj#335 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor ManorHouseLevelMain::ManorHouseLevelMain 0x0008CA7C, 1 procs, ManorHouseLevelMain::`scalar deleting de not masked-equal at 0x0008CAAB; neighbour TumblerRoom.obj#348 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge start unpinned-excluded; searched: anchor ManorHouseLevelMain::Load 0x0008C7E3, 1 procs, ManorHouseLevelMain::Message not masked-equal at 0x0008C747; neighbour ZapHat.obj#335 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor ManorHouseLevelMain::ManorHouseLevelMain 0x0008CA7C, 1 procs, ManorHouseLevelMain::`scalar deleting de not masked-equal at 0x0008CAAB; neighbour TumblerRoom.obj#348 start unpinned-excluded; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge start unpinned-excluded; searched: anchor ManorHouseLevelMain::Load 0x0008C7E3, 1 procs, ManorHouseLevelMain::Message not masked-equal at 0x0008C747; neighbour ZapHat.obj#335 end unpinned-ambiguous; M27 start: ManorHouseLevelMain::Message proto 0x00478254 class excluded, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor ManorHouseLevelMain::ManorHouseLevelMain 0x0008CA7C, 1 procs, ManorHouseLevelMain::`scalar deleting de not masked-equal at 0x0008CAAB; neighbour TumblerRoom.obj#348 start unpinned-excluded; M27 end: ManorHouseLevelMain::`scalar deleting destructor proto 0x004785B8 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??_GBayouLevelMain@@UAEPAXI@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3476,7 +3515,8 @@ procs_tail = 20
 delink = false
 # was: delink_reason = "edge start unpinned-excluded; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-excluded; searched: anchor TumblerRoomFloorMain::Message 0x0008CAEA, 4 procs, BellTrophyMain::FrameTick not masked-equal at 0x0008CAB3; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-excluded; searched: anchor TumblerRoomFloorMain::Message 0x0008CAEA, 4 procs, BellTrophyMain::FrameTick not masked-equal at 0x0008CAB3; neighbour ManorHouse.obj#338 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-excluded; searched: anchor TumblerRoomFloorMain::Message 0x0008CAEA, 4 procs, BellTrophyMain::FrameTick not masked-equal at 0x0008CAB3; neighbour ManorHouse.obj#338 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-excluded; searched: anchor TumblerRoomFloorMain::Message 0x0008CAEA, 4 procs, BellTrophyMain::FrameTick not masked-equal at 0x0008CAB3; neighbour ManorHouse.obj#338 end unpinned-ambiguous; M27 start: BellTrophyMain::FrameTick proto 0x004785D4 class excluded, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3543,7 +3583,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor PathHiddenMain::creationFunc 0x0008FF42, 4 procs, PathHidden::Render not masked-equal at 0x0008FF69; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor PathHiddenMain::creationFunc 0x0008FF42, 4 procs, PathHidden::Render not masked-equal at 0x0008FF69; neighbour BusyButler.obj#336 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor PathHiddenMain::creationFunc 0x0008FF42, 4 procs, PathHidden::Render not masked-equal at 0x0008FF69; neighbour BusyButler.obj#336 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor PathHiddenMain::creationFunc 0x0008FF42, 4 procs, PathHidden::Render not masked-equal at 0x0008FF69; neighbour BusyButler.obj#336 start unpinned-ambiguous; M27 end: PathHiddenMain::RegisterMe::RegisterMe proto 0x0047B954 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@PathHiddenMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3567,7 +3608,8 @@ procs_tail = 4
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor BusyButlerMain::TimerEvent 0x000902AC, 2 procs, ButlerStartTumblerRegionMain::ButlerStar at 0x0009027C not the only masked copy in gap 0x0008FF69-0x000902AC (uncapped scan); fails: no pin, chain fails; edge end unpinned-near-identical; searched: anchor BusyButlerMain::Message 0x000911E9, 1 procs, ButlerTumblerRoomMain::Message not masked-equal at 0x00091347; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor BusyButlerMain::TimerEvent 0x000902AC, 2 procs, ButlerStartTumblerRegionMain::ButlerStar at 0x0009027C not the only masked copy in gap 0x0008FF69-0x000902AC (uncapped scan); neighbour PathHidden.obj#339 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-near-identical; searched: anchor BusyButlerMain::Message 0x000911E9, 1 procs, ButlerTumblerRoomMain::Message not masked-equal at 0x00091347; neighbour CaptainsRoomCutscenes.obj#344 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor BusyButlerMain::TimerEvent 0x000902AC, 2 procs, ButlerStartTumblerRegionMain::ButlerStar at 0x0009027C not the only masked copy in gap 0x0008FF69-0x000902AC (uncapped scan); neighbour PathHidden.obj#339 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-near-identical; searched: anchor BusyButlerMain::Message 0x000911E9, 1 procs, ButlerTumblerRoomMain::Message not masked-equal at 0x00091347; neighbour CaptainsRoomCutscenes.obj#344 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor BusyButlerMain::TimerEvent 0x000902AC, 2 procs, ButlerStartTumblerRegionMain::ButlerStar at 0x0009027C not the only masked copy in gap 0x0008FF69-0x000902AC (uncapped scan); neighbour PathHidden.obj#339 end unpinned-ambiguous; M27 start: ButlerStartTumblerRegionMain::ButlerStartTumbler proto 0x0047B990 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0ButlerStartTumblerRegionMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-near-identical; searched: anchor BusyButlerMain::Message 0x000911E9, 1 procs, ButlerTumblerRoomMain::Message not masked-equal at 0x00091347; neighbour CaptainsRoomCutscenes.obj#344 start unpinned-near-identical; M27 end: ButlerTumblerRoomMain::Message proto 0x0047CA3F class near-identical candidateVA 0x00091347, form (a): needs disasm-verified pin ?Message@ButlerTumblerRoomMain@@UAEXPAVSwampScript@@HPAX@Z at 0x00091347, form (b): not adjacent to CaptainsRoomCutscenes.obj#344 DollGivesMissionCutscene::Init 0x00091464 (gap 28); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3591,7 +3633,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-ambiguous; inconsistent: 4 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 8 procs, DollGivesMissionCutscene::Init not masked-equal at 0x000914C6; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 3 procs, DollThanksVinceCutscene::creationFunc not masked-equal at 0x000923EB; fails: no pin, chain fails; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 8 procs, DollGivesMissionCutscene::Init not masked-equal at 0x000914C6; neighbour BusyButler.obj#336 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 3 procs, DollThanksVinceCutscene::creationFunc not masked-equal at 0x000923EB; neighbour FrontPorch.obj#345 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 8 procs, DollGivesMissionCutscene::Init not masked-equal at 0x000914C6; neighbour BusyButler.obj#336 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 3 procs, DollThanksVinceCutscene::creationFunc not masked-equal at 0x000923EB; neighbour FrontPorch.obj#345 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 8 procs, DollGivesMissionCutscene::Init not masked-equal at 0x000914C6; neighbour BusyButler.obj#336 end unpinned-near-identical; M27 start: DollGivesMissionCutscene::Init proto 0x0047CB2E class near-identical candidateVA 0x00091464, form (a): needs disasm-verified pin ?Init@DollGivesMissionCutscene@@MAEXXZ at 0x00091464, form (b): not adjacent to BusyButler.obj#336 ButlerTumblerRoomMain::Message 0x00091347 (gap 28); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor DollGivesMissionCutscene::creationFunc 0x000923C4, 3 procs, DollThanksVinceCutscene::creationFunc not masked-equal at 0x000923EB; neighbour FrontPorch.obj#345 start unpinned-ambiguous; M27 end: DollThanksVinceCutscene::RegisterMe::RegisterMe proto 0x0047DAB9 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@DollThanksVinceCutscene@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3615,7 +3658,8 @@ procs_tail = 10
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor ChicoryMain::TimerEvent 0x0009248D, 2 procs, RagDollMain::AnimationFinished not masked-equal at 0x00092441; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor ChicoryMain::~ChicoryMain 0x0009409A, 14 procs, RecordAlbum::creationFunc not masked-equal at 0x0009411D; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor ChicoryMain::TimerEvent 0x0009248D, 2 procs, RagDollMain::AnimationFinished not masked-equal at 0x00092441; neighbour CaptainsRoomCutscenes.obj#344 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor ChicoryMain::~ChicoryMain 0x0009409A, 14 procs, RecordAlbum::creationFunc not masked-equal at 0x0009411D; neighbour FrontPorchCutscenes.obj#346 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor ChicoryMain::TimerEvent 0x0009248D, 2 procs, RagDollMain::AnimationFinished not masked-equal at 0x00092441; neighbour CaptainsRoomCutscenes.obj#344 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor ChicoryMain::~ChicoryMain 0x0009409A, 14 procs, RecordAlbum::creationFunc not masked-equal at 0x0009411D; neighbour FrontPorchCutscenes.obj#346 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor ChicoryMain::TimerEvent 0x0009248D, 2 procs, RagDollMain::AnimationFinished not masked-equal at 0x00092441; neighbour CaptainsRoomCutscenes.obj#344 end unpinned-ambiguous; M27 start: RagDollMain::AnimationFinished proto 0x0047DAF5 class ambiguous candidateVA null, form (a): needs disasm-verified pin ?AnimationFinished@TargetSwitchMain@@UAEXXZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor ChicoryMain::~ChicoryMain 0x0009409A, 14 procs, RecordAlbum::creationFunc not masked-equal at 0x0009411D; neighbour FrontPorchCutscenes.obj#346 start unpinned-near-identical; M27 end: VinceGettingChewed::RegisterMe::RegisterMe proto 0x0047F89E class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@VinceGettingChewed@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3639,7 +3683,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceArrivalFrontPorchCutscene::creation 0x00094451, 2 procs, VinceArrivalFrontPorchCutscene::Init not masked-equal at 0x000943CC; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor VinceArrivalFrontPorchCutscene::creation 0x00094451, 2 procs, VinceArrivalFrontPorchCutscene::Init not masked-equal at 0x000943CC; neighbour FrontPorch.obj#345 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceArrivalFrontPorchCutscene::creation 0x00094451, 2 procs, VinceArrivalFrontPorchCutscene::Init not masked-equal at 0x000943CC; neighbour FrontPorch.obj#345 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor VinceArrivalFrontPorchCutscene::creation 0x00094451, 2 procs, VinceArrivalFrontPorchCutscene::Init not masked-equal at 0x000943CC; neighbour FrontPorch.obj#345 end unpinned-ambiguous; M27 start: VinceArrivalFrontPorchCutscene::Init proto 0x0047F8DA class near-identical candidateVA 0x000943CC, form (a): needs disasm-verified pin ?Init@VinceArrivalFrontPorchCutscene@@MAEXXZ at 0x000943CC, form (b): no near-identical neighbour edge (FrontPorch.obj#345 end: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3663,7 +3708,8 @@ procs_tail = 8
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor BoltroidBattleRegionMain::creationFunc 0x00095BE4, 8 procs, BoltroidBattleRegionMain::RegisterMe::Re at 0x00095C08 not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor BoltroidBattleRegionMain::creationFunc 0x00095BE4, 8 procs, BoltroidBattleRegionMain::RegisterMe::Re at 0x00095C08 not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); neighbour DollyBoss.obj#342 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor BoltroidBattleRegionMain::creationFunc 0x00095BE4, 8 procs, BoltroidBattleRegionMain::RegisterMe::Re at 0x00095C08 not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); neighbour DollyBoss.obj#342 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor BoltroidBattleRegionMain::creationFunc 0x00095BE4, 8 procs, BoltroidBattleRegionMain::RegisterMe::Re at 0x00095C08 not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); neighbour DollyBoss.obj#342 start unpinned-ambiguous; M27 end: TrainCollideRegionMain::RegisterMe::RegisterMe proto 0x0048111D class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@TrainCollideRegionMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3687,7 +3733,8 @@ procs_tail = 7
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor DollySkirtMain::creationFunc 0x00095EDD, 2 procs, DollySkirtMain::DollySkirtMain at 0x00095EAD not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); fails: no pin, chain fails; edge end unpinned-near-identical; searched: anchor DollyBossMain::creationFunc 0x0009876A, 7 procs, DollyBossMain::TimerEvent not masked-equal at 0x000988F9; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor DollySkirtMain::creationFunc 0x00095EDD, 2 procs, DollySkirtMain::DollySkirtMain at 0x00095EAD not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); neighbour BoltroidBattle.obj#340 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-near-identical; searched: anchor DollyBossMain::creationFunc 0x0009876A, 7 procs, DollyBossMain::TimerEvent not masked-equal at 0x000988F9; neighbour BoltroidCutscenes.obj#341 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor DollySkirtMain::creationFunc 0x00095EDD, 2 procs, DollySkirtMain::DollySkirtMain at 0x00095EAD not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); neighbour BoltroidBattle.obj#340 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-near-identical; searched: anchor DollyBossMain::creationFunc 0x0009876A, 7 procs, DollyBossMain::TimerEvent not masked-equal at 0x000988F9; neighbour BoltroidCutscenes.obj#341 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor DollySkirtMain::creationFunc 0x00095EDD, 2 procs, DollySkirtMain::DollySkirtMain at 0x00095EAD not the only masked copy in gap 0x00095C08-0x00095EDD (uncapped scan); neighbour BoltroidBattle.obj#340 end unpinned-ambiguous; M27 start: DollySkirtMain::DollySkirtMain proto 0x00481159 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0DollySkirtMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-near-identical; searched: anchor DollyBossMain::creationFunc 0x0009876A, 7 procs, DollyBossMain::TimerEvent not masked-equal at 0x000988F9; neighbour BoltroidCutscenes.obj#341 start unpinned-identical; M27 end: DollyBossMain::TimerEvent proto 0x00483B85 class near-identical candidateVA 0x000988F9, form (a): needs disasm-verified pin ?TimerEvent@DollyBossMain@@UAEXI@Z at 0x000988F9, form (b): no near-identical neighbour edge (BoltroidCutscenes.obj#341 start: identical); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3711,7 +3758,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-identical; edge end unpinned-ambiguous; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-identical; searched: anchor DollyDestructionCutscene::SetState 0x000992D4, 5 procs, DollyPreludeCutscene::AnimationFinished not masked-equal at 0x00098A8E; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-identical; searched: anchor DollyDestructionCutscene::SetState 0x000992D4, 5 procs, DollyPreludeCutscene::AnimationFinished not masked-equal at 0x00098A8E; neighbour DollyBoss.obj#342 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-identical; searched: anchor DollyDestructionCutscene::SetState 0x000992D4, 5 procs, DollyPreludeCutscene::AnimationFinished not masked-equal at 0x00098A8E; neighbour DollyBoss.obj#342 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-identical; searched: anchor DollyDestructionCutscene::SetState 0x000992D4, 5 procs, DollyPreludeCutscene::AnimationFinished not masked-equal at 0x00098A8E; neighbour DollyBoss.obj#342 end unpinned-near-identical; M27 start: DollyPreludeCutscene::AnimationFinished proto 0x00483D06 class identical, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3735,7 +3783,8 @@ procs_tail = 5
 delink = false
 # was: delink_reason = "edge start unpinned-absent; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-absent; searched: anchor KosmoEggHud::Render 0x00099D15, 2 procs, EggImpMain::FrameTick not masked-equal at 0x00099CF7; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-absent; searched: anchor KosmoEggHud::Render 0x00099D15, 2 procs, EggImpMain::FrameTick not masked-equal at 0x00099CF7; neighbour BoltroidCutscenes.obj#341 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-absent; searched: anchor KosmoEggHud::Render 0x00099D15, 2 procs, EggImpMain::FrameTick not masked-equal at 0x00099CF7; neighbour BoltroidCutscenes.obj#341 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-absent; searched: anchor KosmoEggHud::Render 0x00099D15, 2 procs, EggImpMain::FrameTick not masked-equal at 0x00099CF7; neighbour BoltroidCutscenes.obj#341 end unpinned-ambiguous; M27 start: EggImpMain::FrameTick proto 0x00484FF8 class absent, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3759,7 +3808,8 @@ procs_tail = 4
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor ChandelierMain::ChandelierMain 0x0009C0BE, 7 procs, ChandelierMain::creationFunc not masked-equal at 0x0009C1A0; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor ChandelierMain::ChandelierMain 0x0009C0BE, 7 procs, ChandelierMain::creationFunc not masked-equal at 0x0009C1A0; neighbour TrophyRoom.obj#350 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor ChandelierMain::ChandelierMain 0x0009C0BE, 7 procs, ChandelierMain::creationFunc not masked-equal at 0x0009C1A0; neighbour TrophyRoom.obj#350 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor ChandelierMain::ChandelierMain 0x0009C0BE, 7 procs, ChandelierMain::creationFunc not masked-equal at 0x0009C1A0; neighbour TrophyRoom.obj#350 start unpinned-near-identical; M27 end: ChandelierMain::RegisterMe::RegisterMe proto 0x004872E6 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@ChandelierMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3783,7 +3833,8 @@ procs_tail = 7
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCrossBow::AnimationFinished 0x0009C34F, 2 procs, VinceCrossBow::Message not masked-equal at 0x0009C2DE; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCrossBow::AnimationFinished 0x0009C34F, 2 procs, VinceCrossBow::Message not masked-equal at 0x0009C2DE; neighbour UnwantedGuests.obj#351 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCrossBow::AnimationFinished 0x0009C34F, 2 procs, VinceCrossBow::Message not masked-equal at 0x0009C2DE; neighbour UnwantedGuests.obj#351 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCrossBow::AnimationFinished 0x0009C34F, 2 procs, VinceCrossBow::Message not masked-equal at 0x0009C2DE; neighbour UnwantedGuests.obj#351 end unpinned-ambiguous; M27 start: VinceCrossBow::Message proto 0x00487322 class near-identical candidateVA 0x0009C2DE, form (a): needs disasm-verified pin ?Message@VinceCrossBow@@UAEXPAVSwampScript@@HPAX@Z at 0x0009C2DE, form (b): no near-identical neighbour edge (UnwantedGuests.obj#351 end: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3940,7 +3991,8 @@ procs_tail = 9
 delink = false
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor VinceExitGasCanisterMain::Message 0x000A5CA8, 2 procs, ProfessorEthelMain::Activate not masked-equal at 0x000A5D9A; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor VinceExitGasCanisterMain::Message 0x000A5CA8, 2 procs, ProfessorEthelMain::Activate not masked-equal at 0x000A5D9A; neighbour JaniceBoss.obj#361 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor VinceExitGasCanisterMain::Message 0x000A5CA8, 2 procs, ProfessorEthelMain::Activate not masked-equal at 0x000A5D9A; neighbour JaniceBoss.obj#361 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-near-identical; searched: anchor VinceExitGasCanisterMain::Message 0x000A5CA8, 2 procs, ProfessorEthelMain::Activate not masked-equal at 0x000A5D9A; neighbour JaniceBoss.obj#361 start unpinned-ambiguous; M27 end: ProfessorEthelMain::AnimationFinished proto 0x00490D71 class near-identical candidateVA 0x000A5E6A, form (a): needs disasm-verified pin ?AnimationFinished@ProfessorEthelMain@@UAEXXZ at 0x000A5E6A, form (b): no near-identical neighbour edge (JaniceBoss.obj#361 start: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -3964,7 +4016,8 @@ procs_tail = 5
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor FogZone::SetColor 0x000A6042, 3 procs, StartJaniceBattleRegionMain::StartJanice not masked-equal at 0x000A5FC4; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor FogZone::SetColor 0x000A6042, 3 procs, StartJaniceBattleRegionMain::StartJanice not masked-equal at 0x000A5FC4; neighbour WrathOfJanice.obj#363 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor FogZone::SetColor 0x000A6042, 3 procs, StartJaniceBattleRegionMain::StartJanice not masked-equal at 0x000A5FC4; neighbour WrathOfJanice.obj#363 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor FogZone::SetColor 0x000A6042, 3 procs, StartJaniceBattleRegionMain::StartJanice not masked-equal at 0x000A5FC4; neighbour WrathOfJanice.obj#363 end unpinned-near-identical; M27 start: StartJaniceBattleRegionMain::StartJaniceBattleRe proto 0x00490EBC class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0StartJaniceBattleRegionMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4140,8 +4193,8 @@ delink = true
 # was: delink_reason = "inconsistent: 3 procs outside range, 1 explained; searched: std::vector<CollidableInfo,std::allocator<Collid proto 0x0049CAAD -> 0x0014E4F5: single masked copy (proto_map hits 1), LIS bracket 0x0014C6C9 ShrimpSub.obj#210 .. 0x0014E50B FFlyEffect.obj#293, in no unit range | std::_Construct<CollidableInfo,CollidableInfo> proto 0x0049CCC9 -> 0x000D515D: single masked copy (proto_map hits 1), LIS bracket 0x000D4DB1 SwampDebugGeometry.obj#383 .. 0x000D5311 SwampMaterialResource.obj#392, in SwampMaterialResource.obj#392; fails: copy in a gap between unit ranges | copy bracketed by anchors of two different units"
 # route: range 0x000B1C8B-0x000B36CA edges anchor/anchor
 # route: std::vector<BSP *,std::allocator<BSP *> >::_Ufil proto 0x0049D1D8 -> 0x00136C52 moved into Eyecam.obj#431
-# route: stray stays uncut (D120): std::vector<CollidableInfo,std::allocator<Collid proto 0x0049CAAD -> 0x0014E4F5: single masked copy (proto_map hits 1), LIS bracket 0x0014C6C9 ShrimpSub.obj#210 .. 0x0014E50B FFlyEffect.obj#293, in no unit range; reason: copy in a gap between unit ranges
-# route: stray stays uncut (D120): std::_Construct<CollidableInfo,CollidableInfo> proto 0x0049CCC9 -> 0x000D515D: single masked copy (proto_map hits 1), LIS bracket 0x000D4DB1 SwampDebugGeometry.obj#383 .. 0x000D5311 SwampMaterialResource.obj#392, in SwampMaterialResource.obj#392; reason: copy bracketed by anchors of two different units
+# route: stray (D125): of SwampCollide.obj#382: std::vector<CollidableInfo,std::allocator<Collid proto 0x0049CAAD -> 0x0014E4F5: single masked copy (proto_map hits 1), LIS bracket 0x0014C6C9 ShrimpSub.obj#210 .. 0x0014E50B FFlyEffect.obj#293, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
+# route: stray (D125): of SwampCollide.obj#382: std::_Construct<CollidableInfo,CollidableInfo> proto 0x0049CCC9 -> 0x000D515D: single masked copy (proto_map hits 1), LIS bracket 0x000D4DB1 SwampDebugGeometry.obj#383 .. 0x000D5311 SwampMaterialResource.obj#392, in SwampMaterialResource.obj#392; reason: copy bracketed by anchors of two different units; containing cut: SwampMaterialResource.obj#392
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4165,7 +4218,8 @@ procs_tail = 5
 delink = false
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor SwampNodeManager::Cleanup 0x000B695E, 2 procs, SwampScene::UpdateScene not masked-equal at 0x000B69B2; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor SwampNodeManager::Cleanup 0x000B695E, 2 procs, SwampScene::UpdateScene not masked-equal at 0x000B69B2; neighbour SwampAnimationControl.obj#379 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor SwampNodeManager::Cleanup 0x000B695E, 2 procs, SwampScene::UpdateScene not masked-equal at 0x000B69B2; neighbour SwampAnimationControl.obj#379 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-near-identical; searched: anchor SwampNodeManager::Cleanup 0x000B695E, 2 procs, SwampScene::UpdateScene not masked-equal at 0x000B69B2; neighbour SwampAnimationControl.obj#379 start unpinned-identical; M27 end: SwampScene::DestroyAll proto 0x004A1A76 class near-identical candidateVA 0x000B6CE1, form (a): needs disasm-verified pin ?DestroyAll@SwampScene@@QAEXXZ at 0x000B6CE1, present pin ?DestroyAll@SwampScene@@QAEXXZ 0x000B6CE1 status near-corr, form (b): no near-identical neighbour edge (SwampAnimationControl.obj#379 start: identical); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4189,7 +4243,8 @@ procs_tail = 0
 delink = false
 # was: delink_reason = "edge start unpinned-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-identical; searched: anchor std::basic_string<char,std::char_traits< 0x000B6E38, 3 procs, std::_Tree<std::_Tset_traits<SoundNode * not masked-equal at 0x000B6D57; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-identical; searched: anchor std::basic_string<char,std::char_traits< 0x000B6E38, 3 procs, std::_Tree<std::_Tset_traits<SoundNode * not masked-equal at 0x000B6D57; neighbour SwampScene.obj#396 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-identical; searched: anchor std::basic_string<char,std::char_traits< 0x000B6E38, 3 procs, std::_Tree<std::_Tset_traits<SoundNode * not masked-equal at 0x000B6D57; neighbour SwampScene.obj#396 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-identical; searched: anchor std::basic_string<char,std::char_traits< 0x000B6E38, 3 procs, std::_Tree<std::_Tset_traits<SoundNode * not masked-equal at 0x000B6D57; neighbour SwampScene.obj#396 end unpinned-near-identical; M27 start: std::_Tree<std::_Tset_traits<SoundNode *,std::le proto 0x004A1AC2 class identical, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4236,7 +4291,7 @@ delink = true
 # was: delink_reason = "inconsistent: 1 procs outside range"
 # was: delink_reason = "inconsistent: 1 procs outside range, 0 explained; searched: std::_Tree<std::_Tset_traits<SoundStreamer *,std proto 0x004A3FC3 -> 0x000B6D59: single masked copy (proto_map hits 1), LIS bracket 0x000B695E SwampScene.obj#396 .. 0x000B6E38 SwampAnimationControl.obj#379, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x000B8E80-0x000BA6E8 edges anchor/neighbour
-# route: stray stays uncut (D120): std::_Tree<std::_Tset_traits<SoundStreamer *,std proto 0x004A3FC3 -> 0x000B6D59: single masked copy (proto_map hits 1), LIS bracket 0x000B695E SwampScene.obj#396 .. 0x000B6E38 SwampAnimationControl.obj#379, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of SwampSoundResource.obj#402: std::_Tree<std::_Tset_traits<SoundStreamer *,std proto 0x004A3FC3 -> 0x000B6D59: single masked copy (proto_map hits 1), LIS bracket 0x000B695E SwampScene.obj#396 .. 0x000B6E38 SwampAnimationControl.obj#379, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4332,7 +4387,7 @@ delink = true
 # route: std::_Tree<std::_Tmap_traits<unsigned int,ZoneNo proto 0x004AC361 -> 0x000AE275 moved into SwampGatorNode.obj#387
 # route: std::list<DrawLevel::MirrorInfo,std::allocator<D proto 0x004AD8DC -> 0x000ABF23 moved into SwampScript.obj#397
 # route: std::_Tree<std::_Tmap_traits<unsigned int,ZoneNo proto 0x004AD92C -> 0x0004B7D3 moved into Kosmo.obj#264
-# route: stray stays uncut (D120): std::_Tree<std::_Tmap_traits<unsigned int,ZoneNo proto 0x004AC397 -> 0x000D7CAD: single masked copy (proto_map hits 1), LIS bracket 0x000D7B74 SwampShadow.obj#399 .. 0x000D7CEC ProfileBar.obj#372, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of SwampWorld.obj#406: std::_Tree<std::_Tmap_traits<unsigned int,ZoneNo proto 0x004AC397 -> 0x000D7CAD: single masked copy (proto_map hits 1), LIS bracket 0x000D7B74 SwampShadow.obj#399 .. 0x000D7CEC ProfileBar.obj#372, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4381,7 +4436,7 @@ delink = true
 # route: std::_Copy_backward_opt<ResourceHandle<TextureRe proto 0x004B1683 -> 0x00115141 moved into WalkSounds.obj#457
 # route: std::_Copy_opt<ResourceHandle<TextureResource> * proto 0x004B16AA -> 0x000BAB35 moved into SwampModelResource.obj#393
 # route: ResourceHandle<TextureResource>::`scalar deletin proto 0x004B16CE -> 0x000181FB moved into Onion.obj#211
-# route: stray stays uncut (D120): std::vector<FFlyEffect::Entry,std::allocator<FFl proto 0x004B157C -> 0x000D5147: single masked copy (proto_map hits 1), LIS bracket 0x000D4DB1 SwampDebugGeometry.obj#383 .. 0x000D5311 SwampMaterialResource.obj#392, in SwampMaterialResource.obj#392; reason: copy bracketed by anchors of two different units
+# route: stray (D125): of SwampFireFlyNode.obj#385: std::vector<FFlyEffect::Entry,std::allocator<FFl proto 0x004B157C -> 0x000D5147: single masked copy (proto_map hits 1), LIS bracket 0x000D4DB1 SwampDebugGeometry.obj#383 .. 0x000D5311 SwampMaterialResource.obj#392, in SwampMaterialResource.obj#392; reason: copy bracketed by anchors of two different units; containing cut: SwampMaterialResource.obj#392
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4492,13 +4547,13 @@ delink = true
 # route: range 0x000CB583-0x000CE5CA edges anchor/anchor
 # route: std::_Tree<std::_Tset_traits<LightManager::Light proto 0x004B8202 -> 0x000C1398 moved into SwampWorld.obj#406
 # route: std::_Tree<std::_Tset_traits<LightManager::Light proto 0x004B883F -> 0x000AE4F3 moved into SwampGatorNode.obj#387
-# route: stray stays uncut (D120): std::vector<LightManager::CachedII,std::allocato proto 0x004B81EC -> 0x0012A4C0: single masked copy (proto_map hits 1), LIS bracket 0x0012A364 EffectRegions.obj#430 .. 0x0012A4D6 WaterRegion.obj#458, in no unit range; reason: copy in a gap between unit ranges
-# route: stray stays uncut (D120): std::vector<LightManager::CachedII,std::allocato proto 0x004B8246 -> 0x0012A4AA: single masked copy (proto_map hits 1), LIS bracket 0x0012A364 EffectRegions.obj#430 .. 0x0012A4D6 WaterRegion.obj#458, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of SwampLight.obj#389: std::vector<LightManager::CachedII,std::allocato proto 0x004B81EC -> 0x0012A4C0: single masked copy (proto_map hits 1), LIS bracket 0x0012A364 EffectRegions.obj#430 .. 0x0012A4D6 WaterRegion.obj#458, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
+# route: stray (D125): of SwampLight.obj#389: std::vector<LightManager::CachedII,std::allocato proto 0x004B8246 -> 0x0012A4AA: single masked copy (proto_map hits 1), LIS bracket 0x0012A364 EffectRegions.obj#430 .. 0x0012A4D6 WaterRegion.obj#458, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "/O1 /Oy"  # was "unknown"; 4.4 T11.c16: ?PlaceLight@PotentialLights@@QAEXPBVLightNode@@M@Z control "/O1 /Oy" PASS 100.0 bytes match; /O2 control fails (85.88); /O1 /Oy- control fails (90.59)
+opt = "/O1 /Oy /Ob1"  # was "/O1 /Oy" (4.4 T11.c16 PlaceLight control); 5.2 T12.c11: Disable 0x000CD586 + all 38 matched rows PASS under control "/O1 /Oy /Ob1" (retail inlines ??_G, calls ??1 out of line) 100.0 bytes match; /O2 control fails (85.88); /O1 /Oy- control fails (90.59)
 
 [[unit]]
 name = "Xbox\\Official_Release\\HeatShimmer.obj"
@@ -4688,7 +4743,7 @@ delink = true
 # was: delink_reason = "inconsistent: 2 procs outside range, 1 explained; searched: std::_Tree_nod<std::_Tset_traits<DebugGeometryNo proto 0x004BED28 -> 0x000B6D2D: single masked copy (proto_map hits 1), LIS bracket 0x000B695E SwampScene.obj#396 .. 0x000B6E38 SwampAnimationControl.obj#379, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x000D39DE-0x000D5147 edges anchor/anchor
 # route: std::_Tree<std::_Tset_traits<DebugGeometryNode * proto 0x004BF2A9 -> 0x000B71DC moved into SwampAnimationControl.obj#379
-# route: stray stays uncut (D120): std::_Tree_nod<std::_Tset_traits<DebugGeometryNo proto 0x004BED28 -> 0x000B6D2D: single masked copy (proto_map hits 1), LIS bracket 0x000B695E SwampScene.obj#396 .. 0x000B6E38 SwampAnimationControl.obj#379, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of SwampDebugGeometry.obj#383: std::_Tree_nod<std::_Tset_traits<DebugGeometryNo proto 0x004BED28 -> 0x000B6D2D: single masked copy (proto_map hits 1), LIS bracket 0x000B695E SwampScene.obj#396 .. 0x000B6E38 SwampAnimationControl.obj#379, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -4968,7 +5023,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy /Oi"  # was "unknown"; 5.2 T9.c3: ?FastReciprocalSquareRoot@@YAMM@Z (only proc) is hand __asm, guarded; controls "/O1 /Oy /Oi" and "/O2" both 0.0 (not discriminating); text_start 0x000DCE88 not 16-aligned, so not /O2 /Ot (C0183); /Oi as the SwampShared units that discriminate it (Vector3, Matrix, HottieFile)
 
 [[unit]]
 name = "Xbox\\Official_Release\\SwampMatrix.obj"
@@ -5031,7 +5086,7 @@ delink = true
 # was: delink_reason = "inconsistent: 1 procs outside range"
 # was: delink_reason = "inconsistent: 1 procs outside range, 0 explained; searched: std::deque<BSPQueryResultObject,std::allocator<B proto 0x004C9B1B -> 0x00108D14: single masked copy (proto_map hits 1), LIS bracket 0x00108CE6 Cutscene.obj#426 .. 0x00108D4F CameraManager.obj#423, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x000DE6F2-0x000DF1C5 edges anchor/anchor
-# route: stray stays uncut (D120): std::deque<BSPQueryResultObject,std::allocator<B proto 0x004C9B1B -> 0x00108D14: single masked copy (proto_map hits 1), LIS bracket 0x00108CE6 Cutscene.obj#426 .. 0x00108D4F CameraManager.obj#423, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of SwampBSP.obj#407: std::deque<BSPQueryResultObject,std::allocator<B proto 0x004C9B1B -> 0x00108D14: single masked copy (proto_map hits 1), LIS bracket 0x00108CE6 Cutscene.obj#426 .. 0x00108D4F CameraManager.obj#423, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5183,7 +5238,7 @@ delink = true
 # was: delink_reason = "inconsistent: 1 procs outside range"
 # was: delink_reason = "inconsistent: 1 procs outside range, 0 explained; searched: std::_Tree<std::_Tmap_traits<std::basic_string<c proto 0x004D820B -> 0x00037A90: single masked copy (proto_map hits 1), LIS bracket 0x00037977 adler32.obj#237 .. 0x00037AF2 BeepFileSystem.obj#231, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x000ECE3A-0x000F298F edges anchor/anchor
-# route: stray stays uncut (D120): std::_Tree<std::_Tmap_traits<std::basic_string<c proto 0x004D820B -> 0x00037A90: single masked copy (proto_map hits 1), LIS bracket 0x00037977 adler32.obj#237 .. 0x00037AF2 BeepFileSystem.obj#231, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of Critter.obj#425: std::_Tree<std::_Tmap_traits<std::basic_string<c proto 0x004D820B -> 0x00037A90: single masked copy (proto_map hits 1), LIS bracket 0x00037977 adler32.obj#237 .. 0x00037AF2 BeepFileSystem.obj#231, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5207,7 +5262,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor TextRegionMain::Save 0x000F2ABC, 2 procs, TextRegionMain::EnteringRegion not masked-equal at 0x000F2B4D; fails: no pin, chain fails"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor TextRegionMain::Save 0x000F2ABC, 2 procs, TextRegionMain::EnteringRegion not masked-equal at 0x000F2B4D; neighbour RegisterMe.obj#452 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor TextRegionMain::Save 0x000F2ABC, 2 procs, TextRegionMain::EnteringRegion not masked-equal at 0x000F2B4D; neighbour RegisterMe.obj#452 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor TextRegionMain::Save 0x000F2ABC, 2 procs, TextRegionMain::EnteringRegion not masked-equal at 0x000F2B4D; neighbour RegisterMe.obj#452 start unpinned-near-identical; M27 end: TextRegionMain::RegisterMe::RegisterMe proto 0x004DDDAC class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@TextRegionMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5231,7 +5287,8 @@ procs_tail = 33
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-ambiguous; inconsistent: 5 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCarryHeavy::creationFunc 0x000F2C67, 6 procs, SwingHookTarget::creationFunc not masked-equal at 0x000F2B89; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor HealthWaypointRegionMain::creationFunc 0x000F2FD3, 29 procs, SwingHookTarget::RegisterMe::RegisterMe at 0x000F2FFA not the only masked copy in gap 0x000F2FFA-0x000F36E3 (uncapped scan); fails: no pin, chain fails; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCarryHeavy::creationFunc 0x000F2C67, 6 procs, SwingHookTarget::creationFunc not masked-equal at 0x000F2B89; neighbour TextRegion.obj#454 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor HealthWaypointRegionMain::creationFunc 0x000F2FD3, 29 procs, SwingHookTarget::RegisterMe::RegisterMe at 0x000F2FFA not the only masked copy in gap 0x000F2FFA-0x000F36E3 (uncapped scan); neighbour Monster.obj#448 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCarryHeavy::creationFunc 0x000F2C67, 6 procs, SwingHookTarget::creationFunc not masked-equal at 0x000F2B89; neighbour TextRegion.obj#454 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor HealthWaypointRegionMain::creationFunc 0x000F2FD3, 29 procs, SwingHookTarget::RegisterMe::RegisterMe at 0x000F2FFA not the only masked copy in gap 0x000F2FFA-0x000F36E3 (uncapped scan); neighbour Monster.obj#448 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor VinceCarryHeavy::creationFunc 0x000F2C67, 6 procs, SwingHookTarget::creationFunc not masked-equal at 0x000F2B89; neighbour TextRegion.obj#454 end unpinned-ambiguous; M27 start: SwingHookTarget::creationFunc proto 0x004DDDE8 class near-identical candidateVA 0x000F2B89, form (a): needs disasm-verified pin ?creationFunc@SwingHookTarget@@CAPAVSwampSceneNode@@XZ at 0x000F2B89, form (b): no Ghidra entry at 0x000F2B89; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor HealthWaypointRegionMain::creationFunc 0x000F2FD3, 29 procs, SwingHookTarget::RegisterMe::RegisterMe at 0x000F2FFA not the only masked copy in gap 0x000F2FFA-0x000F36E3 (uncapped scan); neighbour Monster.obj#448 start unpinned-ambiguous; M27 end: DustMoteMain::RegisterMe::RegisterMe proto 0x004DE8E9 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@DustMoteMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 5 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5255,7 +5312,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-ambiguous; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; neighbour RegisterMe.obj#452 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; neighbour Vince.obj#455 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; neighbour RegisterMe.obj#452 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; neighbour Vince.obj#455 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; neighbour RegisterMe.obj#452 end unpinned-ambiguous; M27 start: WaitForWhammyMain::WaitForWhammyMain proto 0x004DE925 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0WaitForWhammyMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; neighbour Vince.obj#455 start unpinned-near-identical; M27 end: WaitForWhammyMain::RegisterMe::RegisterMe proto 0x004E0552 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@WaitForWhammyMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5279,7 +5337,8 @@ procs_tail = 4
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceMain::ThrowBoomerang 0x000F52AF, 1 procs, Vince::SetMove not masked-equal at 0x000F5289; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor VinceMain::ThrowBoomerang 0x000F52AF, 1 procs, Vince::SetMove not masked-equal at 0x000F5289; neighbour Monster.obj#448 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceMain::ThrowBoomerang 0x000F52AF, 1 procs, Vince::SetMove not masked-equal at 0x000F5289; neighbour Monster.obj#448 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor VinceMain::ThrowBoomerang 0x000F52AF, 1 procs, Vince::SetMove not masked-equal at 0x000F5289; neighbour Monster.obj#448 end unpinned-ambiguous; M27 start: Vince::SetMove proto 0x004E058E class near-identical candidateVA 0x000F5289, form (a): needs disasm-verified pin ?SetMove@Vince@@QAEXI_N@Z at 0x000F5289, form (b): no near-identical neighbour edge (Monster.obj#448 end: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5326,7 +5385,7 @@ delink = true
 # was: delink_reason = "inconsistent: 2 procs outside range, 1 explained; searched: std::_Tree<std::_Tmap_traits<std::basic_string<c proto 0x004E8CA0 -> 0x00124B4A: single masked copy (proto_map hits 1), LIS bracket 0x00124AE7 KillerDillo.obj#502 .. 0x00124B8E GameUI.obj#436, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x000FDE05-0x000FF5F3 edges anchor/window
 # route: std::_Tree_nod<std::_Tmap_traits<std::basic_stri proto 0x004E8E3E -> 0x000BE364 moved into SwampResourceManager.obj#395
-# route: stray stays uncut (D120): std::_Tree<std::_Tmap_traits<std::basic_string<c proto 0x004E8CA0 -> 0x00124B4A: single masked copy (proto_map hits 1), LIS bracket 0x00124AE7 KillerDillo.obj#502 .. 0x00124B8E GameUI.obj#436, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of FontManager.obj#433: std::_Tree<std::_Tmap_traits<std::basic_string<c proto 0x004E8CA0 -> 0x00124B4A: single masked copy (proto_map hits 1), LIS bracket 0x00124AE7 KillerDillo.obj#502 .. 0x00124B8E GameUI.obj#436, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5383,21 +5442,31 @@ objname = "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\LevelLoader.obj"
 source = "proto-pdb:default.pdb"
 kind = "game"
 text_start = 0x0010049F
-text_end = 0x001077C2
+text_end = 0x001078A9
 edge_start = "anchor"
-edge_end = "unpinned-near-identical"
+edge_end = "near-candidate"
 procs = 185
 procs_identical = 108
 procs_tail = 1
-delink = false
+delink = true
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 8 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor LevelLoader::NewGame 0x001076D9, 1 procs, LevelLoader::LoadGame not masked-equal at 0x001077C2; fails: no pin, chain fails; inconsistent: 8 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor LevelLoader::NewGame 0x001076D9, 1 procs, LevelLoader::LoadGame not masked-equal at 0x001077C2; neighbour BasicDoor.obj#422 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 8 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor LevelLoader::NewGame 0x001076D9, 1 procs, LevelLoader::LoadGame not masked-equal at 0x001077C2; neighbour BasicDoor.obj#422 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 8 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x0010049F-0x001078A9 edges anchor/near-candidate
+# route: end near-candidate: candidate LevelLoader::LoadGame 0x001077C2+0xE7 (Ghidra entry) next to BasicDoor.obj#422 BasicDoorMain::AnimationFinished 0x001078A9, no entry between, both in own anchor gaps; chain: anchor LevelLoader::NewGame 0x001076D9, 1 procs, LevelLoader::LoadGame not masked-equal at 0x001077C2
+# route: std::_Copy_backward_opt<LevelLoader::Slot *,Leve proto 0x004EF231 -> 0x0012DE63 moved into SignTrolley.obj#478
+# route: std::fill<LevelLoader::Slot *,LevelLoader::Slot> proto 0x004EF497 -> 0x0012E12B moved into SignTrolley.obj#478
+# route: std::_Uninit_copy<LevelLoader::Slot *,LevelLoade proto 0x004EF587 -> 0x0012DEDE moved into SignTrolley.obj#478
+# route: std::_Uninit_fill_n<LevelLoader::Slot *,unsigned proto 0x004EF840 -> 0x0012E19C moved into SignTrolley.obj#478
+# route: std::vector<LevelLoader::Slot,std::allocator<Lev proto 0x004F002E -> 0x0012E61F moved into SignTrolley.obj#478
+# route: std::vector<LevelLoader::Slot,std::allocator<Lev proto 0x004F0075 -> 0x0012E691 moved into SignTrolley.obj#478
+# route: std::vector<LevelLoader::Slot,std::allocator<Lev proto 0x004F04D5 -> 0x0012EBA9 moved into SignTrolley.obj#478
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+# was: opt = "/O1 /Oy"  # was "unknown"; 5.2 T3: ?IsChapterFinished@Slot@LevelLoader@@QAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z control "/O1 /Oy" PASS; "/O2 /Oy" fails (objdiff 43.972973, bytes mismatch; also LoadAmbientSounds 56.6, Slot ctor 88.2); "/O1 /Oy-" also PASS (/Oy not separated); plain 100.0
+opt = "/O1 /Oy /Oi"  # was "/O1 /Oy"; 5.2 T3: ?VerifyFileSignature@LevelLoader@@SA_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_N@Z control "/O1 /Oy /Oi" PASS (inline memcmp repe cmpsb); plain "/O1 /Oy" 86.73333 bytes mismatch; the 16 matched rows also pass under "/O1 /Oy /Oi"
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\BasicDoor.obj"
@@ -5406,22 +5475,24 @@ lib = "core\\XBox\\OfficialRelease\\VinceLib.lib"
 objname = "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\BasicDoor.obj"
 source = "proto-pdb:default.pdb"
 kind = "game"
-text_start = 0x0010790D
+text_start = 0x001078A9
 text_end = 0x00107DBF
-edge_start = "unpinned-near-identical"
+edge_start = "near-candidate"
 edge_end = "neighbour"
 procs = 9
 procs_identical = 2
 procs_tail = 0
-delink = false
+delink = true
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor BasicDoorMain::NotifySwitches 0x0010790D, 1 procs, BasicDoorMain::AnimationFinished not masked-equal at 0x001078A9; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor BasicDoorMain::NotifySwitches 0x0010790D, 1 procs, BasicDoorMain::AnimationFinished not masked-equal at 0x001078A9; neighbour LevelLoader.obj#442 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor BasicDoorMain::NotifySwitches 0x0010790D, 1 procs, BasicDoorMain::AnimationFinished not masked-equal at 0x001078A9; neighbour LevelLoader.obj#442 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x001078A9-0x00107DBF edges near-candidate/neighbour
+# route: start near-candidate: candidate BasicDoorMain::AnimationFinished 0x001078A9+0x64 (Ghidra entry) next to LevelLoader.obj#442 LevelLoader::LoadGame 0x001077C2, no entry between, both in own anchor gaps; chain: anchor BasicDoorMain::NotifySwitches 0x0010790D, 1 procs, BasicDoorMain::AnimationFinished not masked-equal at 0x001078A9
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T3: ?NotifySwitches@BasicDoorMain@@IAEXH@Z control "/O1 /Oy" PASS; "/O2 /Oy" fails (objdiff 61.97222, bytes mismatch); "/O1 /Oy-" also PASS (no esp read, /Oy not separated); plain 100.0
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\LocalizedStrings.obj"
@@ -5558,22 +5629,25 @@ lib = "core\\XBox\\OfficialRelease\\VinceLib.lib"
 objname = "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\CarriedObject.obj"
 source = "proto-pdb:default.pdb"
 kind = "game"
-text_start = 0x0010E93E
-text_end = 0x0010F0CF
-edge_start = "unpinned-near-identical"
-edge_end = "unpinned-near-identical"
+text_start = 0x0010E8E2
+text_end = 0x0010F0F8
+edge_start = "neighbour-fixed"
+edge_end = "near-candidate"
 procs = 10
 procs_identical = 3
 procs_tail = 0
-delink = false
+delink = true
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-near-identical; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor CarriedObjectMain::AnimationFinished 0x0010E93E, 1 procs, CarriedObject::SetQuestGlow not masked-equal at 0x0010E8E2; fails: no pin, chain fails; edge end unpinned-near-identical; searched: anchor CarriedObjectMain::~CarriedObjectMain 0x0010F085, 1 procs, CarriedObject::`scalar deleting destruct not masked-equal at 0x0010F0CF; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor CarriedObjectMain::~CarriedObjectMain 0x0010F085, 1 procs, CarriedObject::`scalar deleting destruct not masked-equal at 0x0010F0CF; neighbour HeavyObject.obj#439 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor CarriedObjectMain::~CarriedObjectMain 0x0010F085, 1 procs, CarriedObject::`scalar deleting destruct not masked-equal at 0x0010F0CF; neighbour HeavyObject.obj#439 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x0010E8E2-0x0010F0F8 edges neighbour-fixed/near-candidate
+# route: start neighbour-fixed: neighbour VinceCam.obj#456 end chain 0x0010E8E2 (units.toml) in own anchor gap 0x0010E8A6-0x0010E93E; chain: anchor CarriedObjectMain::AnimationFinished 0x0010E93E, 1 procs, CarriedObject::SetQuestGlow not masked-equal at 0x0010E8E2
+# route: end near-candidate: candidate CarriedObject::`scalar deleting destruct 0x0010F0CF+0x29 (Ghidra entry) next to HeavyObject.obj#439 HeavyObjectMain::HeavyObjectMain 0x0010F0F8, no entry between, both in own anchor gaps; chain: anchor CarriedObjectMain::~CarriedObjectMain 0x0010F085, 1 procs, CarriedObject::`scalar deleting destruct not masked-equal at 0x0010F0CF
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T9.c3: ?AnimationFinished@CarriedObjectMain@@UAEXXZ control "/O1 /Oy" PASS 100.0 bytes match; /O2 control fails (88.947365)
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\HeavyObject.obj"
@@ -5582,22 +5656,24 @@ lib = "core\\XBox\\OfficialRelease\\VinceLib.lib"
 objname = "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\HeavyObject.obj"
 source = "proto-pdb:default.pdb"
 kind = "game"
-text_start = 0x0010F12E
+text_start = 0x0010F0F8
 text_end = 0x0010F1A2
-edge_start = "unpinned-near-identical"
+edge_start = "near-candidate"
 edge_end = "anchor"
 procs = 4
 procs_identical = 2
 procs_tail = 0
-delink = false
+delink = true
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor HeavyObjectMain::FrameTick 0x0010F12E, 1 procs, HeavyObjectMain::HeavyObjectMain not masked-equal at 0x0010F0F8; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor HeavyObjectMain::FrameTick 0x0010F12E, 1 procs, HeavyObjectMain::HeavyObjectMain not masked-equal at 0x0010F0F8; neighbour CarriedObject.obj#424 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor HeavyObjectMain::FrameTick 0x0010F12E, 1 procs, HeavyObjectMain::HeavyObjectMain not masked-equal at 0x0010F0F8; neighbour CarriedObject.obj#424 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x0010F0F8-0x0010F1A2 edges near-candidate/anchor
+# route: start near-candidate: candidate HeavyObjectMain::HeavyObjectMain 0x0010F0F8+0x36 (Ghidra entry) next to CarriedObject.obj#424 CarriedObject::`scalar deleting destruct 0x0010F0CF, no entry between, both in own anchor gaps; chain: anchor HeavyObjectMain::FrameTick 0x0010F12E, 1 procs, HeavyObjectMain::HeavyObjectMain not masked-equal at 0x0010F0F8
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T9.c3: ?FrameTick@HeavyObjectMain@@UAEXXZ control "/O1 /Oy" PASS 100.0 bytes match; /O2 control fails (89.333336); Message /O2 fails (41.652172)
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\Switch.obj"
@@ -5807,7 +5883,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-near-identical; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor ExtraLifeMain::creationFunc 0x00117DF9, 1 procs, ExtraLifeMain::ExtraLifeMain not masked-equal at 0x00117D74; fails: no pin, chain fails; edge end unpinned-near-identical; searched: anchor ExtraLifeMain::creationFunc 0x00117DF9, 2 procs, ExtraLifeMain::HitBy not masked-equal at 0x00117E5C; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor ExtraLifeMain::creationFunc 0x00117DF9, 2 procs, ExtraLifeMain::HitBy not masked-equal at 0x00117E5C; neighbour FireBug.obj#500 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor ExtraLifeMain::creationFunc 0x00117DF9, 2 procs, ExtraLifeMain::HitBy not masked-equal at 0x00117E5C; neighbour FireBug.obj#500 start unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-near-identical; searched: anchor ExtraLifeMain::creationFunc 0x00117DF9, 2 procs, ExtraLifeMain::HitBy not masked-equal at 0x00117E5C; neighbour FireBug.obj#500 start unpinned-ambiguous; M27 end: ExtraLifeMain::HitBy proto 0x005026A0 class near-identical candidateVA 0x00117E5C, form (a): needs disasm-verified pin ?HitBy@ExtraLifeMain@@UAEXW4CollisionType@SwampScript@@PAVSw at 0x00117E5C, present pin ?HitBy@ExtraLifeMain@@UAEXW4CollisionType@SwampScript@@PAVSw 0x00117E5C status near-corr, form (b): no near-identical neighbour edge (FireBug.obj#500 start: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5831,7 +5908,8 @@ procs_tail = 3
 delink = false
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-ambiguous"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor FireBugFireMain::TimerEvent 0x0011AEDA, 2 procs, FireBug::GetGravity not masked-equal at 0x0011AED0; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor FireBugMain::creationFunc 0x0011C71D, 2 procs, FireBugFireMain::RegisterMe::RegisterMe at 0x0011C744 not the only masked copy in gap 0x0011C744-0x0011C7E2 (uncapped scan); fails: no pin, chain fails"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor FireBugFireMain::TimerEvent 0x0011AEDA, 2 procs, FireBug::GetGravity not masked-equal at 0x0011AED0; neighbour ExtraLife.obj#472 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor FireBugMain::creationFunc 0x0011C71D, 2 procs, FireBugFireMain::RegisterMe::RegisterMe at 0x0011C744 not the only masked copy in gap 0x0011C744-0x0011C7E2 (uncapped scan); neighbour VinceFlying.obj#490 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor FireBugFireMain::TimerEvent 0x0011AEDA, 2 procs, FireBug::GetGravity not masked-equal at 0x0011AED0; neighbour ExtraLife.obj#472 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor FireBugMain::creationFunc 0x0011C71D, 2 procs, FireBugFireMain::RegisterMe::RegisterMe at 0x0011C744 not the only masked copy in gap 0x0011C744-0x0011C7E2 (uncapped scan); neighbour VinceFlying.obj#490 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge start unpinned-ambiguous; searched: anchor FireBugFireMain::TimerEvent 0x0011AEDA, 2 procs, FireBug::GetGravity not masked-equal at 0x0011AED0; neighbour ExtraLife.obj#472 end unpinned-near-identical; M27 start: FireBug::GetGravity proto 0x005028C1 class ambiguous candidateVA null, form (a): needs disasm-verified pin ?GetGravity@FireBug@@UAEMXZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor FireBugMain::creationFunc 0x0011C71D, 2 procs, FireBugFireMain::RegisterMe::RegisterMe at 0x0011C744 not the only masked copy in gap 0x0011C744-0x0011C7E2 (uncapped scan); neighbour VinceFlying.obj#490 start unpinned-near-identical; M27 end: FireBugMain::RegisterMe::RegisterMe proto 0x00504090 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@FireBugMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5855,7 +5933,8 @@ procs_tail = 5
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-ambiguous; inconsistent: 4 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceFlying::AnimationInterrupted 0x0011C7E2, 1 procs, AimingCam::Invalidate not masked-equal at 0x0011C7AA; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor VinceFlying::AnimationFinished 0x0011D2CC, 6 procs, AimingCam::AimingCam not masked-equal at 0x0011D394; fails: no pin, chain fails; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor VinceFlying::AnimationInterrupted 0x0011C7E2, 1 procs, AimingCam::Invalidate not masked-equal at 0x0011C7AA; neighbour FireBug.obj#500 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor VinceFlying::AnimationFinished 0x0011D2CC, 6 procs, AimingCam::AimingCam not masked-equal at 0x0011D394; neighbour Airplane.obj#466 start unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor VinceFlying::AnimationInterrupted 0x0011C7E2, 1 procs, AimingCam::Invalidate not masked-equal at 0x0011C7AA; neighbour FireBug.obj#500 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor VinceFlying::AnimationFinished 0x0011D2CC, 6 procs, AimingCam::AimingCam not masked-equal at 0x0011D394; neighbour Airplane.obj#466 start unpinned-absent; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor VinceFlying::AnimationInterrupted 0x0011C7E2, 1 procs, AimingCam::Invalidate not masked-equal at 0x0011C7AA; neighbour FireBug.obj#500 end unpinned-ambiguous; M27 start: AimingCam::Invalidate proto 0x005040CC class near-identical candidateVA 0x0011C7BD, form (a): needs disasm-verified pin ?Invalidate@AimingCam@@UAEXXZ at 0x0011C7BD, form (b): no near-identical neighbour edge (FireBug.obj#500 end: ambiguous); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor VinceFlying::AnimationFinished 0x0011D2CC, 6 procs, AimingCam::AimingCam not masked-equal at 0x0011D394; neighbour Airplane.obj#466 start unpinned-absent; M27 end: VinceFlying::RegisterMe::RegisterMe proto 0x00505071 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@VinceFlying@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 4 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5879,7 +5958,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge start unpinned-absent; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-absent; searched: anchor AirplaneMain::Activate 0x0011D938, 2 procs, Airplane::Airplane not masked-equal at 0x0011D8C1; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-absent; searched: anchor AirplaneMain::Activate 0x0011D938, 2 procs, Airplane::Airplane not masked-equal at 0x0011D8C1; neighbour VinceFlying.obj#490 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-absent; searched: anchor AirplaneMain::Activate 0x0011D938, 2 procs, Airplane::Airplane not masked-equal at 0x0011D8C1; neighbour VinceFlying.obj#490 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-absent; searched: anchor AirplaneMain::Activate 0x0011D938, 2 procs, Airplane::Airplane not masked-equal at 0x0011D8C1; neighbour VinceFlying.obj#490 end unpinned-ambiguous; M27 start: Airplane::Airplane proto 0x005050AD class absent, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -5928,7 +6008,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.3 T6: ?LandDust@Particle@@YAXABUVector3@@@Z control "/O1 /Oy" PASS 100.0 bytes match; /O2 control fails (61.0)
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\MondoMole.obj"
@@ -6070,21 +6150,23 @@ objname = "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\VinceCutScene.obj
 source = "proto-pdb:default.pdb"
 kind = "game"
 text_start = 0x001225F2
-text_end = 0x0012264A
+text_end = 0x001226BA
 edge_start = "anchor"
-edge_end = "unpinned-near-identical"
+edge_end = "near-candidate"
 procs = 4
 procs_identical = 1
 procs_tail = 0
-delink = false
+delink = true
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor VinceCutScene::FrameTick 0x001225F2, 1 procs, VinceCutScene::VinceCutScene not masked-equal at 0x0012264A; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor VinceCutScene::FrameTick 0x001225F2, 1 procs, VinceCutScene::VinceCutScene not masked-equal at 0x0012264A; neighbour Boomerang.obj#468 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor VinceCutScene::FrameTick 0x001225F2, 1 procs, VinceCutScene::VinceCutScene not masked-equal at 0x0012264A; neighbour Boomerang.obj#468 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x001225F2-0x001226BA edges anchor/near-candidate
+# route: end near-candidate: candidate VinceCutScene::VinceCutScene 0x0012264A+0x70 (Ghidra entry) next to Boomerang.obj#468 BoomerangMain::SetState 0x001226BA, no entry between, both in own anchor gaps; chain: anchor VinceCutScene::FrameTick 0x001225F2, 1 procs, VinceCutScene::VinceCutScene not masked-equal at 0x0012264A
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T9.c3: ?FrameTick@VinceCutScene@@UAEXXZ control "/O1 /Oy" PASS 100.0 bytes match; /O2 control fails (36.975)
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\Boomerang.obj"
@@ -6093,22 +6175,24 @@ lib = "core\\XBox\\OfficialRelease\\VinceLib.lib"
 objname = "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\Boomerang.obj"
 source = "proto-pdb:default.pdb"
 kind = "game"
-text_start = 0x00122728
+text_start = 0x001226BA
 text_end = 0x001234FA
-edge_start = "unpinned-near-identical"
+edge_start = "near-candidate"
 edge_end = "neighbour"
 procs = 18
 procs_identical = 3
 procs_tail = 1
-delink = false
+delink = true
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor PotionOfKnowledgeMain::~PotionOfKnowledg 0x00122728, 1 procs, BoomerangMain::SetState not masked-equal at 0x001226BA; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor PotionOfKnowledgeMain::~PotionOfKnowledg 0x00122728, 1 procs, BoomerangMain::SetState not masked-equal at 0x001226BA; neighbour VinceCutScene.obj#485 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor PotionOfKnowledgeMain::~PotionOfKnowledg 0x00122728, 1 procs, BoomerangMain::SetState not masked-equal at 0x001226BA; neighbour VinceCutScene.obj#485 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x001226BA-0x001234FA edges near-candidate/neighbour
+# route: start near-candidate: candidate BoomerangMain::SetState 0x001226BA+0x6E (Ghidra entry) next to VinceCutScene.obj#485 VinceCutScene::VinceCutScene 0x0012264A, no entry between, both in own anchor gaps; chain: anchor PotionOfKnowledgeMain::~PotionOfKnowledg 0x00122728, 1 procs, BoomerangMain::SetState not masked-equal at 0x001226BA
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.2 T9.c3: ??1PotionOfKnowledgeMain@@UAE@XZ control "/O1 /Oy" PASS 100.0 bytes match; /O2 also passes (not discriminating); text_start 0x001226BA not 16-aligned, so not /O2 /Ot (C0183)
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\KillerDillo.obj"
@@ -6320,7 +6404,8 @@ procs_tail = 0
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceHang::VinceHang 0x001285AD, 1 procs, VinceHang::`scalar deleting destructor' not masked-equal at 0x001286DB; fails: no pin, chain fails"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceHang::VinceHang 0x001285AD, 1 procs, VinceHang::`scalar deleting destructor' not masked-equal at 0x001286DB; adjacent run of VinceHardLand.obj#492 is not its main run; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceHang::VinceHang 0x001285AD, 1 procs, VinceHang::`scalar deleting destructor' not masked-equal at 0x001286DB; adjacent run of VinceHardLand.obj#492 is not its main run; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor VinceHang::VinceHang 0x001285AD, 1 procs, VinceHang::`scalar deleting destructor' not masked-equal at 0x001286DB; adjacent run of VinceHardLand.obj#492 is not its main run; M27 end: VinceHang::`scalar deleting destructor' proto 0x005111B7 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??_GWhammyResultCutHorizontalMain@@UAEPAXI@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6470,7 +6555,8 @@ procs_tail = 0
 delink = false
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor PotionOfKnowledgeMain::Save 0x0012BE17, 2 procs, PotionOfKnowledgeMain::PotionOfKnowledge not masked-equal at 0x0012BE87; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor PotionOfKnowledgeMain::Save 0x0012BE17, 2 procs, PotionOfKnowledgeMain::PotionOfKnowledge not masked-equal at 0x0012BE87; adjacent run of DustCluster.obj#470 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor PotionOfKnowledgeMain::Save 0x0012BE17, 2 procs, PotionOfKnowledgeMain::PotionOfKnowledge not masked-equal at 0x0012BE87; adjacent run of DustCluster.obj#470 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-near-identical; searched: anchor PotionOfKnowledgeMain::Save 0x0012BE17, 2 procs, PotionOfKnowledgeMain::PotionOfKnowledge not masked-equal at 0x0012BE87; adjacent run of DustCluster.obj#470 is not its main run; M27 end: PotionOfKnowledgeMain::Activate proto 0x00514903 class near-identical candidateVA 0x0012BEDE, form (a): needs disasm-verified pin ?Activate@PotionOfKnowledgeMain@@UAEXXZ at 0x0012BEDE, present pin ?Activate@PotionOfKnowledgeMain@@UAEXXZ 0x0012BEDE status near-corr, form (b): no near-identical neighbour edge (adjacent run is no other unit's main run); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6494,7 +6580,8 @@ procs_tail = 0
 delink = false
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 2 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor DustMoteMain::Save 0x0012C6C6, 2 procs, DustMoteMain::FrameTick not masked-equal at 0x0012C72A; fails: no pin, chain fails; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor DustMoteMain::Save 0x0012C6C6, 2 procs, DustMoteMain::FrameTick not masked-equal at 0x0012C72A; neighbour LevelFlythrough.obj#441 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor DustMoteMain::Save 0x0012C6C6, 2 procs, DustMoteMain::FrameTick not masked-equal at 0x0012C72A; neighbour LevelFlythrough.obj#441 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-near-identical; searched: anchor DustMoteMain::Save 0x0012C6C6, 2 procs, DustMoteMain::FrameTick not masked-equal at 0x0012C72A; neighbour LevelFlythrough.obj#441 start unpinned-near-identical; M27 end: DustMoteMain::HitBy proto 0x0051551E class near-identical candidateVA 0x0012CB15, form (a): needs disasm-verified pin ?HitBy@DustMoteMain@@UAEXW4CollisionType@SwampScript@@PAVSwa at 0x0012CB15, form (b): no Ghidra entry at 0x0012CB15; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 2 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6518,7 +6605,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor LevelFlythroughCamMain::LevelFlythroughC 0x0012CB82, 1 procs, LevelFlythroughCamMain::Activate not masked-equal at 0x0012CB49; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor LevelFlythroughCamMain::LevelFlythroughC 0x0012CB82, 1 procs, LevelFlythroughCamMain::Activate not masked-equal at 0x0012CB49; neighbour DustMote.obj#471 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor LevelFlythroughCamMain::LevelFlythroughC 0x0012CB82, 1 procs, LevelFlythroughCamMain::Activate not masked-equal at 0x0012CB49; neighbour DustMote.obj#471 end unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor LevelFlythroughCamMain::LevelFlythroughC 0x0012CB82, 1 procs, LevelFlythroughCamMain::Activate not masked-equal at 0x0012CB49; neighbour DustMote.obj#471 end unpinned-near-identical; M27 start: LevelFlythroughCamMain::Activate proto 0x00515552 class near-identical candidateVA 0x0012CB49, form (a): needs disasm-verified pin ?Activate@LevelFlythroughCamMain@@UAEXXZ at 0x0012CB49, form (b): no Ghidra entry at 0x0012CB49; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6585,7 +6673,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor MysteryBoxMain::Activate 0x00130FE5, 2 procs, MysteryBoxMain::Message not masked-equal at 0x001310A7; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor MysteryBoxMain::Activate 0x00130FE5, 2 procs, MysteryBoxMain::Message not masked-equal at 0x001310A7; adjacent run of CharmPage.obj#469 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor MysteryBoxMain::Activate 0x00130FE5, 2 procs, MysteryBoxMain::Message not masked-equal at 0x001310A7; adjacent run of CharmPage.obj#469 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-near-identical; searched: anchor MysteryBoxMain::Activate 0x00130FE5, 2 procs, MysteryBoxMain::Message not masked-equal at 0x001310A7; adjacent run of CharmPage.obj#469 is not its main run; M27 end: MysteryBoxMain::Message proto 0x00519ADA class near-identical candidateVA 0x001310A7, form (a): needs disasm-verified pin ?Message@MysteryBoxMain@@UAEXPAVSwampScript@@HPAX@Z at 0x001310A7, form (b): no Ghidra entry at 0x001310A7; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6651,7 +6740,8 @@ procs_tail = 2
 delink = false
 # was: delink_reason = "edge end unpinned-ambiguous"
 # was: delink_reason = "edge end unpinned-ambiguous; searched: anchor RoachMain::creationFunc 0x00133845, 2 procs, RoachBombMain::RegisterMe::RegisterMe at 0x0013386C not the only masked copy in gap 0x0013386C-0x001338F3 (uncapped scan); fails: no pin, chain fails"
-delink_reason = "edge end unpinned-ambiguous; searched: anchor RoachMain::creationFunc 0x00133845, 2 procs, RoachBombMain::RegisterMe::RegisterMe at 0x0013386C not the only masked copy in gap 0x0013386C-0x001338F3 (uncapped scan); adjacent run of BrackishCrab.obj#498 is not its main run; fails: no pin, chain fails, neighbour edge not fixed"
+# was: delink_reason = "edge end unpinned-ambiguous; searched: anchor RoachMain::creationFunc 0x00133845, 2 procs, RoachBombMain::RegisterMe::RegisterMe at 0x0013386C not the only masked copy in gap 0x0013386C-0x001338F3 (uncapped scan); adjacent run of BrackishCrab.obj#498 is not its main run; fails: no pin, chain fails, neighbour edge not fixed"
+delink_reason = "edge end unpinned-ambiguous; searched: anchor RoachMain::creationFunc 0x00133845, 2 procs, RoachBombMain::RegisterMe::RegisterMe at 0x0013386C not the only masked copy in gap 0x0013386C-0x001338F3 (uncapped scan); adjacent run of BrackishCrab.obj#498 is not its main run; M27 end: RoachMain::RegisterMe::RegisterMe proto 0x0051C266 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@RoachMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6676,7 +6766,7 @@ delink = true
 # was: delink_reason = "inconsistent: 1 procs outside range"
 # was: delink_reason = "inconsistent: 1 procs outside range, 0 explained; searched: WhammyResultFlattenMain::TimerEvent proto 0x0051DB26 -> 0x001338E4: single masked copy (proto_map hits 1), LIS bracket 0x00133845 Roach.obj#505 .. 0x001338F3 Whammy.obj#460, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x001338F3-0x00136312 edges anchor/neighbour
-# route: stray stays uncut (D120): WhammyResultFlattenMain::TimerEvent proto 0x0051DB26 -> 0x001338E4: single masked copy (proto_map hits 1), LIS bracket 0x00133845 Roach.obj#505 .. 0x001338F3 Whammy.obj#460, in no unit range; reason: copy in a gap between unit ranges
+# route: explained (exact VA): of Whammy.obj#460: WhammyResultFlattenMain::TimerEvent proto 0x0051DB26 -> 0x001338E4: WhammyResultFlattenMain::TimerEvent 15 B at Roach.obj#505's chain end (units.md:117), directly against Whammy's first anchor 0x001338F3: not a stray between two other units; Whammy's 4.4 cut stands unchanged, the copy is not Whammy's own (5.2 T2)
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6876,7 +6966,7 @@ delink = true
 # was: delink_reason = "inconsistent: 2 procs outside range, 1 explained; searched: Camera_OptionsMain::creationFunc proto 0x00522C98 -> 0x0008CAC3: single masked copy (proto_map hits 1), LIS bracket 0x0008CA7C ManorHouse.obj#338 .. 0x0008CAEA TumblerRoom.obj#348, in no unit range; fails: copy in a gap between unit ranges"
 # route: range 0x001385A4-0x0013D448 edges anchor/neighbour-window
 # route: Camera_NewGameCMain::creationFunc proto 0x00522B60 -> 0x0008408F moved into ClockPlatform.obj#321
-# route: stray stays uncut (D120): Camera_OptionsMain::creationFunc proto 0x00522C98 -> 0x0008CAC3: single masked copy (proto_map hits 1), LIS bracket 0x0008CA7C ManorHouse.obj#338 .. 0x0008CAEA TumblerRoom.obj#348, in no unit range; reason: copy in a gap between unit ranges
+# route: stray (D125): of VoodooShop.obj#508: Camera_OptionsMain::creationFunc proto 0x00522C98 -> 0x0008CAC3: single masked copy (proto_map hits 1), LIS bracket 0x0008CA7C ManorHouse.obj#338 .. 0x0008CAEA TumblerRoom.obj#348, in no unit range; reason: copy in a gap between unit ranges; containing cut: none
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -6942,7 +7032,8 @@ procs_tail = 1
 delink = false
 # was: delink_reason = "edge end unpinned-near-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge end unpinned-near-identical; searched: anchor VoodooShopCutscene::creationFunc 0x00140A15, 2 procs, VoodooShopCutscene::Cleanup not masked-equal at 0x00140A78; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge end unpinned-near-identical; searched: anchor VoodooShopCutscene::creationFunc 0x00140A15, 2 procs, VoodooShopCutscene::Cleanup not masked-equal at 0x00140A78; adjacent run of Credits.obj#506 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge end unpinned-near-identical; searched: anchor VoodooShopCutscene::creationFunc 0x00140A15, 2 procs, VoodooShopCutscene::Cleanup not masked-equal at 0x00140A78; adjacent run of Credits.obj#506 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge end unpinned-near-identical; searched: anchor VoodooShopCutscene::creationFunc 0x00140A15, 2 procs, VoodooShopCutscene::Cleanup not masked-equal at 0x00140A78; adjacent run of Credits.obj#506 is not its main run; M27 end: VoodooShopCutscene::Cleanup proto 0x00529354 class near-identical candidateVA 0x00140A78, form (a): needs disasm-verified pin ?Cleanup@VoodooShopCutscene@@MAEXXZ at 0x00140A78, form (b): no near-identical neighbour edge (adjacent run is no other unit's main run); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -9627,7 +9718,8 @@ procs_tail = 7
 delink = false
 # was: delink_reason = "edge start unpinned-near-identical; edge end unpinned-ambiguous; inconsistent: 12 procs outside range"
 # was: delink_reason = "edge start unpinned-near-identical; searched: anchor ShrimpSubMain::TestActivate 0x0014BA26, 1 procs, ShrimpSub::creationFunc not masked-equal at 0x0014B9F6; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor VinceEnterSub::AnimationFinished 0x0014C6C9, 20 procs, VinceExitSub::VinceExitSub not masked-equal at 0x0014C767; fails: no pin, chain fails; inconsistent: 12 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-near-identical; searched: anchor ShrimpSubMain::TestActivate 0x0014BA26, 1 procs, ShrimpSub::creationFunc not masked-equal at 0x0014B9F6; adjacent run of xboxkrnl.exe#196 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor VinceEnterSub::AnimationFinished 0x0014C6C9, 20 procs, VinceExitSub::VinceExitSub not masked-equal at 0x0014C767; neighbour FFlyEffect.obj#293 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 12 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-near-identical; searched: anchor ShrimpSubMain::TestActivate 0x0014BA26, 1 procs, ShrimpSub::creationFunc not masked-equal at 0x0014B9F6; adjacent run of xboxkrnl.exe#196 is not its main run; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor VinceEnterSub::AnimationFinished 0x0014C6C9, 20 procs, VinceExitSub::VinceExitSub not masked-equal at 0x0014C767; neighbour FFlyEffect.obj#293 start unpinned-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 12 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-near-identical; searched: anchor ShrimpSubMain::TestActivate 0x0014BA26, 1 procs, ShrimpSub::creationFunc not masked-equal at 0x0014B9F6; adjacent run of xboxkrnl.exe#196 is not its main run; M27 start: ShrimpSub::creationFunc proto 0x005352C6 class near-identical candidateVA 0x0014B9F6, form (a): needs disasm-verified pin ?creationFunc@ShrimpSub@@CAPAVSwampSceneNode@@XZ at 0x0014B9F6, form (b): no Ghidra entry at 0x0014B9F6; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor VinceEnterSub::AnimationFinished 0x0014C6C9, 20 procs, VinceExitSub::VinceExitSub not masked-equal at 0x0014C767; neighbour FFlyEffect.obj#293 start unpinned-identical; M27 end: ShrimpSub::RegisterMe::RegisterMe proto 0x00537B70 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@ShrimpSub@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 12 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false
@@ -9651,7 +9743,8 @@ procs_tail = 0
 delink = false
 # was: delink_reason = "edge start unpinned-identical; inconsistent: 1 procs outside range"
 # was: delink_reason = "edge start unpinned-identical; searched: anchor std::_Copy_backward_opt<FFlyCtrlData::Ke 0x0014E50B, 1 procs, std::fill<FFlyCtrlData::Key *,FFlyCtrlDa not masked-equal at 0x0014E4E9; fails: no pin, chain fails; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-identical; searched: anchor std::_Copy_backward_opt<FFlyCtrlData::Ke 0x0014E50B, 1 procs, std::fill<FFlyCtrlData::Key *,FFlyCtrlDa not masked-equal at 0x0014E4E9; neighbour ShrimpSub.obj#210 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-identical; searched: anchor std::_Copy_backward_opt<FFlyCtrlData::Ke 0x0014E50B, 1 procs, std::fill<FFlyCtrlData::Key *,FFlyCtrlDa not masked-equal at 0x0014E4E9; neighbour ShrimpSub.obj#210 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
+delink_reason = "edge start unpinned-identical; searched: anchor std::_Copy_backward_opt<FFlyCtrlData::Ke 0x0014E50B, 1 procs, std::fill<FFlyCtrlData::Key *,FFlyCtrlDa not masked-equal at 0x0014E4E9; neighbour ShrimpSub.obj#210 end unpinned-ambiguous; M27 start: std::fill<FFlyCtrlData::Key *,FFlyCtrlData::Key> proto 0x00537BAC class identical, not ambiguous or near-identical, no form; fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 1 procs outside range; searched: not searched; fails: edges not fixed"
 language = "c++"
 machine = "pentium pro"
 security_checks = false

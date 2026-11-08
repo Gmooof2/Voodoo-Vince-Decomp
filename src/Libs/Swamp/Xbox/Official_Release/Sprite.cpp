@@ -136,7 +136,7 @@ struct Vector2 { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(Vector2, 0x8);
 
 struct Vector4 { // NAME: proto-pdb:default.pdb
-    // !FAKE: PDB declares Vector4(); an empty inline one makes Matrix() call a vector ctor iterator
+    // !FAKE: c1xx front end; PDB-declared Vector4() omitted; an empty inline one makes Matrix() call a vector ctor iterator
     // (out-of-line ??0Matrix call) that retail Render lacks
 
     float x;                           // 0x00

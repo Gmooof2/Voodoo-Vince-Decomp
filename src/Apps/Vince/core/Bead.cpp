@@ -377,7 +377,7 @@ SwampString BeadMain::GetBeadBaseName(int size)
 // NAME: proto-pdb:default.pdb
 SwampScript* BeadMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Bead.h", 53) BeadMain(node);
 }
 
@@ -394,6 +394,22 @@ DECOMP_SIZE_ASSERT(Bead2Main, 0xD0);
 // NAME: proto-pdb:default.pdb
 SwampScript* Bead2Main::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Bead.h", 87) Bead2Main(node);
+}
+
+class Bead3Main : public BeadMain { // NAME: proto-pdb:default.pdb
+public:
+    Bead3Main(SwampSceneNode* node);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Bead3Main, 0xD0);
+
+// FUNCTION: USA 0x001266E2
+// NAME: proto-pdb:default.pdb
+SwampScript* Bead3Main::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\common\\Bead.h", 96) Bead3Main(node);
 }

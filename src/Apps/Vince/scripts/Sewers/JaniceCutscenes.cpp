@@ -89,7 +89,10 @@ public:
 };
 
 class CutsceneDriver : public SwampScript {
+public:
+    CutsceneDriver(SwampSceneNode* node);
 protected:
+    virtual void Init();
     AnimCam* NewCamera(const std::basic_string<char>& name);
     void StateTransition(unsigned int anim, int state);
 public:
@@ -131,6 +134,9 @@ public:
         STATE_V_HMMM = 0x5,
         STATE_LAST = 0x6
     };
+    JaniceDefeatCutscene(SwampSceneNode* node);
+protected:
+    virtual void Init();
 private:
     virtual void SetState(int state);
 public:
@@ -147,6 +153,9 @@ public:
         STATE_V_FLOATS = 0x1,
         STATE_LAST = 0x2
     };
+    LeavingRoachfortCutscene(SwampSceneNode* node);
+protected:
+    virtual void Init();
 private:
     virtual void SetState(int state);
 public:
@@ -163,6 +172,10 @@ public:
         STATE_E_PULLCORD = 0x0,
         STATE_LAST = 0xE
     };
+    PlanGoesAwryCutscene(SwampSceneNode* node);
+protected:
+    virtual void Init();
+public:
     virtual void AnimationFinished(unsigned int id);
     virtual void AnimationTrigger(unsigned int id, const std::basic_string<char>& name, float value, float prev, unsigned int bone);
 
@@ -205,6 +218,17 @@ void PlanGoesAwryCutscene::AnimationTrigger(unsigned int id, const std::basic_st
             _effect->StopSpawning();
     }
 }
+
+// FUNCTION: USA 0x000A83B8
+// PROTOTYPE: PREVIEW 0x004932B8 ambiguous
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 45.83, bytes provisional (masked 2; wall: same instructions, ??_7LeavingRoachfortCutscene@@6B@ vptr store and ?Init@LeavingRoachfortCutscene@@MAEXXZ call target have no retail VA row, C0203)
+LeavingRoachfortCutscene::LeavingRoachfortCutscene(SwampSceneNode* node) : CutsceneDriver(node), _vince(0)
+{
+    Init();
+}
+#endif
 
 // FUNCTION: USA 0x000A871D
 // PROTOTYPE: PREVIEW 0x004935E1 identical
@@ -323,11 +347,34 @@ void LeavingRoachfortCutscene::SetState(int state)
     _state = state;
 }
 
+// FUNCTION: USA 0x000AA1F3
+// PROTOTYPE: PREVIEW 0x00495067 ambiguous
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 2; wall: same instructions, ??_7PlanGoesAwryCutscene@@6B@ vptr store and ?Init@PlanGoesAwryCutscene@@MAEXXZ call target have no retail VA row, C0203)
+PlanGoesAwryCutscene::PlanGoesAwryCutscene(SwampSceneNode* node)
+    : CutsceneDriver(node), _vince(0), _ethel(0), _janice(0), _balloon(0), _effect(0)
+{
+    Init();
+}
+#endif
+
+// FUNCTION: USA 0x000AA499
+// PROTOTYPE: PREVIEW 0x004952C6 ambiguous
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 2; wall: same instructions, ??_7JaniceDefeatCutscene@@6B@ vptr store and ?Init@JaniceDefeatCutscene@@MAEXXZ call target have no retail VA row, C0203)
+JaniceDefeatCutscene::JaniceDefeatCutscene(SwampSceneNode* node) : CutsceneDriver(node), _vince(0), _janice(0), _debris(0)
+{
+    Init();
+}
+#endif
+
 // FUNCTION: USA 0x000AA4C6
 // PROTOTYPE: PREVIEW 0x004952F3 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceDropsInCutscene::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("WrathOfJanice\\JaniceCutscenes.cpp", 20) VinceDropsInCutscene(node);
 }

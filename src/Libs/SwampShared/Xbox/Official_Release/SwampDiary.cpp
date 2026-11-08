@@ -54,7 +54,6 @@ template <class _Ty> inline void swap(_Ty& _Left, _Ty& _Right)
     _Ty _Tmp = _Left;
     _Left = _Right, _Right = _Tmp;
 }
-#ifdef NON_MATCHING
 // VC 7.1 <exception>/<stdexcept> classes thrown inline by _Tree::erase/_Insert; ctor of logic_error 0x0001179C
 class logic_error : public exception {
 public:
@@ -74,11 +73,10 @@ public:
     explicit out_of_range(const basic_string<char, char_traits<char>, allocator<char> >& _Message) : logic_error(_Message) {}
     virtual ~out_of_range() {}
 };
-#endif
 template <class T1, class T2> struct pair {
     pair(const T1& _Val1, const T2& _Val2) : first(_Val1), second(_Val2) {}
     // implicit copy ctor (retail ??0...@ABU01@@Z) written out: cl 13.10 skips an explicit instantiation of an implicit one
-    pair(const pair& p) : first(p.first), second(p.second) {} // !FAKE: implicit copy ctor written member-wise (no PDB local), 4.3 T12
+    pair(const pair& p) : first(p.first), second(p.second) {} // !FAKE: c1xx front end (implicit member emission); implicit copy ctor written member-wise; no PDB local, 4.3 T12, no before/after recorded
     T1 first;                          // 0x00
     T2 second;
 };
@@ -220,8 +218,6 @@ public:
         }
     }
 
-#ifdef NON_MATCHING
-    // erase/_Insert: match_one 100, but the inline throw emits unnamed RTTI/__CT data (wall C0212)
     iterator erase(iterator _Where)
     {
         if (_Isnil(_Where._Mynode()))
@@ -355,9 +351,6 @@ public:
 
         return (_Where);
     }
-#else
-    iterator erase(iterator _Where);
-#endif
 
 protected:
     void _Erase(_Nodeptr _Rootnode)
@@ -379,7 +372,6 @@ protected:
         _Mysize = 0;
     }
 
-#ifdef NON_MATCHING
     iterator _Insert(bool _Addleft, _Nodeptr _Wherenode, const value_type& _Val)
     {
         if (max_size() - 1 <= _Mysize)
@@ -438,9 +430,6 @@ protected:
         _Color(_Root()) = _Black;
         return (iterator(_Newnode));
     }
-#else
-    iterator _Insert(bool _Addleft, _Nodeptr _Wherenode, const value_type& _Val);
-#endif
 
     _Nodeptr _Lbound(const key_type& _Keyval) const
     {
@@ -715,11 +704,7 @@ template std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_trait
 // FUNCTION: USA 0x00151E7D
 // PROTOTYPE: PREVIEW 0x0053B4FD identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100, bytes match; relink wall (4.4 T4.c6): throw data now pinned, but ??_7logic_error/??_7out_of_range
-// are also emitted by BeepDebug.obj; relink same() does not merge copies whose relocs name a weak ??_E slot (relink.py:1071-1073)
 template std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,SwampDiary::DiaryEntry,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,SwampDiary::DiaryEntry> >,0> >::iterator std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,SwampDiary::DiaryEntry,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,SwampDiary::DiaryEntry> >,0> >::erase(std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,SwampDiary::DiaryEntry,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,SwampDiary::DiaryEntry> >,0> >::iterator);
-#endif
 
 // FUNCTION: USA 0x001520F6
 // PROTOTYPE: PREVIEW 0x0053B776 identical
@@ -729,11 +714,7 @@ template void std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_trai
 // FUNCTION: USA 0x001521C2
 // PROTOTYPE: PREVIEW 0x0053B842 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100, bytes match; relink wall (4.4 T4.c6): throw data now pinned, but ??_7logic_error/??_7out_of_range
-// are also emitted by BeepDebug.obj; relink same() does not merge copies whose relocs name a weak ??_E slot (relink.py:1071-1073)
 template std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,SwampDiary::DiaryEntry,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,SwampDiary::DiaryEntry> >,0> >::iterator std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,SwampDiary::DiaryEntry,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,SwampDiary::DiaryEntry> >,0> >::_Insert(bool,std::_Tree_nod<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,SwampDiary::DiaryEntry,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,SwampDiary::DiaryEntry> >,0> >::_Node *,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,SwampDiary::DiaryEntry> const &);
-#endif
 
 // FUNCTION: USA 0x0015239E
 // PROTOTYPE: PREVIEW 0x0053BA1E identical

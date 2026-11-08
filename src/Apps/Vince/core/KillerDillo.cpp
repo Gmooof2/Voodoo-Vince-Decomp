@@ -214,6 +214,6 @@ void KillerDilloMain::HitBy(CollisionType type, SwampSceneNode* critterHit, cons
 // NAME: proto-pdb:default.pdb
 SwampScript* KillerDilloMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\KillerDillo.h", 11) KillerDilloMain(node);
 }

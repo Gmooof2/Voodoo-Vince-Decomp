@@ -4,11 +4,13 @@ CLI: build.py --src DIR --out DIR [--config P]
 Path rule (src/README.md): unit objname minus the `d:\\beep\\` prefix, `\\Xbox\\OfficialRelease\\` dropped, `.obj` ->
 `.c`/`.cpp` by `language` ("c"/"c++"), `\\` -> `/`, under the source root; matched case-insensitively. Units outside
 `d:\\beep\\` have no source path. Only .c/.cpp files are sources; other files are ignored.
-Each source: msvc71.compile_one(<msvc71_dir>, src, <unit opt split>, <out>/<objname basename>, scratch=<out>).
+Each source: msvc71.compile_one(<msvc71_dir>, src, <unit opt split>, <out>/<rel source path minus ext>.obj (dirs
+created), scratch=<out>) (5.1 T4.c2; was <out>/<objname basename>: two units sharing a basename were refused).
 No per-function flag override. msvc71_dir from vv_inputs.load_config(--config).
 Exit: 0 built (0 units allowed; prints counts); 1 any compile failure or any C/D/L message code (D26);
 2 refusal (stderr `build: REFUSED ...`): a source maps to no unit (or to two), unit opt "unknown" or not a flags
-string, an opt token steering includes or macros (`/FI /I /X /u /D /U`, `-` forms too; 4.5 T16.2), duplicate obj name, out dir not under REPO/.run/, missing src root/units/msvc71_dir.
+string, an opt token steering includes or macros (`/FI /I /X /u /D /U`, `-` forms too; 4.5 T16.2), duplicate obj output path
+(case-insensitive; was: duplicate obj name), out dir not under REPO/.run/, missing src root/units/msvc71_dir.
 The out dir is wiped and recreated each run (after the refusal checks).
 Library: build(src_root, out_dir, units_path=UNITS, config=None) -> [{unit, source, obj, flags}] in source order;
 raises Refuse (exit 2) or BuildFailed (exit 1, after every source was tried).
@@ -66,6 +68,14 @@ def unit_map(units_path):
     return m
 
 
+def obj_rels(units_path=UNITS):
+    """5.1 T4.c2: {unit name lowercased: obj path build() writes, relative to its out dir} (lowercased posix; the
+    obj sits at the source path minus ext, so consumers look it up here, never by objname basename)."""
+    return {u["name"].lower(): p.rsplit(".", 1)[0] + ".obj"
+            for u in tomllib.loads(Path(units_path).read_text(encoding="utf-8")).get("unit", [])
+            for p in [unit_path(u)] if p is not None}
+
+
 def flags_of(unit):
     opt = unit.get("opt")
     toks = opt.split() if isinstance(opt, str) else []
@@ -99,9 +109,12 @@ def build(src_root, out_dir, units_path=UNITS, config=None):
             raise Refuse(f"{rel} maps to {'no unit' if not us else f'{len(us)} units'}")
         u = us[0]
         flags = flags_of(u)
-        name = u["objname"].rsplit("\\", 1)[-1]
-        if name.lower() in objs:
-            raise Refuse(f"{rel}: obj name {name} also built from {objs[name.lower()]}")
+        # 5.1 T4.c2 (C0247): obj per source path, so same-basename units in two dirs both build
+        # was: name = u["objname"].rsplit("\\", 1)[-1]
+        name = rel.rsplit(".", 1)[0] + ".obj"
+        if name.lower() in objs:  # key: full output path, case-insensitive (x/A.c + x/A.cpp collide); was: basename
+            # was: raise Refuse(f"{rel}: obj name {name} also built from {objs[name.lower()]}")
+            raise Refuse(f"{rel}: obj path {name} also built from {objs[name.lower()]}")
         objs[name.lower()] = rel
         jobs.append((u, s, rel, flags, out_dir / name))
     if out_dir.exists():
@@ -109,6 +122,7 @@ def build(src_root, out_dir, units_path=UNITS, config=None):
     out_dir.mkdir(parents=True)
     built, failures = [], []
     for u, s, rel, flags, obj in jobs:
+        obj.parent.mkdir(parents=True, exist_ok=True)
         ok, codes, text = msvc71.compile_one(Path(bindir), s, flags, obj, scratch=out_dir)
         if ok:
             built.append({"unit": u["name"], "source": rel, "obj": obj, "flags": " ".join(flags)})

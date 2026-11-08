@@ -22,13 +22,30 @@ class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
+struct Quaternion;           // NAME: proto-pdb:default.pdb
+struct AABox;                // NAME: proto-pdb:default.pdb
+struct Matrix;               // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     enum NodeOptions { DontDraw = 0x2 }; // NAME: proto-pdb:default.pdb
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
     void SetOption(unsigned int option, bool on, bool recurse);
+protected:
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
+
+    char field_4[0xA0];                // 0x04
 };
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
@@ -97,6 +114,9 @@ public:
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
     char field_24[0x28];               // 0x24
+
+protected:
+    SwampScript(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
@@ -114,16 +134,32 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line);
 
-// src proto-pdb:default.pdb FadeToBlack base UINode at 0x0, not modelled
-class FadeToBlack { // NAME: proto-pdb:default.pdb
+class UINode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
-    void Start(float sec);
+    UINode();
+    virtual void Update();
 
-    char field_0[0xD4];                // 0x00
+    char field_A4[0xD4 - 0xA4];        // 0xA4
+};
+DECOMP_SIZE_ASSERT(UINode, 0xD4);
+
+class FadeToBlack : public UINode { // NAME: proto-pdb:default.pdb
+public:
+    FadeToBlack();
+    void Start(float sec);
+    virtual void Update();
+    virtual void Render(const Matrix&) const;
+
     float _alpha;                      // 0xD4
     float _dt;                         // 0xD8
 };
 DECOMP_SIZE_ASSERT(FadeToBlack, 0xDC);
+
+// FUNCTION: USA 0x0005481D
+// NAME: proto-pdb:default.pdb
+FadeToBlack::FadeToBlack() : _alpha(0.0f), _dt(0.0f)
+{
+}
 
 // FUNCTION: USA 0x0005483F
 // NAME: proto-pdb:default.pdb
@@ -150,9 +186,22 @@ private:
 
 class KJDFinalCamera : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    KJDFinalCamera(SwampSceneNode* node);
     virtual void AnimationFinished();
+    virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
 };
 DECOMP_SIZE_ASSERT(KJDFinalCamera, 0x4C);
+
+// FUNCTION: USA 0x00054873
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match; wall: relink refuses `our ranges overlap at 0x00025012` (the vtable
+// this ctor emits brings ??_GKJDFinalCamera, which retail folds into the shared SwampScript-family ??_G 0x00025012)
+KJDFinalCamera::KJDFinalCamera(SwampSceneNode* node)
+    : SwampScript(node)
+{
+}
+#endif
 
 // FUNCTION: USA 0x0005488B
 // PROTOTYPE: PREVIEW 0x0044127A identical
@@ -202,7 +251,7 @@ public:
     void StopUVScroll() { _uvScrolling = false; }
     void SetUVScrollSpeed(float u, float v) { _uvScrollingSpeed.Set(u, v); }
 
-    char field_0[0xC3];                // 0x00
+    char field_A4[0xC3 - 0xA4];        // 0xA4
     bool _uvScrolling;                 // 0xC3
     char field_C4[0x1F8 - 0xC4];       // 0xC4
     Vector2 _uvScrollingSpeed;         // 0x1F8
@@ -331,6 +380,6 @@ void KosmoJustDessertsCutscene::AnimationFinished(unsigned int id)
 // NAME: proto-pdb:default.pdb
 SwampScript* KosmoJustDessertsCutscene::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("InsideKosmobot\\InsideKosmobotCutscenes.cpp", 61) KosmoJustDessertsCutscene(node);
 }

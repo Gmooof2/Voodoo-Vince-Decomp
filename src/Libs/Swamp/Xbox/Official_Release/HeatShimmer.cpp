@@ -19,9 +19,22 @@ struct AABox { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(AABox, 0x18);
 
+struct Quaternion; // NAME: proto-pdb:default.pdb
+struct Matrix;     // NAME: proto-pdb:default.pdb
+
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+protected:
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
 
     char field_4[0x6C - 0x4];          // 0x04
     AABox _BoundingBox;                // 0x6C
@@ -29,10 +42,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
+// FUNCTION: USA 0x000D0769
+// NAME: proto-pdb:default.pdb
 class HeatShimmer : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
-    virtual ~HeatShimmer();
+    virtual ~HeatShimmer() {}
     void SetEllipsoidRadius(const Vector3& ellipsoidRadius);
+    virtual void Render(const Matrix&) const;
 
     Vector3 _ellipsoidRadius;          // 0xA4
     char field_B0[0xE0 - 0xB0];        // 0xB0
@@ -52,4 +68,11 @@ void HeatShimmer::SetEllipsoidRadius(const Vector3& ellipsoidRadius)
     p->high.z = p->high.y = p->high.x = -3.402823466e+38F;
     p->AddPoint(ellipsoidRadius);
     p->AddPoint(Vector3(-ellipsoidRadius.x, -ellipsoidRadius.y, -ellipsoidRadius.z));
+}
+
+// !FAKE: c1xx front end; scaffold call; retail emits the HeatShimmer vtable and its scalar deleting dtor in this unit
+// (the ctor is not matched); this qualified call stores the vptr and odr-uses them instead (matched_set [[emitter]] row)
+void pin_emit_HeatShimmer_dtor(HeatShimmer* p)
+{
+    p->HeatShimmer::~HeatShimmer();
 }

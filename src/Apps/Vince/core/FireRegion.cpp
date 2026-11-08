@@ -59,13 +59,20 @@ protected:
     void RegisterSaveLoadVar(const SwampString& name, float* addr, float defaultval);
 
 public:
+    void UnRegisterFrameTick();
+
     char field_4[0x20 - 0x4];          // 0x04
     SwampSceneNode* _node;             // 0x20
     char field_24[0x4C - 0x24];        // 0x24
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
-class Vince { // NAME: proto-pdb:default.pdb
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~SwampSceneNode();
+};
+
+class Vince : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     void SetOnFire(float, bool);
 };
@@ -91,12 +98,17 @@ public:
 
 extern Globals gSettings; // NAME: proto-pdb:default.pdb
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class FireRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     FireRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode*);
     virtual void LeavingRegion(SwampSceneNode*);
     virtual void FrameTick();
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
 
     float _flameTime;                  // 0x4C
 };
@@ -110,10 +122,26 @@ void FireRegionMain::FrameTick()
     pManager->GetVince()->SetOnFire(_flameTime, true);
 }
 
+// FUNCTION: USA 0x001219BE
+// NAME: proto-pdb:default.pdb
+void FireRegionMain::LeavingRegion(SwampSceneNode* node)
+{
+    if (node == pManager->GetVince())
+        UnRegisterFrameTick();
+}
+
 // FUNCTION: USA 0x001219D5
 // PROTOTYPE: PREVIEW 0x0050A67F identical
 // NAME: proto-pdb:default.pdb
 FireRegionMain::FireRegionMain(SwampSceneNode* node) : SwampScript(node), _flameTime(1.0f)
 {
     RegisterSaveLoadVar("flameTime", &_flameTime, gSettings.GetMainstreetFlameTime());
+}
+
+// FUNCTION: USA 0x00121A2B
+// NAME: proto-pdb:default.pdb
+SwampScript* FireRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\core\\FireRegion.h", 13) FireRegionMain(node);
 }

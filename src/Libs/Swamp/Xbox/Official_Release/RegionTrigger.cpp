@@ -332,7 +332,9 @@ public:
 
 class SwampNodeManager { // NAME: proto-pdb:default.pdb
 public:
+    typedef SwampSceneNode* (*CreationFunc)();
     static SwampNodeManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
     SwampSceneNode* Create(const SwampString&) const;
     bool CanCreate(const SwampString&) const;
 };
@@ -380,6 +382,11 @@ public:
     Vector3 _saveScale;                // 0xF8
     SwampString _saveInstanceName;     // 0x104
     bool _enabled;                     // 0x120
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampSceneNode* creationFunc();
 };
@@ -423,7 +430,7 @@ void RegionTrigger::Set(const Vector3& origin, const Quaternion& rotation, const
     SetLocation(origin);
     SetRotation(rotation);
     _size = size;
-    // !FAKE: inliner; hand form of the by-value Quaternion inverse and norm, which /O1 keeps out of line (C0191);
+    // !FAKE: inliner; hand form of the by-value Quaternion inverse and norm; /O1 keeps them out of line (C0191);
     // stand-ins p, v1, tmp: p keeps the _size copy ahead of the loads, v1 sets the x87 pops (90.36 -> 100)
     const Quaternion* p = &GetRotation();
     float v1 = p->v.x * p->v.x + p->v.y * p->v.y + p->v.z * p->v.z + p->w * p->w;
@@ -516,25 +523,27 @@ RegionTrigger::~RegionTrigger()
 // NAME: proto-pdb:default.pdb
 SwampSceneNode* RegionTrigger::creationFunc()
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\libs\\swamp\\include/RegionTrigger.h", 24) RegionTrigger;
 }
 
 // FUNCTION: USA 0x000C9045
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 99.13, bytes mismatch (frame 0x48 vs 0x54: retail Vector3 slots from inlined by-value helpers our /O1 keeps out of line, C0125)
 void RegionTrigger::TestLineSegmentCollision(SwampSceneNode* node, const Vector3& start, const Vector3& end,
                                              bool testendonly) const
 {
-    // !FAKE: locals; stand-ins v0, v1 for the start-inside and end-inside flags retail holds in dl/cl and al (no PDB local)
+    // !FAKE: c2 register allocation; stand-in locals v0, v1 (no PDB local); retail holds the start-inside and end-inside flags in dl/cl and al
     bool v0;
     bool v1;
+    // !FAKE: c2 stack slots; REGION_OBB's PDB locals starttome/endtome hoisted to function scope: an address-taken
+    // local pins its whole scope, so these keep retail -0x24/-0x30 out of the other cases' slots (frame 0x54)
+    Vector3 starttome;
+    Vector3 endtome;
     if (!_enabled)
         return;
     switch (_shape) {
     case REGION_AABB:
-        // !FAKE: inliner; hand form of AABox::Contains, which /O1 keeps out of line (C0191)
+        // !FAKE: inliner; hand form of AABox::Contains; /O1 keeps it out of line (C0191)
         v0 = !testendonly && start.x >= _bounds.low.x && start.y >= _bounds.low.y && start.z >= _bounds.low.z && start.x <= _bounds.high.x &&
              start.y <= _bounds.high.y && start.z <= _bounds.high.z;
         v1 = end.x >= _bounds.low.x && end.y >= _bounds.low.y && end.z >= _bounds.low.z && end.x <= _bounds.high.x &&
@@ -549,13 +558,21 @@ void RegionTrigger::TestLineSegmentCollision(SwampSceneNode* node, const Vector3
         // !FAKE: inliner; hand form of the Vector3 operators and the by-value Quaternion::Apply (C0191, C0225); stand-ins tmp, v4, v2, v3
         Vector3 starttome(start.x - GetLocation().x, start.y - GetLocation().y, start.z - GetLocation().z);
         Vector3 movevect(end.x - start.x, end.y - start.y, end.z - start.z);
-        Vector3 tmp;
-        _unrot.Apply(starttome, tmp);
-        Vector3 startrel = tmp;
-        Vector3 v4;
-        _unrot.Apply(movevect, v4);
-        Vector3 moverel = v4;
-        float endrely = moverel.y + startrel.y;
+        // !FAKE: c2 stack slots; block-scoped tmp/v4 stand in for the inlined by-value Apply's local (short-lived slots:
+        // tmp shares moverel's -0x18, v4 intersectrel's -0x54)
+        Vector3 startrel;
+        {
+            Vector3 tmp;
+            _unrot.Apply(starttome, tmp);
+            startrel = tmp;
+        }
+        Vector3 moverel;
+        {
+            Vector3 v4;
+            _unrot.Apply(movevect, v4);
+            moverel = v4;
+        }
+        float endrely = startrel.y + moverel.y;
         if ((startrel.y < 0.0f && endrely >= 0.0f) || (startrel.y >= 0.0f && endrely < 0.0f)) {
             float v2 = startrel.y / fabs(moverel.y);
             Vector3 v3;
@@ -574,7 +591,7 @@ void RegionTrigger::TestLineSegmentCollision(SwampSceneNode* node, const Vector3
         break;
     }
     case REGION_SPHERE: {
-        // !FAKE: inliner; hand form of the Vector3 difference (C0191)
+        // !FAKE: inliner; hand form of the Vector3 difference; no before/after recorded (C0191)
         Vector3 startrel(start.x - GetLocation().x, start.y - GetLocation().y, start.z - GetLocation().z);
         Vector3 endrel(end.x - GetLocation().x, end.y - GetLocation().y, end.z - GetLocation().z);
         float rangesq = _size.x * _size.x;
@@ -589,14 +606,22 @@ void RegionTrigger::TestLineSegmentCollision(SwampSceneNode* node, const Vector3
     }
     case REGION_OBB: {
         // !FAKE: inliner; hand form of the Vector3 differences and the by-value Quaternion::Apply (C0191, C0225); stand-in tmp
-        Vector3 starttome(start.x - GetLocation().x, start.y - GetLocation().y, start.z - GetLocation().z);
-        Vector3 endtome(end.x - GetLocation().x, end.y - GetLocation().y, end.z - GetLocation().z);
-        Vector3 tmp;
-        _unrot.Apply(starttome, tmp);
-        Vector3 startrel = tmp;
-        _unrot.Apply(endtome, tmp);
-        Vector3 endrel = tmp;
-        // !FAKE: inliner; hand form of AABox::Contains, which /O1 keeps out of line (C0191)
+        starttome.Set(start.x - GetLocation().x, start.y - GetLocation().y, start.z - GetLocation().z);
+        endtome.Set(end.x - GetLocation().x, end.y - GetLocation().y, end.z - GetLocation().z);
+        // !FAKE: c2 stack slots; one block-scoped tmp per Apply, as the inlined by-value Apply's local (retail -0x48)
+        Vector3 startrel;
+        {
+            Vector3 tmp;
+            _unrot.Apply(starttome, tmp);
+            startrel = tmp;
+        }
+        Vector3 endrel;
+        {
+            Vector3 tmp;
+            _unrot.Apply(endtome, tmp);
+            endrel = tmp;
+        }
+        // !FAKE: inliner; hand form of AABox::Contains; /O1 keeps it out of line (C0191)
         v0 = !testendonly && startrel.x >= _bounds.low.x && startrel.y >= _bounds.low.y && startrel.z >= _bounds.low.z && startrel.x <= _bounds.high.x &&
              startrel.y <= _bounds.high.y && startrel.z <= _bounds.high.z;
         v1 = endrel.x >= _bounds.low.x && endrel.y >= _bounds.low.y && endrel.z >= _bounds.low.z && endrel.x <= _bounds.high.x &&
@@ -609,7 +634,7 @@ void RegionTrigger::TestLineSegmentCollision(SwampSceneNode* node, const Vector3
         break;
     }
     case REGION_VERT_CYLINDER: {
-        // !FAKE: inliner; hand form of the Vector3 difference (C0191)
+        // !FAKE: inliner; hand form of the Vector3 difference; no before/after recorded (C0191)
         Vector3 startrel(start.x - GetLocation().x, start.y - GetLocation().y, start.z - GetLocation().z);
         Vector3 endrel(end.x - GetLocation().x, end.y - GetLocation().y, end.z - GetLocation().z);
         float rangesq = _size.x * _size.x;
@@ -625,7 +650,6 @@ void RegionTrigger::TestLineSegmentCollision(SwampSceneNode* node, const Vector3
     }
     }
 }
-#endif
 
 // FUNCTION: USA 0x000C95C3
 // NAME: proto-pdb:default.pdb
@@ -650,10 +674,10 @@ void RegionManager::NotifyAllRegions(SwampScript* source, int message, void* dat
 // NAME: proto-pdb:default.pdb
 void RegionManager::NotifyMatchingRegions(const char* match, SwampScript* source, int message, void* data)
 {
-    // !FAKE: local; retail holds strlen(match) in ebx across the loop (no PDB local)
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail holds strlen(match) in ebx across the loop
     unsigned int len = strlen(match);
     for (std::multimap<SwampString, RegionTrigger*>::iterator rit = _regions.begin(); rit != _regions.end(); ++rit) {
-        // !FAKE: local; retail holds rit->second in esi across the compare (no PDB local)
+        // !FAKE: c2 register allocation; stand-in local (no PDB local); retail holds rit->second in esi across the compare
         RegionTrigger* trigger = rit->second;
         if (trigger && _strnicmp(rit->first.c_str(), match, len) == 0)
             trigger->GetScript()->Message(source, message, data);
@@ -663,7 +687,7 @@ void RegionManager::NotifyMatchingRegions(const char* match, SwampScript* source
 // FUNCTION: USA 0x000C9AE6
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 99.90, bytes mismatch (frame 0x34 vs 0x38: retail gives the Save() temp typeStrings' dead slot, ours shares the format temps' slot; 6 drafts)
+// best: match_one objdiff 99.90, bytes mismatch (frame 0x34 vs 0x38: retail gives the Save() temp typeStrings' dead slot, ours shares the format temps' slot; 6 drafts; 5.2 T12.c3: blocks do not split the pooled temp; a named SwampString local in a sibling block gets -0x1C but adds a lea, 99.43)
 void RegionTrigger::Save(SwampString& s)
 {
     const char* typeStrings[6] = { "Cube", "Plane", "Sphere", "Cube", "Cylinder", "Other" };
@@ -701,23 +725,33 @@ RegionManager::RegionManager()
 {
 }
 
+// FUNCTION: USA 0x000CA04F
+// NAME: proto-pdb:default.pdb
+RegionTrigger::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("RegionTrigger", creationFunc);
+}
+
 // FUNCTION: USA 0x000CA08B
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 98.36, bytes mismatch (loop GetZone order: retail calls trigger's first into ebx, cl always calls it->second's first; 11 drafts)
+// best: match_one objdiff 99.39, bytes mismatch +0x114 (loop GetZone order: retail calls trigger's first into ebx, cl always calls it->second's first, either operand order; 11 drafts; 5.2 T12.c3: if/else CanCreate form fixed the branch layout)
 RegionTrigger* RegionManager::Create(const SwampString& classname, const SwampString& instancename, BeepTDF* tdf)
 {
     // !FAKE: c1xx front end; neutral stand-in local; retail calls SwampNodeManager::Instance once and holds it in edi (no PDB local)
     const SwampNodeManager& v0 = SwampNodeManager::Instance();
     const SwampScriptManager& scriptMgr = SwampScriptManager::Instance();
     SwampString name = instancename + "region";
-    if (!v0.CanCreate(name))
-        name = classname + "region";
     RegionTrigger* trigger = 0;
     if (v0.CanCreate(name))
         trigger = (RegionTrigger*)v0.Create(name);
+    else {
+        name = classname + "region";
+        if (v0.CanCreate(name))
+            trigger = (RegionTrigger*)v0.Create(name);
+    }
     if (!trigger)
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__
         trigger = new("RegionTrigger.cpp", 406) RegionTrigger;
     trigger->SetName(classname);
     if (tdf)

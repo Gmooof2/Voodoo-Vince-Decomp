@@ -1,7 +1,7 @@
-# pin_rows literal copies (4.2 T5, D119): a literal row whose site conflict is accepted, one per line.
-# Format: 0x<VA><TAB><name as in symbols_pin.txt><TAB><reason>. Literals only (??_C@, __real@); hand-kept, LISTED.
-0x001C80D4	??_C@_08KKLAKCLE@counters?$AA@	retail VA also reached from a second proto literal of another name (4.2 T3)
-0x001CAE20	__real@40a00000	retail holds two copies of this literal (also 0x001CBB8C); sites reach both (4.2 T3)
-0x001CBC3C	??_C@_0O@MKBOPAMC@pauseCounters?$AA@	retail holds two copies of this literal (also 0x001C80D4); sites reach both (4.2 T3)
-0x001CBCC4	__real@3f800000	retail holds two copies of this literal (also 0x001D0C34); sites reach both (4.2 T3)
-0x001EF300	__real@40c3880000000000	retail VA reached from a proto literal of another value, its function identical with the pointer masked (4.2 T3)
+# pin_rows literal copies (4.2 T5, D119): a literal row whose site conflict is accepted, one per line; the waiver holds only while pin_rows computes the same conflict (5.1 T3).
+# Format: 0x<VA><TAB><name as in symbols_pin.txt><TAB><reason><TAB><conflict: sorted comma-joined r:0x<VA8> (retail dest != VA from the row's proto dests) / p:0x<VA8> (proto dest reaching VA, publics without the name)>. Literals only (??_C@, __real@); hand-kept, LISTED.
+0x001C80D4	??_C@_08KKLAKCLE@counters?$AA@	retail VA also reached from a second proto literal of another name (4.2 T3)	p:0x005B1674
+0x001CAE20	__real@40a00000	retail holds two copies of this literal (also 0x001CBB8C); sites reach both (4.2 T3)	r:0x001CBB8C
+0x001CBC3C	??_C@_0O@MKBOPAMC@pauseCounters?$AA@	retail holds two copies of this literal (also 0x001C80D4); sites reach both (4.2 T3)	r:0x001C80D4
+0x001CBCC4	__real@3f800000	retail holds two copies of this literal (also 0x001D0C34); sites reach both (4.2 T3)	r:0x001D0C34
+0x001EF300	__real@40c3880000000000	retail VA reached from a proto literal of another value, its function identical with the pointer masked (4.2 T3)	p:0x005D8100

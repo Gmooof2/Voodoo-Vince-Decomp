@@ -232,13 +232,37 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x10];               // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
+template<class T>
+class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ~ResourceHandle() { if (_Resource) --_Resource->_RefCount; }
+    T* _Resource;                      // 0x00
+};
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~CritterMain();
     int _state;                        // 0x4C
     char field_50[0x6C];               // 0x50
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
+// FUNCTION: USA 0x00087FFA
+// NAME: proto-pdb:default.pdb
 class DinoBossMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum State { // NAME: proto-pdb:default.pdb
@@ -276,7 +300,14 @@ private:
     void DamageVince(SwampSceneNode*);
     Critter* GetDino() { return static_cast<Critter*>(_node); }
 
-    char field_BC[0x34];               // 0xBC
+    ResourceHandle<AnimationResource> _hop; // 0xBC
+    ResourceHandle<AnimationResource> _chomp[2]; // 0xC0
+    ResourceHandle<AnimationResource> _tailAttack; // 0xC8
+    ResourceHandle<AnimationResource> _damage; // 0xCC
+    ResourceHandle<AnimationResource> _death; // 0xD0
+    ResourceHandle<AnimationResource> _chompQuick; // 0xD4
+    ResourceHandle<AnimationResource> _roarHigh; // 0xD8
+    char field_DC[0xF0 - 0xDC];        // 0xDC
     bool _spinNow;                     // 0xF0
     char field_F1[0x3];                // 0xF1
     Vector3 _destVince;                // 0xF4
@@ -357,7 +388,7 @@ void DinoBossMain::DamageVince(SwampSceneNode* pvince)
         break;
     }
     pvince->GetScript()->Message(this, MESSAGE_DAMAGE, &dsi);
-    // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference (C0191)
+    // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 difference; retail inlines it, no before/after recorded (C0191)
     const Vector3* v0 = &_node->GetWorldPosition();
     const Vector3* v1 = &pvince->GetWorldPosition();
     Vector3 diff;
@@ -370,6 +401,22 @@ void DinoBossMain::DamageVince(SwampSceneNode* pvince)
     diff.y = 2.0f;
     static_cast<Critter*>(pvince)->SetVelocity(diff);
 }
+
+inline void *__cdecl operator new(unsigned int, void *_Where)
+{
+    return (_Where);
+}
+
+#ifdef NON_MATCHING
+// best: ??_GDinoBossMain match_one objdiff 100.0, bytes match; wall: relink refuses `dinoboss.obj: data section
+// .rdata: 0 VAs from its symbols by name` (??_7DinoBossMain has no retail name; the ctor has none either)
+// !FAKE: c1xx front end; scaffold copy construction; retail emits ??_7DinoBossMain and its ??_G here from the ctor
+// (not matched yet, no retail name); the implicit copy ctor's vptr store emits them instead ([[emitter]] row)
+void pin_emit_DinoBossMain_vtable(void* p, DinoBossMain* s)
+{
+    new(p) DinoBossMain(*s);
+}
+#endif
 
 // FUNCTION: USA 0x000880A5
 // PROTOTYPE: PREVIEW 0x00474040 identical
@@ -405,7 +452,7 @@ void DinoBossMain::FrameTick()
     }
     if (_spinNow) {
         Vector3 mypos = _node->GetWorldPosition();
-        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 differences (C0191)
+        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 differences; retail inlines them, no before/after recorded (C0191)
         const Vector3* v0 = &_destVince;
         Vector3 diff;
         diff.x = v0->x - mypos.x;
@@ -430,7 +477,7 @@ void DinoBossMain::FrameTick()
             if (tmp != 0.0f) {
                 Quaternion hrot(Vector3(0.0f, 1.0f, 0.0f), tmp);
                 {
-                    // !FAKE: inliner; hand form of retail's inlined Quaternion product: inner-block copy, then a temporary (C0191)
+                    // !FAKE: inliner; hand form of retail's inlined Quaternion product, inner-block copy, then a temporary; retail inlines it, no before/after recorded (C0191)
                     Quaternion v2 = GetDino()->GetRotation();
                     v2 *= hrot;
                     _node->SetRotation(Quaternion(v2));
@@ -456,7 +503,7 @@ void DinoBossMain::AnimationFinished()
         ResetAttackTimer();
         break;
     case STATE_ROAR: {
-        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 scale and sum (C0191)
+        // !FAKE: inliner; pointer locals + hand form of retail's inlined Vector3 scale and sum; retail inlines them, no before/after recorded (C0191)
         const Vector3* v0 = &pManager->GetVince()->GetVelocity();
         Vector3 v1;
         v1.x = v0->x * 2.0f;
@@ -498,7 +545,7 @@ inline float atan2(float _Y, float _X)
 // PROTOTYPE: PREVIEW 0x0047437B identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 96.89, bytes mismatch (code shape matches; stack slot layout of Vector3 locals/temps differs, x87 keeps x not y in the velocity scale)
+// best: match_one objdiff 96.83, bytes mismatch first +0x188 (T12.c20: frame slot map now equals retail/PDB; only the velocity scale differs: x87 keeps x, retail stores x and keeps y; was 96.89 first +0x1D with slots off). Tried (no change): component/add order, ref/pointer stand-ins, float/double scale; ctor, inline operator*, by-value Apply forms change size. At stop (20, T12.c20); highest objdiff 98.67 = y-first add order, bytes off at +0x1D
 void DinoBossMain::TimerEvent(unsigned int timerid)
 {
     if (pManager->GetVince() == 0 || _state == STATE_DEATH)
@@ -509,9 +556,12 @@ void DinoBossMain::TimerEvent(unsigned int timerid)
     case TIMER_FINDVINCE:
         if (VinceOnMuseumFloor()) {
             {
-                // !FAKE: inliner; pointer local + hand form of retail's inlined Vector3 scale, block-scoped temp (C0191)
+                // !FAKE: inliner; pointer local + per-component hand form of retail's inlined Vector3 scale, block-scoped temp; T12.c20: per-component stores give retail's code size (ctor form 117 lines off), no other before/after (C0191)
                 const Vector3* v0 = &pManager->GetVince()->GetVelocity();
-                Vector3 v1(v0->x * 2.0f, v0->y * 2.0f, v0->z * 2.0f);
+                Vector3 v1;
+                v1.x = v0->x * 2.0f;
+                v1.y = v0->y * 2.0f;
+                v1.z = v0->z * 2.0f;
                 vincepos += v1;
             }
             Vector3 diff;
@@ -526,13 +576,13 @@ void DinoBossMain::TimerEvent(unsigned int timerid)
                 v2 -= 0.63f - v3;
             Vector3 loc;
             {
-                // !FAKE: inliner; hand form of retail's inlined by-value Quaternion::Apply, block-scoped temp (C0191)
+                // !FAKE: inliner; hand form of retail's inlined by-value Quaternion::Apply, block-scoped temp; retail inlines it, no before/after recorded (C0191)
                 Vector3 v5;
                 Quaternion(Vector3(0.0f, 1.0f, 0.0f), v2).Apply(diff, v5);
                 loc = v5;
             }
             {
-                // !FAKE: inliner; hand form of retail's inlined Vector3 sum, block-scoped temp (C0191)
+                // !FAKE: inliner; hand form of retail's inlined Vector3 sum, block-scoped temp; retail inlines it, no before/after recorded (C0191)
                 Vector3 v4;
                 v4.x = loc.x + mypos.x;
                 v4.y = loc.y + mypos.y;
@@ -558,24 +608,20 @@ void DinoBossMain::TimerEvent(unsigned int timerid)
         g_CameraManager->Find(g_CameraManager->_curCamName)->SetShakeFactor(0.35f, 0.5f);
         Vector3 loc = _node->GetWorldPosition();
         Vector3 offset;
-        // !FAKE: c1xx front end; neutral loop counter, no PDB local
+        // !FAKE: c1xx front end; neutral loop counter; no PDB local, no before/after recorded
         for (int v0 = 0; v0 < 20; v0++) {
             // !FAKE: c2 register allocation; neutral local; the angle lives on the x87 stack, no PDB local
             float v2 = BeepLib::RandomFloat(6.283185307179586);
             Quaternion qrot(Vector3(0.0f, 1.0f, 0.0f), v2);
             {
-                // !FAKE: inliner; hand form of retail's inlined by-value Quaternion::Apply, block-scoped temp (C0191)
+                // !FAKE: inliner; hand form of retail's inlined by-value Quaternion::Apply, block-scoped temp; retail inlines it, no before/after recorded (C0191)
                 Vector3 v3;
                 qrot.Apply(Vector3(0.0f, 0.0f, GetDino()->GetRadius() * 0.5f), v3);
                 offset = v3;
             }
             {
-                // !FAKE: inliner; hand form of retail's inlined Vector3 sum, block-scoped temp (C0191)
-                Vector3 v1;
-                v1.x = loc.x + offset.x;
-                v1.y = loc.y + offset.y;
-                v1.z = loc.z + offset.z;
-                Particle::LandDust(v1);
+                // !FAKE: inliner; hand form of retail's inlined Vector3 sum as a ctor temporary; T12.c20: a named sum local packed loc/v1 into retail-wrong slots, the temporary gives retail's frame map (C0191)
+                Particle::LandDust(Vector3(loc.x + offset.x, loc.y + offset.y, loc.z + offset.z));
             }
         }
         break;

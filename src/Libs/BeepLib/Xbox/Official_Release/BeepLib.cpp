@@ -2,7 +2,7 @@
 #include "../../../../include/decomp.h"
 #include <stdlib.h>
 #include <string.h>
-#pragma intrinsic(memset) // !FAKE: compiler directive; retail char_traits<char>::assign has the inline rep-stos memset form (match_one 19.78 -> 100.0); /Oi control also matches
+#pragma intrinsic(memset) // !FAKE: preprocessor; #pragma intrinsic(memset) compiler directive; retail char_traits<char>::assign has the inline rep-stos memset form (match_one 19.78 -> 100.0); /Oi control also matches
 
 extern "C" wchar_t* __cdecl wmemset(wchar_t* _S, wchar_t _C, unsigned int _N); // NAME: proto-pdb:default.pdb
 
@@ -134,16 +134,16 @@ public:
 template <class _Elem, class _Traits, class _Alloc>
 const typename basic_string<_Elem, _Traits, _Alloc>::size_type basic_string<_Elem, _Traits, _Alloc>::npos =
     (typename basic_string<_Elem, _Traits, _Alloc>::size_type)(-1);
-// !FAKE: decl-only specialization; retail calls the char copy ctor (0x00011753) out of line, keeps it unemitted here (C0231)
+// !FAKE: c1xx front end; decl-only specialization; retail calls the char copy ctor (0x00011753) out of line, keeps it unemitted here (C0231)
 template <> basic_string<char, char_traits<char>, allocator<char> >::basic_string(const basic_string<char, char_traits<char>, allocator<char> >& _Right);
-// !FAKE: decl-only specializations; retail calls _Eos (0x000111BA, 0x0001841B) out of line by name (C0231)
+// !FAKE: c1xx front end; decl-only specializations; retail calls _Eos (0x000111BA, 0x0001841B) out of line by name (C0231)
 template <> void basic_string<char, char_traits<char>, allocator<char> >::_Eos(size_type _Newsize);
 template <> void basic_string<unsigned short, char_traits<unsigned short>, allocator<unsigned short> >::_Eos(size_type _Newsize);
 template <class _Elem, class _Traits, class _Alloc>
 basic_string<_Elem, _Traits, _Alloc> operator+(const basic_string<_Elem, _Traits, _Alloc>& _Left, const basic_string<_Elem, _Traits, _Alloc>& _Right); // src proto-pdb:default.pdb operator+
-// !FAKE: decl-only specialization; retail calls char _Tidy (0x000111D6) out of line by name (C0231)
+// !FAKE: c1xx front end; decl-only specialization; retail calls char _Tidy (0x000111D6) out of line by name (C0231)
 template <> void basic_string<char, char_traits<char>, allocator<char> >::_Tidy(bool _Built, size_type _Newsize);
-// !FAKE: decl-only specialization; the dtor's wide _Tidy body is Onion's row (0x000184CB), keep it unemitted here (C0215)
+// !FAKE: c1xx front end; decl-only specialization; the dtor's wide _Tidy body is Onion's row (0x000184CB), keep it unemitted here (C0215)
 template <> void basic_string<unsigned short, char_traits<unsigned short>, allocator<unsigned short> >::_Tidy(bool _Built, size_type _Newsize);
 
 template <class _Ty, class _Ax = allocator<_Ty> >
@@ -212,7 +212,7 @@ template std::basic_string<unsigned short,std::char_traits<unsigned short>,std::
 // FUNCTION: USA 0x0003578B
 // PROTOTYPE: PREVIEW 0x00423EF6 identical
 // NAME: proto-pdb:default.pdb
-// !FAKE: full specialization with _Tidy(false, 0) expanded by hand (retail inlines it); naming _Tidy emitted its
+// !FAKE: inliner; full specialization with _Tidy(false, 0) expanded by hand; retail inlines it; naming _Tidy emitted its
 // wide body here, which is Onion's row 0x000184CB (4.3 T12 relink red); decl-only _Tidy gave a call (match_one 80.0)
 template <> std::basic_string<unsigned short, std::char_traits<unsigned short>, std::allocator<unsigned short> >::basic_string(const std::basic_string<unsigned short, std::char_traits<unsigned short>, std::allocator<unsigned short> >& _Right) // src proto-pdb:default.pdb basic_string
     : _Alval(_Right._Alval)

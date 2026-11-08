@@ -43,6 +43,7 @@ public:
 #endif
     iterator begin() { return _Myfirst; }
     iterator end() { return _Mylast; }
+    unsigned int size() const { return _Myfirst == 0 ? 0 : _Mylast - _Myfirst; }
     void push_back(const T& _Val);
     void clear() { _Tidy(); }
 
@@ -384,6 +385,12 @@ public:
 
 extern "C" int __cdecl sscanf(const char*, const char*, ...); // NAME: proto-pdb:default.pdb
 
+// FUNCTION: USA 0x000D5147
+// PROTOTYPE: PREVIEW 0x004B157C identical
+// NAME: proto-pdb:default.pdb
+// fold VA: the CollidableInfo and FFlyEffect::Entry aliases share these bytes (C0233)
+template unsigned int std::vector<MaterialManager::FixupInfo,std::allocator<MaterialManager::FixupInfo> >::size()const;
+
 // FUNCTION: USA 0x000D5311
 // PROTOTYPE: PREVIEW 0x004C08A2 identical
 // NAME: proto-pdb:default.pdb
@@ -393,7 +400,7 @@ MaterialResource::MaterialResource()
 {
     {
         TextureManager& mgr = *g_swamp->_textureManager;
-        // !FAKE: hand form of the inline GetDefaultTexture() copy (its body is another unit's row, C0244)
+        // !FAKE: inliner; hand form of the inline GetDefaultTexture() copy; its body is another unit's row (C0244)
         ResourceHandle<TextureResource> tmp;
         tmp._Resource = mgr._defaultTexture._Resource;
         if (tmp._Resource)
@@ -486,7 +493,7 @@ MaterialResource::MaterialResource(const SwampString& name, const GatorFile& gat
             _baseTex = mgr.Load(texname);
         }
         if (!_baseTex.IsValid()) {
-            // !FAKE: hand form of the inline GetDefaultTexture() copy (its body is another unit's row, C0244)
+            // !FAKE: inliner; hand form of the inline GetDefaultTexture() copy; its body is another unit's row (C0244)
             ResourceHandle<TextureResource> tmp;
             tmp._Resource = mgr._defaultTexture._Resource;
             if (tmp._Resource)
@@ -494,7 +501,7 @@ MaterialResource::MaterialResource(const SwampString& name, const GatorFile& gat
             _baseTex = tmp;
         }
     } else {
-        // !FAKE: hand form of the inline GetDefaultTexture() copy (its body is another unit's row, C0244)
+        // !FAKE: inliner; hand form of the inline GetDefaultTexture() copy; its body is another unit's row (C0244)
         ResourceHandle<TextureResource> tmp;
         tmp._Resource = mgr._defaultTexture._Resource;
         if (tmp._Resource)

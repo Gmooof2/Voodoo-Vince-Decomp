@@ -118,15 +118,18 @@ struct Matrix;  // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    SwampSceneNode(int type);
     virtual ~SwampSceneNode();                              // vtable+0x00
     virtual const AABox& GetBounds() const;                 // vtable+0x04
     virtual Vector3 GetWorldPosition() const;               // vtable+0x08
     virtual Quaternion GetWorldRotation() const;            // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);          // vtable+0x10
     virtual void Invalidate();                              // vtable+0x14
+protected:
     virtual void UpdateAnimation(unsigned int);             // vtable+0x18
     virtual void Update();                                  // vtable+0x1C
     virtual void Render(const Matrix&) const;               // vtable+0x20
+public:
 
     char field_4[0xA4 - 0x4];          // 0x04
 };
@@ -134,6 +137,7 @@ DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
 class SwampLightningFlash : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    SwampLightningFlash(unsigned int color, float fadeTimeUp, float fadeTimeDown);
     void SetScreenLocation(float x, float y);
     virtual void Update();                                  // vtable+0x1C
     virtual void Render(const Matrix&) const;               // vtable+0x20
@@ -159,11 +163,24 @@ void SwampLightningFlash::SetScreenLocation(float x, float y)
     _y = y;
 }
 
+// FUNCTION: USA 0x000D08E1
+// NAME: proto-pdb:default.pdb
+SwampLightningFlash::SwampLightningFlash(unsigned int color, float fadeTimeUp, float fadeTimeDown)
+    : SwampSceneNode(9), _color(color), _halfWidth(0.0f), _halfHeight(0.0f)
+{
+    _x = g_swamp->GetRenderer().GetScreenWidth() / 2;
+    _y = g_swamp->GetRenderer().GetScreenHeight() / 2;
+    _startTime = g_swamp->GetInput().GetGameTimeAccurate();
+    _peakTime = _startTime + fadeTimeUp;
+    _finishTime = _peakTime + fadeTimeDown;
+}
+
 // FUNCTION: USA 0x000D0973
 // PROTOTYPE: PREVIEW 0x004BBC2E identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 96.91, bytes mismatch (g_swamp load kept in edx across the branch; retail reloads it into eax)
+// 5.2 T12.c21 (at 20): renderer ref/pointer locals, if/else layouts, double stand-ins, inverted compares: g_swamp CSE'd in all (C0345)
 void SwampLightningFlash::Update()
 {
     // !FAKE: c2 x87 scheduling; stand-in local; the time is read once (no PDB local)

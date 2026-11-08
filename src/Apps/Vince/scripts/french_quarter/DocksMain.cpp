@@ -90,7 +90,11 @@ public:
 
 class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_LOADCOMPLETE = 0x14
+    };
     virtual void EnteringRegion(SwampSceneNode*);
+    virtual void Message(SwampScript*, int, void*);
     bool InRegion() const { return _inRegion; }
 
     bool _isZone;                      // 0x4C
@@ -127,6 +131,20 @@ void BigPigRegionMain::EnteringRegion(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* BigPigRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("docks\\DocksMain.cpp", 15) BigPigRegionMain(node);
+}
+
+class MainstreetRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual void Message(SwampScript* from, int message, void* data);
+};
+
+// FUNCTION: USA 0x00070505
+// PROTOTYPE: PREVIEW 0x00444272 identical
+// NAME: proto-pdb:default.pdb
+void MainstreetRegionMain::Message(SwampScript* from, int message, void* data)
+{
+    if (message != MESSAGE_LOADCOMPLETE)
+        LevelScript::Message(from, message, data);
 }

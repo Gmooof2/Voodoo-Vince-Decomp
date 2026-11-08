@@ -395,6 +395,24 @@ bool ZipFileHandler::Read(void* data, unsigned int bytes)
     return true;
 }
 
+// FUNCTION: USA 0x00037178
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); matched_set refuses: pin has no size in symbols_pin.txt (lift: size on the pin)
+bool ZipFileHandler::Write(const void* data, unsigned int bytes)
+{
+    return false;
+}
+#endif
+
+// FUNCTION: USA 0x0003717D
+// PROTOTYPE: PREVIEW 0x00425980 identical
+// NAME: proto-pdb:default.pdb
+void ZipFileHandler::SeekRelative(int offset)
+{
+    _currentpos += offset;
+}
+
 // FUNCTION: USA 0x000371B6
 // PROTOTYPE: PREVIEW 0x004258BA identical
 // NAME: proto-pdb:default.pdb
@@ -408,6 +426,14 @@ void AsyncFileHandler::Close()
     _pos = 0;
 }
 
+// FUNCTION: USA 0x00037291
+// PROTOTYPE: PREVIEW 0x00425976 identical
+// NAME: proto-pdb:default.pdb
+void ZipFileHandler::Seek(int location)
+{
+    _currentpos = location;
+}
+
 // FUNCTION: USA 0x00037323
 // PROTOTYPE: PREVIEW 0x00425A12 identical
 // NAME: proto-pdb:default.pdb
@@ -418,6 +444,35 @@ bool MemoryFileHandler::Read(void* data, unsigned int bytes)
     memcpy(data, (const char*)_data + _pos, bytes);
     _pos += bytes;
     return true;
+}
+
+// FUNCTION: USA 0x0003735F
+// PROTOTYPE: PREVIEW 0x00425A4E identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); matched_set refuses: pin has no size in symbols_pin.txt:4130 (lift: size 0x4 on the pin)
+unsigned int ZipFileHandler::Size()
+{
+    return _filesize;
+}
+#endif
+
+// FUNCTION: USA 0x00037363
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); matched_set refuses: pin has no size in symbols_pin.txt (lift: size on the pin)
+int ZipFileHandler::Pos()
+{
+    return _currentpos;
+}
+#endif
+
+// FUNCTION: USA 0x00037367
+// PROTOTYPE: PREVIEW 0x00425A56 identical
+// NAME: proto-pdb:default.pdb
+void ZipFileHandler::SeekFromEnd(int location)
+{
+    _currentpos = _filesize - location;
 }
 
 // FUNCTION: USA 0x00037374

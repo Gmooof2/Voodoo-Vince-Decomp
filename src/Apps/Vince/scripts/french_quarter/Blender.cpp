@@ -1,5 +1,9 @@
 // UNIT: src/Apps/Vince/scripts/french_quarter/Blender.cpp OBJ: Xbox\OfficialRelease\Blender.obj OPT: /O1 /Oy /Ob1
 #include "../../../../include/decomp.h"
+#include <string.h>
+// !FAKE: c2 intrinsic; file-scope pragma; retail inlines Matrix::Identity's memset as rep stosd in the VinceGiblets ctor
+// (cf. SwampLight.cpp:19, C0153)
+#pragma intrinsic(memset)
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
     Vector3() {}
@@ -42,6 +46,8 @@ DECOMP_SIZE_ASSERT(Vector4, 0x10);
 struct Matrix { // NAME: proto-pdb:default.pdb
     Matrix() {}
     Matrix(const Quaternion& q, const Vector3& t) { Rotation(q); row[3].Set(t); }
+    void Zero() { memset(this, 0, sizeof(Matrix)); }
+    void Identity() { Zero(); row[0].x = row[1].y = row[2].z = row[3].w = 1.0f; }
     void Rotation(const Quaternion&);
 
     Vector4 row[4];                    // 0x00
@@ -221,6 +227,17 @@ public:
         }
     };
 
+    vector()
+        : _Mybase()
+    {
+        _Buy(0);
+    }
+
+    ~vector()
+    {
+        _Tidy();
+    }
+
     size_type capacity() const
     {
         return (_Myfirst == 0 ? 0 : _Myend - _Myfirst);
@@ -257,6 +274,17 @@ public:
     iterator erase(iterator _First, iterator _Last);
 
 protected:
+    // !FAKE: c1xx front end; VC 7.1 <vector> _Buy cut after the capacity-0 return (the allocating tail is never
+    // reached from vector(), the only caller here); retail's vector() stores the three null pointers
+    bool _Buy(size_type _Capacity)
+    {
+        _Myfirst = 0, _Mylast = 0, _Myend = 0;
+        if (_Capacity == 0)
+            return (false);
+        return (true);
+    }
+
+    void _Tidy();
     void _Insert_n(iterator _Where, size_type _Count, const _Ty& _Val);
 
     pointer _Ufill(pointer _Ptr, size_type _Count, const _Ty &_Val)
@@ -291,6 +319,8 @@ template<class T>
 class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
     ~ResourceHandle() { if (_Resource) --_Resource->_RefCount; }
+    T& operator()() { return *_Resource; }
+    const T& operator()() const { return *_Resource; }
     T* _Resource;                      // 0x00
 };
 
@@ -301,6 +331,11 @@ template <class E, class T, class A> class basic_string {
 public:
     basic_string(const E* ptr);
     ~basic_string() { _Tidy(true); }
+    basic_string& operator=(const basic_string& _Right) { return (assign(_Right)); }
+    basic_string& assign(const basic_string& _Right) { return (assign(_Right, 0, npos)); }
+    basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
+
+    static const unsigned int npos;
 
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
@@ -309,6 +344,8 @@ private:
     char _pad00[0x1C];
 };
 }
+// VC 7.1 <xstring> out-of-class definition: npos folds to a constant push (C0322)
+template <class E, class T, class A> const unsigned int std::basic_string<E, T, A>::npos = (unsigned int)(-1);
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 class BeepTDF;               // NAME: proto-pdb:default.pdb
@@ -340,7 +377,12 @@ public:
 
 extern Globals gSettings; // NAME: proto-pdb:default.pdb
 
-class AABox;                 // NAME: proto-pdb:default.pdb
+struct AABox { // NAME: proto-pdb:default.pdb
+    Vector3 low;                       // 0x00
+    Vector3 high;                      // 0x0C
+};
+DECOMP_SIZE_ASSERT(AABox, 0x18);
+
 class SwampScript;           // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
@@ -361,8 +403,13 @@ public:
     SwampScript* GetScript() const;
     void InvalidateAllSubScripts();
     void SetScript(const SwampString&);
+    void SetName(const SwampString& name) { _Name = name; }
 
-    char field_4[0xA4 - 0x4];          // 0x04
+    char field_4[0x8 - 0x4];           // 0x04
+    SwampString _Name;                 // 0x08
+    char field_24[0x6C - 0x24];        // 0x24
+    AABox _BoundingBox;                // 0x6C
+    char field_84[0xA4 - 0x84];        // 0x84
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
@@ -405,20 +452,34 @@ DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
 
 class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
     char field_AC[0xB4 - 0xAC];        // 0xAC
 };
 DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
 
-class ModelResource;         // NAME: proto-pdb:default.pdb
+class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    unsigned int GetBoneCount() const;
+    const AABox& GetBounds() const;
+};
 
 class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
 public:
+    GatorNode(const ResourceHandle<ModelResource>& mh);
+    virtual ~GatorNode();
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
     virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
     void CalcBounds(unsigned int) const;
     Matrix GetBoneOrientation(int) const;
 
-    char field_B4[0x16C - 0xB4];       // 0xB4
+    ResourceHandle<ModelResource> _model; // 0xB4
+    char field_B8[0x16C - 0xB8];       // 0xB8
     std::vector<Matrix> _deformMatrices; // 0x16C
     char field_17C[0x200 - 0x17C];     // 0x17C
 };
@@ -494,10 +555,12 @@ public:
         bool active;                   // 0x4C
     };
 
+    VinceGiblets(const ResourceHandle<ModelResource>& mh);
     virtual void Update();
     void StartEmitting();
     void StopEmitting();
-    virtual ~VinceGiblets();
+    // implicit dtor: retail has no ??1VinceGiblets; ??_GVinceGiblets 0x000F4F4E inlines it (_giblets _Tidy + ??1GatorNode)
+    // with no vptr store; a declared `virtual ~VinceGiblets() {}` adds the store (47 B, overlaps DeathFX 0x000F4F77)
 
     std::vector<Giblet> _giblets;      // 0x200
     bool _emitting;                    // 0x210
@@ -728,6 +791,9 @@ private:
 };
 DECOMP_SIZE_ASSERT(BlenderWeaponMain, 0x180);
 
+// FUNCTION: USA 0x0007914B
+// PROTOTYPE: PREVIEW 0x0046515F ambiguous
+// NAME: proto-pdb:default.pdb
 class BlenderMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum State { // NAME: proto-pdb:default.pdb
@@ -752,7 +818,8 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     bool _vinceBlended;                // 0xBC
-    char field_BD[0xC4 - 0xBD];        // 0xBD
+    char field_BD[0xC0 - 0xBD];        // 0xBD
+    ResourceHandle<AnimationResource> _start; // 0xC0
     ResourceHandle<AnimationResource> _on; // 0xC4
     ResourceHandle<AnimationResource> _puree; // 0xC8
     SoundNode* _soundCycle;            // 0xCC
@@ -1043,12 +1110,28 @@ template void vector<VinceGiblets::Giblet>::resize(size_type, VinceGiblets::Gibl
 
 }
 
+// FUNCTION: USA 0x00078D86
+// NAME: proto-pdb:default.pdb
+VinceGiblets::VinceGiblets(const ResourceHandle<ModelResource>& mh) : GatorNode(mh)
+{
+    SetName("VinceGiblets");
+    _deformMatrices.resize(_model().GetBoneCount());
+    for (std::vector<Matrix>::iterator it = _deformMatrices.begin(); it != _deformMatrices.end(); ++it) {
+        // !FAKE: hand form of Matrix::Identity (D117); cl 13.10 /Os keeps the 4-store inline body out of line
+        it->Zero();
+        it->row[0].x = it->row[1].y = it->row[2].z = it->row[3].w = 1.0f;
+    }
+    _BoundingBox = _model().GetBounds();
+    _giblets.resize(_model().GetBoneCount());
+    _emitting = false;
+}
+
 // FUNCTION: USA 0x00078898
 // PROTOTYPE: PREVIEW 0x004648B1 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* BlenderWeaponMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("bakery\\Blender.cpp", 29) BlenderWeaponMain(node);
 }
 
@@ -1057,8 +1140,15 @@ SwampScript* BlenderWeaponMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceInBlender::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("bakery\\Blender.cpp", 234) VinceInBlender(node);
+}
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1BlenderMain@@UAE@XZ because this unit defines
+// the ctor (not matched yet); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_BlenderMain_dtor(BlenderMain* p)
+{
+    p->BlenderMain::~BlenderMain();
 }
 
 // FUNCTION: USA 0x00079177
@@ -1066,6 +1156,6 @@ SwampScript* VinceInBlender::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* BlenderMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\Blender.h", 14) BlenderMain(node);
 }

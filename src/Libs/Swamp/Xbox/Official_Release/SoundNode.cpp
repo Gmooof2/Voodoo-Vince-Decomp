@@ -465,7 +465,7 @@ void SoundNode::Invalidate()
 }
 
 namespace std {
-// !FAKE: explicit specialization with the VC 7.1 <xtree> body (C0233 Fix 1): emits the SoundNode* alias of the
+// !FAKE: linker COMDAT selection; explicit specialization with the VC 7.1 <xtree> body (C0233 Fix 1); emits the SoundNode* alias of the
 // fold-VA row 0x000B9037 (SwampSoundResource.cpp) as a byte-equal COMDAT; inline gives it pick-any selection (relink same() refuses NODUPLICATES)
 template <> inline void _Tree<_Tset_traits<SoundNode*, less<SoundNode*>, allocator<SoundNode*>, false> >::const_iterator::_Inc()
 {
@@ -481,7 +481,7 @@ template <> inline void _Tree<_Tset_traits<SoundNode*, less<SoundNode*>, allocat
     }
 }
 #ifndef NON_MATCHING
-// !FAKE: declaration-only (C0231 lever 1); retail calls _Distance by name from erase(key) 0x000C6110
+// !FAKE: c1xx front end; declaration-only (C0231 lever 1); retail calls _Distance by name from erase(key) 0x000C6110
 template <> void _Distance(_Tree<_Tset_traits<SoundNode*, less<SoundNode*>, allocator<SoundNode*>, false> >::iterator,
     _Tree<_Tset_traits<SoundNode*, less<SoundNode*>, allocator<SoundNode*>, false> >::iterator, unsigned int&);
 #endif

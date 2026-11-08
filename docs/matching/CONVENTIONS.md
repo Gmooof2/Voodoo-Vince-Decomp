@@ -81,6 +81,12 @@ int LocString_GetStringID(...)
   inliner, EH state); instrument = the source construct used (dummy local, temporary, reordered statement, cast,
   split expression); reason = the evidence (the attempt, the before/after `match_one` lines).
   `// !FAKE: c2 register allocation; dummy local; esi/edi swapped without it (match_one 97.1 -> 100.0)`
+- Attribution fields (D33; 4.5 gate review C2, defined 5.1 T6, R5.1-023): every `!FAKE` line carries all three,
+  non-empty, `;`-separated, on one line. Field 1 (kind) is a compiler pass (`c1xx ...`, `c2 ...`, `inliner`,
+  `EH state`, `linker ...`, `preprocessor`), or `retail string literal` (text copied from retail's strings, not a lever;
+  instrument e.g. `__FILE__/__LINE__ text`), or `provenance` (a neutral name stand-in, the construct itself plausibly
+  original). A reason with no evidence recorded reads `no before/after recorded`; a cookbook id is never the whole reason.
+- Stand-in locals take the neutral form ("Locals", section 7: `v<N>`, `tmp`, `i`, `p`), never a purpose name.
 - Marks every match-only construct the original author would not have written (D66: dummy locals, volatile locals).
   A `!FAKE` names a lever; it is never a cookbook reference (D33).
 - Forbidden, `!FAKE` or not (D116, was D79; Halo 2 "Do not" list): `__declspec(noinline)`, `__forceinline` or any attribute the

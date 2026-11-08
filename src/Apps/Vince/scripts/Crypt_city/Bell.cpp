@@ -25,14 +25,48 @@ public:
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
-class AnimationResource;     // NAME: proto-pdb:default.pdb
-class AnimationControl;      // NAME: proto-pdb:default.pdb
 class SwampScript;           // NAME: proto-pdb:default.pdb
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x8];                // 0x24
+    float _length;                     // 0x2C
+    char field_30[0x4];                // 0x30
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    T& operator()() { return *_Resource; }
+
     T* _Resource;                      // 0x00
 };
+
+class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef();
+    void SetAnimationTime(float time) { _time = time; }
+    float GetAnimationLength() const { return _anim._Resource->_length; }
+
+    ResourceHandle<AnimationResource> _anim; // 0x24
+    char field_28[0x10];               // 0x28
+    float _time;                       // 0x38
+    char field_3C[0x68 - 0x3C];        // 0x3C
+};
+DECOMP_SIZE_ASSERT(AnimationControl, 0x68);
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -132,15 +166,28 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
+// FUNCTION: USA 0x0006C1F2
+// NAME: proto-pdb:default.pdb
+// ??_GBellMain (alias ??_EBellMain) unmatched, no draft; wall: a virtual ??_G is emitted only with the class vtable, i.e. with its ctor
+// ??0BellMain 0x0006C10A (pin only, site-corr, not a candidate row) (C0320); match_one: `not defined in Bell.obj` (5.3 T6)
+// implicit ??1BellMain@@UAE@XZ, emitted through pin_emit_BellMain_dtor below
+// FUNCTION: USA 0x0006C20E
+// NAME: proto-pdb:default.pdb
 class BellMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    BellMain(SwampSceneNode* node);
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
 private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
     bool ReadyToOpenDoor();
 
     int _mirrors;                      // 0xBC
-    char field_C0[0xD8 - 0xC0];        // 0xC0 (_leftStrike .. _lantern; not reached)
+    ResourceHandle<AnimationResource> _leftStrike;  // 0xC0
+    ResourceHandle<AnimationResource> _rightStrike; // 0xC4
+    Critter* _ringers[2];              // 0xC8
+    int _nextRinger;                   // 0xD0
+    Critter* _lantern;                 // 0xD4
     bool _puzzleDone;                  // 0xD8
 };
 DECOMP_SIZE_ASSERT(BellMain, 0xDC);
@@ -164,13 +211,23 @@ private:
 };
 DECOMP_SIZE_ASSERT(BellRingerMain, 0xC4);
 
+// FUNCTION: USA 0x0006C681
+// NAME: proto-pdb:default.pdb
+// ??_GWheelPlatformAMain unmatched, no draft; fold-name wall: this VA is ??_GDoorExitMain (after ??0DoorExitMain 0x0006C614,
+// pin only) folded (8 ??_G names); the row's name is MainTunnel.obj's class; match_one: `not defined in Bell.obj` (C0320, 5.3 T6)
 class DoorExitMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_CLOSED = 0x0,
+        STATE_OPEN = 0x1
+    };
     DoorExitMain(SwampSceneNode* node);
+    virtual void Load(const BeepTDF& tdf);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+    Critter* GetDoor() { return (Critter*)_node; }
 
-    char field_BC[0xC0 - 0xBC];        // 0xBC (not reached)
+    ResourceHandle<AnimationResource> _open; // 0xBC
 };
 DECOMP_SIZE_ASSERT(DoorExitMain, 0xC0);
 
@@ -187,7 +244,7 @@ SwampString BellMain::Save()
 // NAME: proto-pdb:default.pdb
 SwampScript* BellRingerMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Bell.h", 56) BellRingerMain(node);
 }
 
@@ -207,8 +264,8 @@ bool BellMain::ReadyToOpenDoor()
 {
     int light;
     // !FAKE: c1xx front end; stand-in local; the PDB records no local, retail ends the string temporary before GetScript
-    Critter* lantern = pManager->Find("lantern");
-    lantern->GetScript()->Message(this, 0x14, &light); // src proto-pdb:default.pdb MESSAGE_LIGHTLEVEL
+    Critter* p = pManager->Find("lantern");
+    p->GetScript()->Message(this, 0x14, &light); // src proto-pdb:default.pdb MESSAGE_LIGHTLEVEL
     return _mirrors == 3 && light;
 }
 
@@ -236,6 +293,32 @@ void BellRingerMain::Message(SwampScript* source, int message, void* data)
     }
 }
 
+// FUNCTION: USA 0x0006C69D
+// PROTOTYPE: PREVIEW 0x00458985 identical
+// NAME: proto-pdb:default.pdb
+void DoorExitMain::Load(const BeepTDF& tdf)
+{
+    // !FAKE: c1xx front end; stand-in local; the PDB records no local, retail ends the string temporary before SetState
+    int state = tdf.GetIntRecord("state", 0);
+    SetState(state);
+    if (state == STATE_OPEN) {
+        // !FAKE: c1xx front end; temporary; the AddRef/SubRef copy needs a named handle, no PDB local (stand-in)
+        ResourceHandle<AnimationControl> tmp = GetDoor()->StartAnimation(_open, false, false);
+        tmp().SetAnimationTime(tmp().GetAnimationLength());
+    }
+}
+
+// FUNCTION: USA 0x0006C70D
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); gate pin_rows: ctor pin 0x0006C10A is site-corr, relocated through by this row (D102); lift = a disasm-/corr-verified ctor pin (5.3 T5)
+SwampScript* BellMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Bell.h", 11) BellMain(node);
+}
+#endif
+
 // FUNCTION: USA 0x0006C734
 // PROTOTYPE: PREVIEW 0x00458A1C identical
 // NAME: proto-pdb:default.pdb
@@ -244,7 +327,14 @@ void BellRingerMain::Message(SwampScript* source, int message, void* data)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* DoorExitMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Bell.h", 87) DoorExitMain(node);
 }
 #endif
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1BellMain@@UAE@XZ in this unit (its ??_G caller
+// sits with the unpinned ctor 0x0006C10A, not matched); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_BellMain_dtor(BellMain* p)
+{
+    p->BellMain::~BellMain();
+}

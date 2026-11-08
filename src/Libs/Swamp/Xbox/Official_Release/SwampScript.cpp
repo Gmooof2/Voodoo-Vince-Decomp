@@ -6,7 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
-    // !FAKE: inliner; hand form of the VC 7.1 ctor with _Tidy() inlined (_Tidy(true) stays out of line, C0245)
+    // !FAKE: inliner; hand form of the VC 7.1 ctor with _Tidy() inlined; _Tidy(true) stays out of line (C0245)
     basic_string() { _Myres = _BUF_SIZE - 1; _Eos(0); }
     basic_string(const E* ptr);
     basic_string(const basic_string& _Right);
@@ -318,7 +318,7 @@ void* operator new(unsigned int size, const char* file, int line);
 inline void* operator new(unsigned int, void* p) { return p; }
 
 class SwampScript { // NAME: proto-pdb:default.pdb
-    // !FAKE: access only; GetGenericScript constructs through the protected ctor (friendship not in the PDB TPI)
+    // !FAKE: c1xx front end; friend declaration (access only); GetGenericScript constructs through the protected ctor (friendship not in the PDB TPI)
     friend class SwampScriptManager;
 public:
     struct QueuedMessage;              // NAME: proto-pdb:default.pdb
@@ -496,7 +496,7 @@ template unsigned int std::vector<SwampScript::SaveLoadVar,std::allocator<SwampS
 // FUNCTION: USA 0x000AB638
 // PROTOTYPE: PREVIEW 0x0049646A identical
 // NAME: proto-pdb:default.pdb
-// !FAKE: c2 regalloc; inline drops the same-unit register summary, so the _Tree rows 0x000AB73E/0x000AC0F0 save esi/edi across the call as retail does (C0222)
+// !FAKE: c2 register allocation; inline operator<; inline drops the same-unit register summary, so the _Tree rows 0x000AB73E/0x000AC0F0 save esi/edi across the call as retail does (C0222)
 inline bool operator<(const SwampScriptManager::ScriptTimerEvent& t0, const SwampScriptManager::ScriptTimerEvent& t1)
 {
     return t0.absTime < t1.absTime;
@@ -504,26 +504,30 @@ inline bool operator<(const SwampScriptManager::ScriptTimerEvent& t0, const Swam
 
 // FUNCTION: USA 0x000AB654
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 94.97895, bytes mismatch (cl sorts the dot-product terms y,z,x whatever the source order; retail x,z,y and z,y,x; v2 not held in st(1); return true placed before false)
 bool SwampScript::CheckActivationRange(const Vector3& vincePos, const Vector3& vinceDir, float range) const
 {
     Vector3 objNormal = _node->GetWorldFacing();
     // !FAKE: inliner; named Vector3 v1, pointer local p, float v2; hand form of the plane distance (C0191, C0214)
     Vector3 v1(-objNormal.x, -objNormal.y, -objNormal.z);
     const Vector3* p = &_node->GetWorldPosition();
-    float v2 = v1.y * p->y + v1.z * p->z + v1.x * p->x;
-    if ((objNormal.z * vincePos.z + objNormal.y * vincePos.y + objNormal.x * vincePos.x) + v2 <= 0.0f
-        || objNormal.x * vinceDir.x + objNormal.y * vinceDir.y + objNormal.z * vinceDir.z > -0.75f)
+    float v2 = v1.x * p->x + v1.y * p->y + v1.z * p->z;
+    // !FAKE: c2 register allocation; reference local v4; v2 held in st(1) (fadd st(1), fstp st(0)) only with it (probe 232 B -> 234 B)
+    const float& v4 = v2;
+    // !FAKE: c2 register allocation; product stand-ins v5 and v6; term orders x,z,y and z,y,x only with them (match_one 99.96 -> 100.0)
+    float v5 = objNormal.x * vincePos.x;
+    if ((v5 + objNormal.z * vincePos.z + objNormal.y * vincePos.y) + v4 <= 0.0f)
+        return false;
+    float v6 = objNormal.z * vinceDir.z;
+    // !FAKE: c2 block layout; split expression (two ifs, no ||); one || put return true before the shared false
+    if (v6 + objNormal.y * vinceDir.y + objNormal.x * vinceDir.x > -0.75f)
         return false;
     // !FAKE: inliner; pointer local p and named Vector3 v3; hand form of the distance vector (C0191)
     p = &_node->GetWorldPosition();
     Vector3 v3(vincePos.x - p->x, vincePos.y - p->y, vincePos.z - p->z);
-    if (v3.x * v3.x + v3.y * v3.y + v3.z * v3.z <= range * range)
-        return true;
-    return false;
+    if (v3.x * v3.x + v3.y * v3.y + v3.z * v3.z > range * range)
+        return false;
+    return true;
 }
-#endif
 
 // FUNCTION: USA 0x000AB932
 // NAME: proto-pdb:default.pdb
@@ -778,7 +782,7 @@ SwampScript::~SwampScript()
 // NAME: proto-pdb:default.pdb
 SwampScript* SwampScriptManager::GetGenericScript(SwampSceneNode* node) const
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     return new("SwampScript.cpp", 495) SwampScript(node);
 }
 
@@ -859,7 +863,7 @@ SwampScript* SwampScriptManager::Create(const SwampString& name, SwampSceneNode*
     // !FAKE: c1xx front end; neutral local v1; retail re-tests the original node after creating one (register-held)
     SwampSceneNode* v1 = node;
     if (!node) {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
         v1 = new("SwampScript.cpp", 428) SwampSceneNode(0);
         v1->SetName(name);
         g_swamp->GetScene().AddNode(v1, 0);
@@ -1025,7 +1029,6 @@ template std::_Tree_nod<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,s
 // NAME: proto-pdb:default.pdb
 template std::pair<std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::iterator,bool> std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,std::less<SwampScriptManager::ScriptTimerEvent>,std::allocator<SwampScriptManager::ScriptTimerEvent>,1> >::insert(SwampScriptManager::ScriptTimerEvent const &);
 
-#ifdef NON_MATCHING
 class exception { // NAME: proto-pdb:default.pdb
 public:
     exception();
@@ -1069,8 +1072,4 @@ template <class T, class A> void list<T, A>::_Incsize(unsigned int _Count)
 // FUNCTION: USA 0x000ABD81
 // PROTOTYPE: PREVIEW 0x00496BF8 identical
 // NAME: proto-pdb:default.pdb
-// best: match_one objdiff 100, bytes match (4.3 T12.c16); relink wall (4.4 T4.c6): throw data now pinned, but our
-// .xdata$x __CT/__CTA3/__TI3 length_error (0x001FCF80..0x001FCFBC) and EvilVince.obj .xdata$x (0x001FD8A8) enclose
-// retail bytes: "retail bytes between two of our .xdata$x sections" (relink.py:1143-1145)
 template void std::list<SwampScript::QueuedMessage,std::allocator<SwampScript::QueuedMessage> >::_Incsize(unsigned int);
-#endif

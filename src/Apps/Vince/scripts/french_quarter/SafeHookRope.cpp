@@ -123,10 +123,16 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
 
     int _state;                        // 0x4C
     char field_50[0x6C];               // 0x50
@@ -150,6 +156,8 @@ class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
+    ResourceHandle& operator=(const ResourceHandle& other);
     ~ResourceHandle()
     {
         if (_Resource)
@@ -161,6 +169,23 @@ public:
 
 class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
 };
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x18];                // 0x00
+    AnimationManager* GetAnimationManager() { return _animationManager; }
+    AnimationManager* _animationManager; // 0x18
+};
+
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
 class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
@@ -255,7 +280,7 @@ struct Quaternion { // NAME: proto-pdb:default.pdb
     Quaternion(const Vector3& axis, float angle) { Set(axis, angle); }
     void Set(const Vector3&, float);
     void Apply(const Vector3&, Vector3&) const;
-    // !FAKE: inliner; hand form of the inline by-value Apply overload (C0191)
+    // !FAKE: inliner; hand form of the inline by-value Apply overload; no before/after recorded (C0191)
     Vector3 Apply(const Vector3& v) const { Vector3 r; Apply(v, r); return r; }
 
     Vector3 v;                         // 0x00
@@ -297,6 +322,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(DamageSourceInfo, 0x40);
 
+// FUNCTION: USA 0x0007E4C7
+// NAME: proto-pdb:default.pdb
 // FUNCTION: USA 0x0007E4E3
 // PROTOTYPE: PREVIEW 0x0046A3ED identical
 // NAME: proto-pdb:default.pdb
@@ -324,11 +351,25 @@ private:
     ResourceHandle<AnimationResource> _idle; // 0xC8
     ResourceHandle<AnimationResource> _drop; // 0xCC
     ResourceHandle<AnimationResource> _lift; // 0xD0
-    char field_D4[0xD8 - 0xD4];        // 0xD4
+    bool field_D4;                     // 0xD4
+    char field_D5[0xD8 - 0xD5];        // 0xD5
     Vector3 _X;                        // 0xD8
     bool _vinceWasCollidable;          // 0xE4
 };
 DECOMP_SIZE_ASSERT(SafeHookRopeMain, 0xE8);
+
+// FUNCTION: USA 0x0007E3AF
+// PROTOTYPE: PREVIEW 0x0046A2B9 identical
+// NAME: proto-pdb:default.pdb
+SafeHookRopeMain::SafeHookRopeMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _idle = g_swamp->GetAnimationManager()->Load("safeHookRope_idle");
+    _drop = g_swamp->GetAnimationManager()->Load("safeHookRope_drop");
+    _lift = g_swamp->GetAnimationManager()->Load("safeHookRope_hitLift");
+    field_D4 = true;
+    _state = STATE_UP;
+    ((GatorNode*)_node)->StartAnimation(_idle, false, false);
+}
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1SafeHookRopeMain@@UAE@XZ in this unit (no
 // matched function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
@@ -413,11 +454,11 @@ void SafeHookRopeMain::DoCrash()
         // !FAKE: c2 x87 evaluation order; neutral local v4; retail calls RandomFloat before the axis temp
         float v4 = BeepLib::RandomFloat(6.283185307179586);
         Quaternion qrot(Vector3(0.0f, 1.0f, 0.0f), v4);
-        // !FAKE: inliner; hand form of the inline by-value Quaternion::Apply plus its copy (C0191)
+        // !FAKE: inliner; hand form of the inline by-value Quaternion::Apply plus its copy; no before/after recorded (C0191)
         Vector3 tmp;
         qrot.Apply(Vector3(0.0f, 0.0f, ((CollidableCylinder*)_node)->GetRadius()), tmp);
         Vector3 offset(tmp);
-        // !FAKE: inliner; hand form of the inline Vector3 sum (no PDB operator+)
+        // !FAKE: inliner; hand form of the inline Vector3 sum; no PDB operator+, no before/after recorded
         Vector3 v1;
         v1.x = offset.x + p->x;
         v1.y = offset.y + p->y;
@@ -453,7 +494,7 @@ void SafeHookRopeMain::DoCrash()
 // NAME: proto-pdb:default.pdb
 SwampScript* SafeHookRopeMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\docks\\SafeHookRope.h", 11) SafeHookRopeMain(node);
 }
 

@@ -1,4 +1,10 @@
 // UNIT: src/Libs/Swamp/Xbox/Official_Release/SwampDebugGeometry.cpp OBJ: Xbox\Official_Release\SwampDebugGeometry.obj OPT: /O1 /Oy
+// !FAKE: c2 intrinsics; file-scope pragma; retail inlines fsin/fcos in SwampDebugGeometry::AddSphere under /O1 /Oy;
+// the CRT sin/cos declared first so the pragma precedes <math.h> (its sin(float) inline then gets fsin, else call _sin)
+extern "C" double __cdecl sin(double);
+extern "C" double __cdecl cos(double);
+#pragma intrinsic(sin, cos)
+#include <math.h>
 #include "../../../../include/decomp.h"
 
 inline void* __cdecl operator new(unsigned int, void* _Where) throw() { return (_Where); }
@@ -8,8 +14,9 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
     Vector3() {}
     Vector3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
     unsigned int GetRGB() const;
+    void Normalize();
 
-    float x;                           // 0x00
+    float x;                          // 0x00
     float y;                           // 0x04
     float z;                           // 0x08
 };
@@ -68,6 +75,8 @@ public:
 
 class GeometryNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    GeometryNode();
+    virtual ~GeometryNode();
     void SetVertices(const Vertex*, int);
     void SetIndices(const unsigned short*, int);
     void SetPrimitives(_D3DPRIMITIVETYPE type, int num)
@@ -88,7 +97,6 @@ DECOMP_SIZE_ASSERT(GeometryNode, 0xBC);
 class DebugGeometryNode : public GeometryNode { // NAME: proto-pdb:default.pdb
 public:
     DebugGeometryNode();
-    virtual ~DebugGeometryNode();
     void SetEndTime(float t) { _endTime = t; }
 
     bool _enableZ;                     // 0xBC
@@ -135,7 +143,14 @@ template <class _Ty1, class _Ty2> struct pair {
 };
 template <class T, class A = allocator<T> > class vector {
 public:
+    vector() : _Myfirst(0), _Mylast(0), _Myend(0) {}
+    ~vector() { _Tidy(); }
     unsigned int size() const { return (_Myfirst == 0 ? 0 : _Mylast - _Myfirst); }
+    T& operator[](unsigned int _Pos) { return (*(_Myfirst + _Pos)); }
+    void push_back(const T& _Val);
+
+protected:
+    void _Tidy();
 
 private:
     char _Alval;                       // 0x00
@@ -260,13 +275,19 @@ public:
 };
 DECOMP_SIZE_ASSERT(LevelStats, 0x2C);
 
+extern "C" const unsigned int D3DPRIMITIVETOVERTEXCOUNT[11][2]; // NAME: proto-pdb:default.pdb
+extern "C" void __stdcall D3DDevice_DrawVertices(_D3DPRIMITIVETYPE, unsigned int, unsigned int); // NAME: proto-pdb:default.pdb
+
 class SwampRenderer { // NAME: proto-pdb:default.pdb
 public:
     long SetIndices(D3DIndexBuffer*);
+    void DrawPrimitive(_D3DPRIMITIVETYPE PrimitiveType, unsigned int StartVertex, unsigned int PrimitiveCount) const;
 
     char field_0[0x48];                // 0x00
     D3DIndexBuffer* _CurrentIB;        // 0x48
-    char field_4C[0x38C - 0x4C];       // 0x4C
+    char field_4C[0x388 - 0x4C];       // 0x4C
+    // !FAKE: mutable: the const DrawPrimitive adds to it (retail 0x000D3AF7); the PDB records no mutable flag
+    mutable unsigned int _primitivesDrawn; // 0x388
 };
 DECOMP_SIZE_ASSERT(SwampRenderer, 0x38C);
 
@@ -280,12 +301,20 @@ public:
     GeometryNode* AddBox(const Vector3& loc, float width, float height, float depth, const Vector3& color, float duration);
     GeometryNode* AddRotatedBox(const Vector3& loc, const Quaternion& rot, float width, float height, float depth, const Vector3& color, float duration);
     GeometryNode* AddPlaneSection(const Vector3& loc, const Quaternion& rot, const Vector3& scale, const Vector3& color, float duration);
+    GeometryNode* AddSphere(const Vector3& loc, float radius, const Vector3& color, float duration);
+    GeometryNode* AddCylinder(const Vector3& loc, float height, float radius, bool capped, const Vector3& color, float duration);
 
     std::set<DebugGeometryNode*> _nodes; // 0x00
     std::set<DebugGeometryNode*> _global_bsp_nodes; // 0x0C
     BSP* _global_bsp;                  // 0x18
 };
 DECOMP_SIZE_ASSERT(SwampDebugGeometry, 0x1C);
+
+// FUNCTION: USA 0x000D39DE
+// NAME: proto-pdb:default.pdb
+DebugGeometryNode::DebugGeometryNode() : _enableZ(false), _endTime(0.0f)
+{
+}
 
 // FUNCTION: USA 0x000D39FF
 // PROTOTYPE: PREVIEW 0x004BED12 identical
@@ -313,6 +342,16 @@ long SwampRenderer::SetIndices(D3DIndexBuffer* ib)
         D3DDevice_SetIndices(ib, 0);
     }
     return 0;
+}
+
+// FUNCTION: USA 0x000D3AF3
+// PROTOTYPE: PREVIEW 0x004BEDF3 identical
+// NAME: proto-pdb:default.pdb
+void SwampRenderer::DrawPrimitive(_D3DPRIMITIVETYPE PrimitiveType, unsigned int StartVertex, unsigned int PrimitiveCount) const
+{
+    _primitivesDrawn += PrimitiveCount;
+    D3DDevice_DrawVertices(PrimitiveType, StartVertex,
+        D3DPRIMITIVETOVERTEXCOUNT[PrimitiveType][0] * PrimitiveCount + D3DPRIMITIVETOVERTEXCOUNT[PrimitiveType][1]);
 }
 
 // FUNCTION: USA 0x000D3B3A
@@ -376,8 +415,8 @@ GeometryNode* SwampDebugGeometry::AddBox(const Vector3& loc, float width, float 
         v[i].color = color.GetRGB();
     unsigned short indices[14] = { 1, 5, 2, 6, 7, 5, 4, 1, 0, 2, 3, 7, 0, 4 };
     {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
-        // !FAKE: c2 register allocation; neutral stand-in v0 holds the node in esi, gn is the block-scoped home
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: c2 register allocation; neutral stand-in v0, block-scoped home gn; v0 holds the node in esi, gn is the block-scoped home
         // in the width slot that the reference argument reads (C0221)
         DebugGeometryNode* v0 = new ("SwampDebugGeometry.cpp", 0x13D) DebugGeometryNode;
         DebugGeometryNode* gn = v0;
@@ -427,8 +466,8 @@ GeometryNode* SwampDebugGeometry::AddRotatedBox(const Vector3& loc, const Quater
         v[i].color = color.GetRGB();
     unsigned short indices[14] = { 1, 5, 2, 6, 7, 5, 4, 1, 0, 2, 3, 7, 0, 4 };
     {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
-        // !FAKE: c2 register allocation; neutral stand-in v0 holds the node in esi, gn is the block-scoped home
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: c2 register allocation; neutral stand-in v0, block-scoped home gn; v0 holds the node in esi, gn is the block-scoped home
         // in the width slot that the reference argument reads (C0221)
         DebugGeometryNode* v0 = new ("SwampDebugGeometry.cpp", 0x166) DebugGeometryNode;
         DebugGeometryNode* gn = v0;
@@ -459,7 +498,7 @@ GeometryNode* SwampDebugGeometry::AddPlaneSection(const Vector3& loc, const Quat
     corners[3] = Vector3(-halfScale.x, 0.0f, -halfScale.z);
     Matrix r;
     r.Rotation(rot);
-    // !FAKE: inliner; hand form of retail's inlined translation-row store (Matrix::Translation, out of line in
+    // !FAKE: inliner; hand form of retail's inlined translation-row store; Matrix::Translation is out of line in
     // SwampMatrix.cpp, also writes the identity rows)
     r.row[3].x = loc.x;
     r.row[3].y = loc.y;
@@ -472,8 +511,8 @@ GeometryNode* SwampDebugGeometry::AddPlaneSection(const Vector3& loc, const Quat
     }
     v[4] = v[0];
     {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
-        // !FAKE: c2 register allocation; neutral stand-in v0 holds the node in esi, gn is the block-scoped home
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: c2 register allocation; neutral stand-in v0, block-scoped home gn; v0 holds the node in esi, gn is the block-scoped home
         // in the scale slot that the reference argument reads (C0221)
         DebugGeometryNode* v0 = new ("SwampDebugGeometry.cpp", 0x293) DebugGeometryNode;
         DebugGeometryNode* gn = v0;
@@ -492,4 +531,183 @@ GeometryNode* SwampDebugGeometry::AddPlaneSection(const Vector3& loc, const Quat
 SwampDebugGeometry::SwampDebugGeometry()
 {
     _global_bsp = 0;
+}
+
+// FUNCTION: USA 0x000D4AE4
+// PROTOTYPE: PREVIEW 0x004C0054 identical
+// NAME: proto-pdb:default.pdb
+GeometryNode* SwampDebugGeometry::AddSphere(const Vector3& loc, float radius, const Vector3& color, float duration)
+{
+    Vertex v;
+    v.color = color.GetRGB();
+    float v1 = 0.0f;
+    std::vector<Vertex> verts;
+    std::vector<unsigned short> indices;
+    int numTris = 0;
+    for (int i = 0; i < 16; i++) {
+        float theta = 0.0f;
+        int v2 = -1;
+        int lvi2 = -1;
+        for (int j = 0; j <= 16; j++) {
+            if (j == 16)
+                theta = 0.0f;
+            float x = -sin(theta) * sin(v1);
+            float y = cos(v1);
+            float z = cos(theta) * sin(v1);
+            v.norm.x = x;
+            v.norm.y = y;
+            v.norm.z = z;
+            v.norm.Normalize();
+            v.loc.x = x * radius;
+            v.loc.y = y * radius;
+            v.loc.z = z * radius;
+            int v3 = verts.size();
+            verts.push_back(v);
+            x = -sin(theta) * sin(v1 + 0.19634955f);
+            y = cos(v1 + 0.19634955f);
+            z = cos(theta) * sin(v1 + 0.19634955f);
+            v.norm.x = x;
+            v.norm.y = y;
+            v.norm.z = z;
+            v.norm.Normalize();
+            v.loc.x = x * radius;
+            v.loc.y = y * radius;
+            v.loc.z = z * radius;
+            int v4 = verts.size();
+            verts.push_back(v);
+            if (v2 != -1) {
+                indices.push_back(v2);
+                indices.push_back(v3);
+                indices.push_back(v4);
+                indices.push_back(v2);
+                indices.push_back(v4);
+                indices.push_back(lvi2);
+                numTris += 2;
+            }
+            theta += 0.39269909f;
+            v2 = v3;
+            lvi2 = v4;
+        }
+        v1 += 0.19634955f;
+    }
+    {
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: c2 register allocation; neutral stand-in v0, block-scoped home gn; v0 holds the node in esi, gn is the block-scoped home
+        // in the radius slot that the reference argument reads (C0221)
+        DebugGeometryNode* v0 = new ("SwampDebugGeometry.cpp", 0x1C4) DebugGeometryNode;
+        DebugGeometryNode* gn = v0;
+        v0->SetEndTime(duration >= 0.0f ? duration + g_swamp->GetInput().GetGameTime() : duration);
+        v0->SetLocation(loc);
+        v0->SetOption(0x80, true, false);
+        v0->SetVertices(&verts[0], verts.size());
+        v0->SetIndices(&indices[0], indices.size());
+        v0->SetPrimitives(D3DPT_TRIANGLELIST, numTris);
+        g_swamp->_scene->AddNode(v0, 0);
+        _nodes.insert(gn);
+        return v0;
+    }
+}
+
+// FUNCTION: USA 0x000D4DB1
+// PROTOTYPE: PREVIEW 0x004C0321 identical
+// NAME: proto-pdb:default.pdb
+GeometryNode* SwampDebugGeometry::AddCylinder(const Vector3& loc, float height, float radius, bool capped, const Vector3& color, float duration)
+{
+    Vertex v;
+    v.color = color.GetRGB();
+    float half_height = height * 0.5f;
+    std::vector<Vertex> verts;
+    std::vector<unsigned short> indices;
+    float dh = height / 8;
+    int numTris = 0;
+    float y = dh - half_height;
+    for (int i = 0; i < 8; i++) {
+        float theta = 0.0f;
+        int v2 = -1;
+        int lvi2 = -1;
+        for (int j = 0; j <= 16; j++) {
+            if (j == 16)
+                theta = 0.0f;
+            float x = -sin(theta);
+            float z = cos(theta);
+            v.norm.x = x;
+            v.norm.y = 0.0f;
+            v.norm.z = z;
+            v.norm.Normalize();
+            v.loc.x = x * radius;
+            v.loc.y = y;
+            v.loc.z = z * radius;
+            int v3 = verts.size();
+            verts.push_back(v);
+            x = -sin(theta);
+            z = cos(theta);
+            v.norm.x = x;
+            v.norm.y = 0.0f;
+            v.norm.z = z;
+            v.norm.Normalize();
+            v.loc.x = x * radius;
+            v.loc.y = y - dh;
+            v.loc.z = z * radius;
+            int v4 = verts.size();
+            verts.push_back(v);
+            if (v2 != -1) {
+                if (capped) {
+                    if (i == 0) {
+                        v.norm.x = 0.0f;
+                        v.norm.y = -1.0f;
+                        v.norm.z = 0.0f;
+                        v.loc.x = 0.0f;
+                        v.loc.y = -half_height;
+                        v.loc.z = 0.0f;
+                        int index = verts.size();
+                        verts.push_back(v);
+                        indices.push_back(index);
+                        indices.push_back(lvi2);
+                        indices.push_back(v4);
+                        numTris++;
+                    } else if (i == 7) {
+                        v.norm.x = 0.0f;
+                        v.norm.y = 1.0f;
+                        v.norm.z = 0.0f;
+                        v.loc.x = 0.0f;
+                        v.loc.y = half_height;
+                        v.loc.z = 0.0f;
+                        int index = verts.size();
+                        verts.push_back(v);
+                        indices.push_back(index);
+                        indices.push_back(v3);
+                        indices.push_back(v2);
+                        numTris++;
+                    }
+                }
+                indices.push_back(v2);
+                indices.push_back(v3);
+                indices.push_back(v4);
+                indices.push_back(v2);
+                indices.push_back(v4);
+                indices.push_back(lvi2);
+                numTris += 2;
+            }
+            theta += 0.39269909f;
+            v2 = v3;
+            lvi2 = v4;
+        }
+        y += dh;
+    }
+    {
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: c2 register allocation; neutral stand-in v0, block-scoped home gn; v0 holds the node in esi, gn is the block-scoped home
+        // in the capped slot that the reference argument reads (C0221)
+        DebugGeometryNode* v0 = new ("SwampDebugGeometry.cpp", 0x241) DebugGeometryNode;
+        DebugGeometryNode* gn = v0;
+        v0->SetEndTime(duration >= 0.0f ? duration + g_swamp->GetInput().GetGameTime() : duration);
+        v0->SetLocation(loc);
+        v0->SetOption(0x80, true, false);
+        v0->SetVertices(&verts[0], verts.size());
+        v0->SetIndices(&indices[0], indices.size());
+        v0->SetPrimitives(D3DPT_TRIANGLELIST, numTris);
+        g_swamp->_scene->AddNode(v0, 0);
+        _nodes.insert(gn);
+        return v0;
+    }
 }

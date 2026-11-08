@@ -11,7 +11,7 @@ Matched means the gate (D40, D26); nothing else is a claim.
   with the N=0 refusal, which is the baseline then.
 
 ## 2. Claim scope (one function)
-- One function: a passing row of `docs/matching/next_candidates.md` (zero unresolved relocs, zero same-section rel32
+- One function: a passing row of `docs/matching/next_candidates.md`, any lane (identical, near, or ambiguous: a row pinned at one of its hits by a ruled class, 5.3 T3) (zero unresolved relocs, zero same-section rel32
   sites, inside the Ghidra body), or the plan's named fallback.
 - Its unit file: `src/` path by the rule in `src/README.md` (units.toml `objname`); the unit's `opt` set in
   `config/retail/units.toml` from evidence, old value kept in a comment (`opt = "/O1 /Oy" # was "unknown"`).
@@ -25,6 +25,9 @@ Matched means the gate (D40, D26); nothing else is a claim.
   claim). `--task` is required; every run, refusals too, appends one line to the attempt ledger
   `docs/matching/attempts-<phase>.jsonl` (4.4 T11: `attempts.jsonl` is the frozen base, read first; `--ledger P` for
   scratch runs; test runs never write the committed ledger).
+- A resubmission refuses (rc 2, 5.2 T15): an attempt or control whose unit source sha256 and opt equal an earlier
+  rc 0/1 row of the same symbol and kind names that row; change the unit's .cpp first (a header-only edit does not
+  change the hash: touch the .cpp's comment). `--listing` runs are exempt.
 - `--listing` also writes the unit's `/FAs` listing into the kept workdir and prints `listing: <path>`.
 - `--control "<flags>"` builds the unit with its `opt` replaced (also for `opt = "unknown"` units); it prints
   `control run: no claim` and is the one-flag-flipped control a newly set `opt` needs.

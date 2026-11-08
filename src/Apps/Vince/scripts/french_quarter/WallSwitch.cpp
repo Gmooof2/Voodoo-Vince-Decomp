@@ -25,16 +25,40 @@ class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
-class AnimationResource;     // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
+class SwampScript;           // NAME: proto-pdb:default.pdb
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { _RefCount--; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x34 - 0x24];        // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ~ResourceHandle()
+    {
+        if (_Resource)
+            _Resource->SubRef();
+    }
+
     T* _Resource;                      // 0x00
 };
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    SwampScript* GetScript() const;
+
     char field_0[0x8];                 // 0x00
     SwampString _Name;                 // 0x08
     char field_24[0xA4 - 0x24];        // 0x24
@@ -50,6 +74,13 @@ DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 };
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class SoundManager { // NAME: proto-pdb:default.pdb
 public:
@@ -106,6 +137,10 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+// FUNCTION: USA 0x0007C254
+// NAME: proto-pdb:default.pdb
 class WallSwitchMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum Messages { // NAME: proto-pdb:default.pdb
@@ -119,14 +154,26 @@ public:
         TurningOff = 0x3
     };
 
+    WallSwitchMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+    virtual void AnimationFinished();
     Critter* GetSwitch() { return (Critter*)_node; }
 
     ResourceHandle<AnimationResource> _turnOn; // 0xBC
     SwampString _padName;              // 0xC0
     int _pulledOnce;                   // 0xDC
+
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(WallSwitchMain, 0xE0);
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1WallSwitchMain@@UAE@XZ in this unit (its ctor
+// is unmatched); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_WallSwitchMain_dtor(WallSwitchMain* p)
+{
+    p->WallSwitchMain::~WallSwitchMain();
+}
 
 // FUNCTION: USA 0x0007C359
 // PROTOTYPE: PREVIEW 0x00468308 identical
@@ -146,4 +193,28 @@ void WallSwitchMain::Message(SwampScript* source, int message, void* data)
         *(int*)data = _pulledOnce;
         break;
     }
+}
+
+// FUNCTION: USA 0x0007C3F4
+// PROTOTYPE: PREVIEW 0x004683A3 identical
+// NAME: proto-pdb:default.pdb
+void WallSwitchMain::AnimationFinished()
+{
+    if (_state == TurningOn) {
+        SetState(On);
+        // !FAKE: c1xx front end; stand-in local; the PDB records no local, retail ends the string temporary before the null test
+        Critter* p = pManager->Find("Blender");
+        if (p)
+            p->GetScript()->Message(this, 0x14, 0); // src proto-pdb:default.pdb TURN_ON
+    } else {
+        SetState(Off);
+    }
+}
+
+// FUNCTION: USA 0x0007C457
+// NAME: proto-pdb:default.pdb
+SwampScript* WallSwitchMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\WallSwitch.h", 11) WallSwitchMain(node);
 }

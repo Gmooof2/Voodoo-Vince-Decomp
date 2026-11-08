@@ -86,17 +86,19 @@ const BogVertex* Bog::GetVertices() const
 // FUNCTION: USA 0x000DF3E8
 // PROTOTYPE: PREVIEW 0x004CA7BF identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: control `/O1 /Oy /Oi` objdiff 76.9 (4.3 T16.c5: pragma intrinsic(memset), negated/nested/early-return ifs, D3DResource::Register inline: all 76.85; retail lays the else block first and reloads ecx before GetVertices)
+// !FAKE: preprocessor; #pragma intrinsic(memset) compiler directive; retail has the inline stosd memset form
+#pragma intrinsic(memset)
 Bog::Bog(void* fileImage)
 {
     _bog = (BOG_HEADER*)fileImage;
-    if (_bog->magic == 0x20474F42 && _bog->version == 2) {
+    // !FAKE: c1xx front end; stand-in bool; retail lays the else block first and reloads ecx before GetVertices
+    // (if/else forms 76.85, 4.3 T16.c5; 5.2 T12.c16 probe: byte-equal)
+    bool v0 = _bog->magic == 0x20474F42 && _bog->version == 2;
+    if (!v0) {
+        _bog = 0;
+    } else {
         memset(&_vb, 0, sizeof(_vb));
         _vb.Common = 1;
         D3DResource_Register(&_vb, (void*)GetVertices());
-    } else {
-        _bog = 0;
     }
 }
-#endif

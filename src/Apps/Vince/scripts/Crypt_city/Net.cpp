@@ -148,6 +148,7 @@ public:
     };
     NetMain(SwampSceneNode* node);
     virtual void AnimationFinished();
+    virtual void AnimationInterrupted();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -157,6 +158,16 @@ public:
     std::vector<Critter*> _fliesList;  // 0x100
 };
 DECOMP_SIZE_ASSERT(NetMain, 0x110);
+
+// FUNCTION: USA 0x0006972D
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); wall: matched_set refuses: the symbols_pin.txt row 0x0006972D has no size (-)
+void NetMain::AnimationInterrupted()
+{
+    AnimationFinished();
+}
+#endif
 
 // FUNCTION: USA 0x00069732
 // NAME: proto-pdb:default.pdb
@@ -173,7 +184,7 @@ void NetMain::AnimationFinished()
 // NAME: proto-pdb:default.pdb
 SwampScript* NetMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Net.h", 44) NetMain(node);
 }
 

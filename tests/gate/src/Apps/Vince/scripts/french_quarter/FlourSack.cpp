@@ -63,7 +63,7 @@ public:
     bool _firstDrop;
 };
 
-// Test scaffolding, not game code: retail emits the implicit ??1FlourSackMain@@UAE@XZ because FlourSack.obj defines
+// !FAKE: test scaffold, not game code: retail emits the implicit ??1FlourSackMain@@UAE@XZ because FlourSack.obj defines
 // the ctor (0x796EC, not modeled here); this qualified call odr-uses it instead. Not part of the compared symbol.
 void pin_emit_FlourSackMain_dtor(FlourSackMain* p)
 {

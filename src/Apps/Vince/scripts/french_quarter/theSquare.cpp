@@ -15,6 +15,16 @@ protected:
 private:
     char _pad00[0x1C];
 };
+template <class T, class A> class deque {
+public:
+    ~deque() { _Tidy(); }
+
+protected:
+    void _Tidy();
+
+private:
+    char _pad00[0x14];
+};
 template <class E, class T, class A>
 inline bool operator==(const basic_string<E, T, A>& _Left, const E* _Right)
 {
@@ -39,6 +49,18 @@ struct Quaternion { // NAME: proto-pdb:default.pdb
     Vector3 v;                         // 0x00
     float w;                           // 0x0C
 };
+struct Vector4 { // NAME: proto-pdb:default.pdb
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+    float w;                           // 0x0C
+};
+struct Matrix { // NAME: proto-pdb:default.pdb
+    void Multiply(const Matrix&, Matrix&) const;
+
+    Vector4 row[4];                    // 0x00
+};
+DECOMP_SIZE_ASSERT(Matrix, 0x40);
 struct AABox;                // NAME: proto-pdb:default.pdb
 class SwampScript;           // NAME: proto-pdb:default.pdb
 
@@ -65,6 +87,8 @@ DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
+    ResourceHandle& operator=(const ResourceHandle& h);
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
     T& operator()() { return *_Resource; }
     ~ResourceHandle()
@@ -92,7 +116,7 @@ public:
     void PushBack(T);
     T Fetch();
 
-    char field_0[0x14];                // 0x00 (not reached)
+    std::deque<T, std::allocator<T> > _queue; // 0x00
 };
 
 class MultiAnimation { // NAME: proto-pdb:default.pdb
@@ -112,6 +136,7 @@ public:
     };
     void SetOption(unsigned int option, bool value, bool recursive);
     bool GetOption(unsigned int option) const { return (_RenderingOptions & option) != 0; }
+    bool IsVisible() const { return !GetOption(DontDraw); }
     void SetVisible(bool visible, bool recursive);
     SwampScript* GetScript() const;
     const Quaternion& SetFacing(const Vector3&);
@@ -174,8 +199,11 @@ public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
     ResourceHandle<AnimationControl> TransitionAnimation(ResourceHandle<AnimationResource>, float, bool, bool);
     ResourceHandle<AnimationControl>& StartSecondaryAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+    void SetAnimSpeed(float);
+    Matrix GetBoneOrientation(const SwampString&) const;
+    virtual void Render(const Matrix&) const;
 
-    char field_A4[0x200 - 0xA4];       // 0xA4 (not reached)
+    char field_A4[0x200 - 0xA4];      // 0xA4 (not reached)
 };
 DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
@@ -206,6 +234,7 @@ DECOMP_SIZE_ASSERT(SquareObject, 0x2E4);
 class Beret : public Critter { // NAME: proto-pdb:default.pdb
 public:
     virtual void Load(const BeepTDF& tdf);
+    virtual void Render(const Matrix& m) const;
     void SetVisible(bool);
 };
 DECOMP_SIZE_ASSERT(Beret, 0x2C8);
@@ -304,9 +333,12 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
     virtual void Message(SwampScript*, int, void*);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
     virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
     virtual void SetState(int);                                    // vtable+0x6C
@@ -351,6 +383,8 @@ public:
 DECOMP_SIZE_ASSERT(DialogueRegionMain, 0xA4);
 
 class StoreDialogueRegionMain : public DialogueRegionMain { // NAME: proto-pdb:default.pdb
+public:
+    virtual void LeavingRegion(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(StoreDialogueRegionMain, 0xA4);
 
@@ -416,6 +450,8 @@ public:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
+    virtual void SetState(int state);
     Critter* GetGate() { return (Critter*)_node; }
 
     ResourceHandle<AnimationResource> _animOpening; // 0xBC
@@ -426,12 +462,30 @@ DECOMP_SIZE_ASSERT(MuseumGateMain, 0xC8);
 
 class VincePlayHorn : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_ENDHORN = 0x14
+    };
     VincePlayHorn(SwampSceneNode* node);
+    virtual void Message(SwampScript* source, int message, void* data);
+    Vince* GetVince() { return (Vince*)_node; }
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(VincePlayHorn, 0x4C);
 
+class ClockPlatformMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    enum Messages { // NAME: proto-pdb:default.pdb
+        MESSAGE_SHOWTIME = 0x14,
+        MESSAGE_HIDETIME = 0x15,
+        MESSAGE_QUERY_TOUCHED_ONCE = 0x16
+    };
+};
+
+// FUNCTION: USA 0x000743A5
+// PROTOTYPE: PREVIEW 0x004604B1 identical
+// NAME: proto-pdb:default.pdb
+// retail ??1 has no vptr store: the class declares no dtor (C0029)
 class SkeletonJazzGuyMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum Timers { // NAME: proto-pdb:default.pdb
@@ -458,6 +512,20 @@ private:
     MultiAnimation _animsBadPlaying;   // 0xD8
 };
 DECOMP_SIZE_ASSERT(SkeletonJazzGuyMain, 0xEC);
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1SkeletonJazzGuyMain@@UAE@XZ here (its ??_G and
+// ctor, not matched yet); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_SkeletonJazzGuyMain_dtor(SkeletonJazzGuyMain* p)
+{
+    p->SkeletonJazzGuyMain::~SkeletonJazzGuyMain();
+}
+
+// ??_GDialogueRegionMain 0x000716AB, ??_GVinceKickedOut 0x00073E24, ??_GSkeletonJazzGuyMain 0x00074389 unmatched,
+// no draft (5.3 T6.c13): companion wall: a virtual ??_G is emitted only with its class vtable, i.e. the ctor; ??0 of
+// DialogueRegionMain (0x001220E8), VinceKickedOut (0x00073D67), SkeletonJazzGuyMain (0x00074151) are not passing rows.
+// Lift: match the ctor. ??_GZombieCryptMain 0x00073BE0 unmatched, no draft; fold-name wall: it calls the ??1 fold
+// 0x0001E456, whose theSquare class is StoreDoorMain (ctor 0x00073AF7, not a passing row); match_one `not defined in
+// theSquare.obj`. Lift: rename the row to ??_GStoreDoorMain, then the companion ctor.
 
 class StoreDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
@@ -527,7 +595,7 @@ DECOMP_SIZE_ASSERT(PawnShopRegionMain, 0x4C);
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* MasqueradeMaskMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 48) MasqueradeMaskMain(node);
 }
 #endif
@@ -537,7 +605,7 @@ SwampScript* MasqueradeMaskMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* MoneyMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 95) MoneyMain(node);
 }
 
@@ -546,7 +614,7 @@ SwampScript* MoneyMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* DialoguePawnRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 504) DialoguePawnRegionMain(node);
 }
 
@@ -555,7 +623,7 @@ SwampScript* DialoguePawnRegionMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* DialogueCostumeRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 505) DialogueCostumeRegionMain(node);
 }
 
@@ -564,7 +632,7 @@ SwampScript* DialogueCostumeRegionMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* DialogueBurlesqueRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 506) DialogueBurlesqueRegionMain(node);
 }
 
@@ -576,7 +644,7 @@ SwampScript* DialogueBurlesqueRegionMain::creationFunc(SwampSceneNode* node)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* DialogueMovieRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 507) DialogueMovieRegionMain(node);
 }
 #endif
@@ -586,7 +654,7 @@ SwampScript* DialogueMovieRegionMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* HornMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 76) HornMain(node);
 }
 
@@ -595,7 +663,7 @@ SwampScript* HornMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* PopcornMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 113) PopcornMain(node);
 }
 
@@ -607,7 +675,7 @@ SwampScript* PopcornMain::creationFunc(SwampSceneNode* node)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* MuseumGateMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 129) MuseumGateMain(node);
 }
 #endif
@@ -617,7 +685,7 @@ SwampScript* MuseumGateMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* VincePlayHorn::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("theSquare\\theSquare.cpp", 408) VincePlayHorn(node);
 }
 
@@ -629,7 +697,7 @@ SwampScript* VincePlayHorn::creationFunc(SwampSceneNode* node)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* SkeletonJazzGuyMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 155) SkeletonJazzGuyMain(node);
 }
 #endif
@@ -652,6 +720,23 @@ void MuseumGateMain::Message(SwampScript* source, int message, void* data)
         break;
     case MESSAGE_QUERY_OPEN:
         *(bool*)data = _state == STATE_OPEN;
+        break;
+    }
+}
+
+// FUNCTION: USA 0x00071426
+// PROTOTYPE: PREVIEW 0x0045D5A8 identical
+// NAME: proto-pdb:default.pdb
+void MuseumGateMain::SetState(int state)
+{
+    _state = state;
+    switch (state) {
+    case STATE_OPEN:
+        GetGate()->StartAnimation(_animOpening, false, false);
+        GetGate()->SetAnimSpeed(0.1f);
+        break;
+    case STATE_CLOSED:
+        GetGate()->StartAnimation(_animClosed, false, false);
         break;
     }
 }
@@ -761,6 +846,42 @@ void Beret::Load(const BeepTDF& tdf)
     SetVisible(tdf.GetBoolRecord("visible", true));
 }
 
+// FUNCTION: USA 0x00071A17
+// NAME: proto-pdb:default.pdb
+void Beret::Render(const Matrix& m) const
+{
+    if (IsVisible()) {
+        // !FAKE: c1xx front end; stand-in locals for the Vince pointer and the product (PDB records only `head`); the
+        // explicit Matrix copy gives retail's by-value temp passed to GatorNode::Render
+        Vince* v0 = pManager->GetVince();
+        Matrix head = v0->GetBoneOrientation("head");
+        Matrix v1;
+        head.Multiply(m, v1);
+        GatorNode::Render(Matrix(v1));
+    } else
+        GatorNode::Render(m);
+}
+
+template <class T> ResourceHandle<T>& ResourceHandle<T>::operator=(const ResourceHandle& h)
+{
+    if (_Resource)
+        _Resource->SubRef();
+    _Resource = h._Resource;
+    if (_Resource)
+        _Resource->AddRef();
+    return *this;
+}
+
+// FUNCTION: USA 0x00071F8F
+// NAME: proto-pdb:default.pdb
+MuseumGateMain::MuseumGateMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _animClosed = ResourceHandle<AnimationResource>();
+    _animOpening = g_swamp->GetAnimationManager().Load("museumGate_open");
+    _animClosing = g_swamp->GetAnimationManager().Load("museumGate_close");
+    SetState(STATE_CLOSED);
+}
+
 // FUNCTION: USA 0x0007205F
 // NAME: proto-pdb:default.pdb
 void MuseumGateMain::Load(const BeepTDF& tdf)
@@ -771,6 +892,14 @@ void MuseumGateMain::Load(const BeepTDF& tdf)
         ResourceHandle<AnimationControl> ach = GetGate()->StartAnimation(_animOpening, false, false);
         ach().SetAnimationTime(ach().GetAnimationLength());
     }
+}
+
+// FUNCTION: USA 0x00072136
+// NAME: proto-pdb:default.pdb
+void VincePlayHorn::Message(SwampScript* source, int message, void* data)
+{
+    if (message == MESSAGE_ENDHORN)
+        GetVince()->StartAnimation(g_swamp->GetAnimationManager().Load("vince_playhorn_end"), false, false);
 }
 
 // FUNCTION: USA 0x00072D16
@@ -841,6 +970,17 @@ void PawnShopRegionMain::TimerEvent(unsigned int timerId)
         SoundManager::PlaySound("qsq_vboot02", 0, _node, true, 0.0f, 0.0f);
         break;
     }
+    }
+}
+
+// FUNCTION: USA 0x0007395E
+// NAME: proto-pdb:default.pdb
+void StoreDialogueRegionMain::LeavingRegion(SwampSceneNode* node)
+{
+    if (node == pManager->GetVince()) {
+        // !FAKE: c1xx front end; stand-in local; ends the string temporary before GetScript (BumperTargetMain form)
+        Critter* tmp = pManager->Find("clockplatform");
+        tmp->GetScript()->Message(this, ClockPlatformMain::MESSAGE_HIDETIME, 0);
     }
 }
 

@@ -186,12 +186,24 @@ public:
     FireFlyNode* _drips;               // 0xC4
     FireFlyNode* _sparks;              // 0xC8
     SwampString _animName;             // 0xCC
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(GoldenJuneBugMain, 0xE8);
 
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 class CritterManager { // NAME: proto-pdb:default.pdb
 public:
@@ -245,7 +257,7 @@ void GoldenJuneBugMain::Message(SwampScript* source, int message, void* data)
 // NAME: proto-pdb:default.pdb
 void GoldenJuneBugMain::SetState(int state)
 {
-    // !FAKE: local; retail loads _node into esi before the _state store (no PDB local)
+    // !FAKE: c2 register allocation; stand-in local (no PDB local); retail loads _node into esi before the _state store
     Critter* critter = GetCritter();
     _state = state;
     switch (state) {
@@ -316,8 +328,15 @@ void GoldenJuneBugMain::AnimationFinished()
 // NAME: proto-pdb:default.pdb
 SwampScript* GoldenJuneBugMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("scripts\\common\\GoldJuneBug.cpp", 27) GoldenJuneBugMain(node);
+}
+
+// FUNCTION: USA 0x00131CB3
+// NAME: proto-pdb:default.pdb
+GoldenJuneBugMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GoldenJuneBugMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00131CEF

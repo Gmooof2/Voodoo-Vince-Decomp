@@ -190,6 +190,10 @@ public:
 };
 DECOMP_SIZE_ASSERT(Critter, 0x2C8);
 
+// FUNCTION: USA 0x0007A1C3
+// NAME: proto-pdb:default.pdb
+// ??_GGingerDeadMan (alias ??_EGingerDeadMan) unmatched, no draft; wall: a virtual ??_G is emitted only with the class vtable, i.e. with its ctor
+// ??0GingerDeadMan 0x0007A185 (candidates fail: 2 provisional targets) (C0320); match_one: `not defined in GingerDM.obj` (5.3 T6)
 class GingerDeadMan : public Critter { // NAME: proto-pdb:default.pdb
 public:
     virtual bool DoesJorgeRepelMe(const SwampSceneNode* jorgeNode, bool bHorizontal) const;
@@ -322,6 +326,7 @@ void* operator new(unsigned int size, const char* file, int line); // retail ??2
 
 class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~MonsterMain();                                        // retail ??1MonsterMain@@UAE@XZ 0x000195A1
     virtual void DeathFX();                                        // vtable+0x70
     void UpdateKnockBack();
 
@@ -329,6 +334,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
 
+// FUNCTION: USA 0x0007B033
+// NAME: proto-pdb:default.pdb
+// ??_GGingerDeadManMain (alias ??_EGingerDeadManMain) unmatched, no draft; wall: a virtual ??_G is emitted only with the class vtable, i.e. with its ctor
+// ??0GingerDeadManMain 0x0007AA42 (0x5F1, candidates fail: unresolved 0x1DE8A0) (C0320); match_one: `not defined in GingerDM.obj`
+// FUNCTION: USA 0x0007B04F
+// PROTOTYPE: PREVIEW 0x00467056 ambiguous
+// NAME: proto-pdb:default.pdb
 class GingerDeadManMain : public MonsterMain { // NAME: proto-pdb:default.pdb
 private:
     GingerDeadManMain(SwampSceneNode* node);
@@ -539,11 +551,18 @@ void GingerDeadManMain::DeathFX()
     SoundManager::PlaySound("monsterpoof", 0, _node, false, 0.0f, 0.0f);
 }
 
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1GingerDeadManMain@@UAE@XZ in this unit (its
+// user, the ctor, is unmatched); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_GingerDeadManMain_dtor(GingerDeadManMain* p)
+{
+    p->GingerDeadManMain::~GingerDeadManMain();
+}
+
 // FUNCTION: USA 0x0007B0DE
 // PROTOTYPE: PREVIEW 0x004670E5 identical
 // NAME: proto-pdb:default.pdb
 SwampScript* GingerDeadManMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\GingerDM.h", 31) GingerDeadManMain(node);
 }

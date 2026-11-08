@@ -6,6 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string();
     basic_string(const E* ptr);
     basic_string(const basic_string& _Right, unsigned int _Roff, unsigned int _Count = (unsigned int)(-1)); // npos (C0215)
     ~basic_string() { _Tidy(true); }
@@ -49,12 +50,40 @@ template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Quaternion;           // NAME: proto-pdb:default.pdb
 struct AABox;                // NAME: proto-pdb:default.pdb
 class SwampSceneNode;        // NAME: proto-pdb:default.pdb
-class AnimationResource;     // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
+    ResourceHandle& operator=(const ResourceHandle& h);
+    ~ResourceHandle()
+    {
+        if (_Resource)
+            _Resource->SubRef();
+    }
+
     T* _Resource;                      // 0x00
+};
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
 };
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
@@ -126,10 +155,16 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
 
     int _state;                        // 0x4C
     char field_50[0x6C];               // 0x50
@@ -231,9 +266,12 @@ DECOMP_SIZE_ASSERT(SwampInput, 0x120);
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
     SwampInput& GetInput() const { return *_input; }
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
 
     char field_0[0x4];                 // 0x00
     SwampInput* _input;                // 0x04
+    char field_8[0x10];                // 0x08
+    AnimationManager* _animationManager; // 0x18
 };
 
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
@@ -263,6 +301,7 @@ DECOMP_SIZE_ASSERT(HannahDebrisMain, 0xE0);
 
 class LighthouseMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    LighthouseMain(SwampSceneNode* node);
     virtual void FrameTick();
     virtual bool TestActivate() const;
     virtual void Activate();
@@ -381,7 +420,7 @@ void HannahDebris::Render(const Matrix& m) const
 // NAME: proto-pdb:default.pdb
 SwampScript* HannahDebrisMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("HurricaneHanna\\HurricaneHannah.cpp", 109) HannahDebrisMain(node);
 }
 
@@ -398,6 +437,13 @@ void HurricaneHannahRegionMain::EnteringRegion(SwampSceneNode* node)
         v1->GetScript()->Message(this, 0x19, &didflythru); // src proto-pdb:default.pdb MESSAGE_QUERYFLYTHROUGH
         CutsceneDriver::SetStream(didflythru ? "hannaDeath" : "hannaPrelude", false);
     }
+}
+
+// FUNCTION: USA 0x000282AB
+// NAME: proto-pdb:default.pdb
+LighthouseMain::LighthouseMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _animSpin = g_swamp->GetAnimationManager().Load("lighthouse_spin");
 }
 
 // FUNCTION: USA 0x0002831F
@@ -454,6 +500,6 @@ void LighthouseMain::Activate()
 // NAME: proto-pdb:default.pdb
 SwampScript* SwitchSwampMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("HurricaneHanna\\HurricaneHannah.cpp", 59) SwitchSwampMain(node);
 }

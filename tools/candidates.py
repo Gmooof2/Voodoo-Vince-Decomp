@@ -26,7 +26,11 @@ Near lane (3.4 T2, C0142): functions.jsonl class near-identical with candidateVA
   Images.match, so no `constant` sites). Site acceptance (4.2 T9, D115): accepted() = self, constant, STATUSES,
   PIN_STATUSES, or CALLEE_STATUSES (near-corr) when the target is a func-table VA; a near-corr data target stays
   provisional. Every jsonl row carries `lane` (identical | near), ranks count per lane; near rows add similarity,
-  protoLength. The doc's identical sections hold identical rows only; `## Near lane (3.4 T2)` is the last section.
+  protoLength. The doc's identical sections hold identical rows only; `## Near lane (3.4 T2)` follows them.
+Ambiguous lane (5.3 T3, amb_lane): class ambiguous rows whose name is pinned (either table) at one of their own hits
+  (C0366 past HIT_CAP); AMB_EXCL in order; lane `ambiguous`, jsonl `amb_class` = the pin's tag class; same CHECKS and
+  TAGS; `## Ambiguous lane (5.3 T3)` is the last section. --control amb-outside|amb-site-corr|amb-shared plant a pin
+  outside the hits, a site-corr pin, one body pinned by two rows; exit 0 iff each is refused, else DID NOT FAIL and 1.
 Doc holds names, VAs, sizes, units, tags, verdicts and reasons only, no bytes or disassembly (D46); no dates.
 Exit: 0 ok; 1 --check differs; 2 refusal (missing input, retail sha1 != pin).
 """
@@ -71,10 +75,16 @@ CHECKS = ("sig", "reloc", "c0035", "bodymax", "library")
 TAGS = ("float", "switch", "bittest", "inlined", "vcall", "eh")
 EXCL = ("not identical", "targetVAs != 1", "no unit", "unit not game", "unit not delink", "tail", "fold", "no symbol", "boundary")
 RESIDUE = REPO / "docs" / "matching" / "delink_residue.md"  # 3.2 T8: undelinked game units, written with DOC
-EXPECT = dict(zip(EXCL, (5254, 0, 73, 1436, 955, 0, 24, 119, 5)))  # 4.4 T8 B5 cut (HannaCutscenes, DoorPulleyBucket, Spring, bakeryMain, WallSwitch, MainTunnelCutscenes, PowerIcon, VinceWalkIn, Terradactyl: 30 rows out of not delink, 2 to no symbol, 2 to fold)
+EXPECT = dict(zip(EXCL, (5254, 0, 73, 1436, 792, 0, 24, 66, 4)))  # 5.3 T13.2 re-cut 4 (28 rows out of no symbol)
+# was (5254, 0, 73, 1436, 792, 0, 24, 94, 4) 5.3 T4 re-cut over T4.c1 pins (7 rows out of no symbol)
+# was (5254, 0, 73, 1436, 792, 0, 24, 101, 4) 5.2 T6 pin pass (25 rows out of no symbol, 1 out of boundary)
+# was (5254, 0, 73, 1436, 792, 0, 24, 126, 5) 5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang (9 rows out of not delink)
+# was (5254, 0, 73, 1436, 801, 0, 24, 126, 5) 5.2 T4 B1 cut FanBoat+BogWallow (57 rows out of not delink, 6 to no symbol)
+# was (5254, 0, 73, 1436, 858, 0, 24, 120, 5) 5.2 T3 LevelLoader+BasicDoor cut (97 rows out of not delink, 1 to no symbol)
+# was (5254, 0, 73, 1436, 955, 0, 24, 119, 5) 4.4 T8 B5 cut (HannaCutscenes, DoorPulleyBucket, Spring, bakeryMain, WallSwitch, MainTunnelCutscenes, PowerIcon, VinceWalkIn, Terradactyl: 30 rows out of not delink, 2 to no symbol, 2 to fold)
 # was (5254, 0, 73, 1436, 985, 0, 22, 117, 5) 4.4 T8 B4 cut (theSquare, GasPumps, MoleGatePuzzle, Bell: 116 rows out of not delink, 4 to no symbol, 1 to fold); was (5254, 0, 73, 1436, 1101, 0, 21, 113, 5) 4.4 T7.1 B3 cut (HouseOfMirrors, SwampDebugGeometry, SwampBSP, FontManager: 57 rows out of not delink, 4 to no symbol); was (5254, 0, 73, 1436, 1158, 0, 21, 109, 5) 4.4 T7.1 B2 cut (ZombieGuidanceCounselor, VoodooShop, FFlyController, SwampCollide, SwampSoundResource: 131 rows out of not delink, 13 to no symbol); was (5254, 0, 73, 1436, 1289, 0, 21, 96, 5) 4.4 T7.1 B1 cut (SwampWorld, SwampLight, Whammy, Critter, SwampFireFlyNode: 246 rows out of not delink, 18 to no symbol); was (5254, 0, 73, 1436, 1535, 0, 21, 78, 5) 4.4 T6.1; was (5254, 0, 73, 1436, 1576, 0, 18, 77, 5) 4.4 T4; was (5254, 0, 73, 1436, 1576, 0, 18, 81, 5) 4.3 T15; was (5254, 0, 73, 1436, 1576, 0, 18, 85, 2) 3.4 T1; was (5254, 0, 73, 1436, 1576, 0, 18, 120, 2) 3.3 T1; was (5254, 0, 73, 1436, 1724, 0, 18, 114, 2) 3.2 T8.c1; was (5254, 0, 73, 1436, 2392, 0, 0, 60, 2) 3.2 T3;
 # was 2417 not delink, 1.4
-EXPECT_POOL = 2522  # 4.4 T8 B5 cut; was 2496 (4.4 T8 B4 cut); was 2385 (4.4 T7.1 B3 cut); was 2332 (4.4 T7.1 B2 cut); was 2214 (4.4 T7.1 B1 cut); was 1986 (4.4 T6.1 ScareHouse cut + its name_sites pins); was 1949 (4.4 T4 vtable slot pins); was 1945 (4.3 T15, 0x000388BB hand pin); was 1944 (3.4 T1); was 1909 (3.3 T1); was 1767 (3.2 T8.c1); was 1171 (3.2 T3); was 1148 (1.4, compiler_pin.md:31-32)
+EXPECT_POOL = 2739  # 5.3 T13.2 re-cut 4; was 2711 (5.3 T4 re-cut over T4.c1 pins); was 2704 (5.2 T6 pin pass); was 2678 (5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was 2669 (5.2 T4 B1 cut FanBoat+BogWallow); was 2618 (5.2 T3 LevelLoader+BasicDoor cut); was 2522 (4.4 T8 B5 cut); was 2496 (4.4 T8 B4 cut); was 2385 (4.4 T7.1 B3 cut); was 2332 (4.4 T7.1 B2 cut); was 2214 (4.4 T7.1 B1 cut); was 1986 (4.4 T6.1 ScareHouse cut + its name_sites pins); was 1949 (4.4 T4 vtable slot pins); was 1945 (4.3 T15, 0x000388BB hand pin); was 1944 (3.4 T1); was 1909 (3.3 T1); was 1767 (3.2 T8.c1); was 1171 (3.2 T3); was 1148 (1.4, compiler_pin.md:31-32)
 NEAR_EXCL = ("no unit", "unit not game", "unit not delink", "tail", "fold", "no lane name")  # 3.4 T2 near lane
 NEAR_STATUSES = ("near-corr",) + PIN_STATUSES  # lane name statuses
 CALLEE_STATUSES = ("near-corr",)  # 4.2 T9 (D115): accepted for a func-table target only, never data or vtable
@@ -88,8 +98,13 @@ def accepted(status, target, funcs):
             or status in CALLEE_STATUSES and target in funcs)
 
 
-EXPECT_NEAR = dict(zip(NEAR_EXCL, (152, 0, 388, 0, 9, 549)))  # 4.4 T8 after the T7.1+T8 cuts (27 units); was (167, 0, 598, 0, 6, 380) 4.4 T6.1 ScareHouse cut; was (167, 0, 615, 0, 5, 366) 3.4 T2 (1260 near rows, 238 near-corr pins); was 456 at 96 pins
-EXPECT_NEAR_POOL = 162  # 4.4 T8 after the T7.1+T8 cuts; was 109 4.4 T6.1; was 107 3.4 T2; was 17 at 96 pins
+EXPECT_NEAR = dict(zip(NEAR_EXCL, (143, 0, 334, 0, 9, 598)))  # 5.3 T13.2 re-cut 4; was (143, 0, 334, 0, 9, 599) 5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was (148, 0, 339, 0, 9, 593) 5.2 T4 B1 cut FanBoat+BogWallow; was (150, 0, 375, 0, 9, 560) 5.2 T3 LevelLoader+BasicDoor cut; was (152, 0, 388, 0, 9, 549) 4.4 T8 after the T7.1+T8 cuts (27 units); was (167, 0, 598, 0, 6, 380) 4.4 T6.1 ScareHouse cut; was (167, 0, 615, 0, 5, 366) 3.4 T2 (1260 near rows, 238 near-corr pins); was 456 at 96 pins
+AMB_EXCL = ("no unit", "unit not game", "unit not delink", "tail", "fold", "boundary", "no pin", "pin outside targets",
+            "pin not accepted", "shared body")  # 5.3 T3 ambiguous lane
+EXPECT_AMB = dict(zip(AMB_EXCL, (143, 136, 1058, 0, 0, 2, 1275, 0, 105, 0)))  # 5.3 T13.2 re-cut 4
+# was (134, 134, 1050, 0, 0, 2, 1673, 0, 11, 0) 5.3 T13.2 fold = true folds only; was (134, 134, 1050, 0, 2120, 0, 13, 0, 0, 0) 5.3 T4.c3 re-cut, _Buynode fold pair disabled; was (134, 134, 1049, 0, 2121, 0, 13, 0, 0, 0) 5.3 T4 re-cut over T4.c1 pins; was (137, 134, 1058, 0, 2124, 0, 19, 0, 0, 0) 5.3 T3: new
+EXPECT_AMB_POOL = 924  # 5.3 T13.2 re-cut 4; was 639 (5.3 T13.2 fold = true folds only); was 192 5.3 T4.c3 re-cut, 5.3 T4 re-cut over T4.c1 pins; was 171 (5.3 T3: new)
+EXPECT_NEAR_POOL = 176  # 5.3 T13.2 re-cut 4; was 175 (5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was 171 (5.2 T4 B1 cut FanBoat+BogWallow); was 166 (5.2 T3 LevelLoader+BasicDoor cut); was 162 (4.4 T8 after the T7.1+T8 cuts); was 109 4.4 T6.1; was 107 3.4 T2; was 17 at 96 pins
 PROTO_BASE, TAIL = 0x400400, (0x13BD4E, 0x13F2F4)
 # LF_PROCEDURE / LF_MFUNCTION, 16-bit-index (0x0008/0x0009) and 32-bit-index (0x1008/0x1009) forms (CodeView cvinfo.h)
 PROC_LEAVES = {0x0008: "LF_PROCEDURE_16t", 0x0009: "LF_MFUNCTION_16t", 0x1008: "LF_PROCEDURE", 0x1009: "LF_MFUNCTION"}
@@ -115,14 +130,15 @@ def need(p):
 
 def load_symbols():
     funcs, data = {}, []
-    for ln in (ln for tab in (SYMS, SYMS_PIN) for ln in need(tab).read_text(encoding="utf-8").splitlines()):
+    for tab, ln in ((tab, ln) for tab in (SYMS, SYMS_PIN) for ln in need(tab).read_text(encoding="utf-8").splitlines()):
         if not ln.strip() or ln.startswith("#"):
             continue
         f = ln.split()
         va, kind, size, status, source, name = int(f[0], 16), f[1], f[2], f[-1], f[-2], " ".join(f[3:-2])
         if kind == "func":
             funcs[va] = {"name": name, "source": source, "status": status,
-                         "size": int(size, 16) if size != "-" else None}  # size: near lane (3.4 T2)
+                         "size": int(size, 16) if size != "-" else None,  # size: near lane (3.4 T2)
+                         "pin": tab is SYMS_PIN}  # 5.3 T3: amb_class symbols when False
         else:
             data.append((va, va + (int(size, 16) if size != "-" else 1), status, name, size != "-"))  # sized flag 3.4 T16
     return funcs, sorted(data)
@@ -162,6 +178,89 @@ def resolve_target(t, va, size, funcs, dstarts, data):
     if i >= 0 and data[i][0] <= t < data[i][1]:
         return data[i][2], (f"{data[i][3]}+0x{t - data[i][0]:X}" if data[i][4] and t > data[i][0] else None)
     return None, None
+
+
+def proto_publics(pdb_b, exe):
+    """5.3 T3: proto VA -> {PDB public names} (as member_extents: segment-relative -> proto VA)."""
+    pe, out = pe_info.parse_pe(exe), {}
+    for p in pdb_info.parse_pdb(pdb_b)["publics"]:
+        if 1 <= p["seg"] <= len(pe["sections"]):
+            out.setdefault(pe["imageBase"] + pe["sections"][p["seg"] - 1]["va"] + p["off"], set()).add(p["name"])
+    return out
+
+
+def amb_class_of(f):
+    """5.3 T3: a pin's class from its source tag middle field (tools/pin_rows.py TAGS); symbols.txt -> symbols."""
+    if not f["pin"]:
+        return "symbols"
+    p = f["source"].split("+")
+    mid = p[1] if len(p) > 1 else p[0]
+    if mid == "site-corr" and p[2:] in (["slot-bytes"], ["site-bundle"], ["slot-names"]):
+        return "D113"
+    if mid == "site-corr" and p[2:] == ["callee-bytes"]:
+        return "caller-xref"
+    return {"unit-bracket": "bracket", "anchor-window": "D115"}.get(mid, mid)
+
+
+def func_names():
+    """5.3 T3: name -> {VA} over every `func` line of both tables (load_symbols keeps one name per VA; a fold's alias
+    pins, C0130, are one line per public)."""
+    out = {}
+    for ln in (ln for tab in (SYMS, SYMS_PIN) for ln in need(tab).read_text(encoding="utf-8").splitlines()):
+        f = ln.split()
+        if ln.strip() and not ln.startswith("#") and f[1] == "func":
+            out.setdefault(" ".join(f[3:-2]), set()).add(int(f[0], 16))
+    return out
+
+
+def amb_lane(rows, funcs, byname, units, ustarts, folds, pub, ivas, confirm):
+    """5.3 T3 ambiguous lane -> (excl counts, pool [(size, va, row, unit)], {va: amb_class}, {protoVA: AMB_EXCL key}).
+    Row class ambiguous; pins = func VAs (byname = func_names()) named by a PDB public at the row's protoVA or a row
+    name; status and class from funcs[va] (load_symbols, the table read order); own =
+    pins among targetVAs, or (len(targetVAs) == proto_map.HIT_CAP) pins where confirm(row, va) (C0366). va = own[0],
+    else pins[0], else targetVAs[0]. AMB_EXCL in order; shared body (a va claimed twice, or an identical pool va in
+    ivas) excludes every ambiguous claimant. fold (5.3 T13.2) = a true fold only: folds = {retail_folds retailVA:
+    protoVAs of kind identical-unique}; the row claims va by its pin, so va is a fold when another protoVA's sole
+    target is va (two distinct claiming rows; C0130 alias pins). A va listed only as ambiguous-hit/near candidate
+    is no fold. Was: any retail_folds retailVA (5.3 T3)."""
+    excl, cand, why = dict.fromkeys(AMB_EXCL, 0), [], {}
+    for r in rows:
+        if r["class"] != "ambiguous":
+            continue
+        tv = [int(v, 16) for v in r["targetVAs"]]
+        pins = sorted({v for n in pub.get(int(r["protoVA"], 16), set()) | set(r["names"]) for v in byname.get(n, ())})
+        own = [v for v in pins if v in tv]
+        if not own and len(tv) == proto_map.HIT_CAP:
+            own = [v for v in pins if confirm(r, v)]
+        va = own[0] if own else pins[0] if pins else tv[0]
+        i = bisect.bisect_right(ustarts, va) - 1
+        u = units[i] if i >= 0 and units[i]["text_start"] <= va < units[i]["text_end"] else None
+        pv = int(r["protoVA"], 16) - PROTO_BASE
+        f = funcs.get(va)
+        for k, bad in zip(AMB_EXCL[:-1], (lambda: u is None, lambda: u["kind"] != "game", lambda: not u["delink"],
+                                          lambda: TAIL[0] <= pv < TAIL[1],
+                                          lambda: bool(folds.get(va, frozenset()) - {r["protoVA"]}),
+                                          lambda: f is not None and BOUNDARY.match(f["name"]), lambda: not pins,
+                                          lambda: not own,
+                                          lambda: f["status"] == "site-corr" or not accepted(f["status"], va, funcs))):
+            if bad():
+                excl[k] += 1
+                why[r["protoVA"]] = k
+                break
+        else:
+            cand.append((r["length"], va, r, u))
+    claims = {}
+    for c in cand:
+        claims[c[1]] = claims.get(c[1], 0) + 1
+    pool = []
+    for c in cand:
+        if claims[c[1]] > 1 or c[1] in ivas:
+            excl["shared body"] += 1
+            why[c[2]["protoVA"]] = "shared body"
+        else:
+            pool.append(c)
+    pool.sort(key=lambda p: (p[0], p[1]))
+    return excl, pool, {p[1]: amb_class_of(funcs[p[1]]) for p in pool}, why
 
 
 def pdb_procs(pdb_b, exe_b):
@@ -275,7 +374,10 @@ def compute():
     pdb_p = vv_inputs.input_path("prototype_dir", "default.pdb", cfg)
     exe_p = vv_inputs.input_path("prototype_dir", "default.exe", cfg)
     rows = load_jsonl(need(FUNCS))
-    folds = {int(r["retailVA"], 16) for r in load_jsonl(need(FOLDS))}
+    frecs = load_jsonl(need(FOLDS))
+    folds = {int(r["retailVA"], 16) for r in frecs}
+    afolds = {int(r["retailVA"], 16): frozenset(p["protoVA"] for p in r["protos"] if p["kind"] == "identical-unique")
+              for r in frecs}  # 5.3 T13.2: amb lane, va -> protoVAs whose sole target it is (dup_report.py:228-231)
     units = sorted((u for u in tomllib.loads(need(UNITS).read_text(encoding="utf-8"))["unit"] if "text_start" in u),
                    key=lambda u: u["text_start"])  # units without a .text range hold no VA
     ustarts = [u["text_start"] for u in units]
@@ -287,6 +389,7 @@ def compute():
         procs, leaves, tpiver = pdb_procs(need(pdb_p).read_bytes(), exe)
         nimg = name_sites.Images(exe, pe_info.parse_pe(exe), xb, x)  # T3 (3.2): constant abs sites
         data = member_extents(funcs, data, need(pdb_p).read_bytes(), exe, nimg, ARGS.config)  # 3.4 T16
+        pub = proto_publics(need(pdb_p).read_bytes(), exe)  # 5.3 T3 ambiguous lane names
     except (pdb_info.NotPdb, pe_info.NotPe, struct.error, IndexError, TypeError) as e:
         raise Refuse(f"default.pdb/default.exe unparseable: {e}")
     dstarts = [d[0] for d in data]
@@ -375,12 +478,28 @@ def compute():
             npool.append((f["size"], va, r, u))
     npool.sort(key=lambda p: (p[0], p[1]))
 
+    def confirm(r, va):  # 5.3 T3 (C0366): va past a capped hit list holds the row's masked bytes, as proto_map.run
+        pva, n = int(r["protoVA"], 16), r["length"]
+        pb, rb = nimg.pbytes(pva, n), nimg.rbytes(va, n)
+        if pb is None or rb is None:
+            return False
+        masks, _e = proto_map.mask_proc(pb, pva, nimg.plo, nimg.phi)
+        masks = sorted(set(masks) | {(s - pva, 4, "abs") for s in nimg.prelocs if pva <= s < pva + n})
+        segs = proto_map.segments(n, masks)
+        anc = proto_map.anchor(segs)
+        return bool(anc) and proto_map.find_matches([(va, rb)], pb, segs, anc) == [va]
+
+    actx = {"rows": rows, "funcs": funcs, "byname": func_names(), "units": units, "ustarts": ustarts, "folds": afolds, "pub": pub,
+            "ivas": {p[1] for p in pool}, "confirm": confirm}  # 5.3 T3: --control amb-* replant from here
+    aexcl, apool, acls, _why = amb_lane(**actx)
+
     def resolve(t, va, size):  # 3.4 T16: -> (status, member)
         return resolve_target(t, va, size, funcs, dstarts, data)
 
-    out, near = [], []
-    for lane, (size, va, r, u) in [("identical", p) for p in pool] + [("near", p) for p in npool]:
-        dst = out if lane == "identical" else near  # ranks count per lane
+    out, near, amb = [], [], []
+    for lane, (size, va, r, u) in ([("identical", p) for p in pool] + [("near", p) for p in npool]
+                                   + [("ambiguous", p) for p in apool]):
+        dst = {"identical": out, "near": near, "ambiguous": amb}[lane]  # ranks count per lane
         off = xbe_info.va_to_off(x, va)
         buf = xb[off:off + size]
         sym = funcs[va]
@@ -403,7 +522,7 @@ def compute():
                 chk["sig"] = (False, "no PDB proc at protoVA with a prototype name")
         # reloc / c0035
         masks, _e = proto_map.mask_proc(buf, va, lo_img, hi_img)
-        m = nimg.match(int(r["protoVA"], 16), va, size) if lane == "identical" else None  # near: no identity
+        m = nimg.match(int(r["protoVA"], 16), va, size) if lane != "near" else None  # near: no identity
         consts = set(m[0]) if m else set()
         sites, unres, prov, c35, c35s = [], [], [], [], []
         for o, _n, k in masks:
@@ -466,6 +585,8 @@ def compute():
                     "decodeErrors": derr, "sites": sites, "c0035Targets": sorted(set(c35)), "lane": lane})
         if lane == "near":
             dst[-1].update(similarity=r["similarity"], protoLength=r["length"])
+        elif lane == "ambiguous":
+            dst[-1]["amb_class"] = acls[va]  # 5.3 T3
     # T5 (2.1): relocscan's early-body rows (delink.py relocscan): symbols.txt func rows in a delink unit
     early, nofunc = [], 0
     for va, size, name in srows:
@@ -477,9 +598,10 @@ def compute():
         elif bodymax[va] < va + size - 1:
             early.append((va, size, name, bodymax[va] - va + 1))
     done = {(f["symbol"], f["va"]) for f in tomllib.loads(need(MATCHED).read_text(encoding="utf-8")).get("function", [])}
-    for o in out + near:
+    for o in out + near + amb:
         o["done"] = (o["symbol"], o["va"]) in done
     return {"pin": pin, "rows": len(rows), "excl": excl, "out": out, "near": near, "nexcl": nexcl, "nrows": nrows,
+            "amb": amb, "aexcl": aexcl, "arows": sum(r["class"] == "ambiguous" for r in rows), "actx": actx,
             "pins": pins, "why_out": why_out, "done": done,
             "tpiver": tpiver, "cxx": cxx, "inputs": [FUNCS, UNITS, SYMS, SYMS_PIN, FOLDS, fj, PINS, MATCHED], "pdb": "default.pdb",
             "exe": "default.exe", "early": sorted(early), "nofunc": nofunc, "nd": nd, "funcs": funcs,
@@ -634,6 +756,43 @@ def render_near(res):  # 3.4 T2: appended after render(res); identical sections 
     return "\n".join(L) + "\n"
 
 
+def render_amb(res):  # 5.3 T3: appended after render_near(res)
+    amb = res["amb"]
+    fc = {k: sum(not r["checks"][k]["pass"] for r in amb) for k in CHECKS}
+    npass = sum(r["pass"] for r in amb)
+    cls = {}
+    for r in amb:
+        cls[r["amb_class"]] = cls.get(r["amb_class"], 0) + 1
+    L = ["", "## Ambiguous lane (5.3 T3)", "",
+         "- Rows: proto_map class ambiguous whose name (a PDB public at the protoVA, or a row name) is a symbols table "
+         "`func` at one of the row's own hits (targetVAs; a row with proto_map.HIT_CAP "
+         f"({proto_map.HIT_CAP}) hits also at a VA past the list where proto_map.find_matches confirms the masked "
+         "bytes, C0366); va = that VA, size = proto length.",
+         "- Excluded in order: no unit, unit not game, unit not delink, tail (as the pool rule, at va); fold (a true "
+         "fold: a retail_folds retailVA that another proto row has as its sole identical target, so two rows claim "
+         "the body; a va listed only as ambiguous hits is no fold; 5.3 T13.2); boundary (as the pool rule); no pin; pin outside targets; pin not accepted (accepted() false or status site-corr); shared body (a va "
+         "claimed by two ambiguous rows, or by one and an identical pool row: every ambiguous claimant).",
+         "- Same checks and tags as the identical lane (name_sites.Images.match constants included); rank (size, VA) "
+         "ascending within the lane. class = the pin's source tag middle field (unit-bracket bracket, anchor-window "
+         "D115, site-corr+callee-bytes caller-xref, D113 tags D113; symbols.txt symbols).",
+         "",
+         f"- Ambiguous rows {res['arows']}. Excluded in order: " + "; ".join(f"{k} {v}" for k, v in res["aexcl"].items())
+         + f". Pool {len(amb)}.",
+         "- By class: " + ("; ".join(f"{k} {v}" for k, v in sorted(cls.items())) or "none") + ".",
+         f"- Pass {npass}; fail {len(amb) - npass}. Rows failing each check (a row may fail several): "
+         + "; ".join(f"{k} {v}" for k, v in fc.items()) + ".",
+         f"- Done {sum(r['done'] for r in amb)}.", "", "### Ambiguous passing rows", ""]
+    hdr = "| rank | VA | size | class | name | unit | " + " | ".join(TAGS) + " | done |"
+    sep = "|" + "---|" * (7 + len(TAGS))
+    row = lambda r: (f"| {r['rank']} | 0x{r['va']:08X} | {r['size']} | {r['amb_class']} | {esc('; '.join(r['names']))} | "
+                     f"{esc(r['unit'])} | " + " | ".join(r["tags"][k] for k in TAGS) + f" | {'y' if r['done'] else '-'} |")
+    good = [r for r in amb if r["pass"]]
+    L += [hdr, sep] + [row(r) for r in good] if good else ["None."]
+    L += ["", "### Ambiguous all rows (rank order)", "", hdr[:-1] + "| verdict | reasons |", sep + "---|---|"]
+    L += [row(r) + f" {'pass' if r['pass'] else 'fail'} | {esc(fails(r))} |" for r in amb]
+    return "\n".join(L) + "\n"
+
+
 def render_residue(res):  # 3.2 T8: each undelinked game unit, its route reason and its "unit not delink" rows
     nd, units = res["nd"], sorted(res["undelinked"], key=lambda u: u["index"])
     total = sum(len(v) for v in nd.values())
@@ -711,18 +870,84 @@ def control_member():
     return 0 if held == len(cases) else 1
 
 
+def control_amb(kind):
+    """--control amb-outside|amb-site-corr|amb-shared (5.3 T3): plant in memory on the first admitted ambiguous row;
+    0 iff the planted row(s) are refused with the expected AMB_EXCL key, else DID NOT FAIL and 1. Writes nothing.
+    amb-fold (5.3 T13.2): (a) pool[0]'s va given a planted second claiming protoVA in folds -> fold; (b) a bracket-pinned
+    row whose va is a retail_folds retailVA with no identical-unique proto, admitted with that va dropped from folds,
+    is admitted with folds as loaded. 0 iff both hold."""
+    ctx = compute()["actx"]
+    _e, pool, _c, _w = amb_lane(**ctx)
+    if not pool:
+        print(f"{kind}: no admitted ambiguous row to plant on")
+        return 1
+    _s, va, r, _u = pool[0]
+    if kind == "amb-fold":
+        folds, held = ctx["folds"], 0
+        fa = {**folds, va: folds.get(va, frozenset()) | {"0xFFFFFFF0"}}
+        got = amb_lane(**dict(ctx, folds=fa))[3].get(r["protoVA"], "admitted")
+        held += got == "fold"
+        print(f"amb-fold (a) row {r['protoVA']} {ctx['funcs'][va]['name']} (planted claim 0xFFFFFFF0 at 0x{va:08X}) -> "
+              f"{got}: " + ("refused" if got == "fold" else "DID NOT FAIL"))
+        byname, pub, b = ctx["byname"], ctx["pub"], None
+        for r2 in (x for x in ctx["rows"] if x["class"] == "ambiguous"):
+            ns = pub.get(int(r2["protoVA"], 16), set()) | set(r2["names"])
+            for v in sorted({v for n in ns for v in byname.get(n, ())}):
+                f = ctx["funcs"].get(v)
+                if f and amb_class_of(f) == "bracket" and v in folds and not folds[v] - {r2["protoVA"]}:
+                    fb = {k: s for k, s in folds.items() if k != v}
+                    if amb_lane(**dict(ctx, folds=fb))[3].get(r2["protoVA"], "admitted") == "admitted":
+                        b = (r2, v)
+                        break
+            if b:
+                break
+        if b is None:
+            print("amb-fold (b) no bracket row with an ambiguous-hit-only fold va found: DID NOT FAIL")
+            return 1
+        got = _w.get(b[0]["protoVA"], "admitted")
+        held += got == "admitted"
+        print(f"amb-fold (b) row {b[0]['protoVA']} {ctx['funcs'][b[1]]['name']} (0x{b[1]:08X} in retail_folds as an "
+              f"ambiguous hit only) -> {got}: " + ("admitted" if got == "admitted" else "DID NOT FAIL"))
+        print(f"controls: {held} held as expected of 2")
+        return 0 if held == 2 else 1
+    if kind == "amb-shared":  # the twin has no proto bytes: plant on a row whose pin is in its listed targetVAs
+        _s, va, r, _u = next((p for p in pool if f"0x{p[1]:08X}" in p[2]["targetVAs"]), pool[0])
+    funcs, rows = dict(ctx["funcs"]), ctx["rows"]
+    if kind == "amb-outside":  # move the pin to the next table func VA outside the row's targetVAs
+        tv = {int(v, 16) for v in r["targetVAs"]}
+        to = next(v for v in sorted(funcs) if v > va and v not in tv)
+        funcs[to] = funcs.pop(va)
+        byname = {n: {to if v == va else v for v in vs} for n, vs in ctx["byname"].items()}
+        ctx = dict(ctx, byname=byname)
+        want, keys, what = "pin outside targets", [r["protoVA"]], f"pin moved 0x{va:08X} -> 0x{to:08X}"
+    elif kind == "amb-site-corr":
+        funcs[va] = dict(funcs[va], status="site-corr")
+        want, keys, what = "pin not accepted", [r["protoVA"]], "pin status site-corr"
+    else:  # amb-shared: a second row (its own protoVA) whose name is the same pin
+        r2 = dict(r, protoVA="0xFFFFFFF0", names=[funcs[va]["name"]])
+        rows = rows + [r2]
+        want, keys, what = "shared body", [r["protoVA"], r2["protoVA"]], f"second row pinned at 0x{va:08X}"
+    _e, _p, _c, why = amb_lane(**dict(ctx, funcs=funcs, rows=rows))
+    got = [why.get(k, "admitted") for k in keys]
+    ok = all(g == want for g in got)
+    print(f"{kind} row {r['protoVA']} {funcs.get(va, ctx['funcs'][va])['name']} ({what}) -> {', '.join(got)}: "
+          + ("refused" if ok else "DID NOT FAIL"))
+    return 0 if ok else 1
+
+
 def main(argv):
     global ARGS
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--write", action="store_true", help="write the doc + derived jsonl")
     g.add_argument("--check", action="store_true", help="fresh render vs committed doc; exit 1 if they differ")
-    g.add_argument("--control", choices=["member"], help="member rule control (3.4 T16); writes nothing")
+    g.add_argument("--control", choices=["member", "amb-outside", "amb-site-corr", "amb-shared", "amb-fold"],
+                   help="member rule control (3.4 T16), ambiguous lane plants (5.3 T3, amb-fold T13.2); writes nothing")
     ap.add_argument("--config", help="local_paths.json (default config/local_paths.json)")
     ARGS = ap.parse_args(argv)
     if ARGS.control:
         try:
-            return control_member()
+            return control_member() if ARGS.control == "member" else control_amb(ARGS.control)
         except (Refuse, byte_compare.Refuse, pdb_info.NotPdb, pe_info.NotPe, struct.error) as e:
             print(f"candidates: REFUSED {e}", file=sys.stderr)
             return 2
@@ -741,8 +966,13 @@ def main(argv):
         print(f"near excluded {k} {v}" + ("" if v == EXPECT_NEAR[k] else f" (expected {EXPECT_NEAR[k]})"))
     print(f"near pool {len(near)} of {res['nrows']}" + ("" if len(near) == EXPECT_NEAR_POOL else
                                                          f" (expected {EXPECT_NEAR_POOL})"))
+    amb = res["amb"]  # 5.3 T3
+    for k, v in res["aexcl"].items():
+        print(f"amb excluded {k} {v}" + ("" if v == EXPECT_AMB[k] else f" (expected {EXPECT_AMB[k]})"))
+    print(f"amb pool {len(amb)} of {res['arows']}" + ("" if len(amb) == EXPECT_AMB_POOL else
+                                                       f" (expected {EXPECT_AMB_POOL})"))
     fc, npass = counts(res)
-    doc = render(res) + render_near(res)
+    doc = render(res) + render_near(res) + render_amb(res)
     try:
         residue = render_residue(res)
     except Refuse as e:
@@ -775,7 +1005,8 @@ def main(argv):
         DOC.write_text(doc, encoding="utf-8", newline="\n")
         RESIDUE.write_text(residue, encoding="utf-8", newline="\n")
         OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in out + near), encoding="utf-8", newline="\n")
+        OUT.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in out + near + amb), encoding="utf-8",
+                       newline="\n")
         print("Pins")
         print("\n".join(pin_lines(res)))
         print(f"wrote {DOC.relative_to(REPO).as_posix()}, {RESIDUE.relative_to(REPO).as_posix()} and "

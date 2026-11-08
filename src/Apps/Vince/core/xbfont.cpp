@@ -156,7 +156,7 @@ long CXBFont::Create(D3DTexture* pFontTexture, void* pFontData)
         p += 2;
         p += 4;
         m_Glyphs = (GLYPH_ATTR*)p;
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
         m_TranslatorTable = new("\\beep\\vendor\\Microsoft\\XbCommon\\xbfont.cpp", 259) short[m_cMaxGlyph + 1];
         // !FAKE: c2 loop; stand-in loop counter; no PDB local
         for (unsigned short v2 = 0; v2 <= m_cMaxGlyph; v2++) {

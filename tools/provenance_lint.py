@@ -34,6 +34,8 @@ Checks (each failure `FAIL <id> <file>:<line>: <why>`):
   noinline     (4.5 T16.2 G9) `noinline` in code in any file of DIR, with or without `// !FAKE:` (D116)
   pragma       (4.5 T16.2 G9) a `#pragma` line inside a function body (in a FUNCTION extent at a brace depth above the
                FUNCTION line's; comments and literals skipped) in any file of DIR, with or without `// !FAKE:` (D116)
+  include      (5.1 T1) a quoted `#include "<name>"` in any file of DIR whose (file dir / name).resolve() is not an
+               existing file inside DIR (escaping DIR or missing); every line, `#if` arms included; no allowlist
 NAME tags (proto-pdb, name-retail) and placeholder run on every file of DIR (4.5 T16.2 G18; was: scoped files only);
 src-pdb, src-retail, d66 bodies and locals on scoped files.
   locals      (T6.c2) each S_BPREL32/S_REGREL32/S_REGISTER local (params included) of a matched function's proc in
@@ -87,7 +89,7 @@ UPSTREAM = "@{u}"  # fake-diff rev: the merge-base of HEAD and its upstream (3.5
 EXTS = annotations.EXTS
 FUNC = annotations.FUNC
 CHECKS = ("proto-pdb", "placeholder", "src-pdb", "src-retail", "hedge", "fake-diff", "name-retail", "d66", "locals",
-          "accepted", "forceinline", "noinline", "pragma")
+          "accepted", "forceinline", "noinline", "pragma", "include")  # 5.1 T1: +include
 
 ID = r"~?[A-Za-z_]\w*"
 QUAL = rf"{ID}(?:\s*<[^()]*?>)?(?:::{ID}(?:\s*<[^()]*?>)?)*"
@@ -105,7 +107,9 @@ PRAGMA = re.compile(r"^\s*#\s*pragma\b")  # 4.5 T16.2 G9, D116: in a function bo
 DEFINE = re.compile(r"^\s*#\s*define\b")  # 4.5 T16.2 G18: d66 on every file's `#define` lines
 KEYWORD_DECL = re.compile(rf"^(?:typedef\s+)?(?:class|struct|union|enum|namespace)\s+(?:__declspec\([^)]*\)\s+)?({QUAL})")
 ANON = re.compile(r"^\s*(?:typedef\s+)?enum\s*\{")
-CALL_NAME = re.compile(rf"({QUAL}|{ID}::operator\s*[^\s(]+|operator\s*[^\s(]+)\s*\(")
+CALL_NAME = re.compile(rf"({QUAL}|{QUAL}::operator\s*[^\s(]+|operator\s*[^\s(]+)\s*\(")  # 5.3 T2: outer classes kept
+# was: rf"({QUAL}|{ID}::operator\s*[^\s(]+|operator\s*[^\s(]+)\s*\(" (`std::deque<T>::const_iterator::operator*` ->
+# `const_iterator::operator*`, not in default.pdb)
 CAST = re.compile(r"\(\s*(?:const\s+)?(?:struct\s+|class\s+|union\s+)?([A-Za-z_]\w*(?:::\w+)*)\s*(?:const\s*)?\*+\s*\)")
 NOT_CAST_NEXT = re.compile(r"\s*(?:[;{,)\]=:]|const\b|throw\b|$)")
 PROTO_VA = re.compile(r"^\s*// PROTOTYPE: PREVIEW 0x([0-9A-Fa-f]{8})\b")
@@ -170,9 +174,12 @@ def decl_ident(code):
 
 def declarator(ident):
     """Last whitespace token at `<>` depth 0, dropping a return type QUAL swallowed as a template argument
-    (`vector<M>::size_type vector<M>::size` -> `vector<M>::size`); `operator X` is left whole (4.1 T4)."""
-    if "operator" in ident:
-        return ident
+    (`vector<M>::size_type vector<M>::size` -> `vector<M>::size`); `operator X` is left whole (4.1 T4); 5.3 T2: the
+    scope before `operator` gets the same cut (`vector<bool>::reference & vector<bool>::reference::operator=`)."""
+    m = re.search(r"\boperator\b", ident)
+    if m:
+        return declarator(ident[:m.start()]) + ident[m.start():] if m.start() else ident
+    # was: if "operator" in ident: return ident
     depth, cut = 0, 0
     for k, ch in enumerate(ident):
         if ch == "<":
@@ -597,6 +604,13 @@ def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED
                 if cd[i][0] > cd[s][0] and PRAGMA.match(cd[i][1]):
                     fails.append(f"FAIL pragma {rel}:{i + 1}: `#pragma` inside a function "
                                  f"body is refused, `// !FAKE:` or not (D116)")
+        for i, line in enumerate(ls):  # 5.1 T1: a quoted include resolves to an existing file inside src
+            inc = INCLUDE.match(line)
+            if inc:
+                t = (p.parent / inc.group(1)).resolve()
+                if not (t.is_file() and t.is_relative_to(src)):
+                    fails.append(f"FAIL include {rel}:{i + 1}: quoted `#include \"{inc.group(1)}\"` is "
+                                 f"{'outside the src root' if t.is_file() else 'no existing file'}")
         in_body = {i for va, s, e in bs if va in matched for i in range(s, e)}
         cont = False
         for i, (_dp, code) in enumerate(cd):  # G18: d66 on `#define` lines (and their `\` continuations) of every file
@@ -918,7 +932,9 @@ def self_test(src, pdb, xbe, matched, list_path=MATCHED, accepted=ACCEPTED):
                "struct ZzSelftestNotInXbe; // NAME: retail",
                "// !FAKE: inliner; __forceinline; planted",
                "__forceinline int zz_selftest_forceinline() { return 0; }",
-               "__declspec(noinline) int zz_selftest_noinline();"]  # 4.5 T16.2 (noinline control)
+               "__declspec(noinline) int zz_selftest_noinline();",  # 4.5 T16.2 (noinline control)
+               "#if 0", '#include "../zz_selftest_missing.h"', "#endif"]  # 5.1 T1 (include control: a missing
+        # target; under `#if 0` so the locals /Z7 compile still succeeds, the lint reads every arm)
         p.write_text("\n".join(ls) + "\n", encoding="utf-8", newline="\n")
         acc = SCRATCH / "accepted.txt"  # accepted control: a real line widened by a hedge word
         acc.write_text((Path(accepted).read_text(encoding="utf-8") if Path(accepted).is_file() else "")

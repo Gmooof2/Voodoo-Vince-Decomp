@@ -17,6 +17,8 @@ private:
 };
 template <class E, class T, class A>
 basic_string<E, T, A> operator+(const E* _Left, const basic_string<E, T, A>& _Right);
+template <class E, class T, class A>
+basic_string<E, T, A> operator+(const basic_string<E, T, A>& _Left, const basic_string<E, T, A>& _Right);
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -66,8 +68,10 @@ class Critter;               // NAME: proto-pdb:default.pdb
 
 template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
 public:
+    ResourceHandle() : _Resource(0) {}
     ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
     ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    ResourceHandle& operator=(const ResourceHandle&);
     T& operator()() { return *_Resource; }
 
     T* _Resource;                      // 0x00
@@ -76,7 +80,7 @@ public:
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
     void AddRef() { ++_RefCount; }
-    void SubRef();
+    void SubRef() { --_RefCount; }
 
     char field_0[0x1C];                // 0x00
     unsigned int _RefCount;            // 0x1C
@@ -110,6 +114,9 @@ public:
 };
 
 class ModelManager : public ResourceManager<ModelResource> { // NAME: proto-pdb:default.pdb
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
 };
 
 class SoundManager { // NAME: proto-pdb:default.pdb
@@ -159,10 +166,16 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual SwampString Save();                                    // vtable+0x58
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
+public:
 
     Critter* GetCritter();
 
@@ -290,7 +303,7 @@ SwampString GatesRegionMain::Save()
 // NAME: proto-pdb:default.pdb
 SwampScript* RewardGateFrogMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("mainstreet\\Mainstreet.cpp", 27) RewardGateFrogMain(node);
 }
 
@@ -306,7 +319,7 @@ void GatesRegionMain::Load(const BeepTDF& tdf)
 // NAME: proto-pdb:default.pdb
 SwampScript* GatesRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("mainstreet\\Mainstreet.cpp", 41) GatesRegionMain(node);
 }
 
@@ -315,7 +328,7 @@ SwampScript* GatesRegionMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* GateTrapMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("mainstreet\\Mainstreet.cpp", 69) GateTrapMain(node);
 }
 
@@ -324,7 +337,7 @@ SwampScript* GateTrapMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* MainstreetRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\Mainstreet.h", 11) MainstreetRegionMain(node);
 }
 
@@ -364,8 +377,11 @@ public:
     enum NodeOptions { DontDraw = 0x2 }; // NAME: proto-pdb:default.pdb
     SwampScript* GetScript() const;
     void SetOption(unsigned int option, bool on, bool recurse);
+    const SwampString& GetName() const { return _Name; }
 
-    char field_4[0xA4 - 0x4];          // 0x04
+    char field_4[0x8 - 0x4];           // 0x04
+    SwampString _Name;                 // 0x08
+    char field_24[0xA4 - 0x24];        // 0x24
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
@@ -415,8 +431,11 @@ class Swamp { // NAME: proto-pdb:default.pdb
 public:
     RegionManager& GetRegionManager() const { return *_regionManager; }
     ModelManager& GetModelManager() const { return *_modelManager; }
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
 
-    char field_0[0x28];                // 0x00
+    char field_0[0x18];                // 0x00
+    AnimationManager* _animationManager; // 0x18
+    char field_1C[0x28 - 0x1C];        // 0x1C
     ModelManager* _modelManager;       // 0x28
     char field_2C[0x30 - 0x2C];        // 0x2C
     RegionManager* _regionManager;     // 0x30
@@ -447,6 +466,14 @@ public:
     int _mainstreetFrogTrapCount;      // 0x278
 };
 extern Globals gSettings; // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x00070C74
+// NAME: proto-pdb:default.pdb
+GateTrapMain::GateTrapMain(SwampSceneNode* node) : CritterMain(node)
+{
+    _open = g_swamp->GetAnimationManager().Load(GetCritter()->GetName() + SwampString("_open"));
+    Message(this, MESSAGE_RESET, 0);
+}
 
 // FUNCTION: USA 0x0007071D
 // PROTOTYPE: PREVIEW 0x0045C891 identical
@@ -572,6 +599,6 @@ GateFrogMain::GateFrogMain(SwampSceneNode* node) : PitFrogMain(node)
 // NAME: proto-pdb:default.pdb
 SwampScript* GateFrogMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("mainstreet\\Mainstreet.cpp", 90) GateFrogMain(node);
 }

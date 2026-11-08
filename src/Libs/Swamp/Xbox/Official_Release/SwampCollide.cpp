@@ -192,10 +192,12 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
+// FUNCTION: USA 0x000B1E61
+// NAME: proto-pdb:default.pdb
 class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     CollidableNode(int nodeType);
-    virtual ~CollidableNode();
+    virtual ~CollidableNode() {} // retail ??_GCollidableNode 0x000B1E61 inlines it (vptr store + ??1SwampSceneNode)
     virtual Ptr<CollisionResultObject> CheckLine(const Vector3& start, const Vector3& end, float radius) const; // vtable+0x24
     virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
     virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
@@ -239,20 +241,16 @@ public:
 
 // FUNCTION: USA 0x000B1C8B
 // NAME: proto-pdb:default.pdb
-// best: match_one objdiff 100.0 + bytes; relink refuses the vtable it emits (C0203 wall-vtable-relink): slot
-// ?DoesJorgeRepelMe@CollidableNode@@UBE_NPBVSwampSceneNode@@_N@Z resolves by no name, ??_GCollidableNode unnamed
-#ifdef NON_MATCHING
 CollidableNode::CollidableNode(int nodeType) : SwampSceneNode(nodeType), _sphereRadius(0.0f), _collidable(true)
 {
     SetOption(IsACollidableType, true, false);
 }
-#endif
 
 // FUNCTION: USA 0x000B1E83
 // NAME: proto-pdb:default.pdb
 void CollidableCylinder::RecalculateSphereRadius()
 {
-    float tmp = Vector2(_height * 0.5f, _radius).LengthSquared(); // !FAKE: stand-in for the squared length
+    float tmp = Vector2(_height * 0.5f, _radius).LengthSquared(); // !FAKE: inliner; stand-in local tmp for the squared length; no before/after recorded
     SetSphereRadius(tmp * FastReciprocalSquareRoot(tmp));
 }
 
@@ -275,7 +273,7 @@ template Ptr<CollisionResultObject>& Ptr<CollisionResultObject>::operator=(const
 Ptr<CollisionResultObject> SwampCollide::GetNewResult()
 {
     Ptr<BSPQueryResultObject> qr = BSPResultManager::GetNewResult();
-    // !FAKE: hand form of the GetCollisionResult(qr) body retail inlines here; /O1 keeps the call (D117)
+    // !FAKE: inliner; hand form of the GetCollisionResult(qr) body; retail inlines it here, /O1 keeps the call (D117)
     Ptr<CollisionResultObject> tmp((CollisionResultObject*)qr());
     return tmp;
 }
@@ -302,7 +300,8 @@ Ptr<CollisionResultObject> SwampCollide::GetCollisionResult(const SwampSceneNode
 // PROTOTYPE: PREVIEW 0x0049CD5A identical
 // NAME: proto-pdb:default.pdb
 // best: match_one objdiff 95.17 (4.4 T13.c5); frame slots match retail; open: normLineDir.z is `fmul [mem]`
-// (retail `fld; fmul st1`, rcpLen popped later) and lineDir*pct loads pct first (retail loads lineDir.x first)
+// (retail `fld; fmul st1`, rcpLen popped later) and lineDir*pct loads pct first (retail loads lineDir.x first);
+// T12.c26 lever A (`const float& v = rcpLen`, `lineDir.k * v|pct`, ref-bound call temp, member stores) neutral: 95.17
 #ifdef NON_MATCHING
 Ptr<CollisionResultObject> CollidableNode::CheckLineAgainstSphere(const Vector3& start, const Vector3& end, float radius,
                                                                   const Vector3& spherePos, float sphereRadius) const
@@ -319,10 +318,10 @@ Ptr<CollisionResultObject> CollidableNode::CheckLineAgainstSphere(const Vector3&
             const float pct = tin * rcpLen;
             if (pct < 1.0f) {
                 Ptr<CollisionResultObject> result = SwampCollide::GetCollisionResult(this, pct);
-                // !FAKE: c2 x87 code; neutral stand-in locals v0, v1: retail scales before adding (inlined operators)
+                // !FAKE: c2 x87 code; neutral stand-in locals v0, v1; retail scales before adding (inlined operators)
                 Vector3 v0(pct * lineDir.x, pct * lineDir.y, pct * lineDir.z);
                 Vector3 projectedPos(v0.x + start.x, v0.y + start.y, v0.z + start.z);
-                { // !FAKE: c2 frame slots; inner block lets planeNormal share lineDir's slot (C0232)
+                { // !FAKE: c2 frame slots; inner block; it lets planeNormal share lineDir's slot (C0232)
                     Vector3 planeNormal = Normalize(Vector3(projectedPos.x - spherePos.x, projectedPos.y - spherePos.y,
                                                             projectedPos.z - spherePos.z));
                     Vector3 v1(planeNormal.x * sphereRadius, planeNormal.y * sphereRadius, planeNormal.z * sphereRadius);

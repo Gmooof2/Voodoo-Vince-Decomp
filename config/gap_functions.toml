@@ -1,0 +1,8 @@
+# Gap functions: retail functions with no derived/xdk functions.jsonl record, counted by tools/progress.py
+# in both denominators whether matched or not (5.2 T18; developer's choice 2026-11-07). Hand-edited, reviewed.
+# Each entry: va, size, section (game-dominant), symbol, evidence = pin | call-site | vtable-slot, at (call-site
+# or slot VA; pin entries resolve their pin in config/retail/symbols_pin.txt by va, status disasm-verified or
+# corr-verified), note. progress.py refuses an entry without evidence, outside a game-dominant section, or
+# overlapping a functions.jsonl record or another entry.
+# Left out: 0x000E1418 ??1PropellerMain (18 B) lies inside record 0x000E13B7 (115 B), already counted; pin unverified.
+

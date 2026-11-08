@@ -5,7 +5,7 @@
 #include <xstring>
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0090); retail calls the string ctor and _Tidy out of line
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0090); retail calls the string ctor and _Tidy out of line
 // (named VAs); their bodies would emit the _Copy __ehhandler$ funclet here (gate objects extra); declared after
 // <xstring>, before <stdexcept> instantiates them (C2908 otherwise)
 template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(const char*);
@@ -79,7 +79,7 @@ public:
 DECOMP_SIZE_ASSERT(WalkSounds, 0x10);
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132, C0154); retail calls size out of line (named VA); find stays
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132, C0154); retail calls size out of line (named VA); find stays
 // visible (retail keeps tit in esi across the calls; decl-only 92.27) and relinks over its retail copy byte-equal
 template <> std::vector<ResourceHandle<SoundResource> >::size_type std::vector<ResourceHandle<SoundResource> >::size() const;
 #endif
@@ -106,7 +106,7 @@ void WalkSounds::PlayASound(SwampSceneNode* owner) const
 }
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >(std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > const &);
@@ -124,7 +124,7 @@ template std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>
 template std::_Tree_nod<std::_Tmap_traits<unsigned int,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >,std::less<unsigned int>,std::allocator<std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > >,0> >::_Node::_Node(std::_Tree_nod<std::_Tmap_traits<unsigned int,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >,std::less<unsigned int>,std::allocator<std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > >,0> >::_Node *,std::_Tree_nod<std::_Tmap_traits<unsigned int,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >,std::less<unsigned int>,std::allocator<std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > >,0> >::_Node *,std::_Tree_nod<std::_Tmap_traits<unsigned int,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >,std::less<unsigned int>,std::allocator<std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > >,0> >::_Node *,std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > const &,char);
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> std::_Tree<std::_Tmap_traits<unsigned int,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >,std::less<unsigned int>,std::allocator<std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > >,0> >::iterator _Tree<std::_Tmap_traits<unsigned int,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >,std::less<unsigned int>,std::allocator<std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > >,0> >::_Insert(bool,std::_Tree_nod<std::_Tmap_traits<unsigned int,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > >,std::less<unsigned int>,std::allocator<std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > >,0> >::_Node *,std::pair<unsigned int const ,std::vector<ResourceHandle<SoundResource>,std::allocator<ResourceHandle<SoundResource> > > > const &);

@@ -173,7 +173,7 @@ void BubbaGatorMain::AnimationTrigger(const SwampString& name, float value, floa
 // NAME: proto-pdb:default.pdb
 SwampScript* BubbaGatorMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\BubbaGator.h", 14) BubbaGatorMain(node);
 }
 

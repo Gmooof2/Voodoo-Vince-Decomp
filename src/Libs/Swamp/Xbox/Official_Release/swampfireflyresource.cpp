@@ -172,6 +172,9 @@ extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 96.49, bytes mismatch (retail threads the second _bin test: zero store jumps to the end, last header compare je to _valid)
+// T12.c23 at-stop 20: retail = failure-first if/else with 0 CSE'd in edi; C0244 redundant-test if/else gives the layout
+// but no edi (81.06: 5 zero uses stay `and [m],0`); else-if chains repeating `_bin = 0` get edi by tail merge but the
+// merged block keeps the first instance's place (m2/n1 95.96, n5 91.49); repeating the dataSize test (94.47) CSEs 0x14C
 FireFlyResource::FireFlyResource(const SwampString& name) : ResourceBase(name), _bin(0), _tdf(0)
 {
     // !FAKE: c1xx front end; block scope; retail destroys shortname before the header check (match_one 61.8 -> 78.3)

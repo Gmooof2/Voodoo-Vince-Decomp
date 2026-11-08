@@ -147,6 +147,7 @@ public:
     virtual SwampString Save();                                    // vtable+0x58
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
+    void RegisterTimerEvent(unsigned int, float, bool);
 
     char field_4[0x1C];                // 0x04 (_name; not reached)
     SwampSceneNode* _node;             // 0x20
@@ -230,6 +231,7 @@ class VinceListeningToKosmoMT : public SwampScript { // NAME: proto-pdb:default.
 public:
     VinceListeningToKosmoMT(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int timerId);
+    virtual void AnimationFinished();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -238,6 +240,22 @@ private:
     int _idle;                         // 0x54
 };
 DECOMP_SIZE_ASSERT(VinceListeningToKosmoMT, 0x58);
+
+// FUNCTION: USA 0x000A12E9
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes mismatch +0x5E only (fld 2.0f: retail reads 0x001E8280, unnamed; our
+// __real@40000000 is pinned at 0x001C9D28): data-pin wall, source is final; 5.3 T12.1.c2
+void VinceListeningToKosmoMT::AnimationFinished()
+{
+    if (_state == 1) {
+        _state = 0;
+        _vince->StartAnimation(g_swamp->GetAnimationManager().Load("vince_idle01"), true, false);
+        if (_idle != -1)
+            RegisterTimerEvent(0, 2.0f, false);
+    }
+}
+#endif
 
 // FUNCTION: USA 0x000A135E
 // NAME: proto-pdb:default.pdb
@@ -268,7 +286,7 @@ void VinceListeningToKosmoMT::TimerEvent(unsigned int timerId)
 // row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* VinceListeningToKosmoMT::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("MainTunnel\\MainTunnelCutscenes.cpp", 167) VinceListeningToKosmoMT(node);
 }
 #endif

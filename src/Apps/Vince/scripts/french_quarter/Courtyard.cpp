@@ -147,6 +147,6 @@ void CourtyardRegionMain::EnteringRegion(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* CourtyardRegionMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("courtyard\\Courtyard.cpp", 23) CourtyardRegionMain(node);
 }

@@ -122,6 +122,7 @@ public:
 
     WheelOfMysteryMain(SwampSceneNode* node);
     virtual void Activate();
+    virtual void TimerEvent(unsigned int);
     virtual void Message(SwampScript* source, int message, void* data);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -184,7 +185,7 @@ DECOMP_SIZE_ASSERT(WheelOfMysteryDoorsMain, 0x110);
 // NAME: proto-pdb:default.pdb
 SwampScript* ExtraLifeOfMysteryMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\WheelOfMystery.cpp", 319) ExtraLifeOfMysteryMain(node);
 }
 
@@ -193,7 +194,7 @@ SwampScript* ExtraLifeOfMysteryMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WheelOfMysteryMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\WheelOfMystery.cpp", 32) WheelOfMysteryMain(node);
 }
 
@@ -202,7 +203,7 @@ SwampScript* WheelOfMysteryMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* switch_wheelOfMysteryMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\WheelOfMystery.cpp", 384) switch_wheelOfMysteryMain(node);
 }
 
@@ -211,7 +212,7 @@ SwampScript* switch_wheelOfMysteryMain::creationFunc(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* WheelOfMysteryDoorsMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\WheelOfMystery.cpp", 271) WheelOfMysteryDoorsMain(node);
 }
 
@@ -363,6 +364,22 @@ private:
 };
 DECOMP_SIZE_ASSERT(FrogOfMysteryMain, 0x39C);
 
+class AnimCam { // NAME: proto-pdb:default.pdb
+public:
+    static AnimCam* SwitchTo(const SwampString&, float, bool, float);
+    static void Return(float);
+};
+
+// FUNCTION: USA 0x0003B64F
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 20.0, bytes match (masked 0); wall: cut extent: the delink cut runs 72 B to the next external symbol, over the unnamed 57 B function at 0x0003B65E (LAB_0003b65e)
+void WheelOfMysteryMain::TimerEvent(unsigned int)
+{
+    AnimCam::Return(0.0f);
+}
+#endif
+
 // FUNCTION: USA 0x0003B697
 // PROTOTYPE: PREVIEW 0x00429D56 identical
 // NAME: proto-pdb:default.pdb
@@ -415,11 +432,6 @@ public:
 
     char field_0[0x140];               // 0x00
     ResourceHandle<AnimationControl> _currentAnim; // 0x140
-};
-
-class AnimCam { // NAME: proto-pdb:default.pdb
-public:
-    static AnimCam* SwitchTo(const SwampString&, float, bool, float);
 };
 
 namespace BeepLib { // NAME: proto-pdb:default.pdb
@@ -512,6 +524,6 @@ FrogOfMysteryMain::FrogOfMysteryMain(SwampSceneNode* node) : PitFrogMain(node)
 // NAME: proto-pdb:default.pdb
 SwampScript* FrogOfMysteryMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\WheelOfMystery.cpp", 338) FrogOfMysteryMain(node);
 }

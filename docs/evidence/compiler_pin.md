@@ -399,3 +399,89 @@ the matched proto elements:
   `??_R0?AVlogic_error@std@@@8` 0x00204758, `??_R0?AVexception@@@8` 0x00204740.
 - TD+0: `??_7type_info@@6B@` 0x001FB6FC. `??_7exception@@6B@` 0x001FB6E0: the vtable store in retail
   `??0exception@@QAE@XZ` 0x00141658; proto `??_7exception@@6B@` and `??_7type_info@@6B@` sit 0x1C apart, as in retail.
+
+## Vtable slot and wall pins (5.2 T6.c1)
+
+### Vtable slot pass (5.2 T6.c1)
+
+Population: site-corr `??_7` pins carrying pool rows (candidates.jsonl blockers via naming_levers.build) plus the 9 wall-vtable-relink classes' vtables: 196 vtables, 490 retail slots with no table name or only a `boundary_` label, 296 distinct retail targets.
+Name source: proto `??_7X@@6B@` public in default.exe, slot dword k -> proto proc -> its publics. One public: that name. Several (folded stubs): the publics whose class is X or a PDB base of X (TPI LF_BCLASS chain) for every retail vtable X whose slot k reaches the target.
+Target verdicts: {'candidate': 138, 'bytes-differ': 154, 'proto-proc-at-2-retail-vas': 4}. `proto-proc-at-2-retail-vas`: one proto proc reached at 2+ retail VAs (no fold on the retail side), left unnamed.
+Kept after replant: 429 lines at 137 VAs: callee-bytes 6, fold-alias 408, hand 15. Boundary labels replaced: 7.
+Vtables with every missing slot now named: 94; still missing some (bytes-differ targets): 89.
+
+Vtable routes after the pins (each site-corr `??_7` line retagged in a copy, pin_rows replant):
+- `+slot-bytes` corr-verified (D113): pass 0 (the route reads slot bytes, not slot names; the pins change nothing).
+- `+vtable-slots` disasm-verified: pass 0.
+- name_sites route_one (pointer-name agreement, the naming_levers lens): pass 20 new: ??_7WindyBits@@6B@, ??_7FanBoatWake@@6B@, ??_7FadeToBlack@@6B@, ??_7LightBeam@@6B@, ??_7FFlyMinMaxCtrlV3@@6B@, ??_7VinceGiblets@@6B@, ??_7FogZone@@6B@, ??_7SearchlightBeam@@6B@, ??_7GatorNode@@6B@, ??_7CollidableCylinder@@6B@, ??_7FireFlyNodeClone@@6B@, ??_7LightNode@@6B@, ??_7HeatShimmer@@6B@, ??_7SwampLightningFlash@@6B@, ??_7DebugGeometryNode@@6B@, ??_7GeometryNode@@6B@, ??_7Decal@@6B@, ??_7FloatyBits@@6B@, ??_7SwampWaterNode@@6B@, ??_7SwampPuddle@@6B@. No pin_rows tag accepts them: retagged `+data-bytes` (promote-data's PROMO_SRC) each fails `route-global:name-kind-vs-tag`.
+Freed pool rows (all blocker keys in the set): slot pins alone 0; + slot-bytes vtables 0; + route_one vtables 23 (hypothetical: needs a vtable route by slot-name agreement in pin_rows, a locked tool).
+
+#### Vtable slot pins at 0x000180E1 (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?GetGravity@Critter@@UAEMXZ`: retail ??_7Beret@@6B@ slot 16, ??_7GingerDeadMan@@6B@ slot 16 = 0x000180E1; the same proto vtable slots = proto 0x004073B0, whose 1 publics include `?GetGravity@Critter@@UAEMXZ`; proto proc length 7, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x000180E1 func - ?GetGravity@Critter@@UAEMXZ proto-pdb-public+retail-disasm disasm-verified`
+
+#### Vtable slot pins at 0x00037178 (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?Open@MemoryFileHandler@@UAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z`: retail ??_7ZipFileHandler@@6B@ slot 3, ??_7MemoryFileHandler@@6B@ slot 0, ??_7MemoryFileHandler@@6B@ slot 3 = 0x00037178; the same proto vtable slots = proto 0x00425886, whose 3 publics include `?Open@MemoryFileHandler@@UAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z`; proto proc length 5, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?Write@MemoryFileHandler@@UAE_NPBXI@Z`: retail ??_7ZipFileHandler@@6B@ slot 3, ??_7MemoryFileHandler@@6B@ slot 0, ??_7MemoryFileHandler@@6B@ slot 3 = 0x00037178; the same proto vtable slots = proto 0x00425886, whose 3 publics include `?Write@MemoryFileHandler@@UAE_NPBXI@Z`; proto proc length 5, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?Write@ZipFileHandler@@UAE_NPBXI@Z`: retail ??_7ZipFileHandler@@6B@ slot 3, ??_7MemoryFileHandler@@6B@ slot 0, ??_7MemoryFileHandler@@6B@ slot 3 = 0x00037178; the same proto vtable slots = proto 0x00425886, whose 3 publics include `?Write@ZipFileHandler@@UAE_NPBXI@Z`; proto proc length 5, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x00037178 func - ?Open@MemoryFileHandler@@UAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z proto-pdb-public+retail-disasm disasm-verified`; `0x00037178 func - ?Write@MemoryFileHandler@@UAE_NPBXI@Z proto-pdb-public+retail-disasm disasm-verified`; `0x00037178 func - ?Write@ZipFileHandler@@UAE_NPBXI@Z proto-pdb-public+retail-disasm disasm-verified`
+
+#### Vtable slot pins at 0x0003735F (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?Size@AsyncFileHandler@@UAEIXZ`: retail ??_7ZipFileHandler@@6B@ slot 5, ??_7AsyncFileHandler@@6B@ slot 5, ??_7MemoryFileHandler@@6B@ slot 5 = 0x0003735F; the same proto vtable slots = proto 0x00425A4E, whose 3 publics include `?Size@AsyncFileHandler@@UAEIXZ`; proto proc length 4, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?Size@MemoryFileHandler@@UAEIXZ`: retail ??_7ZipFileHandler@@6B@ slot 5, ??_7AsyncFileHandler@@6B@ slot 5, ??_7MemoryFileHandler@@6B@ slot 5 = 0x0003735F; the same proto vtable slots = proto 0x00425A4E, whose 3 publics include `?Size@MemoryFileHandler@@UAEIXZ`; proto proc length 4, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?Size@ZipFileHandler@@UAEIXZ`: retail ??_7ZipFileHandler@@6B@ slot 5, ??_7AsyncFileHandler@@6B@ slot 5, ??_7MemoryFileHandler@@6B@ slot 5 = 0x0003735F; the same proto vtable slots = proto 0x00425A4E, whose 3 publics include `?Size@ZipFileHandler@@UAEIXZ`; proto proc length 4, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x0003735F func - ?Size@AsyncFileHandler@@UAEIXZ proto-pdb-public+retail-disasm disasm-verified`; `0x0003735F func - ?Size@MemoryFileHandler@@UAEIXZ proto-pdb-public+retail-disasm disasm-verified`; `0x0003735F func - ?Size@ZipFileHandler@@UAEIXZ proto-pdb-public+retail-disasm disasm-verified`
+
+#### Vtable slot pins at 0x00037363 (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?Pos@AsyncFileHandler@@UAEHXZ`: retail ??_7ZipFileHandler@@6B@ slot 6, ??_7AsyncFileHandler@@6B@ slot 6, ??_7MemoryFileHandler@@6B@ slot 6 = 0x00037363; the same proto vtable slots = proto 0x00425A52, whose 3 publics include `?Pos@AsyncFileHandler@@UAEHXZ`; proto proc length 4, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?Pos@MemoryFileHandler@@UAEHXZ`: retail ??_7ZipFileHandler@@6B@ slot 6, ??_7AsyncFileHandler@@6B@ slot 6, ??_7MemoryFileHandler@@6B@ slot 6 = 0x00037363; the same proto vtable slots = proto 0x00425A52, whose 3 publics include `?Pos@MemoryFileHandler@@UAEHXZ`; proto proc length 4, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?Pos@ZipFileHandler@@UAEHXZ`: retail ??_7ZipFileHandler@@6B@ slot 6, ??_7AsyncFileHandler@@6B@ slot 6, ??_7MemoryFileHandler@@6B@ slot 6 = 0x00037363; the same proto vtable slots = proto 0x00425A52, whose 3 publics include `?Pos@ZipFileHandler@@UAEHXZ`; proto proc length 4, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x00037363 func - ?Pos@AsyncFileHandler@@UAEHXZ proto-pdb-public+retail-disasm disasm-verified`; `0x00037363 func - ?Pos@MemoryFileHandler@@UAEHXZ proto-pdb-public+retail-disasm disasm-verified`; `0x00037363 func - ?Pos@ZipFileHandler@@UAEHXZ proto-pdb-public+retail-disasm disasm-verified`
+
+#### Vtable slot pins at 0x0006972D (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?AnimationInterrupted@NetMain@@UAEXXZ`: retail ??_7NetMain@@6B@ slot 8 = 0x0006972D; the same proto vtable slots = proto 0x00455C5D, whose 1 publics include `?AnimationInterrupted@NetMain@@UAEXXZ`; proto proc length 5, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x0006972D func - ?AnimationInterrupted@NetMain@@UAEXXZ proto-pdb-public+retail-disasm disasm-verified`
+
+#### Vtable slot pins at 0x00078E59 (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?CanJorgeCollideWithMe@CollidableNode@@UBE_NPBVSwampSceneNode@@ABUVector3@@@Z`: retail ??_7VinceGiblets@@6B@ slot 10, ??_7VinceGiblets@@6B@ slot 11, ??_7CollidableNode@@6B@ slot 10, ??_7CollidableNode@@6B@ slot 11, ??_7GatorNode@@6B@ slot 10, ??_7GatorNode@@6B@ slot 11 (+2 more) = 0x00078E59; the same proto vtable slots = proto 0x0045C0D1, whose 3 publics include `?CanJorgeCollideWithMe@CollidableNode@@UBE_NPBVSwampSceneNode@@ABUVector3@@@Z`; proto proc length 5, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?DoesJorgeRepelMe@CollidableNode@@UBE_NPBVSwampSceneNode@@_N@Z`: retail ??_7VinceGiblets@@6B@ slot 10, ??_7VinceGiblets@@6B@ slot 11, ??_7CollidableNode@@6B@ slot 10, ??_7CollidableNode@@6B@ slot 11, ??_7GatorNode@@6B@ slot 10, ??_7GatorNode@@6B@ slot 11 (+2 more) = 0x00078E59; the same proto vtable slots = proto 0x0045C0D1, whose 3 publics include `?DoesJorgeRepelMe@CollidableNode@@UBE_NPBVSwampSceneNode@@_N@Z`; proto proc length 5, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x00078E59 func - ?CanJorgeCollideWithMe@CollidableNode@@UBE_NPBVSwampSceneNode@@ABUVector3@@@Z proto-pdb-public+retail-disasm disasm-verified`; `0x00078E59 func - ?DoesJorgeRepelMe@CollidableNode@@UBE_NPBVSwampSceneNode@@_N@Z proto-pdb-public+retail-disasm disasm-verified`
+
+#### Vtable slot pins at 0x0013240F (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?HitBy@ClownMissileMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z`: retail ??_7ClownMissileMain@@6B@ slot 20 = 0x0013240F; the same proto vtable slots = proto 0x0046B0DE, whose 4 publics include `?HitBy@ClownMissileMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z`; proto proc length 5, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x0013240F func - ?HitBy@ClownMissileMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z proto-pdb-public+retail-disasm disasm-verified`
+
+#### Vtable slot pins at 0x00138E4E (5.2 T6.c1)
+Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stub under 8 B (callee-short); the slot evidence names it.
+- `?GetDefaultState@BasicDoorMain@@UBEHXZ`: retail ??_7GateSmallMain@@6B@ slot 28, ??_7CrawdadTrapMain@@6B@ slot 28, ??_7DockSubMain@@6B@ slot 28, ??_7TrailerFrogsMain@@6B@ slot 28, ??_7EvilVinceMirrorMain@@6B@ slot 28, ??_7TeslaCoilPartMain@@6B@ slot 28 (+4 more) = 0x00138E4E; the same proto vtable slots = proto 0x00532768, whose 4 publics include `?GetDefaultState@BasicDoorMain@@UBEHXZ`; proto proc length 3, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- Pin: `0x00138E4E func - ?GetDefaultState@BasicDoorMain@@UBEHXZ proto-pdb-public+retail-disasm disasm-verified`
+
+Slot targets left unnamed: 154 bytes-differ (proto slot proc not masked-equal at the retail target); 4 where one proto proc is reached at two retail VAs (retail did not fold): 0x000A5460 and 0x00051F8C (proto 0x00460492; ??_7FileHandler slot 4, ??_7GeneratorMain slot 1), 0x00069D6B (proto 0x004070A8, also at pinned 0x00017E42; ??_7NetMain slot 1), 0x00069917 (proto 0x004C7652, also at pinned 0x0011C7BC; ??_7NetMain slot 2).
+
+### Wall-vtable-relink blockers (5.2 T6.c1)
+C0256 follow-up list, each checked unnamed in symbols.txt and symbols_pin.txt (snapshot = live file at the run). Callers: symbols.txt funcs (pin_rows by_rd) and accepted func pin rows, masked-equal at the proto proc length, outgoing dest equal to the VA; the proto dest's publics name it.
+- 0x00017F50 (wall ??0LevelScript): called by ??1LevelScript, ??_ELevelScript, ??_GLevelScript at proto dest 0x0040721F, 1 public `?_Tidy@?$vector@UProgressHint@LevelScript@@V?$allocator@UProgressHint@LevelScript@@@std@@@std@@IAEXXZ` (C0256 called it ~vector; the PDB says _Tidy); callee passes, proc length 0x2D. Pinned callee-bytes.
+- 0x00070505 (wall ??0MainstreetRegionMain): retail ??_7MainstreetRegionMain slot 13; proto 0x00444272, 4 publics; the class's own `?Message@MainstreetRegionMain@@UAEXPAVSwampScript@@HPAX@Z`; callee passes. Pinned fold-alias (the other 3 publics' classes have no retail slot at this VA: not pinned).
+- 0x00121879 (wall ??0VinceFlat): called by the retail ??_E rows named ??_EBasketStopperMain, ??_EBasketStopperPanMain, ??_EVinceFlat; proto dest 0x0051E9EE, 7 publics; pinned the dtors of the callers' classes: `??1VinceFlat@@UAE@XZ`, `??1BasketStopperMain@@UAE@XZ` (fold-alias, callee passes, 0x19). The 5 WhammyResult* dtor aliases there have no retail caller named for their class: not pinned.
+- 0x0008C43B (walls ??0VinceZapHat, ??0VinceCeilingFan): called by ??_EVinceCeilingFan, ??_EVinceZapHat, ??_GVinceCeilingFan; proto 0x00477F4F, 2 publics `??1VinceCeilingFan@@UAE@XZ`, `??1VinceZapHat@@UAE@XZ`; pinned both fold-alias (0xF). C0256: the folded ??_G emitted by two objects still needs a fold-copy check at relink.
+- 0x000DAA98 (~BundleBackgroundLoader; wall ??0LoadScreen per C0256): called by ??_E/??_GBundleBackgroundLoader at proto dest 0x004C5FC9, 1 public `??1BundleBackgroundLoader@@UAE@XZ`; NOT masked-equal (first masked difference at +0x10; masks shift by 3 from the proto rel at +0x21 to retail +0x1E; 70 differing offsets after masking); allow_const match fails; name_sites near_check passes (sim 97.22, 2 agreeing anchors, 0 conflicts); Ghidra size 101, contiguous. The near-corr line `0x000DAA98 func 0x65 ??1BundleBackgroundLoader@@UAE@XZ proto-pdb-public+anchor-window+caller-xref near-corr` fails pin_rows `route-near:no-agreeing-site` (its callers are pin rows, not symbols.txt; NEAR_NO_SITE is in locked pin_rows). Not pinned; stays.
+- 0x0012B64E (wall ??0PuddleRegionMain): callers ??_E/??_GPuddleRegionMain, proto 0x00514073 `?_Tidy@?$vector@USplasher@PuddleRegionMain@@...`, callee passes; the pin exists DISABLED (symbols_pin.txt:3274-3275, 4.4 T6.1: the re-cut call site 0x0012BC8C+0x7 has no reloc; name_sites ACCEPTED_SITES puddle). A cut reason, not evidence: left disabled.
+- 0x001C94D4 (deque `_Xlen` string): already pinned `??_C@_0BC@KBDMBKEH@deque?$DMT?$DO?5too?5long?$AA@` literal-bytes disasm-verified (symbols_pin.txt:3874). Nothing to add.
+- Walls not lifted by a pin (C0203, C0256 source walls): ??0RegionTrigger (access spelling, SwampSceneNode M vs U), ??0UIClusterMain (LNK2005 inline SetScale .debug$F COMDAT), ??0LoadScreen (also ~BundleBackgroundLoader above). Their vtables (all corr-verified) have no unnamed slot left.
+
+### Site-corr ctor pins (5.2 T6.c1)
+- 0x0005B952 `??0DoorExitZGCMain@@QAE@PAVSwampSceneNode@@@Z` (symbols_pin.txt:3583): caller ?creationFunc@DoorExitZGCMain (symbols.txt) reaches proto 0x00447E73, 1 public, proc length 98; pin_rows callee passes (D119 rule: one of 2+ proto publics agrees). naming_levers lists it callee-name-conflict under name_sites.callee's stricter rule (a proto dest with 2+ publics never agrees). Promote in place to `+site-corr+callee-bytes disasm-verified`, size 0x62.
+- 0x0003C5A8 `??0DoorPulleyBucketMain@@QAE@PAVSwampSceneNode@@@Z` (symbols_pin.txt:3829): caller ?creationFunc@DoorPulleyBucketMain, proto 0x0042ACBC, 1 public, proc length 114; same verdicts; promote to callee-bytes disasm-verified, size 0x72.
+- Each frees 1 pool row alone (2 rows, 81 B).
+
+### Fold-VA relink walls (5.2 T6.c1)
+- 0x0006A5D2 LanternMain::FrameTick (C0250): every public at proto 0x004569D0 (4: DoDebugUpdates, FrameTick of CutsceneDriver, LevelFlythroughCamMain, LanternMain) is already pinned fold-alias disasm-verified (symbols_pin.txt:2299-2302); retail slot 4 of KosmobotPreludeCutscene, LanternMain, CutsceneDriver and calls from KosmoJustDessertsCutscene/KosmoPigCutscene FrameTick agree. The wall is relink (`external lies in a replaced range`), not a missing name.
+- 0x0001819A ??4ResourceHandle<VertexShaderResource> (C0250, C0154): all 7 publics at proto 0x004180D1 pinned fold-alias (symbols_pin.txt:2179-2185); 148 proto callers agree. The wall is relink overlap of a matched row with COMDAT copies at a fold VA.
+- 0x0010F1FB FloorSwitchMain::HitBy (C0154; pool_buckets NOTES_VA): proto 0x004F9B19, 1 public, callee passes at the VA (symbols.txt row, unverified status). The refusal is its callee ResetPopupTimer 0x0007EA16, already pinned fold-alias for SwitchMain and SwitchSafeMain (symbols_pin.txt:2312-2313), lying in the replaced SwitchSafe range. No pin lifts any of the three.

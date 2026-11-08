@@ -3,6 +3,16 @@
 
 inline void* operator new(unsigned int, void* _Where) { return _Where; }
 class SwampScript; // NAME: proto-pdb:default.pdb
+class exception { // NAME: proto-pdb:default.pdb
+public:
+    exception(const exception& v1); // out of line in retail (logic_error copy ctor calls it)
+    virtual ~exception();
+    virtual const char* what() const;
+
+private:
+    const char* _m_what;               // 0x04
+    int _m_doFree;                     // 0x08
+};
 
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
@@ -11,6 +21,7 @@ template <class E, class T, class A> class basic_string {
 public:
     basic_string();
     basic_string(const basic_string& _Right);
+    basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
     basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
@@ -39,18 +50,51 @@ template <class T1, class T2> struct pair {
     T1 first;                          // 0x00
     T2 second;
 };
+template <class T> inline void swap(T& _Left, T& _Right)
+{
+    T _Tmp = _Left;
+    _Left = _Right, _Right = _Tmp;
+}
+class logic_error : public exception { // NAME: proto-pdb:default.pdb
+public:
+    explicit logic_error(const basic_string<char, char_traits<char>, allocator<char> >& _Message);
+    virtual ~logic_error();
+    virtual const char* what() const;
+
+private:
+    basic_string<char, char_traits<char>, allocator<char> > _Str; // 0x0C
+};
+class out_of_range : public logic_error { // NAME: proto-pdb:default.pdb
+public:
+    explicit out_of_range(const basic_string<char, char_traits<char>, allocator<char> >& _Message) : logic_error(_Message) {}
+    virtual ~out_of_range() {}
+};
 template <class K, class T, class Pr, class A, bool Mfl> class _Tmap_traits {
 public:
     typedef K key_type;
     typedef pair<const K, T> value_type;
 };
-template <class Tr> class _Tree {
+template <class Tr> class _Tree_nod {
+public:
     struct _Node {
         _Node* _Left;                  // 0x00
         _Node* _Parent;                // 0x04
         _Node* _Right;                 // 0x08
         typename Tr::value_type _Myval; // 0x0C
+        char _Color;
+        char _Isnil;
     };
+    allocator<_Node> _Alnod;           // 0x00
+};
+template <class Tr> class _Tree : public _Tree_nod<Tr> {
+    typedef typename _Tree_nod<Tr>::_Node _Node;
+    typedef _Node* _Nodeptr;
+    enum _Redbl { _Red, _Black };
+    static char& _Color(_Nodeptr _Pnode) { return ((char&)(*_Pnode)._Color); }
+    static char& _Isnil(_Nodeptr _Pnode) { return ((char&)(*_Pnode)._Isnil); }
+    static _Nodeptr& _Left(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Left); }
+    static _Nodeptr& _Parent(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Parent); }
+    static _Nodeptr& _Right(_Nodeptr _Pnode) { return ((_Nodeptr&)(*_Pnode)._Right); }
 public:
     typedef typename Tr::key_type key_type;
     typedef typename Tr::value_type value_type;
@@ -66,7 +110,20 @@ public:
             _Inc();
             return (*this);
         }
-        void _Inc();
+        void _Inc()
+        {
+            if (_Isnil(_Ptr))
+                ;
+            else if (!_Isnil(_Right(_Ptr)))
+                _Ptr = _Min(_Right(_Ptr));
+            else {
+                _Nodeptr _Pnode;
+                while (!_Isnil(_Pnode = _Parent(_Ptr)) && _Ptr == _Right(_Pnode))
+                    _Ptr = _Pnode;
+                _Ptr = _Pnode;
+            }
+        }
+        _Nodeptr _Mynode() const { return (_Ptr); }
         _Node* _Ptr;
     };
     class iterator : public const_iterator {
@@ -91,9 +148,62 @@ public:
 protected:
     void _Init();
     void _Tidy();
+    _Nodeptr& _Lmost() { return (_Left(_Myhead)); }
+    _Nodeptr& _Rmost() { return (_Right(_Myhead)); }
+    _Nodeptr& _Root() { return (_Parent(_Myhead)); }
+    static _Nodeptr _Max(_Nodeptr _Pnode)
+    {
+        while (!_Isnil(_Right(_Pnode)))
+            _Pnode = _Right(_Pnode);
+        return (_Pnode);
+    }
+    static _Nodeptr _Min(_Nodeptr _Pnode)
+    {
+        while (!_Isnil(_Left(_Pnode)))
+            _Pnode = _Left(_Pnode);
+        return (_Pnode);
+    }
+    void _Lrotate(_Nodeptr _Wherenode)
+    {
+        _Nodeptr _Pnode = _Right(_Wherenode);
+        _Right(_Wherenode) = _Left(_Pnode);
+
+        if (!_Isnil(_Left(_Pnode)))
+            _Parent(_Left(_Pnode)) = _Wherenode;
+        _Parent(_Pnode) = _Parent(_Wherenode);
+
+        if (_Wherenode == _Root())
+            _Root() = _Pnode;
+        else if (_Wherenode == _Left(_Parent(_Wherenode)))
+            _Left(_Parent(_Wherenode)) = _Pnode;
+        else
+            _Right(_Parent(_Wherenode)) = _Pnode;
+
+        _Left(_Pnode) = _Wherenode;
+        _Parent(_Wherenode) = _Pnode;
+    }
+    void _Rrotate(_Nodeptr _Wherenode)
+    {
+        _Nodeptr _Pnode = _Left(_Wherenode);
+        _Left(_Wherenode) = _Right(_Pnode);
+
+        if (!_Isnil(_Right(_Pnode)))
+            _Parent(_Right(_Pnode)) = _Wherenode;
+        _Parent(_Pnode) = _Parent(_Wherenode);
+
+        if (_Wherenode == _Root())
+            _Root() = _Pnode;
+        else if (_Wherenode == _Right(_Parent(_Wherenode)))
+            _Right(_Parent(_Wherenode)) = _Pnode;
+        else
+            _Left(_Parent(_Wherenode)) = _Pnode;
+
+        _Right(_Pnode) = _Wherenode;
+        _Parent(_Wherenode) = _Pnode;
+    }
 
 private:
-    char _Alval;                       // 0x00
+    char _Alval;                       // 0x01
     _Node* _Myhead;                    // 0x04
     unsigned int _Mysize;              // 0x08
 };
@@ -173,11 +283,19 @@ template <class _T1, class _T2> inline void _Construct(_T1* _Ptr, const _T2& _Va
 {
     new ((void*)_Ptr) _T1(_Val);
 }
+template <class _Ty> inline void _Destroy(_Ty* _Ptr) { (_Ptr)->~_Ty(); }
 template <class _Ty> class allocator {
 public:
     typedef _Ty* pointer;
+    void deallocate(pointer _Ptr, unsigned int) { operator delete(_Ptr); }
     pointer allocate(unsigned int _Count) { return (_Allocate(_Count, (pointer)0)); }
     void construct(pointer _Ptr, const _Ty& _Val) { _Construct(_Ptr, _Val); }
+    void destroy(pointer _Ptr) { _Destroy(_Ptr); }
+    unsigned int max_size() const
+    {
+        unsigned int _Count = (unsigned int)(-1) / sizeof(_Ty);
+        return (0 < _Count ? _Count : 1);
+    }
 };
 struct _Nonscalar_ptr_iterator_tag {};
 template <class _T1, class _T2> inline _Nonscalar_ptr_iterator_tag _Ptr_cat(_T1&, _T2&)
@@ -315,12 +433,14 @@ public:
     template <class _It> void _Insert(iterator _Where, _It _First, _It _Last, bidirectional_iterator_tag);
     iterator erase(iterator _First, iterator _Last);
     void clear() { _Tidy(); }
+    size_type max_size() const { return (this->_Alval.max_size()); }
 
 protected:
     void _Growmap(size_type _Count);
     void _Tidy();
+    void _Xlen() const;
 
-    char _Almap;                       // 0x00
+    allocator<_Tptr> _Almap;           // 0x00
     _Ax _Alval;                        // 0x01
     _Mapptr _Map;                      // 0x04
     size_type _Mapsize;                // 0x08
@@ -546,6 +666,213 @@ public:
 };
 DECOMP_SIZE_ASSERT(CameraManager, 0x74);
 
+// VC 7.1 <xutility>/<xmemory>/<memory> helpers the _Growmap alias body below uses (scalar map-pointer paths)
+namespace std {
+struct _Scalar_ptr_iterator_tag {};
+template <class _Ty> inline _Scalar_ptr_iterator_tag _Ptr_cat(_Ty**, _Ty**)
+{
+    _Scalar_ptr_iterator_tag _Cat;
+    return (_Cat);
+}
+template <class _OutIt, class _Diff, class _Ty> inline void fill_n(_OutIt _First, _Diff _Count, const _Ty& _Val)
+{
+    for (; 0 < _Count; --_Count, ++_First)
+        *_First = _Val;
+}
+template <class _Ty, class _Diff, class _Tval> inline void _Uninit_fill_n(_Ty* _First, _Diff _Count, const _Tval& _Val, allocator<_Ty>&, _Scalar_ptr_iterator_tag)
+{
+    fill_n(_First, _Count, _Val);
+}
+template <class _FwdIt, class _Diff, class _Tval, class _Alloc> inline void _Uninitialized_fill_n(_FwdIt _First, _Diff _Count, const _Tval& _Val, _Alloc& _Al)
+{
+    _Uninit_fill_n(_First, _Count, _Val, _Al, _Ptr_cat(_First, _First));
+}
+template <class _Ty, class _Alloc> inline void _Destroy_range(_Ty* _First, _Ty* _Last, _Alloc& _Al, _Scalar_ptr_iterator_tag)
+{
+}
+template <class _Ty, class _Alloc> inline void _Destroy_range(_Ty* _First, _Ty* _Last, _Alloc& _Al)
+{
+    _Destroy_range(_First, _Last, _Al, _Ptr_cat(_First, _Last));
+}
+// out of line in retail (pinned fold alias 0x0007F3FD); declaration only
+template <class _InIt, class _FwdIt, class _Alloc> _FwdIt _Uninitialized_copy(_InIt _First, _InIt _Last, _FwdIt _Dest, _Alloc& _Al);
+}
+
+// !FAKE: c1xx front end; fold-VA alias body (C0233 Fix 1, C0270): retail calls _Growmap out of line at the fold
+// 0x000592AA (row: ZombieGuidanceCounselor.cpp deque<ResourceHandle<SoundResource>>::_Growmap); this unit's
+// SwampScript* alias is emitted pick-any (inline) with the VC 7.1 <deque> body verbatim so relink merges it (5.2 T13.c1)
+template <> inline void std::deque<SwampScript*, std::allocator<SwampScript*> >::_Growmap(size_type _Count)
+{
+    if (max_size() / _DEQUESIZ - _Mapsize < _Count) {
+        _Xlen();
+        __assume(0); // !FAKE: c2 noreturn; __assume(0) restating noreturn; no before/after recorded (C0237)
+    }
+
+    size_type _Inc = _Mapsize / 2;
+    if (_Inc < _DEQUEMAPSIZ)
+        _Inc = _DEQUEMAPSIZ;
+    if (_Count < _Inc && _Mapsize <= max_size() / _DEQUESIZ - _Inc)
+        _Count = _Inc;
+    size_type _Myboff = _Myoff / _DEQUESIZ;
+    _Mapptr _Newmap = this->_Almap.allocate(_Mapsize + _Count);
+    _Mapptr _Myptr = _Newmap + _Myboff;
+
+    _Myptr = _Uninitialized_copy(_Map + _Myboff, _Map + _Mapsize, _Myptr, this->_Almap);
+    if (_Myboff <= _Count) {
+        _Myptr = _Uninitialized_copy(_Map, _Map + _Myboff, _Myptr, this->_Almap);
+        _Uninitialized_fill_n(_Myptr, _Count - _Myboff, (_Tptr)0, this->_Almap);
+        _Uninitialized_fill_n(_Newmap, _Myboff, (_Tptr)0, this->_Almap);
+    } else {
+        _Uninitialized_copy(_Map, _Map + _Count, _Myptr, this->_Almap);
+        _Myptr = _Uninitialized_copy(_Map + _Count, _Map + _Myboff, _Newmap, this->_Almap);
+        _Uninitialized_fill_n(_Myptr, _Count, (_Tptr)0, this->_Almap);
+    }
+
+    _Destroy_range(_Map + _Myboff, _Map + _Mapsize, this->_Almap);
+    if (_Map)
+        this->_Almap.deallocate(_Map, _Mapsize);
+
+    _Map = _Newmap;
+    _Mapsize += _Count;
+}
+
+// !FAKE: c1xx front end; fold-VA alias body (C0233 Fix 1, C0270): retail calls erase out of line at the fold
+// 0x00011B38 (row: Init.cpp _Tree<string,void*>::erase); this unit's GameCam* alias is emitted pick-any (inline)
+// with the VC 7.1 <xtree> body verbatim (_THROW expanded) so relink merges it into the row (5.2 T13.c1)
+template <> inline std::_Tree<std::_Tmap_traits<SwampString, GameCam*, std::less<SwampString>, std::allocator<std::pair<const SwampString, GameCam*> >, false> >::iterator std::_Tree<std::_Tmap_traits<SwampString, GameCam*, std::less<SwampString>, std::allocator<std::pair<const SwampString, GameCam*> >, false> >::erase(iterator _Where)
+{
+    if (_Isnil(_Where._Mynode()))
+        throw out_of_range("invalid map/set<T> iterator");
+    _Nodeptr _Erasednode = _Where._Mynode();
+    ++_Where;
+
+    _Nodeptr _Fixnode;
+    _Nodeptr _Fixnodeparent;
+    _Nodeptr _Pnode = _Erasednode;
+
+    if (_Isnil(_Left(_Pnode)))
+        _Fixnode = _Right(_Pnode);
+    else if (_Isnil(_Right(_Pnode)))
+        _Fixnode = _Left(_Pnode);
+    else {
+        _Pnode = _Where._Mynode();
+        _Fixnode = _Right(_Pnode);
+    }
+
+    if (_Pnode == _Erasednode) {
+        _Fixnodeparent = _Parent(_Erasednode);
+        if (!_Isnil(_Fixnode))
+            _Parent(_Fixnode) = _Fixnodeparent;
+
+        if (_Root() == _Erasednode)
+            _Root() = _Fixnode;
+        else if (_Left(_Fixnodeparent) == _Erasednode)
+            _Left(_Fixnodeparent) = _Fixnode;
+        else
+            _Right(_Fixnodeparent) = _Fixnode;
+
+        if (_Lmost() == _Erasednode)
+            _Lmost() = _Isnil(_Fixnode) ? _Fixnodeparent : _Min(_Fixnode);
+
+        if (_Rmost() == _Erasednode)
+            _Rmost() = _Isnil(_Fixnode) ? _Fixnodeparent : _Max(_Fixnode);
+    } else {
+        _Parent(_Left(_Erasednode)) = _Pnode;
+        _Left(_Pnode) = _Left(_Erasednode);
+
+        if (_Pnode == _Right(_Erasednode))
+            _Fixnodeparent = _Pnode;
+        else {
+            _Fixnodeparent = _Parent(_Pnode);
+            if (!_Isnil(_Fixnode))
+                _Parent(_Fixnode) = _Fixnodeparent;
+            _Left(_Fixnodeparent) = _Fixnode;
+            _Right(_Pnode) = _Right(_Erasednode);
+            _Parent(_Right(_Erasednode)) = _Pnode;
+        }
+
+        if (_Root() == _Erasednode)
+            _Root() = _Pnode;
+        else if (_Left(_Parent(_Erasednode)) == _Erasednode)
+            _Left(_Parent(_Erasednode)) = _Pnode;
+        else
+            _Right(_Parent(_Erasednode)) = _Pnode;
+
+        _Parent(_Pnode) = _Parent(_Erasednode);
+        std::swap(_Color(_Pnode), _Color(_Erasednode));
+    }
+
+    if (_Color(_Erasednode) == _Black) {
+        for (; _Fixnode != _Root() && _Color(_Fixnode) == _Black; _Fixnodeparent = _Parent(_Fixnode))
+            if (_Fixnode == _Left(_Fixnodeparent)) {
+                _Pnode = _Right(_Fixnodeparent);
+                if (_Color(_Pnode) == _Red) {
+                    _Color(_Pnode) = _Black;
+                    _Color(_Fixnodeparent) = _Red;
+                    _Lrotate(_Fixnodeparent);
+                    _Pnode = _Right(_Fixnodeparent);
+                }
+
+                if (_Isnil(_Pnode))
+                    _Fixnode = _Fixnodeparent;
+                else if (_Color(_Left(_Pnode)) == _Black && _Color(_Right(_Pnode)) == _Black) {
+                    _Color(_Pnode) = _Red;
+                    _Fixnode = _Fixnodeparent;
+                } else {
+                    if (_Color(_Right(_Pnode)) == _Black) {
+                        _Color(_Left(_Pnode)) = _Black;
+                        _Color(_Pnode) = _Red;
+                        _Rrotate(_Pnode);
+                        _Pnode = _Right(_Fixnodeparent);
+                    }
+
+                    _Color(_Pnode) = _Color(_Fixnodeparent);
+                    _Color(_Fixnodeparent) = _Black;
+                    _Color(_Right(_Pnode)) = _Black;
+                    _Lrotate(_Fixnodeparent);
+                    break;
+                }
+            } else {
+                _Pnode = _Left(_Fixnodeparent);
+                if (_Color(_Pnode) == _Red) {
+                    _Color(_Pnode) = _Black;
+                    _Color(_Fixnodeparent) = _Red;
+                    _Rrotate(_Fixnodeparent);
+                    _Pnode = _Left(_Fixnodeparent);
+                }
+                if (_Isnil(_Pnode))
+                    _Fixnode = _Fixnodeparent;
+                else if (_Color(_Right(_Pnode)) == _Black && _Color(_Left(_Pnode)) == _Black) {
+                    _Color(_Pnode) = _Red;
+                    _Fixnode = _Fixnodeparent;
+                } else {
+                    if (_Color(_Left(_Pnode)) == _Black) {
+                        _Color(_Right(_Pnode)) = _Black;
+                        _Color(_Pnode) = _Red;
+                        _Lrotate(_Pnode);
+                        _Pnode = _Left(_Fixnodeparent);
+                    }
+
+                    _Color(_Pnode) = _Color(_Fixnodeparent);
+                    _Color(_Fixnodeparent) = _Black;
+                    _Color(_Left(_Pnode)) = _Black;
+                    _Rrotate(_Fixnodeparent);
+                    break;
+                }
+            }
+
+        _Color(_Fixnode) = _Black;
+    }
+
+    this->_Alnod.destroy(_Erasednode);
+    this->_Alnod.deallocate(_Erasednode, 1);
+
+    if (0 < _Mysize)
+        --_Mysize;
+
+    return (_Where);
+}
+
 extern CameraManager* g_CameraManager; // NAME: proto-pdb:default.pdb
 
 // FUNCTION: USA 0x00108D4F
@@ -611,7 +938,7 @@ void CameraManager::SetCurCam(const SwampString& s, float delay)
         }
         if (_delay != 0.0f && p) {
             _totalDelay = _delay;
-            // !FAKE: retail string literal; the original passes its build's __FILE__, ours differs
+            // !FAKE: retail string literal; __FILE__ text; the original passes its build's __FILE__, ours differs
             _oldCamCopy = new("core\\CameraManager.cpp", 206) GameCam();
             _oldCamCopy->SetLocation(p->GetLocation());
             _oldCamCopy->SetRotation(p->GetRotation());
@@ -624,14 +951,16 @@ void CameraManager::SetCurCam(const SwampString& s, float delay)
 
 // FUNCTION: USA 0x00109411
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 99.09, bytes mismatch (retail mov ebx,[ebp+8] reads the find slot; this form reads it via mov ebx,[eax])
 void CameraManager::Remove(const SwampString& s)
 {
     SwampString lookup = BeepLib::MakeLower(s);
-    // !FAKE: c2 register allocation; declared then assigned so the iterator is a copy (ebx), not the find target
+    // !FAKE: c2 register allocation; declared-then-assigned iterator local; the iterator is a copy (ebx), not the find target; no before/after recorded
     NameMap::iterator it;
-    it = _cameras.find(lookup);
+    {
+        // !FAKE: c2 register allocation; block-scoped reference stand-in; ebx reads the find slot [ebp+8], not [eax], and the temp dies before bneedcam (match_one 99.09 -> 100.0)
+        const NameMap::iterator& v0 = _cameras.find(lookup);
+        it = v0;
+    }
     if (it != _cameras.end()) {
         // !FAKE: c2 register allocation; dummy local; the PDB records no local for the erased camera (edi)
         GameCam* p = it->second;
@@ -654,7 +983,6 @@ void CameraManager::Remove(const SwampString& s)
         }
     }
 }
-#endif
 
 // FUNCTION: USA 0x001094B0
 // PROTOTYPE: PREVIEW 0x004F3DB7 identical
@@ -725,14 +1053,14 @@ template std::list<SwampSceneNode *,std::allocator<SwampSceneNode *> > & std::li
 // FUNCTION: USA 0x0010A0EA
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 95.84, bytes mismatch (frame 0x60 vs 0x54: GetWorldPosition results get their own slots, retail packs them into temp/-0x24, as an inlined free Vector3 operator* would, no PDB record (D78); z product spilled in the +=)
+// best: match_one objdiff 95.895 (T12.c5b, 20 attempts), bytes mismatch: frame 0x54 and every slot match retail; call #2's vtable load (mov eax,[ecx]) is scheduled after the movsd copy into temp (retail before), and the += spills the z product to -0x1c (retail keeps all three on x87)
 GameCam* CameraManager::GetBlendedCamera() const
 {
     if (!Find(_curCamName)) {
         return 0;
     }
     if (!_blendedCam) {
-        // !FAKE: retail string literal; the original passes its build's __FILE__, ours differs
+        // !FAKE: retail string literal; __FILE__ text; the original passes its build's __FILE__, ours differs
         _blendedCam = new("core\\CameraManager.cpp", 223) GameCam();
     }
     GameCam* curcam = Find(_curCamName);
@@ -747,22 +1075,20 @@ GameCam* CameraManager::GetBlendedCamera() const
         Quaternion qblend = Slerp(qold, qnew, newpct);
         _blendedCam->SetRotation(qblend);
         // hand forms of the inlined Vector3 scale (no PDB operator*, D78)
-        Vector3 temp;
+        // !FAKE: c2 stack packing; sibling blocks and pointer to a temporary; call #1 returns into temp's slot and call #2 into the scaled copy's, as retail (frame 0x60 -> 0x54, match_one 95.84 -> 95.895)
+        const Vector3* v1;
         {
             // !FAKE: inliner; pointer local to the call and dummy local; the scaled copy retail builds before assigning temp
             const Vector3* p = &curcam->GetWorldPosition();
-            Vector3 v1;
-            v1.x = newpct * p->x;
-            v1.y = newpct * p->y;
-            v1.z = newpct * p->z;
-            temp = v1;
+            v1 = &Vector3(newpct * p->x, newpct * p->y, newpct * p->z);
         }
         {
+            Vector3 temp = *v1;
             // !FAKE: inliner; pointer local to the call; the old camera position retail scales into temp
             const Vector3* p = &_oldCamCopy->GetWorldPosition();
             temp += Vector3(oldpct * p->x, oldpct * p->y, oldpct * p->z);
+            _blendedCam->SetLocation(temp);
         }
-        _blendedCam->SetLocation(temp);
         _blendedCam->SetFOV(newpct * curcam->GetFOV() + oldpct * _oldCamCopy->GetFOV());
         _oldCamCopy->SetLocation(_blendedCam->GetLocation());
         _oldCamCopy->SetRotation(_blendedCam->GetRotation());

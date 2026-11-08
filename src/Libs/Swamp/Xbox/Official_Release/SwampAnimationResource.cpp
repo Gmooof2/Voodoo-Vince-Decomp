@@ -175,33 +175,30 @@ public:
 };
 DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 90.106384 (3 runs; early-return form 88.94, switch form 64.53); retail puts the shared
-// return-0 block right after the _anim test, cl puts it last; ||, else, redundant-test (C0244), result-local (83.28)
-// and IsValid forms all keep it last (4.3 T16.c6)
 // FUNCTION: USA 0x000D285D
 // PROTOTYPE: PREVIEW 0x004BDB18 identical
 // NAME: proto-pdb:default.pdb
 float AnimationResource::CalculateTrigger(int index, float t) const
 {
-    if (_anim) {
+    // if/else with the return-0 arm first: cl keeps the shared return-0 block right after the _anim test, as retail
+    if (!_anim) {
+        return 0.0f;
+    } else {
         const GatorTriggerChannel& v1 = _anim->GetTriggers()[index].GetChannel(_anim);
-        if (v1.numCurves) {
-            if (v1.numCurves == 1)
-                return v1.GetCurve(0).value;
-            float v2 = v1.GetCurve(0).value;
-            for (unsigned int i = 0; i < v1.numCurves; i++) {
-                if (t >= v1.GetCurve(i).time)
-                    v2 = v1.GetCurve(i).value;
-                else if (t < v1.GetCurve(i).time)
-                    break;
-            }
-            return v2;
+        if (!v1.numCurves)
+            return 0.0f;
+        if (v1.numCurves == 1)
+            return v1.GetCurve(0).value;
+        float v2 = v1.GetCurve(0).value;
+        for (unsigned int i = 0; i < v1.numCurves; i++) {
+            if (t >= v1.GetCurve(i).time)
+                v2 = v1.GetCurve(i).value;
+            else if (t < v1.GetCurve(i).time)
+                break;
         }
+        return v2;
     }
-    return 0.0f;
 }
-#endif
 
 // FUNCTION: USA 0x000D28CF
 // NAME: proto-pdb:default.pdb

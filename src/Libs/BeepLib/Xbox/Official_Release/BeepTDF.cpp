@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#pragma intrinsic(memcmp) // !FAKE: compiler directive; retail basic_string::find inlines char_traits<char>::compare as repe cmpsb
+#pragma intrinsic(memcmp) // !FAKE: preprocessor; #pragma intrinsic(memcmp) compiler directive; retail basic_string::find inlines char_traits<char>::compare as repe cmpsb, no before/after recorded
 
 namespace std { // NAME: proto-pdb:default.pdb
 template <class _Elem> struct char_traits {
@@ -480,7 +480,9 @@ void BeepTDF::Cleanup()
 // PROTOTYPE: PREVIEW 0x0042374D identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 94.82, bytes mismatch (this/blockdata esi/edi swapped, local slot packing, sub not cached in ebx)
+// best: match_one objdiff 97.32, bytes mismatch +0x7 frame 0x120 vs 0x110 (this/blockdata esi/edi swapped; sub loaded after the call, retail before it; namebegin/sub slots swapped; T12.c10)
+// lever C (T12.c27): visible vector push_back/insert/_Insert_n/_Ufill bodies: code byte-identical (push_back stays out of line)
+// at-stop 20 (T12.c10b): frame +0x10 = the two insert() pair<iterator,bool> temps (ours -0x1c/-0x24, retail both at +0x60 among the scalars). Retail: sub addressed at +0x64 yet cached in ebx from before the call to the end (delete path too), bool spilled to +0x77. push_back(v4) with v4 = sub after the call gives ebx + bool at +0x77 but a redundant store and v4 reloads (97.18); any sub use after push_back spills v0 (95.4-95.7)
 bool BeepTDF::ParseRawData(const BeepString& blockdata, const BeepString& trackingname, int startline)
 {
     Cleanup();
@@ -513,9 +515,11 @@ bool BeepTDF::ParseRawData(const BeepString& blockdata, const BeepString& tracki
                 BeepTDF* sub = new("BeepTDF.cpp", 166) BeepTDF;
                 v0++;
                 if (sub->ParseRawData(blockdata.substr(v0, endbrace - openbrace - 1), trackingname, GetLineNumber(blockdata, v0, startline))) {
+                    // !FAKE: c2 register allocation; stand-in local; retail keeps sub in ebx after push_back (it loads it before the call)
+                    BeepTDF* v4 = sub;
                     _blocklist.push_back(sub);
-                    _blocklookup.insert(std::map<BeepString, BeepTDF*>::value_type(BeepLib::MakeLower(blockname), sub));
-                    sub->_blockname = blockname;
+                    _blocklookup.insert(std::map<BeepString, BeepTDF*>::value_type(BeepLib::MakeLower(blockname), v4));
+                    v4->_blockname = blockname;
                     v0 = endbrace + 1;
                 } else {
                     delete sub;

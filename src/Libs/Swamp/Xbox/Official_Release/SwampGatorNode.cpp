@@ -2,6 +2,12 @@
 #include "../../../../include/decomp.h"
 
 #pragma warning(disable: 4530) // no /EH in the unit flags; as soundnode.cpp
+#include <xstring>
+#ifndef NON_MATCHING
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132); retail calls the string copy ctor out of line; declared
+// before <vector>/<stdexcept> so their bodies call it rather than emit it (4.4 T4.c4 setup for the throw rows)
+template <> std::basic_string<char,std::char_traits<char>,std::allocator<char> >::basic_string(const std::basic_string<char,std::char_traits<char>,std::allocator<char> >&);
+#endif
 #include <vector>
 #include <map>
 #include <set>
@@ -9,17 +15,19 @@
 #include <xmmintrin.h>
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132, C0154); retail calls basic_string::_Copy in another unit;
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132, C0154); retail calls basic_string::_Copy in another unit;
 // its visible body would emit an __ehhandler$ funclet here (C0090: gate objects extra, relink .text$x refusal)
 template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Copy(unsigned int,
                                                                                                unsigned int);
-// !FAKE: declaration-only explicit specializations (C0090); retail calls the string ctor and _Tidy out of line
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0090); retail calls the string ctor and _Tidy out of line
 // (GatorNode::UpdateAnimLight); their header bodies would emit here with the memcpy/strlen externals
 template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(const char*);
 template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Tidy(bool, unsigned int);
 #endif
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
+    Vector3() {}
+    Vector3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
     unsigned int GetRGB() const;
     float Length() const;
     Vector3& operator+=(const Vector3& v) { x += v.x; y += v.y; z += v.z; return *this; }
@@ -159,6 +167,7 @@ DECOMP_SIZE_ASSERT(TextureResource, 0x30);
 
 struct Vector2 { // NAME: proto-pdb:default.pdb
     Vector2() {}
+    Vector2(float _u, float _v) : u(_u), v(_v) {}
     void Zero() { u = 0.0f; v = 0.0f; }
 
     float u;                           // 0x00
@@ -229,6 +238,9 @@ public:
 };
 DECOMP_SIZE_ASSERT(ModelResource, 0x60);
 struct Quaternion { // NAME: proto-pdb:default.pdb
+    Quaternion() {}
+    Quaternion(float x, float y, float z) { Set(x, y, z); }
+    void Set(float x, float y, float z);
     void Apply(const Vector3& in, Vector3& out) const;
 
     Vector3 v;                         // 0x00
@@ -288,8 +300,12 @@ public:
     virtual Quaternion GetWorldRotation() const;
     virtual void SetWorldPosition(const Vector3&);
     virtual void Invalidate();
+protected: // retail ??_7CollidableNode slots name ?Update@SwampSceneNode@@MAEXXZ etc. (C0377)
     virtual void UpdateAnimation(unsigned int pass);
+    virtual void Update();
+    virtual void Render(const Matrix& m) const;
 
+public:
     char field_4[0x6C - 0x4];          // 0x04
     AABox _BoundingBox;                // 0x6C
     unsigned int _lastRenderFrame;     // 0x84
@@ -297,7 +313,34 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
-// src proto-pdb:default.pdb GatorNode base CollidableCylinder : CollidableNode : SwampSceneNode, all at 0x0; only SwampSceneNode modelled
+// src proto-pdb:default.pdb GatorNode base CollidableCylinder : CollidableNode : SwampSceneNode, all at 0x0
+class CollisionResultObject;       // NAME: proto-pdb:default.pdb
+template <class T> class Ptr;      // NAME: proto-pdb:default.pdb
+
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    CollidableNode(int type);
+    virtual ~CollidableNode() {} // retail ??1GatorNode 0x000B051A inlines it (vptr store + ??1SwampSceneNode)
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const;
+    virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const;
+    virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const;
+
+    float _sphereRadius;               // 0xA4
+    bool _collidable;                  // 0xA8
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    CollidableCylinder(int type);
+    virtual ~CollidableCylinder() {} // retail ??1GatorNode 0x000B051A inlines it (dead vptr store)
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const;
+
+    float _height;                     // 0xAC
+    float _radius;                     // 0xB0
+};
+DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
+
 class SwampSpookyRenderer { // NAME: proto-pdb:default.pdb
 public:
     SwampSpookyRenderer(unsigned int bufferWidth, unsigned int bufferHeight, unsigned int backgroundColor,
@@ -308,10 +351,17 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampSpookyRenderer, 0x58);
 
-class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+// FUNCTION: USA 0x000B0B93
+// NAME: proto-pdb:default.pdb
+// ??_GGatorNode: compiler-generated with the vtable the ctor emits; calls ??1 out of line (5.3 T6)
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
 public:
     enum BlendMode { OVERLAY = 0x0, TWEEN = 0x1 }; // NAME: proto-pdb:default.pdb
 
+    GatorNode(const ResourceHandle<ModelResource>& mh);
+    virtual ~GatorNode();
+    virtual void Update();
+    virtual void Render(const Matrix& m) const;
     virtual void UpdateAnimation(unsigned int pass);
     virtual Vector3 GetWorldPosition() const;
     virtual void SetWorldPosition(const Vector3& pos);
@@ -352,30 +402,31 @@ protected:
     void UpdateAnimLight();
 
 public:
-    float _sphereRadius;               // 0xA4 NAME: proto-pdb:default.pdb (CollidableNode)
-    char field_A8[0xB4 - 0xA8];        // 0xA8
     ResourceHandle<ModelResource> _model; // 0xB4
     ResourceHandle<ModelResource> _nextModel; // 0xB8
     bool _newModel;                    // 0xBC
-    char field_BD[0xBF - 0xBD];        // 0xBD
+    bool _newParticles;                // 0xBD
+    bool _hasCollisionBSP;             // 0xBE
     bool _haveWorldPosLast;            // 0xBF
     bool _movingPlatform;              // 0xC0
-    char field_C1[0xC3 - 0xC1];        // 0xC1
+    bool _acceptsShadows;              // 0xC1
+    bool _useAllLights;                // 0xC2
     bool _uvScrolling;                 // 0xC3
     bool _dirtyAnimation;              // 0xC4
-    char field_C5[0xC6 - 0xC5];        // 0xC5
+    bool _edgeGlow;                    // 0xC5
     bool _enableAnimatedLight;         // 0xC6
     unsigned char _lazyUpdateBoneCount; // 0xC7
     Vector3 _worldPosLast;             // 0xC8
     int _posBone;                      // 0xD4
     BlendMode _blendMode;              // 0xD8
     float _tweenFactor;                // 0xDC
-    char field_E0[0xEC - 0xE0];        // 0xE0
+    Vector3 _ambientColor;             // 0xE0
     SwampShadow* _shadow;              // 0xEC
     ResourceHandle<TextureResource> _shadowTex; // 0xF0
-    char field_F4[0xF8 - 0xF4];        // 0xF4
+    int _shadowBone;                   // 0xF4
     ResourceHandle<ModelResource> _projectedShadow; // 0xF8
-    char field_FC[0x114 - 0xFC];       // 0xFC
+    Vector3 _projectedShadowLightLoc;  // 0xFC
+    Vector3 _projectedShadowLightColor; // 0x108
     ResourceHandle<ModelResource> _edgeGlowModel; // 0x114
     Vector3 _edgeColor;                // 0x118
     float _edgeSizeMin;                // 0x124
@@ -387,27 +438,31 @@ public:
     TextureOverrides* _texOverrides;   // 0x13C
     ResourceHandle<AnimationControl> _currentAnim; // 0x140
     ResourceHandle<AnimationControl> _secondaryAnim; // 0x144
-    char field_148[0x14C - 0x148];     // 0x148
+    ResourceHandle<AnimationControl> _textureAnim; // 0x148
     std::vector<SwampDeformation> _deformInfo; // 0x14C
     std::vector<SwampDeformation> _deformInfo_2nd; // 0x15C
     std::vector<Matrix> _deformMatrices; // 0x16C
     float _animTransitionTimeTotal;    // 0x17C
     float _animTransitionTimer;        // 0x180
-    char field_184[0x190 - 0x184];     // 0x184
+    float _animSoundRange;             // 0x184
+    float _animSoundVolume;            // 0x188
+    unsigned int _animTriggerFlags;    // 0x18C
     std::vector<Matrix> _deformMatricesLast; // 0x190
     Vector3 _platformPosLast;          // 0x1A0
     Quaternion _platformRotLast;       // 0x1AC
     float _platformPosTime;            // 0x1BC
-    char field_1C0[0x1D8 - 0x1C0];     // 0x1C0
+    std::vector<bool> _stripControl;   // 0x1C0
+    unsigned int _modelRenderFlags;    // 0x1D4
     std::vector<Vector2> _t0Offset;    // 0x1D8
     std::vector<Vector2> _t1Offset;    // 0x1E8
-    char field_1F8[0x200 - 0x1F8];     // 0x1F8
+    Vector2 _uvScrollingSpeed;         // 0x1F8
 };
 DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
 // src proto-pdb:default.pdb LightNode bases SwampSceneNode at 0x0, LightDefinition at 0xA4; neither reached // src proto-pdb:default.pdb LightDefinition
 class LightNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual void UpdateAnimation(unsigned int pass); // retail ?UpdateAnimation@LightNode@@UAEXI@Z 0x000CC61C
     ResourceHandle<AnimationControl> StartPlayback(const ResourceHandle<AnimationResource>& anim, bool a, bool b);
     void StopPlayback();
     bool IsEnabled() const { return _enabled; }
@@ -451,7 +506,7 @@ DECOMP_SIZE_ASSERT(TextureManager, 0x84);
 
 // Generated by tools/gen_stl.py (4.3 T7.c1); bodies from the VC 7.1 headers
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
+// !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line; the
 // header bodies would emit them here with EH funclets and throw info that relink refuses (C0090)
 namespace std {
 template <> std::vector<bool,std::allocator<bool> >::iterator copy<std::vector<bool,std::allocator<bool> >::iterator,std::vector<bool,std::allocator<bool> >::iterator>(std::vector<bool,std::allocator<bool> >::iterator,std::vector<bool,std::allocator<bool> >::iterator,std::vector<bool,std::allocator<bool> >::iterator);
@@ -474,10 +529,6 @@ template <> Matrix * _Uninitialized_copy<Matrix *,Matrix *,std::allocator<Matrix
 template <> Matrix * copy<Matrix *,Matrix *>(Matrix *,Matrix *,Matrix *);
 template <> SwampDeformation * _Uninitialized_copy<SwampDeformation *,SwampDeformation *,std::allocator<SwampDeformation> >(SwampDeformation *,SwampDeformation *,SwampDeformation *,std::allocator<SwampDeformation> &);
 template <> SwampDeformation * copy<SwampDeformation *,SwampDeformation *>(SwampDeformation *,SwampDeformation *,SwampDeformation *);
-template <> bool vector<SwampDeformation,std::allocator<SwampDeformation> >::_Buy(unsigned int);
-template <> bool vector<Matrix,std::allocator<Matrix> >::_Buy(unsigned int);
-template <> void vector<bool,std::allocator<bool> >::_Trim(unsigned int);
-template <> unsigned int vector<bool,std::allocator<bool> >::_Insert_x(std::vector<bool,std::allocator<bool> >::iterator,unsigned int);
 template <> void vector<Vector2,std::allocator<Vector2> >::_Tidy();
 template <> unsigned int vector<TextureOverrides::Override,std::allocator<TextureOverrides::Override> >::size()const;
 template <> void vector<TextureOverrides::Override,std::allocator<TextureOverrides::Override> >::_Tidy();
@@ -486,7 +537,15 @@ template <> void vector<TextureOverrides::Override,std::allocator<TextureOverrid
 #endif
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0132, C0215); retail calls it out of line and its body is the
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132); retail ??1GatorNode calls vector<bool>'s inner
+// _Tidy out of line at the 0x000AD5F9 fold row
+namespace std {
+template <> void vector<unsigned int,std::allocator<unsigned int> >::_Tidy();
+}
+#endif
+
+#ifndef NON_MATCHING
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132, C0215); retail calls it out of line and its body is the
 // matched Blender.obj row 0x00078D38 (a same-name COMDAT copy here: relink refuses the overlap)
 namespace std {
 template <> void vector<Matrix,std::allocator<Matrix> >::resize(unsigned int);
@@ -529,7 +588,7 @@ void GatorNode::SetShadow(bool b, float radius)
     bool v1 = _shadow != 0;
     if (b != v1) {
         if (b) {
-            // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+            // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
             _shadow = new("SwampGatorNode.cpp", 971) SwampShadow(this, radius);
             AddChild(_shadow);
         } else {
@@ -602,7 +661,7 @@ void GatorNode::DoSpookyRendering(unsigned int width, unsigned int height, unsig
     unsigned int v1 = 0;
     if (blur)
         v1 = 1;
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     _spooky = new("SwampGatorNode.cpp", 1032) SwampSpookyRenderer(width, height, backgroundColor, v1);
     SetOption(SortedRender, true, false);
     SetOption(LocationSorting, true, false);
@@ -672,7 +731,7 @@ void GatorNode::SetSuperEdgeGlowParams(const ResourceHandle<ModelResource>& mh, 
     // !FAKE: c1xx front end; stand-in local; retail calls GetRGB before the delete, no PDB local
     unsigned int v0 = color.GetRGB();
     delete _superEdgeGlow;
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
     _superEdgeGlow = new("SwampGatorNode.cpp", 1020) SwampSpookyRenderer(bufferWidth, bufferHeight, v0, 3);
 }
 
@@ -837,7 +896,7 @@ ResourceHandle<AnimationControl>& GatorNode::StartAnimation(const ResourceHandle
         }
     }
     if (anim.IsValid()) {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
         _currentAnim = ResourceHandle<AnimationControl>(
             new("SwampGatorNode.cpp", 725) AnimationControl(anim, this, looped, reverse, false));
     } else {
@@ -873,7 +932,7 @@ ResourceHandle<AnimationControl>& GatorNode::StartSecondaryAnimation(const Resou
             p->QueueAnimationMessage(SwampScript::ANIMATION2_INTERRUPTED);
     }
     if (anim.IsValid()) {
-        // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
         _secondaryAnim = new("SwampGatorNode.cpp", 782) AnimationControl(anim, this, looped, reverse, true);
     } else {
         _secondaryAnim = ResourceHandle<AnimationControl>();
@@ -950,7 +1009,7 @@ void GatorNode::OverrideTexture(const ResourceHandle<TextureResource>& original,
 {
     if (replacement.IsValid()) {
         if (!_texOverrides)
-            // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__, ours differs
+            // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__, ours differs
             _texOverrides = new("SwampGatorNode.cpp", 1061) TextureOverrides;
     } else if (!_texOverrides) {
         return;
@@ -993,6 +1052,7 @@ void GatorNode::StartUVScroll()
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 98.52, bytes mismatch: retail tests _currentAnim by `mov eax; test eax,eax`, ours `cmp [esi+0x140],0`
+// 5.2 T12.c19 at-stop 20: every head spelling (local, ref, Ptr, ==false, bool) and /Oi /Ob1 /Op /Oa /Ow still cmp mem,0
 void GatorNode::UpdateDeformationMatrices()
 {
     if (!_currentAnim.IsValid())
@@ -1086,6 +1146,37 @@ void GatorNode::SetModel(const ResourceHandle<ModelResource>& mh)
         UpdateModel();
 }
 
+// FUNCTION: USA 0x000B0DD5
+// NAME: proto-pdb:default.pdb
+// companion of ??_GGatorNode 0x000B0B93: emits the vtable (5.3 T6)
+// !FAKE: inliner; hand form of retail's inlined Quaternion(float, float, float) mem-initializer; cl keeps that ctor out
+// of line (match_one bytes provisional, call ??0Quaternion@@QAE@MMM@Z); retail calls Quaternion::Set 0x000DC99B before the
+// _platformPosTime store, so the Set call rides in its initializer (cf. LevelLoader.cpp:1178)
+GatorNode::GatorNode(const ResourceHandle<ModelResource>& mh)
+    : CollidableCylinder(6), _newModel(false), _newParticles(false), _hasCollisionBSP(false),
+      _haveWorldPosLast(false), _movingPlatform(false), _acceptsShadows(false), _useAllLights(false),
+      _uvScrolling(true), _dirtyAnimation(false), _edgeGlow(false), _enableAnimatedLight(true),
+      _lazyUpdateBoneCount(0), _posBone(0), _blendMode(OVERLAY), _tweenFactor(1.0f), _ambientColor(0.0f, 0.0f, 0.0f),
+      _shadow(0), _shadowBone(-1), _projectedShadowLightLoc(0.0f, 0.0f, 0.0f),
+      _projectedShadowLightColor(0.0f, 0.0f, 0.0f), _edgeColor(0.0f, 1.0f, 0.0f), _edgeSizeMin(0.01f),
+      _edgeSizeMax(0.015f), _edgePulseFactor(3.5f), _superEdgeGlow(0), _spooky(0), _light(0), _texOverrides(0),
+      _animTransitionTimeTotal(0.0f), _animTransitionTimer(0.0f), _animSoundRange(16.0f), _animSoundVolume(1.0f),
+      _animTriggerFlags(0), _platformPosLast(0.0f, 0.0f, 0.0f),
+      _platformPosTime((_platformRotLast.Set(0.0f, 0.0f, 0.0f), 0.0f)), _modelRenderFlags(0), _uvScrollingSpeed(1.0f, 1.0f)
+{
+    if (mh.IsValid())
+        SetModel(mh);
+}
+
+// FUNCTION: USA 0x000B051A
+// NAME: proto-pdb:default.pdb
+GatorNode::~GatorNode()
+{
+    delete _texOverrides;
+    delete _superEdgeGlow;
+    delete _spooky;
+}
+
 // FUNCTION: USA 0x000B063C
 // PROTOTYPE: PREVIEW 0x0049B427 identical
 // NAME: proto-pdb:default.pdb
@@ -1112,7 +1203,7 @@ public:
 DECOMP_SIZE_ASSERT(ProfileBar, 0x40);
 
 #ifndef NON_MATCHING
-// !FAKE: declaration-only explicit specialization (C0154); _Tidy is unmatched (its erase callees are unnamed fold
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0154); _Tidy is unmatched (its erase callees are unnamed fold
 // VAs); its visible body emits out_of_range throw info (.xdata$x) here, which relink refuses
 typedef std::_Tree<std::_Tmap_traits<unsigned int, ProfileBar::ProfileEntry*, std::less<unsigned int>,
                                      std::allocator<std::pair<const unsigned int, ProfileBar::ProfileEntry*> >, false> >
@@ -1127,12 +1218,12 @@ void pin_emit_ProfileBar_dtor(ProfileBar* p)
     p->ProfileBar::~ProfileBar();
 }
 
-#ifdef NON_MATCHING
-// row USA 0x000AE259, PREVIEW 0x004990E0 identical
-// best: match_one objdiff 100, bytes match; provenance_lint (locked) reads a nested-class operator as
-// `<class>::operator<op>` and finds no PDB name for it: no NAME tag, so no FUNCTION tag (4.3 T7.c1)
+// FUNCTION: USA 0x000AE259
+// PROTOTYPE: PREVIEW 0x004990E0 identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.3 T7.c1); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template bool std::vector<bool,std::allocator<bool> >::const_iterator::operator==(std::vector<bool,std::allocator<bool> >::const_iterator const &)const;
-#endif
 
 // FUNCTION: USA 0x000AE275
 // PROTOTYPE: PREVIEW 0x004AC361 identical
@@ -1159,19 +1250,19 @@ template Vector2 * std::_Copy_opt<Vector2 *,Vector2 *>(Vector2 *,Vector2 *,Vecto
 // NAME: proto-pdb:default.pdb
 template Vector2 * std::_Copy_backward_opt<Vector2 *,Vector2 *>(Vector2 *,Vector2 *,Vector2 *,std::_Nonscalar_ptr_iterator_tag);
 
-#ifdef NON_MATCHING
-// row USA 0x000AE4D3, PREVIEW 0x00499347 identical
-// best: match_one objdiff 100, bytes match; provenance_lint (locked) reads a nested-class operator as
-// `<class>::operator<op>` and finds no PDB name for it: no NAME tag, so no FUNCTION tag (4.3 T7.c1)
+// FUNCTION: USA 0x000AE4D3
+// PROTOTYPE: PREVIEW 0x00499347 identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.3 T7.c1); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template std::vector<bool,std::allocator<bool> >::reference & std::vector<bool,std::allocator<bool> >::reference::operator=(bool);
-#endif
 
-#ifdef NON_MATCHING
-// row USA 0x000AE59D, PREVIEW 0x004993B5 identical
-// best: match_one objdiff 100, bytes match; provenance_lint (locked) reads a nested-class operator as
-// `<class>::operator<op>` and finds no PDB name for it: no NAME tag, so no FUNCTION tag (4.3 T7.c1)
+// FUNCTION: USA 0x000AE59D
+// PROTOTYPE: PREVIEW 0x004993B5 identical
+// NAME: proto-pdb:default.pdb
+// best: match_one objdiff 100.0, bytes match (4.3 T7.c1); was walled: provenance_lint nested operator
+// (C0212) -- lifted 5.3 T2.c1 (C0369)
 template std::vector<bool,std::allocator<bool> >::reference & std::vector<bool,std::allocator<bool> >::reference::operator=(std::vector<bool,std::allocator<bool> >::reference const &);
-#endif
 
 // FUNCTION: USA 0x000AE5C1
 // PROTOTYPE: PREVIEW 0x00448A7D identical
@@ -1203,38 +1294,24 @@ template std::vector<bool,std::allocator<bool> >::iterator std::_Copy_backward_o
 // NAME: proto-pdb:default.pdb
 template void std::_Destroy_range<TextureOverrides::Override,std::allocator<TextureOverrides::Override> >(TextureOverrides::Override *,TextureOverrides::Override *,std::allocator<TextureOverrides::Override> &,std::_Nonscalar_ptr_iterator_tag);
 
-#ifdef NON_MATCHING
+// FUNCTION: USA 0x000AF3AD
+// NAME: proto-pdb:default.pdb
+template void std::vector<bool,std::allocator<bool> >::_Xlen() const;
+
 // FUNCTION: USA 0x000AF749
 // PROTOTYPE: PREVIEW 0x0049A534 identical
 // NAME: proto-pdb:default.pdb
-// best: match_one objdiff 100, bytes match (4.4 T4.c4, with the decl-only line above dropped and a decl-only
-// string copy ctor before <stdexcept>); wall-relink (relink.py locked): throw info data now pinned (T4.c2) but
-// `.rdata 0x001FCEF4..0x001FCF80: retail bytes between two of our .xdata$x sections (one LINK group cannot
-// interleave with them)`
 template bool std::vector<SwampDeformation,std::allocator<SwampDeformation> >::_Buy(unsigned int);
-#endif
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x000AF791
 // PROTOTYPE: PREVIEW 0x0049A57C identical
 // NAME: proto-pdb:default.pdb
-// best: match_one objdiff 100, bytes match (4.4 T4.c4, with the decl-only line above dropped and a decl-only
-// string copy ctor before <stdexcept>); wall-relink (relink.py locked): throw info data now pinned (T4.c2) but
-// `.rdata 0x001FCEF4..0x001FCF80: retail bytes between two of our .xdata$x sections (one LINK group cannot
-// interleave with them)`
 template bool std::vector<Matrix,std::allocator<Matrix> >::_Buy(unsigned int);
-#endif
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x000AF9AE
 // PROTOTYPE: PREVIEW 0x0049A799 identical
 // NAME: proto-pdb:default.pdb
-// best: match_one objdiff 100, bytes match (4.4 T4.c4, with the decl-only line above dropped and a decl-only
-// string copy ctor before <stdexcept>); wall-relink (relink.py locked): throw info data now pinned (T4.c2) but
-// `.rdata 0x001FCEF4..0x001FCF80: retail bytes between two of our .xdata$x sections (one LINK group cannot
-// interleave with them)`
 template void std::vector<bool,std::allocator<bool> >::_Trim(unsigned int);
-#endif
 
 // FUNCTION: USA 0x000AFC7F
 // PROTOTYPE: PREVIEW 0x0049AA6A identical
@@ -1261,16 +1338,10 @@ template std::vector<bool,std::allocator<bool> >::iterator std::vector<bool,std:
 // NAME: proto-pdb:default.pdb
 template void std::vector<Vector2,std::allocator<Vector2> >::resize(unsigned int,Vector2);
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x000AFFA7
 // PROTOTYPE: PREVIEW 0x0049AD92 identical
 // NAME: proto-pdb:default.pdb
-// best: match_one objdiff 100, bytes match (4.4 T4.c4, with the decl-only line above dropped and a decl-only
-// string copy ctor before <stdexcept>); wall-relink (relink.py locked): throw info data now pinned (T4.c2) but
-// `.rdata 0x001FCEF4..0x001FCF80: retail bytes between two of our .xdata$x sections (one LINK group cannot
-// interleave with them)`
 template unsigned int std::vector<bool,std::allocator<bool> >::_Insert_x(std::vector<bool,std::allocator<bool> >::iterator,unsigned int);
-#endif
 
 // FUNCTION: USA 0x000B013D
 // PROTOTYPE: PREVIEW 0x0049AF28 identical

@@ -155,6 +155,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class DoorStorageRoomMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum State { // NAME: proto-pdb:default.pdb
@@ -170,6 +172,7 @@ public:
         MESSAGE_DOOR_CLOSE = 0x16
     };
 
+    DoorStorageRoomMain(SwampSceneNode* node);
     virtual void Activate();
     virtual void TimerEvent(unsigned int);
     virtual void Message(SwampScript* source, int message, void* data);
@@ -177,6 +180,7 @@ public:
     ResourceHandle<AnimationResource> _open; // 0xBC
 private:
     DoorStorageRoom* GetDoor() { return static_cast<DoorStorageRoom*>(_node); }
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(DoorStorageRoomMain, 0xC0);
 
@@ -243,3 +247,14 @@ void DoorStorageRoomMain::Load(const BeepTDF& tdf)
         SetState(Open);
     }
 }
+
+// FUNCTION: USA 0x000795AC
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0); gate pin_rows: ctor pin 0x000793AB is site-corr, relocated through by this row (D102); lift = a disasm-/corr-verified ctor pin (5.3 T5)
+SwampScript* DoorStorageRoomMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\DoorStorageRoom.h", 22) DoorStorageRoomMain(node);
+}
+#endif

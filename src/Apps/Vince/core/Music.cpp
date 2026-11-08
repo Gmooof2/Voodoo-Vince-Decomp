@@ -71,7 +71,7 @@ public:
 
         T* _Myptr;
     };
-    // !FAKE: inliner; hand form of the VC7.1 begin/end/back (iterator ctors would change erase's matched return)
+    // !FAKE: inliner; hand form of the VC7.1 begin/end/back; iterator ctors would change erase's matched return
     iterator begin() { iterator _It; _It._Myptr = _Myfirst; return (_It); }
     iterator end() { iterator _It; _It._Myptr = _Mylast; return (_It); }
     T& back() { return (*(_Mylast - 1)); }
@@ -139,7 +139,7 @@ DECOMP_SIZE_ASSERT(Vector4, 0x10);
 
 struct Quaternion { // NAME: proto-pdb:default.pdb
     void Apply(const Vector3&, Vector3&) const;
-    // !FAKE: inliner; hand form of the inline by-value Apply overload (C0191)
+    // !FAKE: inliner; hand form of the inline by-value Apply overload; no before/after recorded (C0191)
     Vector3 Apply(const Vector3& v) const { Vector3 r; Apply(v, r); return r; }
 
     float x;                           // 0x00
@@ -505,7 +505,7 @@ void* operator new(unsigned int size, const char* file, int line); // NAME: prot
 // NAME: proto-pdb:default.pdb
 SwampSceneNode* MusicRegion::creationFunc()
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Music.h", 14) MusicRegion;
 }
 
@@ -651,7 +651,7 @@ void MusicRegionMain::EnteringRegion(SwampSceneNode* node)
         // !FAKE: c2 register allocation; neutral local; retail loads _node once into ebx (match_one reloads without it)
         MusicRegion* p = (MusicRegion*)_node;
         if (p->_frontSong.size() && p->_backSong.size()) {
-            // !FAKE: inliner; hand form of the inline by-value Quaternion::Apply plus its copy (C0191)
+            // !FAKE: inliner; hand form of the inline by-value Quaternion::Apply plus its copy; no before/after recorded (C0191)
             Vector3 tmp;
             p->_saveRot.Apply(Vector3(0.0f, 1.0f, 0.0f), tmp);
             Vector3 v1(tmp);
@@ -739,7 +739,9 @@ void MusicManager::Reset()
 // PROTOTYPE: PREVIEW 0x004FE138 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 47.1, bytes mismatch (instructions equal; retail lays out the name search loop after the tail)
+// best: match_one objdiff 46.5 (47.1 with the else-if state chain), bytes mismatch +0x39 (5.2 T12.c22): the inverted state
+// if/else gives retail's state block (setne, no xor); left: retail chains the pop branch into the notify tail and lays the
+// name search after the idle/track jmp; cl keeps source order in 20 forms (bool/size tests, loop shapes, goto, early return)
 void MusicManager::PopOverlay(const SwampString& name)
 {
     if (_overlay.size()) {
@@ -764,13 +766,15 @@ void MusicManager::PopOverlay(const SwampString& name)
         if (o._scriptToNotify) {
             o._scriptToNotify->SoundFinished(o.name);
         }
-        if (_overlay.size()) {
+        if (!_overlay.size()) {
+            if (!_frontSong.size() && !_backSong.size()) {
+                _toState = _playSong.size() ? STATE_TRACK : STATE_IDLE;
+            } else {
+                _toState = STATE_TRANSITION;
+            }
+        } else {
             _toState = STATE_OVERLAY;
             _bOverlay = true;
-        } else if (_frontSong.size() || _backSong.size()) {
-            _toState = STATE_TRANSITION;
-        } else {
-            _toState = _playSong.size() ? STATE_TRACK : STATE_IDLE;
         }
     }
 }

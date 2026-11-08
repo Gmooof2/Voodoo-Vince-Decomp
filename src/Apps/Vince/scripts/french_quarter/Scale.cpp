@@ -44,6 +44,7 @@ public:
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
     void AddRef() { ++_RefCount; }
+    void SubRef() { _RefCount--; }
 
     char field_0[0x1C];                // 0x00
     unsigned int _RefCount;            // 0x1C
@@ -171,6 +172,8 @@ public:
     };
 };
 
+// FUNCTION: USA 0x0007BC8B
+// NAME: proto-pdb:default.pdb
 class ScaleMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum State { // NAME: proto-pdb:default.pdb
@@ -199,6 +202,13 @@ private:
     bool _vinceLanded;                 // 0xD0
 };
 DECOMP_SIZE_ASSERT(ScaleMain, 0xD4);
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1ScaleMain@@UAE@XZ in this unit (no matched
+// function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_ScaleMain_dtor(ScaleMain* p)
+{
+    p->ScaleMain::~ScaleMain();
+}
 
 // FUNCTION: USA 0x0007BA93
 // PROTOTYPE: PREVIEW 0x00467A9A identical
@@ -276,6 +286,6 @@ SwampString ScaleMain::Save()
 // NAME: proto-pdb:default.pdb
 SwampScript* ScaleMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\Scale.h", 11) ScaleMain(node);
 }

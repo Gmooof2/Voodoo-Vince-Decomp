@@ -12,11 +12,20 @@ template <class E, class T, class A> class basic_string {
 public:
     basic_string(const E* ptr);
     ~basic_string() { _Tidy(true); }
+    const E* c_str() const { return _Myptr(); }
+    const E* _Myptr() const { return _BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf; }
 protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    unsigned int _pad00[7];
+    enum { _BUF_SIZE = 16 / sizeof(E) < 1 ? 1 : 16 / sizeof(E) };
+    char _Alval;                       // 0x00
+    union {
+        E _Buf[_BUF_SIZE];
+        E* _Ptr;
+    } _Bx;                             // 0x04
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
 };
 template <class T, class A = allocator<T> > class vector { // NAME: proto-pdb:default.pdb
 public:
@@ -38,8 +47,9 @@ private:
 };
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
+typedef std::basic_string<unsigned short, std::char_traits<unsigned short>, std::allocator<unsigned short> > SwampWString;
 
-class BeepTDF;               // NAME: proto-pdb:default.pdb
+class BeepTDF;              // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct AABox;                // NAME: proto-pdb:default.pdb
@@ -155,14 +165,26 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampInput, 0x120);
 
+class SwampRenderer { // NAME: proto-pdb:default.pdb
+public:
+    int GetScreenWidth() const { return _screenWidth; }
+    int GetScreenHeight() const { return _screenHeight; }
+
+    char field_0[0x2C];                // 0x00
+    int _screenWidth;                  // 0x2C
+    int _screenHeight;                 // 0x30
+};
+
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
     SwampInput& GetInput() const { return *_input; }
+    SwampRenderer& GetRenderer() const { return *_renderer; }
     AnimationManager& GetAnimationManager() const { return *_animationManager; }
 
     char field_0[0x4];                 // 0x00
     SwampInput* _input;                // 0x04
-    char field_8[0x10];                // 0x08
+    SwampRenderer* _renderer;          // 0x08
+    char field_C[0xC];                 // 0x0C
     AnimationManager* _animationManager; // 0x18
 };
 
@@ -446,6 +468,7 @@ class CXBFont { // NAME: proto-pdb:default.pdb
 public:
     void SetScaleFactors(float, float);
     long DrawText(float, float, unsigned long, const SwampString&, unsigned long, float);
+    long DrawText(float, float, unsigned long, const unsigned short*, unsigned long, float);
 };
 
 class FontManager { // NAME: proto-pdb:default.pdb
@@ -636,8 +659,16 @@ public:
 
 extern "C" int __cdecl sprintf(char*, const char*, ...); // NAME: proto-pdb:default.pdb
 
+class LocalizedStrings { // NAME: proto-pdb:default.pdb
+public:
+    static LocalizedStrings& Instance();
+    const unsigned short* GetGameString(const SwampString& str);
+};
+
 class BasketCaseTryAgainMenu : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    BasketCaseTryAgainMenu(SwampScript* script);
+    virtual void Render(const Matrix&) const;
     virtual void Update();
 
     CXBFont* _font;                    // 0xA4
@@ -757,6 +788,18 @@ bool LaundryCarMain::SetLine(int segment, int line, int transition)
     return true;
 }
 
+// FUNCTION: USA 0x000A179C
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1: vptr ??_7BasketCaseTryAgainMenu@@6B@ unpinned, retail 0x001E84F4)
+BasketCaseTryAgainMenu::BasketCaseTryAgainMenu(SwampScript* script)
+    : SwampSceneNode(9), _returnScript(script)
+{
+    _font = GetFontManager().Load("pauseCounters");
+    SoundManager::PlaySound("frontdialog", 0, 0, false, 0.0f, 0.0f);
+}
+#endif
+
 // FUNCTION: USA 0x000A1811
 // PROTOTYPE: PREVIEW 0x0048C8DC identical
 // NAME: proto-pdb:default.pdb
@@ -776,6 +819,17 @@ void BasketCaseTryAgainMenu::Update()
         Invalidate();
     }
 }
+
+// FUNCTION: USA 0x000A18D9
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1: literal ??_C@_0L@ELICBOBH@bctryagain?$AA@ unpinned, retail 0x001E8518)
+void BasketCaseTryAgainMenu::Render(const Matrix& m) const
+{
+    SwampWString s = LocalizedStrings::Instance().GetGameString("bctryagain");
+    _font->DrawText(g_swamp->GetRenderer().GetScreenWidth() * 0.5f, g_swamp->GetRenderer().GetScreenHeight() * 0.5f, 0xFFFFFFFF, s.c_str(), 2, 0.0f);
+}
+#endif
 
 // FUNCTION: USA 0x000A196A
 // PROTOTYPE: PREVIEW 0x0048CA35 identical
@@ -898,7 +952,7 @@ void VinceLaundryCar::SetupRide()
 // NAME: proto-pdb:default.pdb
 SwampScript* BasketStopperPanMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("BasketCase\\BasketCase.cpp", 205) BasketStopperPanMain(node);
 }
 
@@ -916,7 +970,7 @@ void pin_emit_LaundryCarMain_dtor(LaundryCarMain* p)
 // NAME: proto-pdb:default.pdb
 SwampScript* LaundryCarMain::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\basketcase\\BasketCase.h", 16) LaundryCarMain(node);
 }
 
@@ -943,7 +997,7 @@ VinceLaundryCar::VinceLaundryCar(SwampSceneNode* node)
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceLaundryCar::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\basketcase\\BasketCase.h", 83) VinceLaundryCar(node);
 }
 
@@ -962,8 +1016,6 @@ void LaundryCarMain::ResetLaundry()
 // FUNCTION: USA 0x000A2B6B
 // PROTOTYPE: PREVIEW 0x0048DC58 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 98.40996, bytes mismatch (masked 0); draft cap: _linet fmul/fdiv order, jump-blend srcPos.z kept in st, slot order
 void LaundryCarMain::FrameTick()
 {
     Critter* car = GetCritter();
@@ -988,7 +1040,9 @@ void LaundryCarMain::FrameTick()
             _speed = (v0 > _speed - gSettings._basketCaseAcceleration * elapsed)
                 ? v0
                 : _speed - gSettings._basketCaseAcceleration * elapsed;
-        _linet += _speed * (elapsed / _lineLength);
+        // !FAKE: c2 x87 scheduling; neutral stand-in local; retail multiplies elapsed by _speed before the divide
+        const float v11 = elapsed * _speed;
+        _linet += v11 / _lineLength;
         if (_linet >= 1.0f) {
             if (_segment + 1 >= 16) {
                 bool solvedBC = false;
@@ -1044,7 +1098,7 @@ void LaundryCarMain::FrameTick()
         return;
     }
     Vector3 oldpos = car->GetWorldPosition();
-    // !FAKE: inliner; hand forms of the inline Vector3 operator* and operator+ (D78, C0223)
+    // !FAKE: inliner; hand forms of the inline Vector3 operator* and operator+; no before/after recorded (D78, C0223)
     Vector3 travel(_lineDir.x * (_lineLength * _linet), _lineDir.y * (_lineLength * _linet),
         _lineDir.z * (_lineLength * _linet));
     const Vector3* v3 = &_lineStart;
@@ -1060,7 +1114,9 @@ void LaundryCarMain::FrameTick()
         const Vector3* v4 = &_prevLineStart;
         Vector3 srcPos(travel.x + v4->x, travel.y + v4->y, travel.z + v4->z);
         carpos *= _jumpPct;
-        Vector3 v5(srcPos.x * (1.0f - _jumpPct), srcPos.y * (1.0f - _jumpPct), srcPos.z * (1.0f - _jumpPct));
+        // !FAKE: c2 x87 register allocation; neutral stand-in local; one blend factor makes retail store srcPos.z
+        const float v12 = 1.0f - _jumpPct;
+        Vector3 v5(srcPos.x * v12, srcPos.y * v12, srcPos.z * v12);
         carpos.x = v5.x + carpos.x;
         carpos.y = v5.y + carpos.y;
         carpos.z = v5.z + carpos.z;
@@ -1072,7 +1128,7 @@ void LaundryCarMain::FrameTick()
     Vector3 pos;
     Quaternion rot;
     car->GetBoneOrientation(_bone, rot, pos);
-    // !FAKE: inliner; hand forms of the inline Quaternion operator* and by-value Apply (C0221, C0225)
+    // !FAKE: inliner; hand forms of the inline Quaternion operator* and by-value Apply; no before/after recorded (C0221, C0225)
     Quaternion v6 = car->GetWorldRotation();
     {
         Quaternion v7 = v6;
@@ -1093,9 +1149,10 @@ void LaundryCarMain::FrameTick()
     if (_state == STATE_RIDING)
         Ptr<CollisionResultObject> cr = SwampCollide::CheckLine(oldpos, carpos, 0.05f, car, 0x40);
     Vector3 camTargetPos = carpos;
-    camTargetPos.y -= gSettings._basketCaseCameraFocusPos * GetCritter()->GetHeight();
+    // !FAKE: c2 scheduling; neutral stand-in local; retail pushes the VINCECAM literal before the y store
+    const float v13 = gSettings._basketCaseCameraFocusPos * GetCritter()->GetHeight();
+    camTargetPos.y -= v13;
     // !FAKE: c2 register allocation; neutral stand-in local; the camera held in esi past the string dtor (C0223)
     VinceCam* v10 = (VinceCam*)g_CameraManager->Find("VINCECAM");
     v10->HoldTarget(camTargetPos);
 }
-#endif

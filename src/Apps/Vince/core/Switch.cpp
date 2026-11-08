@@ -171,10 +171,15 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    virtual void Message(SwampScript*, int, void*);
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual void Load(const BeepTDF&);
+    virtual SwampString Save();
     virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
     virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
     virtual void SetState(int);                                    // vtable+0x6C
-    virtual void Message(SwampScript*, int, void*);
+public:
 
     int _state;                        // 0x4C
     char field_50[0xBC - 0x50];        // 0x50
@@ -183,6 +188,8 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 class SwitchMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    SwitchMain(SwampSceneNode* node);
+    virtual ~SwitchMain();
     virtual bool TestActivate() const;
     virtual void Activate();
     virtual void Message(SwampScript* source, int message, void* data);
@@ -212,6 +219,8 @@ protected:
     bool ActivateTarget();
 public:
     void ResetPopupTimer();
+    void SetOnAnimName(const SwampString& name);
+    void SetOffAnimName(const SwampString& name);
 
     SwampString _onAnimName;           // 0xBC
     SwampString _offAnimName;          // 0xD8
@@ -229,7 +238,9 @@ DECOMP_SIZE_ASSERT(SwitchMain, 0x13C);
 
 class BasicWallSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    BasicWallSwitchMain(SwampSceneNode* node);
     virtual void Activate();
+    virtual void AnimationFinished();
 };
 DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 
@@ -323,6 +334,14 @@ void SwitchMain::ResetPopupTimer()
 }
 #endif
 
+// FUNCTION: USA 0x0010F36E
+// NAME: proto-pdb:default.pdb
+BasicWallSwitchMain::BasicWallSwitchMain(SwampSceneNode* node) : SwitchMain(node)
+{
+    SetOnAnimName("wallSwitch_down");
+    SetOffAnimName("");
+}
+
 #ifdef NON_MATCHING
 // best: match_one objdiff 53.45, bytes mismatch (masked 0)
 // FUNCTION: USA 0x0010F3D4
@@ -349,6 +368,8 @@ void BasicWallSwitchMain::Activate()
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 87.85, bytes mismatch (masked 0); one _Tidy now (shared `return false` after the else); retail lays the _Tidy block after the size test (jne to the loop test), ours after the loop (13 drafts)
+// T10.c1 also tried: bool result local (stack slot, 85.43), function-scope result (81.06), size() == 0, if/else, while/do loops, !empty() block, single branch first (43.39): <= 87.85
+// T12.c17: scope-exit `return true` after the if/else keeps the _Tidy at the size test but no bl merge (84.72); at-stop 20
 bool SwitchMain::NotifyTarget(int message)
 {
     if (_target.empty())
@@ -380,6 +401,8 @@ bool SwitchMain::NotifyTarget(int message)
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 89.77, bytes mismatch (masked 0); one _Tidy now (shared `return false` after the else); retail lays the _Tidy block after the size test (jne to the loop test), ours after the loop (11 drafts)
+// T10.c1: same layout wall as NotifyTarget (its forms tried there, none moved the _Tidy block)
+// T12.c17: 13 loop/return forms compile identical (89.77); scope-exit `return true` lays the _Tidy at the size test, no bl merge (88.86); at-stop 20
 bool SwitchMain::ActivateTarget()
 {
     if (_target.empty())

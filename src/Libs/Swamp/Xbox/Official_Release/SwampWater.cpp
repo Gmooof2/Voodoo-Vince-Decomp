@@ -30,6 +30,7 @@ DECOMP_SIZE_ASSERT(Vector2, 0x8);
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
     Vector3() {}
+    void Set(float x_, float y_, float z_) { x = x_; y = y_; z = z_; }
 
     float x;                           // 0x00
     float y;                           // 0x04
@@ -135,7 +136,16 @@ public:
     bool _pauseGame;                   // 0x34
 };
 
-struct D3DVertexBuffer; // NAME: proto-pdb:default.pdb
+struct D3DVertexBuffer { // NAME: proto-pdb:default.pdb
+    unsigned long Common;              // 0x00
+    unsigned long Data;                // 0x04
+    unsigned long Lock;                // 0x08
+};
+DECOMP_SIZE_ASSERT(D3DVertexBuffer, 0xC);
+
+extern "C" D3DVertexBuffer* __stdcall D3DDevice_CreateVertexBuffer2(unsigned int length); // NAME: proto-pdb:default.pdb
+extern "C" unsigned char* __stdcall D3DVertexBuffer_Lock2(D3DVertexBuffer* vb, unsigned long flags); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall D3DXGetErrorStringA(long hr, char* buffer, unsigned int size); // NAME: proto-pdb:default.pdb
 
 class SwampRenderer { // NAME: proto-pdb:default.pdb
 public:
@@ -185,20 +195,50 @@ struct Quaternion; // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    enum NodeOptions { // NAME: proto-pdb:default.pdb
+        DontDraw = 0x2,
+        UseAlpha = 0x8
+    };
+    SwampSceneNode(int type);
+    void SetOption(unsigned int option, bool value, bool recursive);
     virtual ~SwampSceneNode();                                     // vtable+0x00
     virtual const AABox& GetBounds() const;                        // vtable+0x04
     virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     virtual void Invalidate();                                     // vtable+0x14
+protected:
     virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
     virtual void Update();                                         // vtable+0x1C
     virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
     Matrix GetWorldTransformation() const;
 
-    char field_4[0xA4 - 0x4];          // 0x04
+    char field_4[0x6C - 0x4];          // 0x04
+    AABox _BoundingBox;                // 0x6C
+    char field_84[0xA4 - 0x84];        // 0x84
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+template <class T> void RELEASE(T*& p); // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x0015099F
+// PROTOTYPE: PREVIEW 0x0053A01F identical
+// NAME: proto-pdb:default.pdb
+// ??_GFloatyBits: compiler-generated with the vtable ~FloatyBits emits; calls ??1 out of line
+class FloatyBits : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    FloatyBits(unsigned int numBits);
+    virtual ~FloatyBits();                                         // vtable+0x00
+protected:
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+public:
+
+    float _waterLevel;                 // 0xA4
+    unsigned int _numBits;             // 0xA8
+    D3DVertexBuffer* _vertexBuffer;    // 0xAC
+};
+DECOMP_SIZE_ASSERT(FloatyBits, 0xB0);
 
 class WaterField { // NAME: proto-pdb:default.pdb
 public:
@@ -233,6 +273,10 @@ public:
 };
 DECOMP_SIZE_ASSERT(WaterField, 0x44);
 
+// FUNCTION: USA 0x00151202
+// PROTOTYPE: PREVIEW 0x0053A882 identical
+// NAME: proto-pdb:default.pdb
+// ??_GSwampPuddle: compiler-generated with the vtable ~SwampPuddle emits; calls ??1 out of line
 class SwampPuddle : public SwampSceneNode, public WaterField { // NAME: proto-pdb:default.pdb
 public:
     virtual ~SwampPuddle();                                        // vtable+0x00
@@ -252,13 +296,35 @@ DECOMP_SIZE_ASSERT(SwampPuddle, 0x1B8);
 class SwampCamera : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 };
 
+struct GatorVertex { // NAME: proto-pdb:default.pdb
+    Vector3 loc;                       // 0x00
+    unsigned char boneWeights[4];      // 0x0C
+    unsigned char boneIndices[4];      // 0x10
+    unsigned int norm;                 // 0x14
+    unsigned int tex[2];               // 0x18
+};
+DECOMP_SIZE_ASSERT(GatorVertex, 0x20);
+
 class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
 public:
     void LowLevelRender(bool) const;
-};
+    unsigned int GetVertexCount() const;
+    const AABox& GetBounds() const;
+    D3DVertexBuffer* GetVertexBuffer() const { return (D3DVertexBuffer*)&_vertexBuffer; }
 
+    char field_24[0x40 - 0x24];        // 0x24
+    D3DVertexBuffer _vertexBuffer;     // 0x40
+    char field_4C[0x60 - 0x4C];        // 0x4C
+};
+DECOMP_SIZE_ASSERT(ModelResource, 0x60);
+
+// FUNCTION: USA 0x001509BB
+// PROTOTYPE: PREVIEW 0x0053A03B identical
+// NAME: proto-pdb:default.pdb
+// ??_GSwampWaterNode: compiler-generated with the vtable ~SwampWaterNode emits; calls ??1 out of line
 class SwampWaterNode : public SwampSceneNode, public WaterField { // NAME: proto-pdb:default.pdb
 public:
+    SwampWaterNode(const ResourceHandle<ModelResource>& model, const ResourceHandle<MaterialResource>& mtl, float density, unsigned int fieldsize);
     virtual ~SwampWaterNode();                                     // vtable+0x00
 protected:
     virtual void Update();                                         // vtable+0x1C
@@ -333,7 +399,7 @@ void WaterField::RenderOverlayCleanup() const
     v1.SetEmptyTexture(0);
     v1.SetEmptyTexture(1);
     v1.SetEmptyTexture(2);
-    // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState bodies (retail encodings, constant-folded)
+    // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState bodies; retail encodings, constant-folded
     D3DDevice_SetRenderState_Simple(0x4035C, 1);
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     D3D__DirtyFlags |= 0x2000;
@@ -350,7 +416,7 @@ Vector3 SwampPuddle::ProjectAndPerturb(const Vector3& worldLoc, float amount)
     world2Local.AffineInvert();
     Vector3 localLoc;
     {
-        // !FAKE: inliner; hand form of the inline Matrix::Apply(const Vector3&) body, which /O1 keeps out of line
+        // !FAKE: inliner; hand form of the inline Matrix::Apply(const Vector3&) body; /O1 keeps it out of line
         Vector3 v1;
         world2Local.Apply(worldLoc, v1);
         localLoc = v1;
@@ -372,7 +438,7 @@ Vector2 SwampPuddle::Project(const Vector3& worldLoc) const
     Matrix world = GetWorldTransformation();
     Matrix world2Local = world;
     world2Local.AffineInvert();
-    // !FAKE: inliner; hand form of the inline Matrix::Apply(const Vector3&) body, which /O1 keeps out of line (match_one 62.88 -> 79.14 -> 100.0 with the += 0.5f stores)
+    // !FAKE: inliner; hand form of the inline Matrix::Apply(const Vector3&) body; /O1 keeps it out of line (match_one 62.88 -> 79.14 -> 100.0 with the += 0.5f stores)
     Vector3 v1;
     world2Local.Apply(worldLoc, v1);
     Vector3 localLoc = v1;
@@ -380,6 +446,14 @@ Vector2 SwampPuddle::Project(const Vector3& worldLoc) const
     puddleSpace.u += 0.5f;
     puddleSpace.v += 0.5f;
     return puddleSpace;
+}
+
+// FUNCTION: USA 0x001503DE
+// PROTOTYPE: PREVIEW 0x00539A5E identical
+// NAME: proto-pdb:default.pdb
+FloatyBits::~FloatyBits()
+{
+    RELEASE(_vertexBuffer);
 }
 
 // FUNCTION: USA 0x001503FC
@@ -408,6 +482,14 @@ void SwampPuddle::Update()
     }
 }
 
+// FUNCTION: USA 0x001507CE
+// PROTOTYPE: PREVIEW 0x00539E4E identical
+// NAME: proto-pdb:default.pdb
+SwampWaterNode::~SwampWaterNode()
+{
+    RELEASE(_vertexBuffer);
+}
+
 // FUNCTION: USA 0x00150C75
 // PROTOTYPE: PREVIEW 0x0053A2F5 identical
 // NAME: proto-pdb:default.pdb
@@ -426,6 +508,13 @@ WaterField::WaterField(unsigned int width, unsigned int height, bool wrap)
     _bumpTex = g_swamp->GetTextureManager().CreateTexture(0, width, height, D3DFMT_A8R8G8B8, false);
 }
 
+// FUNCTION: USA 0x0015121E
+// PROTOTYPE: PREVIEW 0x0053A89E identical
+// NAME: proto-pdb:default.pdb
+SwampPuddle::~SwampPuddle()
+{
+}
+
 // FUNCTION: USA 0x00151254
 // PROTOTYPE: PREVIEW 0x0053A8D4 identical
 // NAME: proto-pdb:default.pdb
@@ -441,7 +530,7 @@ void SwampPuddle::Render(const Matrix& m) const
         eMap = _envMap;
     if (eMap.IsValid()) {
         RenderSetup(m, eMap, ref);
-        // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState body (retail encoding, constant-folded)
+        // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState body; retail encoding, constant-folded
         D3DDevice_SetRenderState_Simple(0x4035C, 1);
         D3DDevice_DrawVerticesUP(8, 4, _verts, sizeof(WaterVertex));
         RenderCleanup();
@@ -451,6 +540,43 @@ void SwampPuddle::Render(const Matrix& m) const
             RenderOverlayCleanup();
         }
     }
+}
+
+// FUNCTION: USA 0x0015132B
+// NAME: proto-pdb:default.pdb
+SwampWaterNode::SwampWaterNode(const ResourceHandle<ModelResource>& model, const ResourceHandle<MaterialResource>& mtl,
+                               float density, unsigned int fieldsize)
+    : SwampSceneNode(0xE), WaterField(fieldsize, fieldsize, true), _density(density), _mtl(mtl), _model(model),
+      _vertexBuffer(0)
+{
+    if (_model.IsValid()) {
+        // !FAKE: c1xx front end; stand-in locals for the vertex count and loop index; no PDB local
+        int v0 = _model().GetVertexCount();
+        char buff[0x80];
+        _vertexBuffer = D3DDevice_CreateVertexBuffer2(v0 * sizeof(WaterVertex));
+        // !FAKE: c1xx front end; stand-in local for the XDK inline wrapper's HRESULT; no PDB local
+        long v1 = _vertexBuffer ? 0 : 0x8007000E;
+        if (v1 < 0)
+            D3DXGetErrorStringA(v1, buff, sizeof(buff));
+        // !FAKE: c2 register allocation; stand-in local for the XDK inline Lock's buffer; no PDB local
+        D3DVertexBuffer* v3 = _vertexBuffer;
+        WaterVertex* dverts = (WaterVertex*)D3DVertexBuffer_Lock2(v3, 0);
+        GatorVertex* sverts = (GatorVertex*)D3DVertexBuffer_Lock2(_model().GetVertexBuffer(), 0);
+        const AABox& bb = model().GetBounds();
+        // !FAKE: c2 x87 scheduling; stand-in local for the bump scale; no PDB local
+        float v4 = density * 0.16f;
+        for (int v2 = 0; v2 < v0; v2++, dverts++, sverts++) {
+            dverts->pos = sverts->loc;
+            dverts->normal.Set(0.0f, 1.0f, 0.0f);
+            dverts->bumpcoord.u = (sverts->loc.x - bb.low.x) * v4;
+            dverts->bumpcoord.v = (sverts->loc.z - bb.low.z) * v4;
+            dverts->texcoord = sverts->tex[0];
+            dverts->detailcoord = sverts->tex[1];
+        }
+        SetOption(UseAlpha, true, false);
+        _BoundingBox = bb;
+    } else
+        SetOption(DontDraw, true, false);
 }
 
 // FUNCTION: USA 0x00151496
@@ -475,7 +601,7 @@ void SwampWaterNode::Render(const Matrix& m) const
             float v0 = GetWorldPosition().y + GetBounds().low.y;
             if (camPos.y < v0) {
                 renderer.SetCullMode(0x900);
-                // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState body (retail encoding, constant-folded)
+                // !FAKE: inliner; hand form of the XDK inline D3DDevice_SetRenderState body; retail encoding, constant-folded
                 D3DDevice_SetRenderState_Simple(0x4035C, 1);
             }
             renderer.SetStreamSource(_vertexBuffer, 0x30);

@@ -257,6 +257,6 @@ VinceFlat::VinceFlat(SwampSceneNode* node) : SwampScript(node), _playQuip(false)
 // NAME: proto-pdb:default.pdb
 SwampScript* VinceFlat::creationFunc(SwampSceneNode* node)
 {
-    // !FAKE: retail string literal; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\VinceFlat.h", 13) VinceFlat(node);
 }

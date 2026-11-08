@@ -3,6 +3,9 @@
 Usage: PY tools/name_sites.py [--unit U] [--apply] [--doc] [--rows P] [--control positive|planted] | --check-cut
        | --near [--apply] | --control near-positive|near-planted --unit U | --control near-callee-planted
        | --provisional [--check] | --control prov-drop|prov-false-unblocked
+       | --ambiguous bracket|fold-alias|fold-k1 [--max N] [--apply]
+       | --control bracket-positive|bracket-planted|bracket-ambiguous|fold-alias-planted|fold-k1-planted
+       | --control bracket-own-dtor | --recheck bracket
 Rows: pool rows (derived/candidates/candidates.jsonl minus config/matched_set.toml), all or one unit.
 Per row: identity re-verified (prototype default.exe bytes at protoVA vs retail XBE bytes at va, `size` bytes,
   proto_map.mask_proc each side: same (off, kind) mask list, equal unmasked bytes), else its sites -> proto-mismatch.
@@ -77,15 +80,31 @@ Outputs (gitignored): derived/name_sites/{names.jsonl,residue.jsonl,pins.txt}; a
   neither/both sections, an Unblocked row has a target not accepted, or a Blocked row has none blocking.
   --control prov-drop (one parsed row dropped) / prov-false-unblocked (one Blocked row moved): exit 0 only when the
   check fails. Pin tables only; no cut.
+--ambiguous CLS [--max N] [--apply] (5.3 T3, D128-D130): the recounted ambiguous rows (pool_buckets.ruled_state, C0366)
+  settled by pool_buckets' bracket / fold_alias / fold_k1 predicate, in order unit of the body then VA; each pair through
+  the writer's chain (fold-k1: at an already-named body; the publics not yet at the body; callee bytes, D114), then one
+  pin_rows replant (a line whose row fails or moves an existing row at its VA is dropped: the disagreement count).
+  Lines (bracket +unit-bracket+callee-bytes, fold-* +fold-alias+callee-bytes, one per public, C0130) to
+  .run/<phase>/t3/ambiguous_<CLS>.txt; --apply appends them to the pin file. --control bracket-positive|bracket-planted|
+  bracket-ambiguous|fold-alias-planted|fold-k1-planted: the writer's chain on one pair; planted exit 0 only when refused.
+  T13.2, bracket only (check() unchanged): dtor-not-own (a ??_G/??_E public whose class has a table ??1<Class>@@ at X,
+  no retail rel call/jmp out of the body reaching X), callee-down (a rel dest out of the body unnamed in the table whose
+  proto dest at the same mask is unsized or not masked-equal). --ambiguous bracket also writes
+  .run/<phase>/t3/ambiguous_bracket_siblings.txt (kept bodies with masked-identical proto rows of the same module).
+  --control bracket-own-dtor: ??_GPropellerMain at 0x000A3EC9, its pin lines removed in memory; exit 0 when refused.
+  --recheck bracket: the pin file's `# 5.3 T3 name_sites --ambiguous bracket` block, each body re-run through the
+  chain with its own lines removed; prints the newly refused bodies (VA, name, reason) and a count; exit 0.
 Exit: 0 ok; 1 control or --check-cut failed; 2 refusal (missing input, retail sha mismatch, bad args, --apply VA already
   named, --promote-data with --control/--check-cut/--doc, --promote-data --apply without one data site-corr line per VA).
 """
 import argparse
 import bisect
+import contextlib
 import json
 import os
 import re
 import struct
+import subprocess
 import sys
 import tomllib
 from collections import Counter, defaultdict
@@ -533,6 +552,8 @@ def pin_line(e):
         via = "site-corr"     # (proto_map rows, C0059); --apply keeps it only checked and replant-passing (apply_replant)
     if e["evidence"] == "checked" and e["kind"] in SRC_CHECK:  # data has no byte check (3.2 T4): never disasm-verified
         src, st = f"proto-pdb-public+{via}+{SRC_CHECK[e['kind']]}", "disasm-verified"
+    elif e["evidence"] == "near" and k == "func":  # T13.2.c3 --ambiguous D115: near_check pass (D115, pin_rows TAGS)
+        src, st = NEAR_SRC, "near-corr"
     else:
         src, st = f"proto-pdb-public+{via}", "site-corr"
     return f"0x{t:08X} {k} {size} {e['name']} {src} {st}"
@@ -765,22 +786,68 @@ def write_dup_doc(residue):
 
 
 # 4.4 T18: accepted `neither pinned nor residue` sites, keyed (row VA, site offset, target VA) -> reason key; reason ->
-# (reason, pointer). A listed site that no longer fails that way is STALE (exit 1); any other site at a listed target fails.
+# (reason, commit, pointer, mark). A listed site that no longer fails that way is STALE (exit 1); any other site at a listed
+# target fails. 5.1 T8 (O10): each pointer is checked (`_pointer_fails`): the commit is an ancestor of HEAD and the cited
+# `path:line` still contains `mark` (the DISABLED note's prefix, or the validation.md phrase recording the site); else POINTER.
+# 5.3 T17: in a public tree the commit check is skipped and an unexported cited path is skipped; shipped marks still checked.
 ACCEPTED_REASONS = {
-    "puddle": ("Puddle _Tidy pin disabled (4.4 T6.1, commit 6bdf5e1c)", "config/retail/symbols_pin.txt:3274"),
-    "whammy": ("Whammy _Tree::insert pin disabled (4.4 T7.1 B1)", "config/retail/symbols_pin.txt:3421"),
-    "union": ("SwampFireFlyNode AABox::Union pin disabled (4.4 T7.1 B1)", "config/retail/symbols_pin.txt:3547"),
-    "font": ("FontManager nested-map insert pin disabled, name over Ghidra's 2000-char limit (4.4 T7.1 B3)",
-             "config/retail/symbols_pin.txt:3678"),
+    # puddle commit was 6bdf5e1c (the ScareHouse cut commit before it); b5437fdd1 added the DISABLED note (R70, R4.5-013)
+    "puddle": ("Puddle _Tidy pin disabled (4.4 T6.1)", "b5437fdd1", "config/retail/symbols_pin.txt:3274",
+               "# DISABLED: Puddle _Tidy pin"),
+    "whammy": ("Whammy _Tree::insert pin disabled (4.4 T7.1 B1)", "22237cf8f", "config/retail/symbols_pin.txt:3421",
+               "# DISABLED: Whammy _Tree::insert pin"),
+    "union": ("SwampFireFlyNode AABox::Union pin disabled (4.4 T7.1 B1)", "22237cf8f",
+              "config/retail/symbols_pin.txt:3547", "# DISABLED: SwampFireFlyNode AABox::Union pin"),
+    "font": ("FontManager nested-map insert pin disabled, name over Ghidra's 2000-char limit (4.4 T7.1 B3)", "53ba2d16a",
+             "config/retail/symbols_pin.txt:3678", "# DISABLED: FontManager nested-map insert pin"),
     "sethealth": ("?SetHealth@Critter@@QAEXH@Z second-pass site-only name dropped at the T7.1 B1 replant, not pinned"
-                  " (site-only evidence is not a pin route)", "docs/ops/validation.md:1976"),
-    "indexdata": ("_D3D__IndexData caller-xref second-pass pin not applied (4.4 T7.1 B3)", "docs/ops/validation.md:2002"),
+                  " (site-only evidence is not a pin route)", "22237cf8f", "docs/ops/validation.md:1976",
+                  "`?SetHealth@Critter@@QAEXH@Z`, second-pass site-only name dropped at replant"),
+    "indexdata": ("_D3D__IndexData caller-xref second-pass pin not applied (4.4 T7.1 B3)", "53ba2d16a",
+                  "docs/ops/validation.md:2002", "`_D3D__IndexData`, caller-xref second-pass pin not applied"),
+    "bbl": ("??1BundleBackgroundLoader pin disabled (5.3 T4)", "63ce24c26", "config/retail/symbols_pin.txt:4862",  # was :4858 (T13.2 DISABLED lines)
+            "# DISABLED: ??1BundleBackgroundLoader pin"),
+    # 5.3 T13.2.c5: _Init@_Tree<ZoneNode> 0x000C2038+0x4 calls the DISABLED _Buynode fold pair 0x000C1C27 (T4 R8)
+    "buynode": ("_Buynode fold pair pin disabled (5.3 T4)", "63ce24c26", "config/retail/symbols_pin.txt:4807",
+                "# DISABLED: _Buynode fold pair 0x000C1C27"),
+    # 5.3 T13.2: vector<ResourceHandle<TextureResource>> copy ctor 0x000C7FA1 is pinned at the Ghidra size 0x6A (true
+    # length 0x7C, candidates bodymax); its call at +0x6E to the pinned _Tidy fold 0x000C7B97 lies past the pin, so the
+    # delinker emits no REL32 there (C0131). Accepted only while the cut has no relocation at the site (check_cut).
+    "vecsize": ("site past the 0x6A pin of 0x000C7FA1 (Ghidra size; true length 0x7C), no relocation (5.3 T13.2)",
+                "e1f8466f5", "config/retail/symbols_pin.txt:3536", "0x000C7FA1 func 0x6A"),
+    # 5.2 T3 (R8) onion, hudui, music, signtrolley, critter (commit 320e85770) removed at 5.2 T6.c4: every site STALE,
+    # its target now pinned by the T6 pin pass (DISABLED notes stay in symbols_pin.txt)
 }
+
+
+def _pointer_fails(key):
+    """5.1 T8: [] when reason `key`'s commit is in HEAD's history and its cited line still carries its mark."""
+    _why, commit, ptr, mark = ACCEPTED_REASONS[key]
+    out = []
+    # 5.3 T17: a public tree (config/PUBLIC_TREE, no .claude/pa.json, as gate.py decides) is exported as a fresh history
+    # without the private commits and without docs/ops/validation.md; there the ancestor check cannot hold and an absent
+    # cited path is not exported, so both are skipped. A cited path present in the tree (symbols_pin.txt) is still checked.
+    public = (REPO / "config" / "PUBLIC_TREE").is_file() and not (REPO / ".claude" / "pa.json").is_file()
+    if not public:
+        rc = subprocess.run(["git", "merge-base", "--is-ancestor", commit, "HEAD"], cwd=REPO,
+                            capture_output=True).returncode
+        if rc != 0:
+            out.append(f"POINTER {key}: commit {commit} not in HEAD's history (git merge-base rc {rc})")
+    path, _, ln = ptr.rpartition(":")
+    if public and not (REPO / path).is_file():
+        return out
+    lines = (REPO / path).read_text(encoding="utf-8").splitlines() if (REPO / path).is_file() else []
+    if not (ln.isdigit() and 0 < int(ln) <= len(lines) and mark in lines[int(ln) - 1]):
+        out.append(f"POINTER {key}: {ptr} does not carry {mark!r}")
+    return out
 ACCEPTED_SITES = {
     (0x0012BC8C, 0x7, 0x0012B64E): "puddle",
     (0x000D3ABA, 0x15, 0x001672D4): "indexdata",
     (0x000C86FF, 0x14F, 0x000DDEF3): "union",
     (0x000FF37C, 0xF0, 0x000FEF28): "font",
+    (0x000DAC88, 0x4, 0x000DAA98): "bbl",
+    (0x000C2038, 0x4, 0x000C1C27): "buynode",  # 5.3 T13.2.c5; was 22 accepted sites, now 23
+    (0x000C7FA1, 0x6E, 0x000C7B97): "vecsize",  # 5.3 T13.2; was 23 accepted sites, now 24 (pinned-target branch)
     **{(0x00135939, o, 0x000380F3): "whammy" for o in (0x90, 0xF0, 0x14D, 0x1AA, 0x207, 0x264, 0x2C1, 0x31E, 0x37B,
                                                        0x3D8, 0x435, 0x492, 0x4EF, 0x54C)},
     (0x000196CA, 0x156, 0x00018110): "sethealth",
@@ -812,6 +879,8 @@ def check_cut(rows):
                 nm = cut_name(cut, objs, r["unit"], r["symbol"], s["off"])
                 if nm in names[t] or nm and nm.rpartition("::")[2] in names[t]:  # Ghidra library namespace (XAPILIB::)
                     npin += 1
+                elif nm is None and (r["va"], s["off"], t) in ACCEPTED_SITES:  # 5.3 T13.2: no relocation at a listed site
+                    acc[ACCEPTED_SITES[(r["va"], s["off"], t)]].append((r["va"], s["off"], t))
                 else:
                     fails.append(f"FAIL {where} {s['kind']}: pinned {sorted(names[t])}, cut relocation names {nm}")
             elif s["resolved"] is not None:
@@ -825,11 +894,14 @@ def check_cut(rows):
     seen = {k for ks in acc.values() for k in ks}
     for k in sorted(set(ACCEPTED_SITES) - seen):
         fails.append(f"STALE 0x{k[0]:08X} +0x{k[1]:X} -> 0x{k[2]:08X}: {ACCEPTED_REASONS[ACCEPTED_SITES[k]][0]}")
+    for key in ACCEPTED_REASONS:  # 5.1 T8 (O10): pointers checked, not just printed
+        fails += _pointer_fails(key)
     print(f"name_sites --check-cut: {len(rows)} pool rows; pinned sites cut-named {npin}, unresolved residue {nres}, "
           f"accepted {len(seen)}, FAIL {len(fails)}")
     for key in ACCEPTED_REASONS:
         if acc[key]:
-            print(f"  accepted {len(acc[key])}: {ACCEPTED_REASONS[key][0]} ({ACCEPTED_REASONS[key][1]})")
+            print(f"  accepted {len(acc[key])}: {ACCEPTED_REASONS[key][0]} (commit {ACCEPTED_REASONS[key][1]},"
+                  f" {ACCEPTED_REASONS[key][2]})")
     for ln in fails[:200]:
         print(f"  {ln}")
     return 1 if fails else 0
@@ -2135,6 +2207,420 @@ def run_provisional():
     return 0
 
 
+AMB_CLS = ("bracket", "fold-alias", "fold-k1",  # 5.3 T3: the classes ruled at 5.3 T1 (D128, D129, D130)
+           "k1", "D115", "D113", "caller-xref")  # T13.2.c3: the classes ruled at 5.1 T9
+AMB_VIA = {"bracket": "unit-bracket", "fold-alias": "fold-alias", "fold-k1": "fold-alias",  # pin_line tags (pin_rows TAGS)
+           "k1": "site-corr", "caller-xref": "site-corr",  # T13.2.c3: +callee-bytes disasm-verified (check(), D114)
+           "D115": "anchor-window+caller-xref"}  # T13.2.c3: NEAR_SRC near-corr; D113 has no func tag (unwritable)
+AMB_NEW_CTL = ("k1-planted", "D115-planted", "D113-planted", "caller-xref-planted")  # T13.2.c3 --control
+AMB_T3 = ("bracket", "fold-alias", "fold-k1")  # --apply header `# 5.3 T3 ...` (run_amb_recheck); others `# 5.3 T13.2 ...`
+AMB_OUT = byte_compare._phase_run_dir() / "t3"
+
+
+def amb_state(img, pubs, procs):
+    """5.3 T3: (S, tab_va, tab_name, pub_vas, unit-of-VA) for the --ambiguous writer and its controls; S from
+    pool_buckets.ruled_state (uncapped recount, C0366: bodies are recounted hits, not targetVAs)."""
+    import pool_buckets
+    S = pool_buckets.ruled_state(img, pubs, near_ctx(img, pubs, procs))
+    S.pred = {"bracket": pool_buckets.bracket, "fold-alias": pool_buckets.fold_alias, "fold-k1": pool_buckets.fold_k1,
+              "k1": pool_buckets.cls_k1, "D115": pool_buckets.cls_d115, "D113": pool_buckets.cls_d113,
+              "caller-xref": pool_buckets.cls_caller_xref}  # T13.2.c3
+    S.gf = {int(g["entry"], 16): (g["size"], int(g["bodyMax"], 16)) for g in load_jsonl(need(  # D115 size (run_near)
+        REPO / "derived" / "ghidra" / f"retail-{img.pin[:8]}" / "applied" / "functions.jsonl"))}
+    tab_va, tab_name = defaultdict(set), defaultdict(set)
+    for va, _k, _sz, nm, _src in load_table():
+        tab_va[va].add(nm)
+        tab_name[nm].add(va)
+    return S, tab_va, tab_name, sorted(pubs), unit_of_va()[0]
+
+
+def amb_verdict(S, procs, tab_va, tab_name, pub_vas, cls, P, t):
+    """5.3 T3: the writer's own chain for (P, t): class predicate (fold-k1: at an already-named body), the publics not
+    yet at t (no other name at t for bracket/fold-alias, none named elsewhere), callee bytes (check(), D114).
+    T13.2.c3: D113 ends no-func-slot-route; D115 skips check() (near-corr, Ghidra extent as size).
+    -> (None, [entry]) or (reason, [])."""
+    if not S.pred[cls](S, P, t) or cls == "fold-k1" and not tab_va.get(t):
+        return f"class-{cls}", []
+    ns = sorted(S.pubs.get(P, ()))
+    new = [n for n in ns if n not in tab_va.get(t, ())]
+    if cls != "fold-k1" and tab_va.get(t, set()) - set(ns):
+        return "body-named-other", []
+    if not new:
+        return "already-named", []
+    if any(tab_name[n] - {t} for n in new):
+        return "name-elsewhere", []
+    if cls == "D113":  # T13.2.c3: pin_rows TAGS has no func corr-verified slot route (slots/slotnames are data only)
+        return "no-func-slot-route", []
+    if cls == "D115":  # T13.2.c3: near_check passed (class step); no callee bytes (D115), size = Ghidra extent (run_near)
+        g = S.gf.get(t)
+        if g is None:
+            return "no-ghidra-function", []
+        if g[0] != g[1] - t + 1:
+            return "ghidra-noncontiguous", []
+        return None, [{"va": f"0x{t:08X}", "name": n, "kind": "func", "protoVA": f"0x{P:08X}", "evidence": "near",
+                       "size": g[0], "already": False, "via": AMB_VIA[cls]} for n in new]
+    ok, fsz = check(S.img, procs, S.pubs, tab_va, pub_vas, t, ns[0], "func", P)
+    if not ok:
+        return "callee-bytes", []
+    if cls == "bracket":
+        r = amb_bracket_down(S, procs, tab_va, tab_name, P, t, fsz)
+        if r:
+            return r, []
+    return None, [{"va": f"0x{t:08X}", "name": n, "kind": "func", "protoVA": f"0x{P:08X}", "evidence": "checked",
+                   "size": fsz, "already": False, "via": AMB_VIA[cls]} for n in new]
+
+
+def amb_bracket_down(S, procs, tab_va, tab_name, P, t, n):
+    """T13.2 (bracket only; check() unchanged): dtor-not-own when a ??_G/??_E public's class has a table ??1<Class>@@
+    at X and no retail rel call/jmp out of the body reaches X; callee-down when a rel dest out of the body is unnamed
+    in the table and the proto dest (same mask) is unsized or not masked-equal to it. -> reason or None."""
+    img = S.img
+    pb, rb = img.pbytes(P, n), img.rbytes(t, n)
+    outs = [(target(pb, P, o, k), target(rb, t, o, k)) for o, _w, k in proto_map.mask_proc(pb, P, img.plo, img.phi)[0]
+            if k == "rel" and not t <= target(rb, t, o, k) < t + n]
+    for nm in sorted(S.pubs.get(P, ())):
+        if nm.startswith(("??_G", "??_E")) and "@@" in nm:
+            own = "??1" + nm[4:nm.index("@@") + 2]
+            xs = {x for k, vs in tab_name.items() if k.startswith(own) for x in vs}
+            if xs and not xs & {rd for _pd, rd in outs}:
+                return "dtor-not-own"
+    for pd, rd in outs:
+        if {x for x in tab_va.get(rd, ()) if (rd, x) not in NEAR_CORR}:
+            continue
+        # T13.2 expert: a near-corr name is a name (D115); it must agree with the one proto public at pd, else refuse.
+        # was: near-corr names counted as unnamed here (byte-compared), refusing matched 0x0002FBB8 (near-identical callee)
+        nc = set(tab_va.get(rd, ()))
+        if nc:
+            ps = S.pubs.get(pd, ())
+            if len(ps) == 1 and next(iter(ps)) in nc:
+                continue
+            return "callee-down"
+        ln = procs.get(pd)
+        if not ln or not img.masked_equal(pd, rd, ln):
+            return "callee-down"
+    return None
+
+
+@contextlib.contextmanager
+def amb_unpinned(tab_va, tab_name, t):
+    """T13.2: tab_va/tab_name without body t's names (in memory), restored on exit."""
+    gone = set(tab_va.get(t, ()))
+    for n in gone:
+        tab_name[n].discard(t)
+    tab_va.pop(t, None)
+    try:
+        yield gone
+    finally:
+        if gone:
+            tab_va[t] = set(gone)
+        for n in gone:
+            tab_name[n].add(t)
+
+
+def amb_pairs(S, cls, uof):
+    """Settled (P, t) pairs of one class over the recounted ambiguous rows, deterministic: unit of t, then t, then P."""
+    ps = {(P, t) for P, _r, es in S.A for t in es if S.pred[cls](S, P, t)}
+    return sorted(ps, key=lambda p: (uof(p[1]) or "~", p[1], p[0]))
+
+
+def amb_replant(lines):
+    """pin_rows' own route on the new lines: appended to a copy of the pin file, replanted (apply_replant's form). A
+    line whose row fails, or whose VA carries an existing row whose result moves, is dropped; repeated to a fixed
+    point. -> (kept lines, {line: why}); Refuse when an existing row moves at a VA with no new line."""
+    import pin_rows
+    try:
+        st = pin_rows.state()
+        if SYMS_PIN.resolve() != pin_rows.PIN.resolve():
+            st = st.replant(SYMS_PIN)
+    except pin_rows.Refuse as e:
+        raise Refuse(f"pin_rows: {e}")
+    base = SYMS_PIN.read_bytes().decode("utf-8")
+    base += "" if not base or base.endswith("\n") else "\n"
+    nb = len(base.split("\n")) - 1
+    drop = {}
+    while True:
+        keep = [ln for ln in lines if ln not in drop]
+        if not keep:
+            return [], drop
+        CORR_TMP.mkdir(parents=True, exist_ok=True)
+        p = CORR_TMP / "ambiguous.txt"
+        p.write_bytes((base + "".join(ln + "\n" for ln in keep)).encode("utf-8"))
+        try:
+            s = st.replant(p)
+        except pin_rows.Refuse as e:
+            raise Refuse(f"pin_rows: {e}")
+        finally:
+            p.unlink()
+            try:
+                CORR_TMP.rmdir()
+            except OSError:
+                pass
+        by = {r["line"]: r for r in s.rows}
+        moved = {r["va"] for r in st.rows if r["line"] not in by or r["fails"] != by[r["line"]]["fails"]}
+        bad = {}
+        for i, ln in enumerate(keep, nb + 1):
+            r = by.get(i)
+            if r is None or r.get("va") != int(ln.split()[0], 16):
+                raise Refuse(f"--ambiguous: replanted line {i} is not {ln.split()[0]}")
+            if r["fails"]:
+                bad[ln] = ";".join(r["fails"])
+            elif r["va"] in moved:
+                bad[ln] = "moves-existing-row"
+        if not bad:
+            if moved - {int(ln.split()[0], 16) for ln in keep}:
+                raise Refuse(f"--ambiguous: {len(moved)} existing pin row(s) change result")
+            return keep, drop
+        drop.update(bad)
+
+
+def run_ambiguous(img, pubs, procs, cls, cap, apply):
+    """5.3 T3 --ambiguous CLS [--max N] [--apply]: candidate bodies from pool_buckets' predicate, the writer's chain
+    (amb_verdict), then pin_rows' route (amb_replant). Writes AMB_OUT/ambiguous_<cls>.txt; --apply appends the lines to
+    the pin file. --max N: the first N bodies in order."""
+    S, tab_va, tab_name, pub_vas, uof = amb_state(img, pubs, procs)
+    pairs = amb_pairs(S, cls, uof)
+    pset = set(pairs)
+    rows = [P for P, _r, es in S.A if any((P, t) in pset for t in es)]
+    byt = defaultdict(set)
+    for P, t in pairs:
+        byt[t].add(P)
+    why, pins = Counter(), []
+    for P, t in pairs:
+        if cls != "fold-k1" and len(byt[t]) > 1:  # two protos would name one body: D119 one name
+            why["body-two-protos"] += 1
+            continue
+        r, es = amb_verdict(S, procs, tab_va, tab_name, pub_vas, cls, P, t)
+        if r:
+            why[r] += 1
+            continue
+        pins += es
+    bvas = list(dict.fromkeys(e["va"] for e in pins))  # bodies in order
+    if cap is not None:
+        bvas = bvas[:cap]
+        pins = [e for e in pins if e["va"] in set(bvas)]
+    nb = len(bvas)
+    seen, lines = set(), []
+    for e in pins:
+        ln = pin_line(e)
+        if ln not in seen:
+            seen.add(ln)
+            lines.append(ln)
+    kept, drop = amb_replant(lines) if lines else ([], {})
+    AMB_OUT.mkdir(parents=True, exist_ok=True)
+    out = AMB_OUT / f"ambiguous_{cls}.txt"
+    out.write_bytes("".join(ln + "\n" for ln in kept).encode("utf-8"))
+    print(f"name_sites --ambiguous {cls}{f' --max {cap}' if cap is not None else ''}: rows {len(rows)}, settled pairs "
+          f"{len(pairs)}, bodies {len(byt)}; writer refused " + (", ".join(f"{k} {v}" for k, v in sorted(why.items()))
+                                                                 or "0"))
+    print(f"  candidate lines {len(lines)} (bodies {nb}); pin_rows agree {len(kept)}, disagree {len(drop)}"
+          + (" (" + ", ".join(f"{k} {v}" for k, v in sorted(Counter(w for w in drop.values()).items())) + ")"
+             if drop else ""))
+    print(f"  wrote {len(kept)} line(s) to {out.relative_to(REPO).as_posix()}")
+    if cls == "bracket":  # T13.2: kept bodies with masked-identical proto rows of the same module
+        kva = {int(ln.split()[0], 16) for ln in kept}
+        bp = list(dict.fromkeys((int(e["va"], 16), int(e["protoVA"], 16)) for e in pins if int(e["va"], 16) in kva))
+        sib = amb_siblings(S, procs, bp)
+        so = AMB_OUT / "ambiguous_bracket_siblings.txt"
+        so.write_bytes("".join(f"0x{t:08X} {sorted(S.pubs.get(P, ('?',)))[0]} siblings: "
+                               + " ".join(f"0x{q:08X} {n}" for q, n in sib[t]) + "\n"
+                               for t, P in bp if t in sib).encode("utf-8"))
+        print(f"  siblings flagged {len(sib)} of {len(bp)} kept bodies; wrote {so.relative_to(REPO).as_posix()}")
+    if apply and kept:
+        old = SYMS_PIN.read_bytes().decode("utf-8")
+        sep = "" if not old or old.endswith("\n") else "\n"
+        hdr = (f"# 5.3 T3 name_sites --ambiguous {cls}: {len(kept)} lines; pin_rows replant kept (D128-D130)"
+               if cls in AMB_T3 else  # T13.2.c3: the class in the header, the tag on each line
+               f"# 5.3 T13.2 name_sites --ambiguous {cls}: {len(kept)} lines; pin_rows replant kept")
+        SYMS_PIN.write_bytes((old + sep + hdr + "\n" + "".join(ln + "\n" for ln in kept)).encode("utf-8"))
+        print(f"  applied {len(kept)} line(s) to {SYMS_PIN}")
+    return 0
+
+
+def amb_siblings(S, procs, bodies):
+    """T13.2: {t: [(protoVA, name)]} for each kept body (t, P): the other proto_map rows sharing a module with P whose
+    masked bytes (mask_proc + proto .reloc sites, as proto_map) equal P's."""
+    import pool_buckets
+    fx = pool_buckets.candidates.load_jsonl(pool_buckets.candidates.need(pool_buckets.candidates.FUNCS))
+    img, prs = S.img, sorted(S.img.prelocs)
+    by = defaultdict(list)  # (module, length) -> [row]
+    for r in fx:
+        for m in r.get("modules") or ():
+            by[(m, r["length"])].append(r)
+
+    def key(va, n):
+        b = img.pbytes(va, n)
+        if b is None or n <= 0:
+            return None
+        ms = {o for o, _w, _k in proto_map.mask_proc(b, va, img.plo, img.phi)[0]}
+        ms |= {x - va for x in prs[bisect.bisect_left(prs, va):bisect.bisect_left(prs, va + n)]}
+        b = bytearray(b)
+        for o in ms:
+            b[o:o + 4] = b"\0" * len(b[o:o + 4])
+        return bytes(b)
+
+    out, memo = {}, {}
+    for t, P in bodies:
+        rp = next((r for r in fx if int(r["protoVA"], 16) == P), None)
+        if rp is None:
+            continue
+        kp = key(P, rp["length"])
+        sib = set()
+        for m in rp.get("modules") or ():
+            for r in by[(m, rp["length"])]:
+                q = int(r["protoVA"], 16)
+                if q != P:
+                    if q not in memo:
+                        memo[q] = key(q, r["length"])
+                    if kp is not None and memo[q] == kp:
+                        sib.add((q, sorted(r["names"])[0] if r.get("names") else "?"))
+        if sib:
+            out[t] = sorted(sib)
+    return out
+
+
+def run_amb_recheck(img, pubs, procs):
+    """T13.2 --recheck bracket: each body of the '# 5.3 T3 name_sites --ambiguous bracket' block of the pin file
+    re-run through amb_verdict with its own lines removed; prints the newly refused bodies; exit 0."""
+    S, tab_va, tab_name, pub_vas, _uof = amb_state(img, pubs, procs)
+    blk, on = defaultdict(set), False
+    for ln in SYMS_PIN.read_text(encoding="utf-8").splitlines():
+        if ln.startswith("#"):
+            on = ln.startswith("# 5.3 T3 name_sites --ambiguous bracket")
+            continue
+        if on and ln.strip():
+            f = ln.split()
+            blk[int(f[0], 16)].add(" ".join(f[3:-2]))
+    if not blk:
+        raise Refuse("--recheck bracket: no '# 5.3 T3 name_sites --ambiguous bracket' block in the pin file")
+    bad = []
+    for t in sorted(blk):
+        ps = [P for P, _r, es in S.A if t in es and blk[t] <= S.pubs.get(P, set())]
+        if len(ps) != 1:
+            bad.append((t, sorted(blk[t])[0], f"rows-{len(ps)}"))
+            continue
+        with amb_unpinned(tab_va, tab_name, t):
+            r, _es = amb_verdict(S, procs, tab_va, tab_name, pub_vas, "bracket", ps[0], t)
+        if r:
+            bad.append((t, sorted(blk[t])[0], r))
+    for t, n, r in bad:
+        print(f"  0x{t:08X} {n} {r}")
+    print(f"name_sites --recheck bracket: bodies {len(blk)} (lines {sum(map(len, blk.values()))}); newly refused "
+          f"{len(bad)} (" + (", ".join(f"{k} {v}" for k, v in sorted(Counter(r for *_x, r in bad).items())) or "0")
+          + ")")
+    return 0
+
+
+def run_amb_control(img, pubs, procs, ctl):
+    """5.3 T3 controls over the writer's chain (amb_verdict; pin_rows only for the positive): bracket-positive (the
+    first bracket pair passing the chain, its lines kept by pin_rows), bracket-planted (a row body outside its bracket,
+    inside its unit), bracket-ambiguous (a row with two bodies inside its bracket), fold-alias-planted (a fold-alias row
+    at a sibling body its callers do not name; none: a body not among its hits), fold-k1-planted (a fold-k1 row at a
+    hit other than its named body). Planted: exit 0 when refused ("failed as expected"), else DID NOT FAIL exit 1.
+    T13.2.c3 k1-/D115-/D113-/caller-xref-planted: the class's first settled pair at a wrong body (one the rest of the
+    chain passes when there is one); exit 0 only when refused class-<cls>."""
+    S, tab_va, tab_name, pub_vas, uof = amb_state(img, pubs, procs)
+    if ctl == "bracket-own-dtor":  # T13.2: ??_GPropellerMain at 0x000A3EC9 (its dtor call is not ??1PropellerMain)
+        t = 0x000A3EC9
+        P = next((p for p in sorted(S.pubs) if any(n.startswith("??_GPropellerMain@@") for n in S.pubs[p])), None)
+        if P is None:
+            print(f"name_sites --control {ctl}: no ??_GPropellerMain public -> FAIL")
+            return 1
+        with amb_unpinned(tab_va, tab_name, t):
+            r, _es = amb_verdict(S, procs, tab_va, tab_name, pub_vas, "bracket", P, t)
+        print(f"name_sites --control {ctl}: 0x{P:08X} {sorted(S.pubs[P])[0][:60]} -> 0x{t:08X} (pin lines removed): "
+              + (f"refused {r}: failed as expected" if r else "DID NOT FAIL"))
+        return 0 if r else 1
+    ent = sorted({t for _P, _r, es in S.A for t in es})
+    plant = None
+    free = lambda P, x: not tab_va.get(x) and not any(tab_name[n] for n in S.pubs.get(P, ()))  # noqa: E731
+    # plants: P's publics not yet in the table and an unnamed plant body, so only the targeted check refuses
+    if ctl == "bracket-positive":
+        for P, t in amb_pairs(S, "bracket", uof):
+            r, es = amb_verdict(S, procs, tab_va, tab_name, pub_vas, "bracket", P, t)
+            if r is None:
+                lines = [pin_line(e) for e in es]
+                kept, drop = amb_replant(lines)
+                ok = len(kept) == len(lines)
+                print(f"name_sites --control bracket-positive: 0x{P:08X} -> 0x{t:08X} {len(lines)} line(s); pin_rows "
+                      f"kept {len(kept)}{'' if ok else ' ' + str(sorted(set(drop.values())))} -> "
+                      f"{'PASS' if ok else 'FAIL'}")
+                return 0 if ok else 1
+        print("name_sites --control bracket-positive: no bracket pair passes the chain -> FAIL")
+        return 1
+    if ctl in ("bracket-planted", "bracket-ambiguous"):
+        cls = "bracket"
+        for P in sorted(S.brk):
+            b = S.brk[P]
+            inw = sorted(x for x in S.eset.get(P, ()) if b[0] <= x < b[1] and b[2] <= x < b[3])
+            if ctl == "bracket-planted" and len(inw) == 1 and S.pred[cls](S, P, inw[0]):
+                t2 = next((x for x in sorted(S.eset[P]) if not b[0] <= x < b[1] and b[2] <= x < b[3]
+                           and free(P, x)), None)
+                if t2 is not None:
+                    plant = (P, t2, f"body outside the bracket 0x{b[0]:08X}-0x{b[1]:08X}, inside the unit")
+                    break
+            if ctl == "bracket-ambiguous" and len(inw) >= 2 and free(P, inw[0]):
+                plant = (P, inw[0], f"{len(inw)} bodies inside the bracket 0x{b[0]:08X}-0x{b[1]:08X}")
+                break
+    elif ctl == "fold-alias-planted":
+        cls = "fold-alias"
+        for P, t in amb_pairs(S, cls, uof):
+            t2 = next((x for x in sorted(S.eset[P]) if x != t and free(P, x)), None)
+            if t2 is not None:
+                plant = (P, t2, f"sibling body of 0x{t:08X} its callers do not name")
+                break
+        if plant is None:
+            for P, t in amb_pairs(S, cls, uof):
+                t2 = next((x for x in ent if x not in S.rowt[P] and free(P, x)), None)
+                if t2 is not None:
+                    plant = (P, t2, f"body not among the row's hits (alias body 0x{t:08X})")
+                    break
+    elif ctl in AMB_NEW_CTL:  # T13.2.c3: the class's first settled pair fed a wrong body; only class-<cls> refuses
+        cls = ctl[:-len("-planted")]
+        with_rest = None  # prefer a wrong body the rest of the chain passes (class step skipped), else any free one
+        for P, t in amb_pairs(S, cls, uof):
+            pool = [x for x in sorted(S.rowt[P] | S.eset[P]) if x != t] + [x for x in ent if x not in S.rowt[P]]
+            fr = [x for x in pool if free(P, x)]
+            if not fr:
+                continue
+            sv = S.pred[cls]
+            S.pred[cls] = lambda *_a: True
+            try:
+                with_rest = next((x for x in fr[:64] if amb_verdict(S, procs, tab_va, tab_name, pub_vas, cls, P, x)[0]
+                                  is None), None)
+            finally:
+                S.pred[cls] = sv
+            t2 = with_rest if with_rest is not None else fr[0]
+            plant = (P, t2, f"wrong body for settled 0x{t:08X}"
+                     + ("; rest of the chain passes it" if with_rest is not None else "; rest of the chain refuses it"))
+            break
+        if plant is not None:
+            P, t2, what = plant
+            r, _es = amb_verdict(S, procs, tab_va, tab_name, pub_vas, cls, P, t2)
+            ok = r == f"class-{cls}"
+            print(f"name_sites --control {ctl}: 0x{P:08X} {sorted(S.pubs.get(P, ('?',)))[0][:60]} -> 0x{t2:08X} "
+                  f"({what}): " + (f"refused {r}: failed as expected" if ok else f"DID NOT FAIL (verdict {r or 'pass'})"))
+            return 0 if ok else 1
+    else:
+        cls = "fold-k1"
+        for P, t in amb_pairs(S, cls, uof):
+            if not tab_va.get(t):
+                continue
+            sp = sorted(S.pubs.get(P, ()))  # a hit whose callee bytes pass: only the class check refuses it
+            t2 = next((x for x in sorted(S.rowt[P]) if x != t and free(P, x) and sp
+                       and check(S.img, procs, S.pubs, tab_va, pub_vas, x, sp[0], "func", P)[0]), None)
+            if t2 is not None:
+                plant = (P, t2, f"hit other than the named body 0x{t:08X}")
+                break
+    if plant is None:
+        print(f"name_sites --control {ctl}: no plant found -> FAIL")
+        return 1
+    P, t2, what = plant
+    r, _es = amb_verdict(S, procs, tab_va, tab_name, pub_vas, cls, P, t2)
+    print(f"name_sites --control {ctl}: 0x{P:08X} {sorted(S.pubs.get(P, ()))[0][:60]} -> 0x{t2:08X} ({what}): "
+          + (f"refused {r}: failed as expected" if r else "DID NOT FAIL"))
+    return 0 if r else 1
+
+
 def safe_line(ln):
     """D46: a pin line with its name field masked (safe())."""
     if ln is None:
@@ -2151,7 +2637,17 @@ def main(argv):
     ap.add_argument("--rows", default=str(CAND), help="candidates jsonl (default derived/candidates/candidates.jsonl)")
     ap.add_argument("--control", choices=("positive", "planted", "planted-data", "near-positive", "near-planted",
                                                  "near-callee-planted", "planted-corr", "prov-drop",
-                                                 "prov-false-unblocked"))
+                                                 "prov-false-unblocked", "bracket-positive", "bracket-planted",
+                                                 "bracket-ambiguous", "fold-alias-planted", "fold-k1-planted",
+                                                 "bracket-own-dtor") + AMB_NEW_CTL)
+    ap.add_argument("--ambiguous", choices=AMB_CLS,
+                    help="5.3 T3: dry writer over the ambiguous rows of one ruled class (D128-D130; T13.2.c3: k1, "
+                         "D115, D113, caller-xref); lines to "
+                         ".run/<phase>/t3/ambiguous_<class>.txt; --apply appends them to the pin file")
+    ap.add_argument("--max", type=int, metavar="N", help="with --ambiguous: the first N bodies (unit, then VA)")
+    ap.add_argument("--recheck", choices=("bracket",),
+                    help="T13.2: re-run the pin file's 5.3 T3 bracket block through the writer's chain, each body's own "
+                         "lines removed; prints the newly refused bodies; exit 0")
     ap.add_argument("--near", action="store_true",
                     help="3.4 T2: name proto_map near-identical rows (near_check + gates); --apply appends near_pins.txt")
     ap.add_argument("--doc", action="store_true", help="also write docs/matching/naming_residue.md (all rows)")
@@ -2177,6 +2673,26 @@ def main(argv):
         print("name_sites: REFUSED --min-rows takes N >= 1")
         return 2
     MIN_ROWS = a.min_rows
+    amb_ctl = a.control in ("bracket-positive", "bracket-planted", "bracket-ambiguous", "fold-alias-planted",
+                            "fold-k1-planted", "bracket-own-dtor") + AMB_NEW_CTL
+    if a.max is not None and (not a.ambiguous or a.max < 1) or (a.ambiguous or amb_ctl) and (
+            a.unit or a.doc or a.near or a.check_cut or a.promote_data or a.promote_corr or a.bss or a.provisional
+            or a.check or a.ambiguous and a.control or amb_ctl and a.apply):
+        print("name_sites: REFUSED --ambiguous takes only --max N (N >= 1) and --apply; --control bracket-*/fold-* "
+              "run alone")
+        return 2
+    if a.recheck and (len([x for x in argv if x.startswith("--")]) != 1):
+        print("name_sites: REFUSED --recheck bracket runs alone")
+        return 2
+    if a.ambiguous or amb_ctl or a.recheck:
+        try:
+            img, pubs, procs = load()
+            return (run_ambiguous(img, pubs, procs, a.ambiguous, a.max, a.apply) if a.ambiguous
+                    else run_amb_recheck(img, pubs, procs) if a.recheck
+                    else run_amb_control(img, pubs, procs, a.control))
+        except Refuse as e:
+            print(f"name_sites: REFUSED {e}")
+            return 2
     prov_ctl = a.control in ("prov-drop", "prov-false-unblocked")
     if a.check and not a.provisional or (a.provisional or prov_ctl) and (
             a.apply or a.unit or a.doc or a.near or a.check_cut or a.promote_data or a.promote_corr or a.bss

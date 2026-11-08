@@ -276,45 +276,49 @@ void Matrix::Multiply(float s, Matrix& result) const
 // PROTOTYPE: PREVIEW 0x004C8802 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 95.31, bytes mismatch; x87 sum term order: cl reorders the three products by an internal key per row (term order, operand order, ref/pointer row locals tried)
+// best: match_one objdiff 96.50, bytes mismatch +0x2C (5.2 T14 re-measure; T12.c9 at-stop 20); x87 product/operand order is a cl key: source term/operand order and v-local scope are invariant; it moves with symbol roots (m pointer 95.09, this-row ref 92.59, T12.c9) and with the result-row ref declared before the third sum (96.50; after it 95.31, 5.2 T14 re-measure); rows independent, row 0 never matched
 void Matrix::AffineMultiply(const Matrix& m, Matrix& result) const
 {
-    // !FAKE: c2 x87 scheduling; dummy locals; the three sums stay on the x87 stack until the x, y, z stores (match_one 72.23 -> 95.31)
+    // !FAKE: c2 x87 scheduling; dummy locals; the three sums stay on the x87 stack until the x, y, z stores (match_one 72.23 -> 95.31, 5.2 T14 re-measure); !FAKE: per-row result ref d (95.31 -> 96.50, 5.2 T14 re-measure)
     {
+        Vector4& d = result.row[0];
         float v1 = row[0].x * m.row[0].x + row[0].y * m.row[1].x + row[0].z * m.row[2].x;
-        float v2 = zb.x * up.x + zb.y * up.y + zb.z * up.z;
+        float v2 = row[0].x * m.row[0].y + row[0].y * m.row[1].y + row[0].z * m.row[2].y;
         float v3 = row[0].x * m.row[0].z + row[0].y * m.row[1].z + row[0].z * m.row[2].z;
-        result.row[0].x = v1;
-        result.row[0].y = v2;
-        result.row[0].z = v3;
-        result.row[0].w = 0.0f;
+        d.x = v1;
+        d.y = v2;
+        d.z = v3;
+        d.w = 0.0f;
     }
     {
+        Vector4& d = result.row[1];
         float v1 = row[1].x * m.row[0].x + row[1].y * m.row[1].x + row[1].z * m.row[2].x;
         float v2 = row[1].x * m.row[0].y + row[1].y * m.row[1].y + row[1].z * m.row[2].y;
         float v3 = row[1].x * m.row[0].z + row[1].y * m.row[1].z + row[1].z * m.row[2].z;
-        result.row[1].x = v1;
-        result.row[1].y = v2;
-        result.row[1].z = v3;
-        result.row[1].w = 0.0f;
+        d.x = v1;
+        d.y = v2;
+        d.z = v3;
+        d.w = 0.0f;
     }
     {
+        Vector4& d = result.row[2];
         float v1 = row[2].x * m.row[0].x + row[2].y * m.row[1].x + row[2].z * m.row[2].x;
         float v2 = row[2].x * m.row[0].y + row[2].y * m.row[1].y + row[2].z * m.row[2].y;
         float v3 = row[2].x * m.row[0].z + row[2].y * m.row[1].z + row[2].z * m.row[2].z;
-        result.row[2].x = v1;
-        result.row[2].y = v2;
-        result.row[2].z = v3;
-        result.row[2].w = 0.0f;
+        d.x = v1;
+        d.y = v2;
+        d.z = v3;
+        d.w = 0.0f;
     }
     {
+        Vector4& d = result.row[3];
         float v1 = row[3].x * m.row[0].x + row[3].y * m.row[1].x + row[3].z * m.row[2].x + m.row[3].x;
         float v2 = row[3].x * m.row[0].y + row[3].y * m.row[1].y + row[3].z * m.row[2].y + m.row[3].y;
         float v3 = row[3].x * m.row[0].z + row[3].y * m.row[1].z + row[3].z * m.row[2].z + m.row[3].z;
-        result.row[3].x = v1;
-        result.row[3].y = v2;
-        result.row[3].z = v3;
-        result.row[3].w = 1.0f;
+        d.x = v1;
+        d.y = v2;
+        d.z = v3;
+        d.w = 1.0f;
     }
 }
 #endif
@@ -482,29 +486,31 @@ void Matrix::TransformationAboutPivot(float xr, float yr, float zr, const Vector
     Multiply(tmp, *this);
 }
 
+#ifdef NON_MATCHING
+// !FAKE: inliner; inlined Vector3 operators for the View draft (up - zb * v2 holds the x product on the x87 stack as retail)
+inline Vector3 operator-(const Vector3& a, const Vector3& b) { return Vector3(a.x - b.x, a.y - b.y, a.z - b.z); }
+inline Vector3 operator*(const Vector3& v, float f) { return Vector3(v.x * f, v.y * f, v.z * f); }
+#endif
+
 // FUNCTION: USA 0x000DDC1E
 // PROTOTYPE: PREVIEW 0x004C8FD9 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 95.24, bytes mismatch; dot zb.up: retail sums z, x, y, cl here z, y, x (term order, operand order tried); stand-in keeps an extra v1.x store, a separate temporary costs a 0xC frame slot
+// best: match_one objdiff 98.09, bytes mismatch +0xDA (T12.c26): every x87 op matches; row[1]/row[2] stores: retail mov [esi+0x14] before fldz/fstp w, ours fldz first (Set, member stores, aliases tried; schedule tie)
 void Matrix::View(const Vector3& from, const Vector3& to, const Vector3& up)
 {
-    // !FAKE: inliner; one Vector3 stand-in for the inlined to - from and zb * v2 temporaries (retail keeps both in one slot)
-    Vector3 v1(to.x - from.x, to.y - from.y, to.z - from.z);
-    Vector3 zb = Normalize(v1);
-    float v2 = zb.x * up.x + zb.y * up.y + zb.z * up.z;
-    v1.x = zb.x * v2;
-    v1.y = zb.y * v2;
-    v1.z = zb.z * v2;
-    Vector3 yb;
-    yb.x = up.x - v1.x;
-    yb.y = up.y - v1.y;
-    yb.z = up.z - v1.z;
+    // !FAKE: hand to - from in the Normalize argument (operator- stays out of line at /O1); v4 partial-sum stand-in sets the dot order z, x, y (match_one 94.08 -> 96.02)
+    Vector3 zb = Normalize(Vector3(to.x - from.x, to.y - from.y, to.z - from.z));
+    // !FAKE: x87 operand order; reference stand-ins zz, zy (C0354); zb.z/zb.y loaded first in zb * v2 and the cross products as retail (match_one 97.14 -> 98.09)
+    const float& zz = zb.z;
+    const float& zy = zb.y;
+    float v4 = zz * up.z + zb.x * up.x;
+    float v2 = v4 + zy * up.y;
+    Vector3 yb = up - zb * v2;
     yb.Normalize();
-    Vector3 xb;
-    xb.x = yb.y * zb.z - yb.z * zb.y;
-    xb.y = yb.z * zb.x - yb.x * zb.z;
-    xb.z = yb.x * zb.y - yb.y * zb.x;
+    // !FAKE: x87 term order; v5 stand-in for the first cross product (match_one 96.02 -> 97.14)
+    float v5 = yb.y * zz;
+    Vector3 xb(v5 - yb.z * zb.y, yb.z * zb.x - yb.x * zb.z, yb.x * zb.y - yb.y * zb.x);
     row[0].Set(xb.x, yb.x, zb.x, 0.0f);
     row[1].Set(xb.y, yb.y, zb.y, 0.0f);
     row[2].Set(xb.z, yb.z, zb.z, 0.0f);
@@ -518,7 +524,7 @@ void Matrix::View(const Vector3& from, const Vector3& to, const Vector3& up)
 // PROTOTYPE: PREVIEW 0x004C9131 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 84.65, bytes mismatch; cross product: retail keeps zb.x on the x87 stack and reads yb.z from memory, cl here swaps the two (operand order, locals, Vector4::Set forms tried)
+// best: match_one objdiff 89.72, bytes mismatch +0x72 (T12.c9 at-stop 20): row[1].z = yb.z first makes eax carry yb.z as retail (zb.x stays on x87), but its store lands before the cross product, retail stores it after row[0]; operand-form first half, Set rows, natural row order, zb ref, v4 local tried; T12.c24 run 20 (at-stop): Vector4::Set(Vector3) rows 76.93; ~350 free probes of row-store order and stand-in types/forms none above the draft
 void Matrix::Orient(const Vector3& dir, const Vector3& up)
 {
     Vector3 zb = Normalize(dir);
@@ -533,13 +539,14 @@ void Matrix::Orient(const Vector3& dir, const Vector3& up)
     yb.y = up.y - v1.y;
     yb.z = up.z - v1.z;
     yb.Normalize();
+    // !FAKE: c2 x87 register pick; row[1].z copy first so yb.z, not zb.x, goes through eax (match_one 84.65 -> 89.72)
+    row[1].z = yb.z;
     float v2 = yb.y * zb.z - yb.z * zb.y;
     float v3 = yb.z * zb.x - yb.x * zb.z;
     row[0].x = v2;
     row[0].y = v3;
     row[0].z = yb.x * zb.y - yb.y * zb.x;
     row[0].w = 0.0f;
-    row[1].z = yb.z;
     row[1].x = yb.x;
     row[1].y = yb.y;
     row[1].w = 0.0f;
