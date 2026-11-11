@@ -105,6 +105,10 @@ class ExtraLifeOfMysteryMain : public ExtraLifeMain { // NAME: proto-pdb:default
 public:
     ExtraLifeOfMysteryMain(SwampSceneNode* node);
     virtual void HitBy(CollisionType type, SwampSceneNode* critterHitBy, const Ptr<CollisionResultObject>& cr);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -124,6 +128,10 @@ public:
     virtual void Activate();
     virtual void TimerEvent(unsigned int);
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -161,6 +169,10 @@ class switch_wheelOfMysteryMain : public BasicWallSwitchMain { // NAME: proto-pd
 public:
     switch_wheelOfMysteryMain(SwampSceneNode* node);
     virtual bool TestActivate() const;
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -175,6 +187,10 @@ DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 class WheelOfMysteryDoorsMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
     WheelOfMysteryDoorsMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -359,6 +375,10 @@ public:
     virtual ~FrogOfMysteryMain();
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void InvalidateScript();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -374,6 +394,7 @@ public:
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 20.0, bytes match (masked 0); wall: cut extent: the delink cut runs 72 B to the next external symbol, over the unnamed 57 B function at 0x0003B65E (LAB_0003b65e)
+// re-screened 5.4 T12.1 (cut retail-2953b782): extent still 72 vs row 15; lift = a pin at 0x0003B65E + re-cut
 void WheelOfMysteryMain::TimerEvent(unsigned int)
 {
     AnimCam::Return(0.0f);
@@ -505,11 +526,12 @@ void FrogOfMysteryMain::InvalidateScript()
     PitFrogMain::InvalidateScript();
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1 = the vptr store)
 // FUNCTION: USA 0x0003C202
 // PROTOTYPE: PREVIEW 0x0042A94B near-identical
 // NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = vptr store; needs pin ??_7FrogOfMysteryMain@@6B@ at
+// 0x001CEC78); source is final; 5.4 T15.c3
 FrogOfMysteryMain::FrogOfMysteryMain(SwampSceneNode* node) : PitFrogMain(node)
 {
     Critter* wheel = pManager->Find("WheelOfMystery");
@@ -526,4 +548,46 @@ SwampScript* FrogOfMysteryMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\WheelOfMystery.cpp", 338) FrogOfMysteryMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0003C14E
+// NAME: proto-pdb:default.pdb
+WheelOfMysteryMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WheelOfMysteryMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0003C18A
+// NAME: proto-pdb:default.pdb
+WheelOfMysteryDoorsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WheelOfMysteryDoorsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0003C1C6
+// NAME: proto-pdb:default.pdb
+ExtraLifeOfMysteryMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ExtraLifeOfMysteryMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0003C282
+// NAME: proto-pdb:default.pdb
+switch_wheelOfMysteryMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("switch_wheelOfMysteryMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0003C2E8
+// NAME: proto-pdb:default.pdb
+FrogOfMysteryMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FrogOfMysteryMain", creationFunc);
 }

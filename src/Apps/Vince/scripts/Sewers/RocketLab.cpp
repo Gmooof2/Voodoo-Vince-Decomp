@@ -170,6 +170,10 @@ class RocketLabRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     RocketLabRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -202,6 +206,10 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Activate();
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -213,12 +221,18 @@ public:
         TIMER_ACTIVATE = 0,
         TIMER_RETURN = 1
     };
+    LiftMain(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int timerId);
     virtual void HitBy(CollisionType type, SwampSceneNode* critterHitBy, const Ptr<CollisionResultObject>& cr);
     virtual void FrameTick();
     virtual void SetState(int state);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     bool IsVinceInTheWay();
+    static SwampScript* creationFunc(SwampSceneNode* node);
 
 public:
     SwampString _liftSound;            // 0x110
@@ -315,6 +329,10 @@ class GasCanisterMain : public HeavyObjectMain { // NAME: proto-pdb:default.pdb
 public:
     GasCanisterMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -364,8 +382,15 @@ public:
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_DODAMAGE = 0
     };
+    Airplane_RocketLabMain(SwampSceneNode* node);
     virtual void FrameTick();
     virtual void TimerEvent(unsigned int timerId);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(Airplane_RocketLabMain, 0xF0);
 
@@ -679,7 +704,8 @@ bool LiftMain::IsVinceInTheWay()
 #endif
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 3 = base ctor call, vptr store, literal)
+// best: match_one objdiff 100.0, bytes match (masked 0), 5.5 T8.c6; wall: gate_check `our rocketlab.obj: external
+// ?SetState@CritterMain@@UAEXH@Z does not resolve by name`: the emitted ??_7GasCanisterMain needs every slot named (C0203)
 // FUNCTION: USA 0x0009DCC3
 // PROTOTYPE: PREVIEW 0x00488DBE near-identical
 // NAME: proto-pdb:default.pdb
@@ -690,6 +716,14 @@ GasCanisterMain::GasCanisterMain(SwampSceneNode* node)
     _animCarry = g_swamp->GetAnimationManager()->Load("gasCanister_walk");
 }
 #endif
+
+// FUNCTION: USA 0x0009E5BA
+// NAME: proto-pdb:default.pdb
+SwampScript* Airplane_RocketLabMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("RocketLab\\RocketLab.cpp", 644) Airplane_RocketLabMain(node);
+}
 
 // FUNCTION: USA 0x0009E5FA
 // PROTOTYPE: PREVIEW 0x004896D5 identical
@@ -741,6 +775,14 @@ void FlamePipesMain::Message(SwampScript* source, int message, void* data)
         GetCritter()->StartAnimation(_multiAnim.FetchAnim(), true, false);
 }
 
+// FUNCTION: USA 0x0009EC1A
+// NAME: proto-pdb:default.pdb
+SwampScript* LiftMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\rocketlab\\RocketLab.h", 32) LiftMain(node);
+}
+
 // FUNCTION: USA 0x0009ECAD
 // NAME: proto-pdb:default.pdb
 SwampScript* RocketLabRegionMain::creationFunc(SwampSceneNode* node)
@@ -755,6 +797,48 @@ SwampScript* ShortcutHatchMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("RocketLab\\RocketLab.cpp", 41) ShortcutHatchMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0009ED28
+// NAME: proto-pdb:default.pdb
+RocketLabRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RocketLabRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0009ED64
+// NAME: proto-pdb:default.pdb
+LiftMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LiftMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0009EDDC
+// NAME: proto-pdb:default.pdb
+GasCanisterMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GasCanisterMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0009EE90
+// NAME: proto-pdb:default.pdb
+ShortcutHatchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ShortcutHatchMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0009EF08
+// NAME: proto-pdb:default.pdb
+Airplane_RocketLabMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Airplane_RocketLabMain", creationFunc);
 }
 
 class Level { // NAME: proto-pdb:default.pdb

@@ -344,6 +344,10 @@ DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
 class GingerDeadManMain : public MonsterMain { // NAME: proto-pdb:default.pdb
 private:
     GingerDeadManMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void FrameTick();
@@ -565,4 +569,18 @@ SwampScript* GingerDeadManMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\GingerDM.h", 31) GingerDeadManMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0007B105
+// NAME: proto-pdb:default.pdb
+GingerDeadManMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GingerDeadManMain", creationFunc);
 }

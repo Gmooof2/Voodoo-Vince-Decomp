@@ -1,2 +1,4 @@
 # x86 decoder for tools/proto_map.py (T8, phase 1.2). Install: PY -m pip install --require-hashes -r requirements.txt
 iced-x86==1.21.0 --hash=sha256:04e04a8cc49ca7d89448fb78e3bab4ae364cf1fc888c996540a791c9999077c1
+# va_dis.py disassembler (near lane; pinned 5.5 T16, R5.5-001 S7): win_amd64 wheel only (this project is native Windows)
+capstone==5.0.9 --hash=sha256:732cedbbb56d42e723f14d7af6387f1454194a820b4b96b56d1e53f865ef85d0

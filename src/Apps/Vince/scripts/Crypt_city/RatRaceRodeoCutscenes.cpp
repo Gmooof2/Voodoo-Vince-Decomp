@@ -20,7 +20,17 @@ DECOMP_SIZE_ASSERT(SwampString, 0x1C);
 class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
-struct Vector3;              // NAME: proto-pdb:default.pdb
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+struct Quaternion { // NAME: proto-pdb:default.pdb
+    Vector3 v;                         // 0x00
+    float w;                           // 0x0C
+};
+struct AABox;                // NAME: proto-pdb:default.pdb
+class Matrix;                // NAME: proto-pdb:default.pdb
 class SwampScript;           // NAME: proto-pdb:default.pdb
 class AnimCam;               // NAME: proto-pdb:default.pdb
 class AnimationControl;      // NAME: proto-pdb:default.pdb
@@ -54,33 +64,105 @@ public:
 class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
 };
 
+class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
+
+class ModelManager : public ResourceManager<ModelResource> { // NAME: proto-pdb:default.pdb
+};
+
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
     AnimationManager& GetAnimationManager() const { return *_animationManager; }
+    ModelManager& GetModelManager() const { return *_modelManager; }
 
     char field_0[0x18];                // 0x00
     AnimationManager* _animationManager; // 0x18
-    char field_1C[0x68 - 0x1C];        // 0x1C
+    char field_1C[0x28 - 0x1C];        // 0x1C
+    ModelManager* _modelManager;       // 0x28
+    char field_2C[0x68 - 0x2C];        // 0x2C
 };
 DECOMP_SIZE_ASSERT(Swamp, 0x68);
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
+class Locator { // NAME: proto-pdb:default.pdb
+public:
+    const Vector3& GetLocation() const { return _pos; }
+    const Vector3& GetBasisVector(int i) const { return _basis[i]; }
+
+    Vector3 _pos;                      // 0x00
+    Quaternion _rot;                   // 0x0C
+    Vector3 _basis[3];                 // 0x1C
+    int _zone;                         // 0x40
+    SwampScript* _script;              // 0x44
+};
+DECOMP_SIZE_ASSERT(Locator, 0x48);
+
+class LocatorManager { // NAME: proto-pdb:default.pdb
+public:
+    Locator* Find(const SwampString&) const;
+};
+extern LocatorManager* g_locatorManager; // NAME: proto-pdb:default.pdb
+
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
     SwampScript* GetScript() const;
+    void SetScript(SwampScript*);
     void SetOption(unsigned int, bool, bool);
+    const Quaternion& SetFacing(const Vector3&);
 };
 
-class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
+    virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
+    virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
+};
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+};
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+    virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
+    void SetEdgeGlow(bool b) { _edgeGlow = b; }
+
+    char field_4[0xC5 - 0x4];          // 0x04
+    bool _edgeGlow;                    // 0xC5
+    char field_C6[0x200 - 0xC6];       // 0xC6
 };
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 };
 
+// Retail layout: Vince _whammyReady 0x434 -> 0x448 (+0x14).
 class Vince : public Critter { // NAME: proto-pdb:default.pdb
+public:
+    void SetWhammyReady(bool);
+
+    char field_200[0x448 - 0x200];     // 0x200
+    bool _whammyReady;                // 0x448 (proto 0x434)
 };
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString&);
+    Vince* GetVince() const { return _vinceCache; }
+
+    char field_0[0x28];                // 0x00
+    Vince* _vinceCache;                // 0x28
+};
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -120,6 +202,9 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class CutsceneAnimationScript : public SwampScript { // NAME: proto-pdb:default.pdb
+};
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual ~CritterMain();
@@ -138,11 +223,17 @@ class CutsceneDriver : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual void AnimationFinished(unsigned int);                  // vtable+0x64
     virtual void AnimationTrigger(unsigned int, const SwampString&, float, float, unsigned int); // vtable+0x68
+    static void BeginPlayback();
+    static void MakeEvilVision(GatorNode*);
+protected:
     virtual void Init();                                           // vtable+0x6C
     virtual void Cleanup();                                        // vtable+0x70
+public:
     virtual void SetState(int);                                    // vtable+0x74
 protected:
     AnimCam* NewCamera(const SwampString&);
+    GatorNode* NewNode(unsigned int);
+    CutsceneAnimationScript* NewScript(SwampSceneNode*, unsigned int);
 
     char field_4C[0x54 - 0x4C];        // 0x4C
     int _state;                        // 0x54
@@ -152,7 +243,26 @@ DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 
 class RatRacePreludeCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
+    enum Ids { // NAME: proto-pdb:default.pdb
+        ID_VINCE = 0x1,
+        ID_RAT = 0x2,
+        ID_MRSG = 0x3,
+        ID_HAT = 0x4,
+        ID_KOSMO = 0x5
+    };
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_V_DROPSIN = 0x0,
+        STATE_K_MRSG_ALIVE = 0x1,
+        STATE_G_SCREAMS = 0x2
+    };
     RatRacePreludeCutscene(SwampSceneNode* node);
+protected:
+    virtual void Init();                                           // vtable+0x6C
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);                              // vtable+0x74
@@ -162,13 +272,17 @@ private:
     Critter* _mrsg;                    // 0x80
     GatorNode* _hat;                   // 0x84
     GatorNode* _kosmo;                 // 0x88
-    char field_8C[0x90 - 0x8C];        // 0x8C
+    bool _wasWhammyReady;              // 0x8C
 };
 DECOMP_SIZE_ASSERT(RatRacePreludeCutscene, 0x90);
 
 class RatRaceDeathCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
     RatRaceDeathCutscene(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);                              // vtable+0x74
@@ -180,6 +294,39 @@ private:
     char field_88[0x8C - 0x88];        // 0x88
 };
 DECOMP_SIZE_ASSERT(RatRaceDeathCutscene, 0x8C);
+
+// FUNCTION: USA 0x000688EA
+// PROTOTYPE: PREVIEW 0x00454E4A near-identical
+// NAME: proto-pdb:default.pdb
+void RatRacePreludeCutscene::Init()
+{
+    CutsceneDriver::Init();
+    Locator* l = g_locatorManager->Find("locator_ratraceprelude");
+    _vince = pManager->GetVince();
+    _vince->SetScript(NewScript(_vince, ID_VINCE));
+    _vince->SetEdgeGlow(false);
+    _vince->SetOption(2, false, false);
+    _vince->SetWorldPosition(l->GetLocation());
+    _vince->SetFacing(l->GetBasisVector(2));
+    _wasWhammyReady = _vince->_whammyReady;
+    _vince->SetWhammyReady(false);
+    _rat = pManager->Find("rodeorat");
+    _rat->SetScript(NewScript(_rat, ID_RAT));
+    _rat->SetWorldPosition(l->GetLocation());
+    _rat->SetFacing(l->GetBasisVector(2));
+    _rat->SetOption(2, false, false);
+    _mrsg = pManager->Find("mrsg");
+    _mrsg->SetScript(NewScript(_mrsg, ID_MRSG));
+    _hat = NewNode(ID_HAT);
+    _hat->SetModel(g_swamp->GetModelManager().Load("cowboyHat_base"));
+    _hat->SetWorldPosition(l->GetLocation());
+    _hat->SetFacing(l->GetBasisVector(2));
+    _kosmo = NewNode(ID_KOSMO);
+    _kosmo->SetModel(g_swamp->GetModelManager().Load("kosmoHead_base"));
+    MakeEvilVision(_kosmo);
+    SetState(STATE_V_DROPSIN);
+    BeginPlayback();
+}
 
 // FUNCTION: USA 0x00068C05
 // PROTOTYPE: PREVIEW 0x00455165 identical
@@ -229,6 +376,13 @@ void RatRaceDeathCutscene::SetState(int state)
     _state = state;
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x000693F4
 // PROTOTYPE: PREVIEW 0x00455924 identical
 // NAME: proto-pdb:default.pdb
@@ -238,6 +392,13 @@ SwampScript* RatRacePreludeCutscene::creationFunc(SwampSceneNode* node)
     return new("RatRaceRodeo\\RatRaceRodeoCutscenes.cpp", 19) RatRacePreludeCutscene(node);
 }
 
+// FUNCTION: USA 0x00069445
+// NAME: proto-pdb:default.pdb
+RatRacePreludeCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RatRacePreludeCutscene", creationFunc);
+}
+
 // FUNCTION: USA 0x0006941B
 // PROTOTYPE: PREVIEW 0x0045594B identical
 // NAME: proto-pdb:default.pdb
@@ -245,4 +406,11 @@ SwampScript* RatRaceDeathCutscene::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("RatRaceRodeo\\RatRaceRodeoCutscenes.cpp", 191) RatRaceDeathCutscene(node);
+}
+
+// FUNCTION: USA 0x00069481
+// NAME: proto-pdb:default.pdb
+RatRaceDeathCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RatRaceDeathCutscene", creationFunc);
 }

@@ -130,6 +130,12 @@ public:
 
     bool _didOpenCam;                  // 0x13C
     bool _didCloseCam;                 // 0x13D
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwitchBoatMain, 0x140);
 
@@ -138,6 +144,12 @@ public:
     virtual void LeavingRegion(SwampSceneNode* node);
 
     SwampString _target;               // 0x4C
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(BoatgateRegionMain, 0x68);
 
@@ -200,4 +212,25 @@ void SwitchBoatMain::HitBy(CollisionType type, SwampSceneNode* critterHitBy, con
         if (GetState() == 0)
             Activate();
     }
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0002276A
+// NAME: proto-pdb:default.pdb
+SwitchBoatMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchBoatMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002281E
+// NAME: proto-pdb:default.pdb
+BoatgateRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BoatgateRegionMain", creationFunc);
 }

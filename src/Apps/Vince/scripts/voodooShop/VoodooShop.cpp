@@ -509,3 +509,431 @@ void pin_emit_SavedGamesScreen_dtor(SavedGamesScreen* p)
 {
     p->SavedGamesScreen::~SavedGamesScreen();
 }
+
+class Camera_NewGameMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_NewGameAMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_NewGameBMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_NewGameCMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_NewGameDMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_SavedGameMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_SavedGameAMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_SavedGameBMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_SavedGameCMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_SavedGameDMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_ChaptersMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_OptionsMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_GameABMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_GameBCMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_GameCDMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class Camera_chaptersCloseUpMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~CritterMain();
+    virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
+    virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+    virtual void SetState(int);                                    // vtable+0x6C
+
+    int _state;                        // 0x4C
+    char field_50[0x6C];               // 0x50 (_wanderPatrolCenter .. _chaseRangeOverride; not reached)
+};
+DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
+
+class PictureFrameMain : public CritterMain { // NAME: proto-pdb:default.pdb
+};
+DECOMP_SIZE_ASSERT(PictureFrameMain, 0xBC);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+class PictureFrameAMain : public PictureFrameMain { // NAME: proto-pdb:default.pdb
+public:
+    PictureFrameAMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PictureFrameAMain, 0xBC);
+
+class PictureFrameBMain : public PictureFrameMain { // NAME: proto-pdb:default.pdb
+public:
+    PictureFrameBMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PictureFrameBMain, 0xBC);
+
+class PictureFrameCMain : public PictureFrameMain { // NAME: proto-pdb:default.pdb
+public:
+    PictureFrameCMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PictureFrameCMain, 0xBC);
+
+class PictureFrameDMain : public PictureFrameMain { // NAME: proto-pdb:default.pdb
+public:
+    PictureFrameDMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PictureFrameDMain, 0xBC);
+
+
+class VinceCredits { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+// --- file scope, before the bodies
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0013A5A2
+// NAME: proto-pdb:default.pdb
+Camera_NewGameMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_NewGameMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A5DE
+// NAME: proto-pdb:default.pdb
+Camera_NewGameAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_NewGameAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A61A
+// NAME: proto-pdb:default.pdb
+Camera_NewGameBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_NewGameBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A656
+// NAME: proto-pdb:default.pdb
+Camera_NewGameCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_NewGameCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A692
+// NAME: proto-pdb:default.pdb
+Camera_NewGameDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_NewGameDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A6CE
+// NAME: proto-pdb:default.pdb
+Camera_SavedGameMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_SavedGameMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A70A
+// NAME: proto-pdb:default.pdb
+Camera_SavedGameAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_SavedGameAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A746
+// NAME: proto-pdb:default.pdb
+Camera_SavedGameBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_SavedGameBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A782
+// NAME: proto-pdb:default.pdb
+Camera_SavedGameCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_SavedGameCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A7BE
+// NAME: proto-pdb:default.pdb
+Camera_SavedGameDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_SavedGameDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A7FA
+// NAME: proto-pdb:default.pdb
+Camera_ChaptersMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_ChaptersMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A836
+// NAME: proto-pdb:default.pdb
+Camera_OptionsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_OptionsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A872
+// NAME: proto-pdb:default.pdb
+Camera_GameABMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_GameABMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A8AE
+// NAME: proto-pdb:default.pdb
+Camera_GameBCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_GameBCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A8EA
+// NAME: proto-pdb:default.pdb
+Camera_GameCDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_GameCDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A926
+// NAME: proto-pdb:default.pdb
+Camera_chaptersCloseUpMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_chaptersCloseUpMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A9BD
+// NAME: proto-pdb:default.pdb
+PictureFrameAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PictureFrameAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013A9F9
+// NAME: proto-pdb:default.pdb
+PictureFrameBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PictureFrameBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013AA35
+// NAME: proto-pdb:default.pdb
+PictureFrameCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PictureFrameCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013AA71
+// NAME: proto-pdb:default.pdb
+PictureFrameDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PictureFrameDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0013D40C
+// NAME: proto-pdb:default.pdb
+VinceCredits::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceCredits", creationFunc);
+}
+
+// FUNCTION: USA 0x00138EBC
+// NAME: proto-pdb:default.pdb
+SwampScript* PictureFrameAMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("VoodooShop.cpp", 919) PictureFrameAMain(node);
+}
+
+// FUNCTION: USA 0x00138EE6
+// NAME: proto-pdb:default.pdb
+SwampScript* PictureFrameBMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("VoodooShop.cpp", 927) PictureFrameBMain(node);
+}
+
+// FUNCTION: USA 0x00138F10
+// NAME: proto-pdb:default.pdb
+SwampScript* PictureFrameCMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("VoodooShop.cpp", 935) PictureFrameCMain(node);
+}
+
+// FUNCTION: USA 0x00138F3A
+// NAME: proto-pdb:default.pdb
+SwampScript* PictureFrameDMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("VoodooShop.cpp", 943) PictureFrameDMain(node);
+}

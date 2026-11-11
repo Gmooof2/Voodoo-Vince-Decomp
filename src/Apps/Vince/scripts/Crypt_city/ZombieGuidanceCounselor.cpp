@@ -204,7 +204,14 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 // PDB has two records (0x60, 0x64); retail reads _inRegion at 0x4D: the later 0x64 record (C0150)
 class ZombieGuidanceCounselorRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    ZombieGuidanceCounselorRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(ZombieGuidanceCounselorRegionMain, 0x64);
 
@@ -330,6 +337,10 @@ public:
     ZGCImpMain(SwampSceneNode* node);
     virtual void AnimationFinished();
     virtual void DeathFX();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -340,6 +351,10 @@ DECOMP_SIZE_ASSERT(ZGCImpMain, 0x304);
 class CryptImpMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     CryptImpMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -357,6 +372,10 @@ class GbcmlMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
     GbcmlMain(SwampSceneNode* node);
     virtual void InvalidateScript();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -405,6 +424,10 @@ void pin_emit_ZombieMain_dtor(ZombieMain* p)
 class ZombieHulaGirlMain : public ZombieMain { // NAME: proto-pdb:default.pdb
 public:
     ZombieHulaGirlMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -413,6 +436,10 @@ DECOMP_SIZE_ASSERT(ZombieHulaGirlMain, 0xE8);
 class ZombieBakerMain : public ZombieMain { // NAME: proto-pdb:default.pdb
 public:
     ZombieBakerMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -421,6 +448,10 @@ DECOMP_SIZE_ASSERT(ZombieBakerMain, 0xE8);
 class ZombieClownMain : public ZombieMain { // NAME: proto-pdb:default.pdb
 public:
     ZombieClownMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -429,6 +460,10 @@ DECOMP_SIZE_ASSERT(ZombieClownMain, 0xE8);
 class ZombieBelleMain : public ZombieMain { // NAME: proto-pdb:default.pdb
 public:
     ZombieBelleMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -437,6 +472,10 @@ DECOMP_SIZE_ASSERT(ZombieBelleMain, 0xE8);
 class ZombieFootballMain : public ZombieMain { // NAME: proto-pdb:default.pdb
 public:
     ZombieFootballMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -461,6 +500,10 @@ DECOMP_SIZE_ASSERT(ZombieCryptMain, 0xC8);
 class CryptHulaMain : public ZombieCryptMain { // NAME: proto-pdb:default.pdb
 public:
     CryptHulaMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -469,6 +512,10 @@ DECOMP_SIZE_ASSERT(CryptHulaMain, 0xC8);
 class CryptBakerMain : public ZombieCryptMain { // NAME: proto-pdb:default.pdb
 public:
     CryptBakerMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -477,6 +524,10 @@ DECOMP_SIZE_ASSERT(CryptBakerMain, 0xC8);
 class CryptClownMain : public ZombieCryptMain { // NAME: proto-pdb:default.pdb
 public:
     CryptClownMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -485,6 +536,10 @@ DECOMP_SIZE_ASSERT(CryptClownMain, 0xC8);
 class CryptBelleMain : public ZombieCryptMain { // NAME: proto-pdb:default.pdb
 public:
     CryptBelleMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -493,6 +548,10 @@ DECOMP_SIZE_ASSERT(CryptBelleMain, 0xC8);
 class CryptFootballMain : public ZombieCryptMain { // NAME: proto-pdb:default.pdb
 public:
     CryptFootballMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -507,6 +566,10 @@ DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 class DoorExitZGCMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
     DoorExitZGCMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -686,6 +749,13 @@ void ZombieCryptMain::AnimationFinished()
     GetCritter()->StartAnimation(_animIdle, false, false);
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x00057EF3
 // PROTOTYPE: PREVIEW 0x0044477E identical
 // NAME: proto-pdb:default.pdb
@@ -693,6 +763,13 @@ SwampScript* ZGCImpMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 286) ZGCImpMain(node);
+}
+
+// FUNCTION: USA 0x0005BF69
+// NAME: proto-pdb:default.pdb
+ZGCImpMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZGCImpMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00057F1D
@@ -787,6 +864,13 @@ SwampScript* CryptImpMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 411) CryptImpMain(node);
 }
 
+// FUNCTION: USA 0x0005C01D
+// NAME: proto-pdb:default.pdb
+CryptImpMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptImpMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00059280
 // PROTOTYPE: PREVIEW 0x00445AA1 identical
 // NAME: proto-pdb:default.pdb
@@ -794,6 +878,13 @@ SwampScript* GbcmlMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 355) GbcmlMain(node);
+}
+
+// FUNCTION: USA 0x0005BFE1
+// NAME: proto-pdb:default.pdb
+GbcmlMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GbcmlMain", creationFunc);
 }
 
 // FUNCTION: USA 0x000593C0
@@ -805,6 +896,13 @@ SwampScript* ZombieHulaGirlMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 100) ZombieHulaGirlMain(node);
 }
 
+// FUNCTION: USA 0x0005BAB9
+// NAME: proto-pdb:default.pdb
+ZombieHulaGirlMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZombieHulaGirlMain", creationFunc);
+}
+
 // FUNCTION: USA 0x000593E7
 // PROTOTYPE: PREVIEW 0x00445AF2 identical
 // NAME: proto-pdb:default.pdb
@@ -812,6 +910,13 @@ SwampScript* ZombieBakerMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 112) ZombieBakerMain(node);
+}
+
+// FUNCTION: USA 0x0005BB31
+// NAME: proto-pdb:default.pdb
+ZombieBakerMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZombieBakerMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0005940E
@@ -823,6 +928,13 @@ SwampScript* ZombieClownMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 124) ZombieClownMain(node);
 }
 
+// FUNCTION: USA 0x0005BBA9
+// NAME: proto-pdb:default.pdb
+ZombieClownMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZombieClownMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00059435
 // PROTOTYPE: PREVIEW 0x00445B40 identical
 // NAME: proto-pdb:default.pdb
@@ -830,6 +942,13 @@ SwampScript* ZombieBelleMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 136) ZombieBelleMain(node);
+}
+
+// FUNCTION: USA 0x0005BC21
+// NAME: proto-pdb:default.pdb
+ZombieBelleMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZombieBelleMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0005945F
@@ -841,6 +960,13 @@ SwampScript* ZombieFootballMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 148) ZombieFootballMain(node);
 }
 
+// FUNCTION: USA 0x0005BC99
+// NAME: proto-pdb:default.pdb
+ZombieFootballMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZombieFootballMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00059489
 // PROTOTYPE: PREVIEW 0x00445B94 identical
 // NAME: proto-pdb:default.pdb
@@ -848,6 +974,13 @@ SwampScript* CryptHulaMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 207) CryptHulaMain(node);
+}
+
+// FUNCTION: USA 0x0005BD11
+// NAME: proto-pdb:default.pdb
+CryptHulaMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptHulaMain", creationFunc);
 }
 
 // FUNCTION: USA 0x000594B3
@@ -859,6 +992,13 @@ SwampScript* CryptBakerMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 220) CryptBakerMain(node);
 }
 
+// FUNCTION: USA 0x0005BD89
+// NAME: proto-pdb:default.pdb
+CryptBakerMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBakerMain", creationFunc);
+}
+
 // FUNCTION: USA 0x000594DD
 // PROTOTYPE: PREVIEW 0x00445BE8 identical
 // NAME: proto-pdb:default.pdb
@@ -866,6 +1006,13 @@ SwampScript* CryptClownMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 233) CryptClownMain(node);
+}
+
+// FUNCTION: USA 0x0005BE01
+// NAME: proto-pdb:default.pdb
+CryptClownMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptClownMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00059507
@@ -877,6 +1024,13 @@ SwampScript* CryptBelleMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 246) CryptBelleMain(node);
 }
 
+// FUNCTION: USA 0x0005BE79
+// NAME: proto-pdb:default.pdb
+CryptBelleMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBelleMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00059531
 // PROTOTYPE: PREVIEW 0x00445C3C identical
 // NAME: proto-pdb:default.pdb
@@ -884,6 +1038,13 @@ SwampScript* CryptFootballMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 259) CryptFootballMain(node);
+}
+
+// FUNCTION: USA 0x0005BEF1
+// NAME: proto-pdb:default.pdb
+CryptFootballMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptFootballMain", creationFunc);
 }
 
 // !FAKE: c1xx front end; declaration-only explicit specializations (C0132, C0154); retail calls these out of line
@@ -942,4 +1103,219 @@ SwampScript* DoorExitZGCMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 484) DoorExitZGCMain(node);
+}
+
+// FUNCTION: USA 0x0005C059
+// NAME: proto-pdb:default.pdb
+DoorExitZGCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorExitZGCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0005BA1D
+// NAME: proto-pdb:default.pdb
+SwampScript* ZombieGuidanceCounselorRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\zombieguidancecounselor\\ZombieGuidanceCounselor.h", 21) ZombieGuidanceCounselorRegionMain(node);
+}
+
+// FUNCTION: USA 0x0005BA41
+// NAME: proto-pdb:default.pdb
+ZombieGuidanceCounselorRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZombieGuidanceCounselorRegionMain", creationFunc);
+}
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+class ZombieBaker { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BAF5
+// NAME: proto-pdb:default.pdb
+ZombieBaker::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("ZombieBaker", creationFunc);
+}
+
+class ZombieClown { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BB6D
+// NAME: proto-pdb:default.pdb
+ZombieClown::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("ZombieClown", creationFunc);
+}
+
+class ZombieBelle { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BBE5
+// NAME: proto-pdb:default.pdb
+ZombieBelle::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("ZombieBelle", creationFunc);
+}
+
+class ZombieFootball { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BC5D
+// NAME: proto-pdb:default.pdb
+ZombieFootball::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("ZombieFootball", creationFunc);
+}
+
+class CryptHula { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BCD5
+// NAME: proto-pdb:default.pdb
+CryptHula::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CryptHula", creationFunc);
+}
+
+class CryptBaker { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BD4D
+// NAME: proto-pdb:default.pdb
+CryptBaker::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CryptBaker", creationFunc);
+}
+
+class CryptClown { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BDC5
+// NAME: proto-pdb:default.pdb
+CryptClown::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CryptClown", creationFunc);
+}
+
+class CryptBelle { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BE3D
+// NAME: proto-pdb:default.pdb
+CryptBelle::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CryptBelle", creationFunc);
+}
+
+class CryptFootball { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BEB5
+// NAME: proto-pdb:default.pdb
+CryptFootball::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CryptFootball", creationFunc);
+}
+
+class ZGCImp { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BF2D
+// NAME: proto-pdb:default.pdb
+ZGCImp::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("ZGCImp", creationFunc);
+}
+
+class Gbcml { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x0005BFA5
+// NAME: proto-pdb:default.pdb
+Gbcml::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Gbcml", creationFunc);
 }

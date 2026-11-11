@@ -346,6 +346,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
+// FUNCTION: USA 0x000A27CE
+// NAME: proto-pdb:default.pdb
 class VinceLaundryCar : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum States { // NAME: proto-pdb:default.pdb
@@ -372,6 +374,10 @@ public:
     virtual void FrameTick();
     virtual void AnimationFinished();
     virtual void InvalidateScript();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int);
@@ -413,6 +419,10 @@ public:
     LaundryCarMain(SwampSceneNode* node);
     virtual void FrameTick();
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void ResetLaundry();
@@ -459,6 +469,10 @@ void* operator new(unsigned int size, const char* file, int line);
 class BasketStopperPanMain : public BasketStopperMain { // NAME: proto-pdb:default.pdb
 public:
     BasketStopperPanMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -956,6 +970,34 @@ SwampScript* BasketStopperPanMain::creationFunc(SwampSceneNode* node)
     return new("BasketCase\\BasketCase.cpp", 205) BasketStopperPanMain(node);
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x000A2885
+// NAME: proto-pdb:default.pdb
+LaundryCarMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LaundryCarMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A28C1
+// NAME: proto-pdb:default.pdb
+VinceLaundryCar::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceLaundryCar", creationFunc);
+}
+
+// FUNCTION: USA 0x000A28FD
+// NAME: proto-pdb:default.pdb
+BasketStopperPanMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BasketStopperPanMain", creationFunc);
+}
+
 // FUNCTION: USA 0x000A22F9
 // NAME: proto-pdb:default.pdb
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1LaundryCarMain@@UAE@XZ because this unit defines
@@ -975,7 +1017,9 @@ SwampScript* LaundryCarMain::creationFunc(SwampSceneNode* node)
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 4)
+// best: match_one objdiff 100.0, bytes provisional (masked 1); T15.c5 va_dis byte-equal but the vptr store: needs ??_7VinceLaundryCar@@6B@ 0x001E8798 pinned
+// 5.4 wall (T12.1.c3): candidates fail `reloc: 1 unresolved target(s): 0x1E8798` (vptr store target unpinned after
+// T11.1); ??_GVinceLaundryCar 0x000A27B2 is emitted only with this ctor's vtable (C0320) and stays unclaimed
 // FUNCTION: USA 0x000A26B8
 // PROTOTYPE: PREVIEW 0x0048D7A5 near-identical
 // NAME: proto-pdb:default.pdb
@@ -991,6 +1035,13 @@ VinceLaundryCar::VinceLaundryCar(SwampSceneNode* node)
     SetState(STATE_IDLE);
 }
 #endif
+
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1VinceLaundryCar@@UAE@XZ because this unit defines
+// the ctor 0xA26B8 (not matched yet); this qualified call odr-uses it instead (matched_set [[emitter]] row)
+void pin_emit_VinceLaundryCar_dtor(VinceLaundryCar* p)
+{
+    p->VinceLaundryCar::~VinceLaundryCar();
+}
 
 // FUNCTION: USA 0x000A27ED
 // PROTOTYPE: PREVIEW 0x0048D8DA identical

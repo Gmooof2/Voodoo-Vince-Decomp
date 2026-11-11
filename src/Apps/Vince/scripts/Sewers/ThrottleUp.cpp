@@ -198,6 +198,10 @@ public:
         MESSAGE_MENU_LEAVE = 0x17
     };
     ThrottleUpAirplaneMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void DoDeath();
@@ -255,6 +259,12 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
 
     float _idleOffset;                 // 0x4C
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(ThrottleUpObstacleMain, 0x50);
 
@@ -330,4 +340,90 @@ void ThrottleUpTryAgainMenu::Update()
             Invalidate();
         }
     }
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x000AAC62
+// NAME: proto-pdb:default.pdb
+ThrottleUpAirplaneMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ThrottleUpAirplaneMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000AAC9E
+// NAME: proto-pdb:default.pdb
+ThrottleUpObstacleMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ThrottleUpObstacleMain", creationFunc);
+}
+
+class AreaLoadRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
+
+    char field_4C[0xC0 - 0x4C];        // 0x4C (not reached)
+};
+DECOMP_SIZE_ASSERT(AreaLoadRegionMain, 0xC0);
+
+class AreaLoad_TURegionMain : public AreaLoadRegionMain { // NAME: proto-pdb:default.pdb
+};
+DECOMP_SIZE_ASSERT(AreaLoad_TURegionMain, 0xC0);
+
+class AreaLoad_WrathOfJaniceTURegionMain : public AreaLoad_TURegionMain { // NAME: proto-pdb:default.pdb
+public:
+    AreaLoad_WrathOfJaniceTURegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(AreaLoad_WrathOfJaniceTURegionMain, 0xC0);
+
+class AreaLoad_RocketLabTURegionMain : public AreaLoad_TURegionMain { // NAME: proto-pdb:default.pdb
+public:
+    AreaLoad_RocketLabTURegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(AreaLoad_RocketLabTURegionMain, 0xC0);
+
+// FUNCTION: USA 0x000AA69E
+// NAME: proto-pdb:default.pdb
+SwampScript* AreaLoad_WrathOfJaniceTURegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("ThrottleUp\\ThrottleUp.cpp", 373) AreaLoad_WrathOfJaniceTURegionMain(node);
+}
+
+// FUNCTION: USA 0x000AA6C8
+// NAME: proto-pdb:default.pdb
+SwampScript* AreaLoad_RocketLabTURegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("ThrottleUp\\ThrottleUp.cpp", 392) AreaLoad_RocketLabTURegionMain(node);
+}
+
+// FUNCTION: USA 0x000AACDA
+// NAME: proto-pdb:default.pdb
+AreaLoad_WrathOfJaniceTURegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("AreaLoad_WrathOfJaniceTURegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000AAD16
+// NAME: proto-pdb:default.pdb
+AreaLoad_RocketLabTURegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("AreaLoad_RocketLabTURegionMain", creationFunc);
 }

@@ -397,13 +397,10 @@ bool ZipFileHandler::Read(void* data, unsigned int bytes)
 
 // FUNCTION: USA 0x00037178
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); matched_set refuses: pin has no size in symbols_pin.txt (lift: size on the pin)
 bool ZipFileHandler::Write(const void* data, unsigned int bytes)
 {
     return false;
 }
-#endif
 
 // FUNCTION: USA 0x0003717D
 // PROTOTYPE: PREVIEW 0x00425980 identical
@@ -459,13 +456,10 @@ unsigned int ZipFileHandler::Size()
 
 // FUNCTION: USA 0x00037363
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); matched_set refuses: pin has no size in symbols_pin.txt (lift: size on the pin)
 int ZipFileHandler::Pos()
 {
     return _currentpos;
 }
-#endif
 
 // FUNCTION: USA 0x00037367
 // PROTOTYPE: PREVIEW 0x00425A56 identical
@@ -668,8 +662,6 @@ bool BeepFile::Open(const void* data, unsigned int size)
     return true;
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1): near-callee-unnamed
 // FUNCTION: USA 0x0003786D
 // PROTOTYPE: PREVIEW 0x00425F41 near-identical
 // NAME: proto-pdb:default.pdb
@@ -679,7 +671,6 @@ void* BeepFile::Open(unsigned int size)
     _fh = new("BeepFile.cpp", 931) MemoryFileHandler(size);
     return (void*)_fh->GetFileData(_filename);
 }
-#endif
 
 // FUNCTION: USA 0x000378AD
 // PROTOTYPE: PREVIEW 0x00425F81 near-identical

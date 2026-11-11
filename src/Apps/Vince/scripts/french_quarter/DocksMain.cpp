@@ -105,6 +105,10 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class BigPigRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     BigPigRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
 private:
@@ -133,6 +137,20 @@ SwampScript* BigPigRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("docks\\DocksMain.cpp", 15) BigPigRegionMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x000704C9
+// NAME: proto-pdb:default.pdb
+BigPigRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BigPigRegionMain", creationFunc);
 }
 
 class MainstreetRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb

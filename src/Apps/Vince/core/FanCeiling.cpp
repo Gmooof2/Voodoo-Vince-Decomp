@@ -145,6 +145,10 @@ public:
     CeilingFanMain(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int);
     virtual void HitBy(CollisionType type, SwampSceneNode* critterHitBy, const Ptr<CollisionResultObject>& cr);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     virtual void SetState(int state);
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -313,12 +317,23 @@ public:
     VinceCeilingFan(SwampSceneNode* node);
     virtual ~VinceCeilingFan();
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     ResourceHandle<AnimationResource> _animSpin; // 0x4C
 };
 DECOMP_SIZE_ASSERT(VinceCeilingFan, 0x50);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x00131F74
 // PROTOTYPE: PREVIEW 0x0051A997 identical
@@ -415,17 +430,11 @@ void CeilingFanMain::SetState(int state)
 // FUNCTION: USA 0x00132273
 // PROTOTYPE: PREVIEW 0x0051AC96 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); wall (4.4 T4.c8 relink): vtable slot ??_G 0x001322E6 calls
-// the dtor 0x0008C43B (folded ~VinceCeilingFan/~VinceZapHat, in VinceZapHat's unit), no name in symbols.txt/symbols_pin.txt:
-// `external ??1VinceCeilingFan@@UAE@XZ does not resolve by name`; with VinceZapHat also live, `our ranges overlap at
-// 0x001322E6` (??_GVinceCeilingFan and ??_GVinceZapHat fold to one VA, emitted by two objects)
 VinceCeilingFan::VinceCeilingFan(SwampSceneNode* node) : SwampScript(node)
 {
     _animSpin = g_swamp->GetAnimationManager().Load("vince_attack_fanceiling");
     ((GatorNode*)_node)->StartAnimation(_animSpin, true, false);
 }
-#endif
 
 // FUNCTION: USA 0x00132302
 // PROTOTYPE: PREVIEW 0x0051AD25 identical
@@ -443,6 +452,20 @@ SwampScript* CeilingFanMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\FanCeiling.h", 11) CeilingFanMain(node);
+}
+
+// FUNCTION: USA 0x0013236E
+// NAME: proto-pdb:default.pdb
+CeilingFanMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CeilingFanMain", creationFunc);
+}
+
+// FUNCTION: USA 0x001323AA
+// NAME: proto-pdb:default.pdb
+VinceCeilingFan::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceCeilingFan", creationFunc);
 }
 
 class ClownMissileMain : public CritterMain { // NAME: proto-pdb:default.pdb

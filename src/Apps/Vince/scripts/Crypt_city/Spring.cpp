@@ -3,7 +3,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -74,12 +84,23 @@ DECOMP_SIZE_ASSERT(CarriedObjectMain, 0xF8);
 class SpringMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
     SpringMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     char field_F8[0x100 - 0xF8];       // 0xF8 (not reached)
 };
 DECOMP_SIZE_ASSERT(SpringMain, 0x100);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x0005C276
 // PROTOTYPE: PREVIEW 0x00448797 identical
@@ -88,4 +109,34 @@ SwampScript* SpringMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\sarcophagushustle\\Spring.h", 16) SpringMain(node);
+}
+
+// FUNCTION: USA 0x0005C413
+// NAME: proto-pdb:default.pdb
+SpringMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SpringMain", creationFunc);
+}
+
+class Spring { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x0005C3D7
+// NAME: proto-pdb:default.pdb
+Spring::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Spring", creationFunc);
 }

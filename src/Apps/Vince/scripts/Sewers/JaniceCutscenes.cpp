@@ -58,9 +58,39 @@ public:
 
 extern Swamp* g_swamp;
 
+struct AABox;                // NAME: proto-pdb:default.pdb
+class Matrix;                // NAME: proto-pdb:default.pdb
+class SwampScript;           // NAME: proto-pdb:default.pdb
+class BeepTDF;               // NAME: proto-pdb:default.pdb
+class CollisionResultObject; // NAME: proto-pdb:default.pdb
+template<class T>
+class Ptr;                   // NAME: proto-pdb:default.pdb
+
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+
+struct Quaternion { // NAME: proto-pdb:default.pdb
+    Quaternion(float x, float y, float z, float _w) : v(x, y, z), w(_w) {}
+
+    Vector3 v;                         // 0x00
+    float w;                           // 0x0C
+};
+
 class SwampSceneNode {
 public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     void SetOption(unsigned int option, bool a, bool b);
+    void SetScript(SwampScript* script);
+    const Quaternion& SetRotation(const Quaternion&);
 };
 
 class GatorNode : public SwampSceneNode {
@@ -71,8 +101,25 @@ public:
 class Critter : public GatorNode {
 };
 
+// Retail layout: Vince _whammyReady 0x434 -> 0x448 (+0x14).
 class Vince : public Critter {
+public:
+    void SetWhammyReady(bool);
+
+    char field_4[0x448 - 0x4];         // 0x04
+    bool _whammyReady;                 // 0x448 (proto 0x434)
 };
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const std::basic_string<char>&);
+    Vince* GetVince() const { return _vinceCache; }
+
+    char field_0[0x28];                // 0x00
+    Vince* _vinceCache;                // 0x28
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class AnimCam;
 
@@ -84,19 +131,57 @@ public:
 
 class SwampScript {
 public:
-    virtual void InvalidateScript();
+    enum CollisionType { // NAME: proto-pdb:default.pdb
+        HorizontalCollision = 0,
+        VerticalCollision = 1
+    };
+    virtual ~SwampScript();                                        // vtable+0x00
+    virtual bool TestActivate() const;                             // vtable+0x04
+    virtual void Activate();                                       // vtable+0x08
+    virtual void Deactivate();                                     // vtable+0x0C
+    virtual void FrameTick();                                      // vtable+0x10
+    virtual void TimerEvent(unsigned int);                         // vtable+0x14
+    virtual void AnimationFinished();                              // vtable+0x18
+    virtual void SecondaryAnimationFinished();                     // vtable+0x1C
+    virtual void AnimationInterrupted();                           // vtable+0x20
+    virtual void SecondaryAnimationInterrupted();                  // vtable+0x24
+    virtual void AnimationTrigger(const std::basic_string<char>&, float, float, unsigned int); // vtable+0x28
+    virtual bool LosingControl(const std::basic_string<char>&);    // vtable+0x2C
+    virtual void GainingControl(SwampScript*);                     // vtable+0x30
+    virtual void Message(SwampScript*, int, void*);                // vtable+0x34
+    virtual void EnteringRegion(SwampSceneNode*);                  // vtable+0x38
+    virtual void LeavingRegion(SwampSceneNode*);                   // vtable+0x3C
+    virtual void SoundFinished(const std::basic_string<char>&);    // vtable+0x40
+    virtual void SoundStreamerFinished(const std::basic_string<char>&); // vtable+0x44
+    virtual void MovieFinished(const std::basic_string<char>&);    // vtable+0x48
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
+    virtual void HitBy(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x50
+    virtual void Load(const BeepTDF&);                             // vtable+0x54
+    virtual std::basic_string<char> Save();                        // vtable+0x58
+    virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
+    virtual void InvalidateScript();                               // vtable+0x60
     char _pad04[0x4C - 0x4];
+};
+
+class CutsceneAnimationScript : public SwampScript { // NAME: proto-pdb:default.pdb
 };
 
 class CutsceneDriver : public SwampScript {
 public:
     CutsceneDriver(SwampSceneNode* node);
+    virtual void AnimationFinished(unsigned int);                  // vtable+0x64
+    virtual void AnimationTrigger(unsigned int id, const std::basic_string<char>& name, float value, float prev, unsigned int bone); // vtable+0x68
+    static void BeginPlayback();
 protected:
-    virtual void Init();
+    virtual void Init();                                           // vtable+0x6C
+    virtual void Cleanup();                                        // vtable+0x70
+public:
+    virtual void SetState(int);                                    // vtable+0x74
+protected:
     AnimCam* NewCamera(const std::basic_string<char>& name);
+    CutsceneAnimationScript* NewScript(SwampSceneNode* node, unsigned int id);
     void StateTransition(unsigned int anim, int state);
 public:
-    virtual void AnimationTrigger(unsigned int id, const std::basic_string<char>& name, float value, float prev, unsigned int bone);
     AnimCam* _cam;
     bool _cancelled;
     bool _autostop;
@@ -107,6 +192,11 @@ public:
 
 class VinceDropsInCutscene : public CutsceneDriver {
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     enum States {
         STATE_V_FALLSIN = 0x0,
         // 0x1..0xA: names unknown; the case labels below use the values
@@ -114,6 +204,8 @@ public:
         STATE_LAST = 0xC
     };
     VinceDropsInCutscene(SwampSceneNode* node);
+protected:
+    virtual void Init();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);
@@ -123,8 +215,19 @@ public:
     bool _wasWhammyReady;
 };
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const std::basic_string<char>& name, CreationFunc func);
+};
+
 class JaniceDefeatCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum States {
         STATE_N_EXPLODES = 0x0,
         STATE_J_DEATH = 0x1,
@@ -144,10 +247,16 @@ public:
     Critter* _janice;
     GatorNode* _debris;
     bool _wasWhammyReady;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 
 class LeavingRoachfortCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum States {
         STATE_V_INHALE = 0x0,
         STATE_V_FLOATS = 0x1,
@@ -161,6 +270,8 @@ private:
 public:
     Vince* _vince;
     bool _wasWhammyReady;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 
 class PlanGoesAwryCutscene : public CutsceneDriver {
@@ -229,6 +340,36 @@ LeavingRoachfortCutscene::LeavingRoachfortCutscene(SwampSceneNode* node) : Cutsc
     Init();
 }
 #endif
+
+// FUNCTION: USA 0x000A83DB
+// NAME: proto-pdb:default.pdb
+SwampScript* LeavingRoachfortCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("WrathOfJanice\\JaniceCutscenes.cpp", 633) LeavingRoachfortCutscene(node);
+}
+
+// FUNCTION: USA 0x000A8405
+// PROTOTYPE: PREVIEW 0x00493321 near-identical
+// NAME: proto-pdb:default.pdb
+void VinceDropsInCutscene::Init()
+{
+    CutsceneDriver::Init();
+    _vince = pManager->GetVince();
+    _vince->SetScript(NewScript(_vince, 1));
+    _vince->SetOption(2, false, false);
+    _vince->SetWorldPosition(Vector3(0.0f, 0.0f, 0.0f));
+    _vince->SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
+    _wasWhammyReady = _vince->_whammyReady;
+    _vince->SetWhammyReady(false);
+    _ethel = pManager->Find("professorethel");
+    _ethel->SetScript(NewScript(_ethel, 2));
+    _ethel->SetWorldPosition(Vector3(0.0f, 0.0f, 0.0f));
+    _ethel->SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
+    _ethel->SetOption(2, true, false);
+    SetState(STATE_V_FALLSIN);
+    BeginPlayback();
+}
 
 // FUNCTION: USA 0x000A871D
 // PROTOTYPE: PREVIEW 0x004935E1 identical
@@ -377,4 +518,33 @@ SwampScript* VinceDropsInCutscene::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("WrathOfJanice\\JaniceCutscenes.cpp", 20) VinceDropsInCutscene(node);
+}
+
+// FUNCTION: USA 0x000AA517
+// NAME: proto-pdb:default.pdb
+SwampScript* JaniceDefeatCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("WrathOfJanice\\JaniceCutscenes.cpp", 476) JaniceDefeatCutscene(node);
+}
+
+// FUNCTION: USA 0x000AA541
+// NAME: proto-pdb:default.pdb
+VinceDropsInCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceDropsInCutscene", creationFunc);
+}
+
+// FUNCTION: USA 0x000AA5B9
+// NAME: proto-pdb:default.pdb
+JaniceDefeatCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("JaniceDefeatCutscene", creationFunc);
+}
+
+// FUNCTION: USA 0x000AA5F5
+// NAME: proto-pdb:default.pdb
+LeavingRoachfortCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LeavingRoachfortCutscene", creationFunc);
 }

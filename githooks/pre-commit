@@ -2,21 +2,37 @@
 # pre-commit (T9, phase 1.1): firewall audit of the staged blobs. Enabled by `git config core.hooksPath githooks`.
 # Python: the first that runs of env PY, .claude/pa.json key "python", python on PATH (3.6 T4). Any non-zero audit
 # exit (1 hits, 2 refusal) or no runnable Python blocks.
+# 5.5 T14.c2: a Python counts only when it prints `ok` (C5; was: `"$c" -c ""` exits 0). In a private tree (not:
+# config/PUBLIC_TREE and no .claude/pa.json) holding config/local_paths.json, AUDIT_PUBLIC_CONFIG and
+# AUDIT_PUBLIC_MANIFEST are unset and an audit output saying `not checked` blocks (S3; was: an override switched value
+# classes off). Scratch trees with no local config keep the override (docs/ops/INDEX.md "Git hooks").
 ROOT=$(git rev-parse --show-toplevel) || exit 1
 ENV_PY=$PY
 PA_PY=$(sed -n 's/.*"python"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$ROOT/.claude/pa.json" 2>/dev/null | head -n 1)
 PY=
 for c in "$ENV_PY" "$PA_PY" python; do
-  if [ -n "$c" ] && "$c" -c "" >/dev/null 2>&1; then PY=$c; break; fi
+  if [ -n "$c" ] && [ "$("$c" -c "print('ok')" 2>/dev/null | tr -d '\r')" = ok ]; then PY=$c; break; fi
 done
 if [ -z "$PY" ]; then
   echo "pre-commit: no Python runs (env PY '$ENV_PY', .claude/pa.json python '$PA_PY', python on PATH); set env PY; commit blocked" >&2
   exit 1
 fi
-"$PY" "$ROOT/tools/audit_public.py" --staged
+S3=0
+if { [ ! -f "$ROOT/config/PUBLIC_TREE" ] || [ -f "$ROOT/.claude/pa.json" ]; } && [ -f "$ROOT/config/local_paths.json" ]; then
+  S3=1
+  unset AUDIT_PUBLIC_CONFIG AUDIT_PUBLIC_MANIFEST
+fi
+OUT=$("$PY" "$ROOT/tools/audit_public.py" --staged 2>&1)
 rc=$?
+printf '%s\n' "$OUT" >&2
 if [ "$rc" -ne 0 ]; then
   echo "pre-commit: audit_public.py --staged exit $rc (1 hits, 2 refusal); commit blocked" >&2
   exit 1
+fi
+if [ "$S3" -eq 1 ]; then
+  case "$OUT" in *"not checked"*)
+    echo "pre-commit: audit_public.py --staged left a value class not checked in a private tree; set it in config/local_paths.json; commit blocked" >&2
+    exit 1 ;;
+  esac
 fi
 exit 0

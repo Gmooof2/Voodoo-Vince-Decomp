@@ -1,5 +1,10 @@
 // UNIT: src/Apps/Vince/core/VinceCam.cpp OBJ: core\XBox\OfficialRelease\VinceCam.obj OPT: /O1 /Oy
 #include "../../../include/decomp.h"
+#ifdef NON_MATCHING
+extern "C" double __cdecl fabs(double);
+// !FAKE: c1xx front end; file-scope #pragma intrinsic before the overload body; the unit has no /Oi, retail inlines fabs (match_one 87.38 -> 95.92)
+#pragma intrinsic(fabs)
+#endif
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
@@ -367,9 +372,6 @@ extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 #ifdef NON_MATCHING
 // math.h fabs(float) overload for the ResetLocation draft below (inline fabs needs /Oi, C0221)
-extern "C" double __cdecl fabs(double);
-// !FAKE: c1xx front end; file-scope #pragma intrinsic before the overload body; the unit has no /Oi, retail inlines fabs (match_one 87.38 -> 95.92)
-#pragma intrinsic(fabs)
 inline float fabs(float _X)
 {
     return (float)fabs((double)_X);
@@ -510,6 +512,10 @@ public:
     virtual void LeavingRegion(SwampSceneNode* node);
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -755,4 +761,19 @@ void CameraHelperRegionMain::LeavingRegion(SwampSceneNode* node)
                 p->ClearPositionFixed();
         }
     }
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x0010E8A6
+// NAME: proto-pdb:default.pdb
+CameraHelperRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CameraHelperRegionMain", creationFunc);
 }

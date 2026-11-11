@@ -1,51 +1,26 @@
 // UNIT: src/Apps/Vince/core/Whammy.cpp OBJ: core\XBox\OfficialRelease\Whammy.obj OPT: /O1 /Oy
 #include "../../../include/decomp.h"
-namespace std { // NAME: proto-pdb:default.pdb
-template <class E> struct char_traits;
-template <class T> class allocator;
-template <class E, class T, class A> class basic_string {
-public:
-    basic_string(const E* _Ptr);
-    basic_string(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
-    ~basic_string() { _Tidy(true); }
-    const E* c_str() const { return (_Myptr()); }
-    const E* _Myptr() const { return (16 <= _Myres ? _Bx._Ptr : _Bx._Buf); }
-    basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, (unsigned int)-1); }
-    basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
-    basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
-    basic_string& assign(const E* _Ptr);
+#include "../../../Libs/SwampShared/SwampString.h"
+#include "../../../Libs/SwampShared/SwampVector.h"
+#include "../../../Libs/SwampShared/SwampResource.h"
+#include "../../../Libs/SwampShared/Matrix.h"
+#include "../../../Libs/Swamp/include/Swamp.h"
+#include "../../../Libs/Swamp/include/SwampInput.h"
+#include "../../../Libs/Swamp/include/SwampSceneNode.h"
+#include "../../../Libs/Swamp/include/SwampGatorNode.h"
+#include "../../../Libs/Swamp/include/SwampScript.h"
+#include "../../../Libs/Swamp/include/SwampScriptManager.h"
+#include "../../../Libs/Swamp/include/SoundNode.h"
+#include "Critter.h"
+#include "CritterMain.h"
+#include "CritterManager.h"
+#include "Vince.h"
+#include "Globals.h"
+#include "GameCam.h"
+#include "CameraManager.h"
+#include "Whammy.h"
 
-protected:
-    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
-
-private:
-    char _Alval;                       // 0x00
-    union {
-        E _Buf[16];
-        E* _Ptr;
-    } _Bx;                             // 0x04
-    unsigned int _Mysize;              // 0x14
-    unsigned int _Myres;               // 0x18
-};
-template <class E, class T, class A> basic_string<E, T, A> operator+(const basic_string<E, T, A>& _Left, const E* _Right);
-}
 extern "C" int __cdecl _strnicmp(const char*, const char*, unsigned int);
-typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
-
-class BeepTDF;               // NAME: proto-pdb:default.pdb
-class CollisionResultObject; // NAME: proto-pdb:default.pdb
-template <class T> class Ptr; // NAME: proto-pdb:default.pdb
-struct Vector3 { // NAME: proto-pdb:default.pdb
-    Vector3() {}
-    Vector3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
-    void RotateJ(float);
-    float Length() const;
-
-    float x;                           // 0x00
-    float y;                           // 0x04
-    float z;                           // 0x08
-};
-DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 #ifdef NON_MATCHING // D78, D117: default.pdb records no free Vector3 operator (5.2 T20)
 inline Vector3 operator+(const Vector3& a, const Vector3& b) { return Vector3(a.x + b.x, a.y + b.y, a.z + b.z); }
@@ -54,256 +29,20 @@ inline Vector3 operator*(float f, const Vector3& v) { return Vector3(v.x * f, v.
 #endif
 
 namespace BeepLib { // NAME: proto-pdb:default.pdb
-double RandomFloat(float, float);
+double RandomFloat(float min, float max);
 }
-struct AABox;                // NAME: proto-pdb:default.pdb
-
-struct Quaternion { // NAME: proto-pdb:default.pdb
-    Quaternion() {}
-    Quaternion(float x, float y, float z) { Set(x, y, z); }
-    Quaternion(float x, float y, float z, float _w) : v(x, y, z), w(_w) {}
-    void Set(float, float, float);
-
-    Vector3 v;                         // 0x00
-    float w;                           // 0x0C
-};
-DECOMP_SIZE_ASSERT(Quaternion, 0x10);
-
-struct Matrix { // NAME: proto-pdb:default.pdb
-    void Orient(const Vector3&, const Vector3&);
-    void Euler(float&, float&, float&) const;
-
-    char field_0[0x40];                // 0x00 (row; not reached)
-};
-DECOMP_SIZE_ASSERT(Matrix, 0x40);
-
-class SwampScript;           // NAME: proto-pdb:default.pdb
-
-class ResourceBase { // NAME: proto-pdb:default.pdb
-public:
-    void AddRef() { ++_RefCount; }
-    void SubRef() { --_RefCount; }
-
-    char field_0[0x1C];                // 0x00
-    unsigned int _RefCount;            // 0x1C
-    bool _valid;                       // 0x20
-};
-DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
-
-class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
-};
-class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
-};
-class ModelResource : public ResourceBase { // NAME: proto-pdb:default.pdb
-};
-
-template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
-public:
-    ResourceHandle() : _Resource(0) {}
-    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
-    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
-    bool IsValid() const { return _Resource != 0; }
-
-    T* _Resource;                      // 0x00
-};
-
-template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
-public:
-    ResourceHandle<T> Load(const SwampString& name);
-};
-
-class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
-};
-class ModelManager : public ResourceManager<ModelResource> { // NAME: proto-pdb:default.pdb
-};
-
-class SwampSceneNode { // NAME: proto-pdb:default.pdb
-public:
-    enum NodeOptions { // NAME: proto-pdb:default.pdb
-        DontDraw = 0x2
-    };
-    void SetOption(unsigned int option, bool value, bool recursive);
-    void RemoveTreeFromScene();
-    void AddChild(SwampSceneNode*);
-    SwampScript* GetScript() const;
-    void SetScript(const SwampString&);
-    const Quaternion& SetRotation(const Quaternion&);
-    virtual ~SwampSceneNode();                                     // vtable+0x00
-    virtual const AABox& GetBounds() const;                        // vtable+0x04
-    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
-    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
-    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
-    virtual void Invalidate();                                     // vtable+0x14
-    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
-    virtual void Update();                                         // vtable+0x1C
-    virtual void Render(const Matrix&) const;                      // vtable+0x20
-
-    char field_4[0xA0];                // 0x04
-};
-DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
-
-class SoundNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
-public:
-    virtual void Invalidate();
-    void Stop();
-};
-
-class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
-public:
-    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
-    virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
-    virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
-
-    char field_A4[0xAC - 0xA4];        // 0xA4
-};
-DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
-
-class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
-public:
-    float GetHeight() const { return _height; }
-
-    float _height;                     // 0xAC
-    float _radius;                     // 0xB0
-};
-DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
-
-class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
-public:
-    virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
-    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
-    void SetEdgeGlow(bool edgeGlow) { _edgeGlow = edgeGlow; }
-
-    char field_B4[0xC5 - 0xB4];        // 0xB4 (_model .. _dirtyAnimation; not reached)
-    bool _edgeGlow;                    // 0xC5
-    char field_C6[0x18C - 0xC6];       // 0xC6 (not reached)
-    unsigned int _animTriggerFlags;    // 0x18C
-    char field_190[0x200 - 0x190];     // 0x190 (not reached)
-};
-DECOMP_SIZE_ASSERT(GatorNode, 0x200);
-
-class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
-public:
-    void MakeDead(bool);
-
-    char field_200[0x2C8 - 0x200];     // 0x200 (not reached)
-};
-DECOMP_SIZE_ASSERT(Critter, 0x2C8);
-
-class Vince : public Critter { // NAME: proto-pdb:default.pdb
-};
-
-class CritterManager { // NAME: proto-pdb:default.pdb
-public:
-    Vince* GetVince() const { return _vinceCache; }
-    Critter* Find(const SwampString&);
-    Critter* Create(const SwampString&, const SwampString&, const char*, ResourceHandle<ModelResource>, const Vector3&, const Quaternion&, unsigned int);
-
-    char field_0[0x28];                // 0x00
-    Vince* _vinceCache;                // 0x28
-};
-extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
-
-class Globals { // NAME: proto-pdb:default.pdb
-public:
-    char field_0[0x70];                // 0x00
-    float _whammyProjectileSpeed;      // 0x70
-};
-extern Globals gSettings; // NAME: proto-pdb:default.pdb
-
-class SwampInput { // NAME: proto-pdb:default.pdb
-public:
-    float GetElapsedTime() const { return _elapsed; }
-
-    float _elapsed;                    // 0x00
-};
-
-class Swamp { // NAME: proto-pdb:default.pdb
-public:
-    SwampInput& GetInput() const { return *_input; }
-    AnimationManager& GetAnimationManager() const { return *_animationManager; }
-    ModelManager& GetModelManager() const { return *_modelManager; }
-
-    char field_0[0x4];                 // 0x00
-    SwampInput* _input;                // 0x04
-    char field_8[0x18 - 0x8];          // 0x08
-    AnimationManager* _animationManager; // 0x18
-    char field_1C[0x28 - 0x1C];        // 0x1C
-    ModelManager* _modelManager;       // 0x28
-};
-extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
-
-class GameCam { // NAME: proto-pdb:default.pdb
-public:
-    void SetShakeFactor(float, float);
-};
-
-class CameraManager { // NAME: proto-pdb:default.pdb
-public:
-    GameCam* Find(const SwampString&) const;
-};
-extern CameraManager* g_CameraManager; // NAME: proto-pdb:default.pdb
-
-class SwampScript { // NAME: proto-pdb:default.pdb
-public:
-    enum CollisionType { // NAME: proto-pdb:default.pdb
-        HorizontalCollision = 0,
-        VerticalCollision = 1
-    };
-    virtual ~SwampScript();                                        // vtable+0x00
-    virtual bool TestActivate() const;                             // vtable+0x04
-    virtual void Activate();                                       // vtable+0x08
-    virtual void Deactivate();                                     // vtable+0x0C
-    virtual void FrameTick();                                      // vtable+0x10
-    virtual void TimerEvent(unsigned int);                         // vtable+0x14
-    virtual void AnimationFinished();                              // vtable+0x18
-    virtual void SecondaryAnimationFinished();                     // vtable+0x1C
-    virtual void AnimationInterrupted();                           // vtable+0x20
-    virtual void SecondaryAnimationInterrupted();                  // vtable+0x24
-    virtual void AnimationTrigger(const SwampString&, float, float, unsigned int); // vtable+0x28
-    virtual bool LosingControl(const SwampString&);                // vtable+0x2C
-    virtual void GainingControl(SwampScript*);                     // vtable+0x30
-    virtual void Message(SwampScript*, int, void*);                // vtable+0x34
-    virtual void EnteringRegion(SwampSceneNode*);                  // vtable+0x38
-    virtual void LeavingRegion(SwampSceneNode*);                   // vtable+0x3C
-    virtual void SoundFinished(const SwampString&);                // vtable+0x40
-    virtual void SoundStreamerFinished(const SwampString&);        // vtable+0x44
-    virtual void MovieFinished(const SwampString&);                // vtable+0x48
-    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x4C
-    virtual void HitBy(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x50
-    virtual void Load(const BeepTDF&);                             // vtable+0x54
-    virtual SwampString Save();                                    // vtable+0x58
-    virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
-    virtual void InvalidateScript();                               // vtable+0x60
-
-protected:
-    SwampScript(SwampSceneNode* node);
-
-public:
-    char field_4[0x1C];                // 0x04 (_name; not reached)
-    SwampSceneNode* _node;             // 0x20
-    SwampScript* _parent;              // 0x24
-    char field_28[0x24];               // 0x28 (_frameTicks .. _saveLoadVars; not reached)
-};
-DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
-
-class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
-public:
-    Critter* GetCritter() { return (Critter*)_node; }
-    virtual ~CritterMain();
-    virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
-    virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
-    virtual void SetState(int);                                    // vtable+0x6C
-
-    int _state;                        // 0x4C
-    char field_50[0x6C];               // 0x50 (_wanderPatrolCenter .. _chaseRangeOverride; not reached)
-};
-DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
+// A SwampScript this unit only registers (RegisterMe adds creationFunc to SwampScriptManager); its own bytes from
+// 0x4C are not reached.
 class WaitForWhammyProjectileMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     WaitForWhammyProjectileMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -311,6 +50,9 @@ private:
 };
 DECOMP_SIZE_ASSERT(WaitForWhammyProjectileMain, 0x5C);
 
+// Moves its node along a cubic curve (_coeff, from _p1, _p2, _r1, _r2) from Vince to the critter named _target;
+// each FrameTick adds the elapsed time to _age and places and turns the node at _age / _ageMax. Past the end it gives
+// the target the script _scriptName, stops _soundNode and invalidates itself.
 class WhammyProjectileMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     enum Messages { // NAME: proto-pdb:default.pdb
@@ -319,7 +61,11 @@ public:
     };
     WhammyProjectileMain(SwampSceneNode* node);
     virtual void FrameTick();
-    virtual void Message(SwampScript*, int, void*);
+    virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void InitCurve();
@@ -344,188 +90,13 @@ DECOMP_SIZE_ASSERT(WhammyProjectileMain, 0xF4);
 // FUNCTION: USA 0x00133D9D
 // PROTOTYPE: PREVIEW 0x0051DFC0 identical
 // NAME: proto-pdb:default.pdb
-class WhammyResultScript : public SwampScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultScript(SwampSceneNode* node);
-    virtual void KillMonsterNow();                                // vtable+0x64
-
-    ResourceHandle<ModelResource> _modelRestore; // 0x4C
-};
-DECOMP_SIZE_ASSERT(WhammyResultScript, 0x50);
-
-class WhammyResultFlattenMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultFlattenMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x54 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultFlattenMain, 0x54);
+class WhammyResultScript;
 
 // FUNCTION: USA 0x001349D9
 // PROTOTYPE: PREVIEW 0x0051E7EA identical
 // NAME: proto-pdb:default.pdb
 // ??1WhammyResultFrozenMain: compiler-generated (implicit, no vptr store); emitted by pin_emit_WhammyResultFrozenMain_dtor
-class WhammyResultFrozenMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    enum Timers { // NAME: proto-pdb:default.pdb
-        TIMER_FINISH = 0x0
-    };
-    WhammyResultFrozenMain(SwampSceneNode* node);
-    virtual void TimerEvent(unsigned int);
-    virtual void AnimationFinished();
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    ResourceHandle<AnimationResource> _animFrozen;  // 0x50
-    ResourceHandle<AnimationResource> _animRecover; // 0x54
-    bool _finished;                    // 0x58
-};
-DECOMP_SIZE_ASSERT(WhammyResultFrozenMain, 0x5C);
-
-class WhammyResultCutHorizontalMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultCutHorizontalMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x58 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultCutHorizontalMain, 0x58);
-
-class WhammyResultCutVerticalMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultCutVerticalMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x58 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultCutVerticalMain, 0x58);
-
-class WhammyResultCutMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultCutMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x58 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultCutMain, 0x58);
-
-class WhammyResultDisintegrateMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    enum Timers { // NAME: proto-pdb:default.pdb
-        TIMER_STARTANIM = 0x0,
-        TIMER_FINISH = 0x1
-    };
-    WhammyResultDisintegrateMain(SwampSceneNode* node);
-    virtual void TimerEvent(unsigned int);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x58 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultDisintegrateMain, 0x58);
-
-class WhammyResultPokeMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultPokeMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x54 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultPokeMain, 0x54);
-
-class WhammyResultJackhammerMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultJackhammerMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x54 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultJackhammerMain, 0x54);
-
-class WhammyResultToxicMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultToxicMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x54 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultToxicMain, 0x54);
-
-class WhammyResultBurstMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyResultBurstMain(SwampSceneNode* node);
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    char field_50[0x58 - 0x50];        // 0x50 (not reached)
-};
-DECOMP_SIZE_ASSERT(WhammyResultBurstMain, 0x58);
-
-class WhammyResultTwisterMain : public WhammyResultScript { // NAME: proto-pdb:default.pdb
-public:
-    virtual void AnimationFinished();
-
-    ResourceHandle<AnimationResource> _animTwister; // 0x50
-};
-DECOMP_SIZE_ASSERT(WhammyResultTwisterMain, 0x54);
-
-class VinceWhammyMain : public CritterMain { // NAME: proto-pdb:default.pdb
-public:
-    enum Messages { // NAME: proto-pdb:default.pdb
-        MESSAGE_SET_WHAMMY_NAME = 0x14,
-        MESSAGE_KILL_WHAMMY = 0x15
-    };
-    enum States { // NAME: proto-pdb:default.pdb
-        STATE_WHAMMY_ANIM = 0x0,
-        STATE_WHAMMY_REACT_ANIM = 0x1
-    };
-    VinceWhammyMain(SwampSceneNode* node);
-    virtual void InvalidateScript();
-    virtual void SetState(int);
-    virtual void Message(SwampScript*, int, void*);
-    virtual void CreateProp();                                     // vtable+0x70
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    Critter* _prop;                    // 0xBC
-    ResourceHandle<AnimationResource> _animPowerUp; // 0xC0
-    SwampString _whammyName;           // 0xC4
-};
-DECOMP_SIZE_ASSERT(VinceWhammyMain, 0xE0);
-
-// src proto-pdb:default.pdb VinceMain base VinceShared, not modelled; only its Messages enum is reached
-class VinceMain { // NAME: proto-pdb:default.pdb
-public:
-    enum Messages { // NAME: proto-pdb:default.pdb
-        MESSAGE_WHAMMY_CLEANUP = 0x1A
-    };
-};
-
-class WhammyPropMain : public SwampScript { // NAME: proto-pdb:default.pdb
-public:
-    WhammyPropMain(SwampSceneNode* node);
-    virtual void AnimationFinished();
-private:
-    static SwampScript* creationFunc(SwampSceneNode* node);
-
-    bool _restoreVinceModel;           // 0x4C
-    ResourceHandle<ModelResource> _modelVince; // 0x50
-    float _cameraShake;                // 0x54
-    SwampString _cameraName;           // 0x58
-    float _radius;                     // 0x74
-    char field_78[0x7C - 0x78];        // 0x78 (_effect; not reached)
-    SwampString _scriptName;           // 0x7C
-    bool _finished;                    // 0x98
-};
-DECOMP_SIZE_ASSERT(WhammyPropMain, 0x9C);
+class WhammyResultFrozenMain;
 
 // ??_GWhammyProjectileMain 0x00133F3D, ??_GWhammyResultFrozenMain 0x001349BD, ??_GVinceWhammyMain 0x00134E35,
 // ??_GWhammyPropMain 0x00135F1E unmatched, no draft (5.3 T6.c15): companion wall: a virtual ??_G is emitted only with
@@ -534,6 +105,8 @@ DECOMP_SIZE_ASSERT(WhammyPropMain, 0x9C);
 // ??_GVinceFlat 0x001348F8 unmatched, no draft: unsized pin (size `-`, precheck ADD refuses) and fold-name wall
 // (VinceFlat/BasketStopper* live in other units; the fold also holds this unit's WhammyResult{Flatten,Poke,Jackhammer,
 // Toxic,Twister}Main, whose ctors are not rows). Lift: size the pin, pin a this-unit name, match that class's ctor.
+// 5.4 T6.c4: pin sized (0x1C), ??0VinceFlat 0x0012177A now matched in VinceFlat.cpp; ??_GVinceFlat still not claimable:
+// the cut gives 0x001348F8 to Whammy.obj, match_one objdiff 0.0 (fold-name wall as above)
 
 // FUNCTION: USA 0x001338F3
 // PROTOTYPE: PREVIEW 0x0051DB07 identical
@@ -680,6 +253,13 @@ SwampScript* WaitForWhammyProjectileMain::creationFunc(SwampSceneNode* node)
     return new("core\\Whammy.cpp", 256) WaitForWhammyProjectileMain(node);
 }
 
+// FUNCTION: USA 0x001362D6
+// NAME: proto-pdb:default.pdb
+WaitForWhammyProjectileMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WaitForWhammyProjectileMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00133F16
 // PROTOTYPE: PREVIEW 0x0051E139 identical
 // NAME: proto-pdb:default.pdb
@@ -687,6 +267,13 @@ SwampScript* WhammyProjectileMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("core\\Whammy.cpp", 31) WhammyProjectileMain(node);
+}
+
+// FUNCTION: USA 0x0013629A
+// NAME: proto-pdb:default.pdb
+WhammyProjectileMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyProjectileMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00133F59
@@ -804,6 +391,13 @@ SwampScript* WhammyResultFlattenMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 98) WhammyResultFlattenMain(node);
 }
 
+// FUNCTION: USA 0x00136006
+// NAME: proto-pdb:default.pdb
+WhammyResultFlattenMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultFlattenMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00134A20
 // PROTOTYPE: PREVIEW 0x0051EC24 identical
 // NAME: proto-pdb:default.pdb
@@ -811,6 +405,13 @@ SwampScript* WhammyResultFrozenMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 119) WhammyResultFrozenMain(node);
+}
+
+// FUNCTION: USA 0x00136042
+// NAME: proto-pdb:default.pdb
+WhammyResultFrozenMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultFrozenMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00134A44
@@ -822,6 +423,13 @@ SwampScript* WhammyResultCutHorizontalMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 142) WhammyResultCutHorizontalMain(node);
 }
 
+// FUNCTION: USA 0x0013607E
+// NAME: proto-pdb:default.pdb
+WhammyResultCutHorizontalMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultCutHorizontalMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00134A6B
 // PROTOTYPE: PREVIEW 0x0051EC6F identical
 // NAME: proto-pdb:default.pdb
@@ -829,6 +437,13 @@ SwampScript* WhammyResultCutVerticalMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 163) WhammyResultCutVerticalMain(node);
+}
+
+// FUNCTION: USA 0x001360BA
+// NAME: proto-pdb:default.pdb
+WhammyResultCutVerticalMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultCutVerticalMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00134A92
@@ -840,18 +455,43 @@ SwampScript* WhammyResultCutMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 184) WhammyResultCutMain(node);
 }
 
+// FUNCTION: USA 0x001360F6
+// NAME: proto-pdb:default.pdb
+WhammyResultCutMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultCutMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00134AB9
 // PROTOTYPE: PREVIEW 0x0051ECBD identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 50.0, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* WhammyResultDisintegrateMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 205) WhammyResultDisintegrateMain(node);
 }
-#endif
+
+// FUNCTION: USA 0x00136132
+// NAME: proto-pdb:default.pdb
+WhammyResultDisintegrateMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultDisintegrateMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00134AE0
+// NAME: proto-pdb:default.pdb
+SwampScript* WhammyResultTwisterMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 226) WhammyResultTwisterMain(node);
+}
+
+// FUNCTION: USA 0x0013616E
+// NAME: proto-pdb:default.pdb
+WhammyResultTwisterMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultTwisterMain", creationFunc);
+}
 
 // FUNCTION: USA 0x00134B07
 // PROTOTYPE: PREVIEW 0x0051ED0B identical
@@ -860,6 +500,13 @@ SwampScript* WhammyResultPokeMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 246) WhammyResultPokeMain(node);
+}
+
+// FUNCTION: USA 0x001361AA
+// NAME: proto-pdb:default.pdb
+WhammyResultPokeMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultPokeMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00134B2E
@@ -871,6 +518,13 @@ SwampScript* WhammyResultJackhammerMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 266) WhammyResultJackhammerMain(node);
 }
 
+// FUNCTION: USA 0x001361E6
+// NAME: proto-pdb:default.pdb
+WhammyResultJackhammerMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultJackhammerMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00134B55
 // PROTOTYPE: PREVIEW 0x0051ED59 identical
 // NAME: proto-pdb:default.pdb
@@ -880,6 +534,13 @@ SwampScript* WhammyResultToxicMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 286) WhammyResultToxicMain(node);
 }
 
+// FUNCTION: USA 0x00136222
+// NAME: proto-pdb:default.pdb
+WhammyResultToxicMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultToxicMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00134B7C
 // PROTOTYPE: PREVIEW 0x0051ED80 identical
 // NAME: proto-pdb:default.pdb
@@ -887,6 +548,13 @@ SwampScript* WhammyResultBurstMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 306) WhammyResultBurstMain(node);
+}
+
+// FUNCTION: USA 0x0013625E
+// NAME: proto-pdb:default.pdb
+WhammyResultBurstMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyResultBurstMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00134CAB
@@ -941,6 +609,13 @@ SwampScript* VinceWhammyMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 16) VinceWhammyMain(node);
 }
 
+// FUNCTION: USA 0x00135F8E
+// NAME: proto-pdb:default.pdb
+VinceWhammyMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceWhammyMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00135529
 // PROTOTYPE: PREVIEW 0x0051F719 identical
 // NAME: proto-pdb:default.pdb
@@ -982,4 +657,11 @@ SwampScript* WhammyPropMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Whammy.h", 54) WhammyPropMain(node);
+}
+
+// FUNCTION: USA 0x00135FCA
+// NAME: proto-pdb:default.pdb
+WhammyPropMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WhammyPropMain", creationFunc);
 }

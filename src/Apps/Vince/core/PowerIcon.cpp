@@ -246,6 +246,11 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -268,18 +273,15 @@ public:
 };
 DECOMP_SIZE_ASSERT(RewardPowerIconMain, 0xD8);
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x00121AD8
 // PROTOTYPE: PREVIEW 0x0050A782 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 37.142857, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* HoldText::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("scripts\\common\\PowerIcon.cpp", 23) HoldText(node);
 }
-#endif
 
 // FUNCTION: USA 0x0012202C
 // PROTOTYPE: PREVIEW 0x0050ACFA identical
@@ -288,6 +290,13 @@ SwampScript* PowerIconMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\PowerIcon.h", 14) PowerIconMain(node);
+}
+
+// FUNCTION: USA 0x00122053
+// NAME: proto-pdb:default.pdb
+PowerIconMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PowerIconMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00122016

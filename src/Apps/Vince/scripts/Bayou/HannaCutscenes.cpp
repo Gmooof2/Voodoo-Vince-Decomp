@@ -67,12 +67,25 @@ extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 class GatorNode { // NAME: proto-pdb:default.pdb
 public:
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+    void SetAnimSpeed(float speed);
+
+    char field_0[0x200];               // 0x00 (CollidableCylinder base .. GatorNode members; not reached)
 };
+DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_200[0x204 - 0x200];     // 0x200 (_MaxSpeed; not reached)
+    float _CurSpeed;                   // 0x204
 };
 
+// retail layout (C0147): retail Vince members sit 0x10 above the prototype's
 class Vince : public Critter { // NAME: proto-pdb:default.pdb
+public:
+    void StayIdle(bool b);
+
+    char field_208[0x316 - 0x208];     // 0x208 (Critter tail .. _inWater; not reached)
+    bool _pause;                       // 0x316 (proto 0x306)
 };
 
 class SwampScript { // NAME: proto-pdb:default.pdb
@@ -137,11 +150,29 @@ protected:
 };
 DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 
+class HannaPreludeCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
+public:
+    HannaPreludeCutscene(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_78[0x80 - 0x78];        // 0x78 (not reached)
+};
+DECOMP_SIZE_ASSERT(HannaPreludeCutscene, 0x80);
+
 class HannaDeathCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
     HannaDeathCutscene(SwampSceneNode* node);
 private:
     virtual void SetState(int state);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     Vince* _vince;                     // 0x78
@@ -149,6 +180,28 @@ private:
     char field_80[0x84 - 0x80];        // 0x80 (_wasWhammyReady; not reached)
 };
 DECOMP_SIZE_ASSERT(HannaDeathCutscene, 0x84);
+
+// FUNCTION: USA 0x0002B830
+// PROTOTYPE: PREVIEW 0x0041A354 near-identical
+// NAME: proto-pdb:default.pdb
+void Vince::StayIdle(bool b)
+{
+    _pause = b;
+    if (b) {
+        SetAnimSpeed(0.0f);
+        _CurSpeed = 0.0f;
+    } else {
+        SetAnimSpeed(1.0f);
+    }
+}
+
+// FUNCTION: USA 0x0002B92C
+// NAME: proto-pdb:default.pdb
+SwampScript* HannaPreludeCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HurricaneHanna\\HannaCutscenes.cpp", 19) HannaPreludeCutscene(node);
+}
 
 // FUNCTION: USA 0x0002BE17
 // NAME: proto-pdb:default.pdb
@@ -171,4 +224,26 @@ SwampScript* HannaDeathCutscene::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("HurricaneHanna\\HannaCutscenes.cpp", 136) HannaDeathCutscene(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x0002BF31
+// NAME: proto-pdb:default.pdb
+HannaPreludeCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HannaPreludeCutscene", creationFunc);
+}
+
+// FUNCTION: USA 0x0002BF6D
+// NAME: proto-pdb:default.pdb
+HannaDeathCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HannaDeathCutscene", creationFunc);
 }

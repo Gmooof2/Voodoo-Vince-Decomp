@@ -186,6 +186,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class SwitchMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     SwitchMain(SwampSceneNode* node);
@@ -233,6 +235,12 @@ public:
     bool _oneWayThrow;                 // 0x139
     bool _multiTarget;                 // 0x13A
     bool field_13B;                    // 0x13B retail only: tested by the retail Message, absent in the proto PDB
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwitchMain, 0x13C);
 
@@ -241,12 +249,26 @@ public:
     BasicWallSwitchMain(SwampSceneNode* node);
     virtual void Activate();
     virtual void AnimationFinished();
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 
 class FloorSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
 public:
     virtual void HitBy(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(FloorSwitchMain, 0x13C);
 
@@ -280,18 +302,18 @@ DECOMP_SIZE_ASSERT(CritterManager, 0x2C);
 
 extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 83.67 (control /O1 /Oy; one if-form: /O1 /Oy 68.67, /O2 /Oy 47.33)
 // FUNCTION: USA 0x0010F1A2
 // PROTOTYPE: PREVIEW 0x004F9AC0 near-identical
 // NAME: proto-pdb:default.pdb
 bool SwitchMain::TestActivate() const
 {
-    CarriedObject* obj;
-    return _state == 0 && ((obj = pManager->_vinceCache->_carriedObject) == 0 || obj->_wearable ||
-                           obj == pManager->_vinceCache->_boomerangPin);
+    if (_state != STATE_OFF)
+        return false;
+    CarriedObject* obj = pManager->_vinceCache->_carriedObject;
+    if (obj == 0 || obj->_wearable || obj == pManager->_vinceCache->_boomerangPin)
+        return true;
+    return false;
 }
-#endif
 
 // FUNCTION: USA 0x0010F1D1
 // PROTOTYPE: PREVIEW 0x004F9AEF identical
@@ -342,8 +364,6 @@ BasicWallSwitchMain::BasicWallSwitchMain(SwampSceneNode* node) : SwitchMain(node
     SetOffAnimName("");
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 53.45, bytes mismatch (masked 0)
 // FUNCTION: USA 0x0010F3D4
 // PROTOTYPE: PREVIEW 0x004F9CC3 near-identical
 // NAME: proto-pdb:default.pdb
@@ -352,16 +372,25 @@ void BasicWallSwitchMain::Activate()
     Critter* activator = pManager->Find(_activatorName);
     SwampSceneNode* node = _node;
     Vince* vince = pManager->_vinceCache;
-    const Vector3& vpos = vince->GetWorldPosition();
-    const Vector3& npos = node->GetWorldPosition();
-    Vector3 diff(npos.x - vpos.x, 0.0f, npos.z - vpos.z);
+    // !FAKE: inliner; pointer local to the call, hand form of the inlined Vector3 difference; retail reads both results through eax (probe 53.45 -> byte-equal)
+    const Vector3* p = &vince->GetWorldPosition();
+    const Vector3* v1 = &node->GetWorldPosition();
+    Vector3 diff(v1->x - p->x, v1->y - p->y, v1->z - p->z);
+    diff.y = 0.0f;
     vince->SetFacing(diff);
     vince->SetWorldPosition(activator->GetWorldPosition());
     vince->SetScript("VinceSwitch");
     vince->_readyToUseObject = false;
     SwitchMain::Activate();
 }
-#endif
+
+// FUNCTION: USA 0x0010F486
+// NAME: proto-pdb:default.pdb
+SwampScript* SwitchMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\common\\Switch.h", 14) SwitchMain(node);
+}
 
 // FUNCTION: USA 0x0010F4FB
 // PROTOTYPE: PREVIEW 0x004F9DEA identical
@@ -429,8 +458,6 @@ bool SwitchMain::ActivateTarget()
 }
 #endif
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0; near-corr CritterMain::Message resolves in byte_compare)
 // FUNCTION: USA 0x0010F66F
 // PROTOTYPE: PREVIEW 0x004F9F5E near-identical
 // NAME: proto-pdb:default.pdb
@@ -467,7 +494,6 @@ void SwitchMain::Message(SwampScript* source, int message, void* data)
         break;
     }
 }
-#endif
 
 // FUNCTION: USA 0x0010F758
 // PROTOTYPE: PREVIEW 0x004F9FF2 identical
@@ -492,4 +518,32 @@ void SwitchMain::TimerEvent(unsigned int timerId)
         if (NotifyTarget(8))
             _popupOK = false;
     }
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0010F891
+// NAME: proto-pdb:default.pdb
+SwitchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0010F8CD
+// NAME: proto-pdb:default.pdb
+FloorSwitchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FloorSwitchMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0010F909
+// NAME: proto-pdb:default.pdb
+BasicWallSwitchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BasicWallSwitchMain", creationFunc);
 }

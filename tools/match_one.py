@@ -1,6 +1,6 @@
 """match_one (1.6 T3): build one function's unit alone and run gate's objdiff + bytes layers on it. NOT a match claim.
 
-CLI: match_one.py --symbol S --task T<n> [--src DIR (default src)] [--config P] [--ledger P] [--control "<flags>"]
+CLI: match_one.py --symbol S --task T<n>[.<k>...] [--src DIR (default src)] [--config P] [--ledger P] [--control "<flags>"]
   [--listing] [--workdir NAME]  |  match_one.py --table [--ledger P]
   S: exact mangled name from a func line of gate.SYMTABS, else a unique MSVC qualified name (`Class::Method`,
   `Class::~Class`, `std::fill`, a C name without its `_`). Qualified names of `?` symbols come from the pinned
@@ -14,7 +14,7 @@ Output: header `<symbol> unit <unit> va 0x.. size 0x..`; `PASS|FAIL objdiff: <pc
 (masked <n>)[ first differing byte +0x<HEX>]`; `flags: <unit flags>`; last line `not a match claim: run PY tools/gate.py`.
 Exit: 0 objdiff 100.0 and bytes `match`; 1 any failure; 2 refusal (symbol absent/ambiguous, no unit/source,
 build.Refuse, byte_compare.Refuse, --task missing). W removed on pass, kept (path printed) on fail or --listing.
-Ledger (2.2 T2): every run, refusals too, appends one JSON line to --ledger (default docs/matching/attempts-<phase>.jsonl,
+Ledger (2.2 T2): every run, refusals too (except an invalid --task, refused rc 2 with no row, 5.4 T2), appends one JSON line to --ledger (default docs/matching/attempts-<phase>.jsonl,
 4.4 T11: attempts.jsonl is the frozen base; readers take it first, then the phase files by phase; relative to the repo): keys ts (UTC ISO seconds), phase (byte_compare._phase_run_dir().name), task, symbol, va
 ("0x%08X"), size (int), insns (iced Decoder(32) count over retail bytes [va, va+size)), unit, opt (flags built with),
 kind (attempt|control|listing), objdiff (pct float or verdict), bytes (verdict), rc, src_sha256 (5.2 T7: sha256 of
@@ -29,6 +29,8 @@ The append holds an OS byte lock on the ledger (4.1 T6; a plain append lost and 
 --workdir NAME (4.1 T6): W is <.run/phase>/match_one.<NAME>, a sibling of the default folder, which a default run wipes;
 only W is wiped. NAME: letters, digits, and single . _ - between them; anything else refuses before any wipe. Use it
 whenever match_one runs may overlap (coders in parallel), one NAME per coder (C0152). Default: unchanged, one folder.
+5.5 T6: a run holds an OS byte lock on `<W>.lock` (beside W) from before the wipe until its row is written; a second
+run on the same W refuses `workdir busy` (rc 2 row, which is_attempt never counts) and touches nothing.
 --table: writes docs/matching/attempts_by_size.md from the ledger + config/matched_set.toml (definitions in its
 header; deterministic, no timestamp) and exits 0.
 """
@@ -133,6 +135,8 @@ def resolve(sym, config=None):
     """-> (mangled, va, size); Refuse when absent or ambiguous."""
     rows = _funcs()
     exact = [r for r in rows if r[0] == sym]
+    if len({r[1] for r in exact}) == 1 and len(exact) > 1:  # 5.5 T8: one name+VA in symbols.txt and a pin
+        exact = [max(exact, key=lambda r: r[2] or 0)]       # (T7 chain renames): one row, the sized one
     if len(exact) == 1:
         return exact[0]
     if len(exact) > 1:
@@ -224,6 +228,7 @@ def run(sym, src, config=None, rec=None, control=None, listing=False, workdir=No
         if workdir is not None and not WORKDIR_NAME.fullmatch(workdir):
             raise Refuse(f"--workdir {workdir!r}: one name of letters, digits and single . _ - between them")
         w = byte_compare._phase_run_dir() / ("match_one" if workdir is None else f"match_one.{workdir}")
+        _lock_workdir(w)  # 5.5 T6: before the wipe; an overlapping run on W refuses here instead of wiping W
         shutil.rmtree(w, ignore_errors=True)
         units_path = build.UNITS
         if control is not None:
@@ -510,10 +515,37 @@ def _append_row(ledger, line):
             msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
 
 
+_WORKDIR_LOCKS = []  # open <W>.lock handles, held until main has written the row
+
+
+def _lock_workdir(w):
+    """Take the OS byte lock on <W>.lock beside W for the rest of the run (5.5 T6; the OS frees it if this process dies,
+    so never stale). Held by another run: Refuse "workdir busy" (rc 2, no build, no wipe). Was: none, an overlapping
+    run wiped W mid-build and the first run wrote an rc 1 row (C1083 on a vanished source)."""
+    lk = w.with_name(w.name + ".lock")
+    lk.parent.mkdir(parents=True, exist_ok=True)
+    lk.open("a").close()
+    fh = lk.open("r+b")
+    try:
+        msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        fh.close()
+        raise Refuse(f"workdir busy: {w} is in use by another match_one run (use --workdir NAME, one per coder)")
+    _WORKDIR_LOCKS.append(fh)
+
+
+def _unlock_workdirs():
+    while _WORKDIR_LOCKS:
+        fh = _WORKDIR_LOCKS.pop()
+        fh.seek(0)
+        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+        fh.close()
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--symbol")
-    ap.add_argument("--task", help="T<n>, required for a run")
+    ap.add_argument("--task", help="T<n> or dotted T<n>.<k>[.<m>...], required for a run")
     ap.add_argument("--src", default=str(REPO / "src"))
     ap.add_argument("--config")
     ap.add_argument("--ledger", help="ledger file (default: a run appends to docs/matching/attempts-<phase>.jsonl; "
@@ -531,18 +563,23 @@ def main(argv):
         ledger = phase_ledger()
     if not a.symbol:
         ap.error("--symbol is required (or --table)")
+    # 5.4 T2: validated before the row, so a refused id writes no ledger row; dotted ids (T12.1) accepted
+    # was: inside the try, re.fullmatch(r"T\d+", a.task), the refusal row appended in `finally`
+    if not (a.task and re.fullmatch(r"T\d+(\.\d+)*", a.task)):
+        print(f"match_one: REFUSED --task T<n> or T<n>.<k> required (got {a.task!r})", file=sys.stderr)
+        return 2
     rec = dict.fromkeys(KEYS)
     rec.update(ts=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
                phase=byte_compare._phase_run_dir().name, task=a.task, symbol=a.symbol,
                kind="control" if a.control is not None else "listing" if a.listing else "attempt", rc=2)
     try:
-        if not (a.task and re.fullmatch(r"T\d+", a.task)):
-            print(f"match_one: REFUSED --task T<n> required (got {a.task!r})", file=sys.stderr)
-        else:
-            rec["rc"] = run(a.symbol, a.src, a.config, rec, a.control, a.listing, a.workdir,
-                            ledger_paths() + ([ledger] if ledger not in ledger_paths() else []))
+        rec["rc"] = run(a.symbol, a.src, a.config, rec, a.control, a.listing, a.workdir,
+                        ledger_paths() + ([ledger] if ledger not in ledger_paths() else []))
     finally:
-        _append_row(ledger, json.dumps({k: rec[k] for k in KEYS}) + "\n")
+        try:
+            _append_row(ledger, json.dumps({k: rec[k] for k in KEYS}) + "\n")
+        finally:
+            _unlock_workdirs()
     return rec["rc"]
 
 

@@ -327,6 +327,9 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
 class SwampScriptManager { // NAME: proto-pdb:default.pdb
 public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
     struct ScriptTimerEvent { // NAME: proto-pdb:default.pdb
         SwampScript* script;           // 0x00
         unsigned int id;               // 0x04
@@ -392,7 +395,18 @@ public:
 };
 
 class FanBoat : public Critter { // NAME: proto-pdb:default.pdb
+public:
+    FanBoat();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+
+    char field_2C8[0x2E8 - 0x2C8];     // 0x2C8 (not reached; size from the retail push 0x2E8)
 };
+DECOMP_SIZE_ASSERT(FanBoat, 0x2E8);
 
 class CritterManager { // NAME: proto-pdb:default.pdb
 public:
@@ -454,6 +468,10 @@ class Activator_FanBoatMain : public ActivatorMain { // NAME: proto-pdb:default.
 public:
     Activator_FanBoatMain(SwampSceneNode* node);
     virtual bool TestActivate() const;
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -463,6 +481,10 @@ class VinceEnterBoat : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     VinceEnterBoat(SwampSceneNode* node);
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -474,6 +496,10 @@ DECOMP_SIZE_ASSERT(VinceEnterBoat, 0x54);
 class VinceExitBoat : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     VinceExitBoat(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -493,6 +519,13 @@ public:
     Vector3 _velstart;                 // 0x6C
     Vector3 _velend;                   // 0x78
     float _age;                        // 0x84
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(FanBoatExitArea, 0x88);
 
@@ -504,6 +537,10 @@ public:
     virtual bool TestActivate() const;
     virtual void Activate();
     FanBoat* GetBoat() { return (FanBoat*)_node; }
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -559,14 +596,10 @@ template void std::_Tree<std::_Tset_traits<SwampScriptManager::ScriptTimerEvent,
 
 // FUNCTION: USA 0x0002E161
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); wall (5.3 T6.c7): denominator gap, 0x0002E161 is no entry in
-// derived/xdk functions.jsonl (finish progress.py refuses, C0322); lift: the VA made a function (re-derive)
 bool FanBoatMain::TestActivate() const
 {
     return _state == 1 ? true : false;
 }
-#endif
 
 // FUNCTION: USA 0x0002E2E6
 // PROTOTYPE: PREVIEW 0x0041CCA9 identical
@@ -863,6 +896,14 @@ void pin_emit_FanBoatWake_dtor(FanBoatWake* p)
     p->FanBoatWake::~FanBoatWake();
 }
 
+// FUNCTION: USA 0x000309A2
+// NAME: proto-pdb:default.pdb
+SwampScript* FanBoatExitArea::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("FanBoat.cpp", 1834) FanBoatExitArea(node);
+}
+
 // FUNCTION: USA 0x000309CC
 // PROTOTYPE: PREVIEW 0x0041F113 identical
 // NAME: proto-pdb:default.pdb
@@ -1008,6 +1049,13 @@ SwampScript* Activator_FanBoatMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\FanBoat.h", 249) Activator_FanBoatMain(node);
 }
 
+// FUNCTION: USA 0x000329C7
+// NAME: proto-pdb:default.pdb
+Activator_FanBoatMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Activator_FanBoatMain", creationFunc);
+}
+
 // FUNCTION: USA 0x0002FBB8
 // PROTOTYPE: PREVIEW 0x0041D67A ambiguous
 // NAME: proto-pdb:default.pdb
@@ -1039,16 +1087,31 @@ SwampScript* VinceEnterBoat::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\FanBoat.h", 206) VinceEnterBoat(node);
 }
 
+// FUNCTION: USA 0x0003294F
+// NAME: proto-pdb:default.pdb
+VinceEnterBoat::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceEnterBoat", creationFunc);
+}
+
 // FUNCTION: USA 0x00030588
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes match (masked 0); gate pin_rows: ctor pin 0x000302CF is site-corr, relocated through by this row (D102); lift = a disasm-/corr-verified ctor pin (5.3 T5)
+// 5.4 wall (T6.c4): promote-corr refuses the 0x000302CF ctor pin `route-near:no-agreeing-site`, so D102 still applies
 SwampScript* VinceExitBoat::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\FanBoat.h", 226) VinceExitBoat(node);
 }
 #endif
+
+// FUNCTION: USA 0x0003298B
+// NAME: proto-pdb:default.pdb
+VinceExitBoat::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceExitBoat", creationFunc);
+}
 
 // FUNCTION: USA 0x00032F07
 // PROTOTYPE: PREVIEW 0x0042168D identical
@@ -1057,4 +1120,42 @@ SwampScript* FanBoatMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\FanBoat.h", 37) FanBoatMain(node);
+}
+
+// FUNCTION: USA 0x00032F4A
+// NAME: proto-pdb:default.pdb
+FanBoatMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FanBoatMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00032A03
+// NAME: proto-pdb:default.pdb
+FanBoatExitArea::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FanBoatExitArea", creationFunc);
+}
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x00033B8D
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100, bytes provisional (masked 1; wall: ctor ??0FanBoat@@QAE@XZ jmp target 0x00032F86 has no retail VA row: needs a ctor pin + re-cut) (5.5 T27.c7)
+SwampSceneNode* FanBoat::creationFunc()
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\bayou\\FanBoat.h", 16) FanBoat;
+}
+#endif
+
+// FUNCTION: USA 0x00033BAF
+// NAME: proto-pdb:default.pdb
+FanBoat::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("FanBoat", creationFunc);
 }

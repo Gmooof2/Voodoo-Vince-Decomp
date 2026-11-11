@@ -361,8 +361,9 @@ public:
 DECOMP_SIZE_ASSERT(HottieBundle, 0x1C);
 
 class SmartBase { // NAME: proto-pdb:default.pdb
-public:
+protected:
     virtual ~SmartBase();              // vtable+0x00
+public:
     void AddRef() { _RefCount++; }
     void SubRef()
     {
@@ -541,6 +542,8 @@ public:
     // NAME: proto-pdb:default.pdb
     // FUNCTION: USA 0x000BE020
     // NAME: proto-pdb:default.pdb
+    // FUNCTION: USA 0x000BDCDA
+    // NAME: proto-pdb:default.pdb
     struct ResourceBundle { // NAME: proto-pdb:default.pdb
         Ptr<BundleWrapper> _bundle;    // 0x00
         bool _dontDiscard;             // 0x04
@@ -691,9 +694,7 @@ template unsigned int std::vector<Vector2,std::allocator<Vector2> >::capacity()c
 // FUNCTION: USA 0x000BDB11
 // PROTOTYPE: PREVIEW 0x004A8824 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but 0x000BDB11 folds 9 vector<T>::size aliases; SwampGatorNode.obj calls vector<TextureOverrides::Override>::size as an external (4.3 T12)
 template unsigned int std::vector<Vector2,std::allocator<Vector2> >::size()const;
-#endif
 
 // FUNCTION: USA 0x000BDB24
 // PROTOTYPE: PREVIEW 0x004A8837 identical
@@ -798,6 +799,19 @@ void pin_emit_ResourceBundle_copy(void* p, const ResourceManager<TextureResource
 {
     new (p) ResourceManager<TextureResource>::ResourceBundle(v);
 }
+
+// !FAKE: c1xx front end; scaffold assignment; retail emits the implicit ResourceBundle copy assignment in this
+// unit (no matched function odr-uses it); this assignment odr-uses it instead (matched_set [[emitter]] row)
+#ifdef NON_MATCHING
+// best: with this scaffold unguarded, ??4ResourceBundle 0x000BDCDA match_one objdiff 100.0, bytes match (masked 0),
+// 5.5 T8.c7; wall: precheck `*objects* extra: unlisted code symbol ?pin_emit_ResourceBundle_assign@@...`: needs its
+// [[emitter]] row (`matched_set.py add --emitter`, finish only) before the guard lifts with the ??4 row
+void pin_emit_ResourceBundle_assign(ResourceManager<TextureResource>::ResourceBundle& d,
+                                    const ResourceManager<TextureResource>::ResourceBundle& v)
+{
+    d = v;
+}
+#endif
 
 // FUNCTION: USA 0x000BDD40
 // PROTOTYPE: PREVIEW 0x004A8A95 identical

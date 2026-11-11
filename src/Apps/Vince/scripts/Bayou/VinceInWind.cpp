@@ -6,6 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
 
 protected:
@@ -218,6 +219,10 @@ class VinceInWind : public VinceMain { // NAME: proto-pdb:default.pdb
 public:
     VinceInWind(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -233,6 +238,13 @@ void VinceInWind::Message(SwampScript* source, int message, void* data)
         GetCritter()->Stun(0.0f);
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x00028C26
 // PROTOTYPE: PREVIEW 0x00417A59 identical
 // NAME: proto-pdb:default.pdb
@@ -240,4 +252,11 @@ SwampScript* VinceInWind::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("HurricaneHanna\\VinceInWind.cpp", 21) VinceInWind(node);
+}
+
+// FUNCTION: USA 0x00028C4D
+// NAME: proto-pdb:default.pdb
+VinceInWind::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceInWind", creationFunc);
 }

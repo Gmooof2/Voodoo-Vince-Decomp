@@ -691,13 +691,10 @@ UberIlluminationInfo::~UberIlluminationInfo()
 
 // FUNCTION: USA 0x000CCA3B
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; matched_set refuses (near-corr pin, no lane near row at 0x000CCA3B)
 void LightManager::ClearCache()
 {
     _cachedII.clear();
 }
-#endif
 
 // FUNCTION: USA 0x000CD0E1
 // PROTOTYPE: PREVIEW 0x004B9CDF identical

@@ -139,6 +139,12 @@ DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 class KosmoAppearsTumblerCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
     KosmoAppearsTumblerCutscene(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 private:
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_KOSMOFADE = 0
@@ -160,6 +166,8 @@ private:
     bool _wasWhammyReady;              // 0x89
 };
 DECOMP_SIZE_ASSERT(KosmoAppearsTumblerCutscene, 0x8C);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
 // FUNCTION: USA 0x0008EA51
 // PROTOTYPE: PREVIEW 0x0047A110 identical
@@ -187,4 +195,26 @@ void KosmoAppearsTumblerCutscene::SetState(int state)
         break;
     }
     _state = state;
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0008EC74
+// NAME: proto-pdb:default.pdb
+SwampScript* KosmoAppearsTumblerCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("tumblerRoom\\TumblerRoomCutscenes.cpp", 17) KosmoAppearsTumblerCutscene(node);
+}
+
+// FUNCTION: USA 0x0008EC9B
+// NAME: proto-pdb:default.pdb
+KosmoAppearsTumblerCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KosmoAppearsTumblerCutscene", creationFunc);
 }

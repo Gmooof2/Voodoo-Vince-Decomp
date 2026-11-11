@@ -134,6 +134,11 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -156,6 +161,11 @@ public:
     VinceThinkAloud(SwampSceneNode* node);
     virtual void FrameTick();
     virtual void SoundFinished(const SwampString& name);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -164,6 +174,13 @@ public:
     SoundNode* _sound;                 // 0xD8
 };
 DECOMP_SIZE_ASSERT(VinceThinkAloud, 0xDC);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x0012208F
 // PROTOTYPE: PREVIEW 0x0050AD5D identical
@@ -203,6 +220,13 @@ SwampScript* DialogueRegionMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\core\\DialogueRegion.h", 18) DialogueRegionMain(node);
 }
 
+// FUNCTION: USA 0x0012257A
+// NAME: proto-pdb:default.pdb
+DialogueRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialogueRegionMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00122173
 // PROTOTYPE: PREVIEW 0x0050AE41 identical
 // NAME: proto-pdb:default.pdb
@@ -210,6 +234,13 @@ SwampScript* VinceThinkAloud::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\DialogueRegion.h", 44) VinceThinkAloud(node);
+}
+
+// FUNCTION: USA 0x001225B6
+// NAME: proto-pdb:default.pdb
+VinceThinkAloud::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceThinkAloud", creationFunc);
 }
 
 // FUNCTION: USA 0x0012219A

@@ -71,6 +71,15 @@ public:
     friend class const_iterator;
     class const_iterator {
     public:
+        const_iterator(_Nodeptr _Pnode) : _Ptr(_Pnode) {}
+        const typename Tr::value_type& operator*() const { return (*_Ptr)._Myval; }
+        const_iterator& operator++()
+        {
+            _Inc();
+            return (*this);
+        }
+        bool operator==(const const_iterator& _Other) const { return (_Ptr == _Other._Ptr); }
+        bool operator!=(const const_iterator& _Other) const { return (!(*this == _Other)); }
         void _Inc()
         {
             if (_Isnil(_Ptr))
@@ -86,6 +95,16 @@ public:
         }
         _Nodeptr _Ptr;
     };
+    const_iterator begin() const { return (const_iterator(_Left(_Myhead))); }
+    const_iterator end() const { return (const_iterator(_Myhead)); }
+    unsigned int size() const { return (_Mysize); }
+    bool empty() const { return (size() == 0); }
+
+protected:
+    _Nodeptr _Myhead;                  // 0x04
+    unsigned int _Mysize;              // 0x08
+};
+template <class K, class Pr, class A> class set : public _Tree<_Tset_traits<K, Pr, A, false> > {
 };
 // list: VC 7.1 <list> layout; ctor and _Insert out of line in retail (0x000B9F2D, 0x000BA3AC)
 template <class T, class A> class list {
@@ -198,8 +217,9 @@ public:
 };
 
 class SmartBase { // NAME: proto-pdb:default.pdb
-public:
+protected:
     virtual ~SmartBase();              // vtable+0x00
+public:
     void SubRef()
     {
         if (--_RefCount == 0)
@@ -275,6 +295,19 @@ class SoundNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     void SetVolume(float);
     void UpdatePosition();
+    void Stop();
+
+    char field_pad[0xB0 - sizeof(SwampSceneNode)]; // after SwampSceneNode (members unread here)
+    float _volume;                     // 0xB0
+};
+
+class SoundStreamer { // NAME: proto-pdb:default.pdb
+public:
+    void Stop();
+    void SetVolume(float);
+
+    char field_0[0x10];                // 0x00
+    float _volume;                     // 0x10
 };
 
 class SwampScene { // NAME: proto-pdb:default.pdb
@@ -316,6 +349,9 @@ public:
     void SetMusicVolume(float);
     void SetCinematicVolume(float);
     void SetAllVolumes(float sound, float music, float cinematic, float nomute);
+    void StopAllSounds();
+    void StopAllStreams();
+    void SetVolumeSuppression(bool);
     static void PlaySound(const ResourceHandle<SoundResource>& sh, const std::basic_string<char, std::char_traits<char>, std::allocator<char> >& name, unsigned int flags, SwampSceneNode* parent, bool bAttach, float minDist3D, float maxDist3D);
     static void PlaySound(const std::basic_string<char, std::char_traits<char>, std::allocator<char> >& name, unsigned int flags, SwampSceneNode* parent, bool bAttach, float minDist3D, float maxDist3D);
     static SoundNode* CreateSound(const ResourceHandle<SoundResource>& sh, const std::basic_string<char, std::char_traits<char>, std::allocator<char> >& name, unsigned int flags, SwampSceneNode* parent, bool bAttach);
@@ -324,6 +360,7 @@ public:
 private:
     static void PrepareSound(SoundNode* psound, const ResourceHandle<SoundResource>& sh, const std::basic_string<char, std::char_traits<char>, std::allocator<char> >& name, SwampSceneNode* parent, bool bAttach);
     void ResetVolumes();
+    void ReleaseBuffer(bool is3D, const tWAVEFORMATEX* fmt, IDirectSoundBuffer* buffer);
     void SetupMixBins(_DSMIXBINS& dsmb, bool is3D, const tWAVEFORMATEX* fmt, bool isVoice) const;
 
 public:
@@ -334,7 +371,16 @@ public:
     float _musicVolume;                // 0x68
     float _cinematicVolume;            // 0x6C
     float field_70;                    // 0x70
+    char field_74[0x91 - 0x74];        // 0x74 (retail grew by 8 below _volSuppressed)
+    bool _volSuppressed;               // 0x91 proto 0x89
+    char field_92[0xA0 - 0x92];        // 0x92
+    std::set<SoundNode*, std::less<SoundNode*>, std::allocator<SoundNode*> > _playing;             // 0xA0 proto 0x98
+    std::set<SoundStreamer*, std::less<SoundStreamer*>, std::allocator<SoundStreamer*> > _strPlaying; // 0xAC proto 0xA4
+    BufferMgr _monoVoices;             // 0xB8 proto 0xB0
+    BufferMgr _stereoVoices;           // 0xCC proto 0xC4
+    BufferMgr _3DVoices;               // 0xE0 proto 0xD8
 };
+DECOMP_SIZE_ASSERT(SoundManager, 0xF4);
 
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
@@ -362,6 +408,20 @@ bool SoundManager::BufferMgr::Create(unsigned int max)
 void SoundManager::SetRolloffDist(float dist)
 {
     _rolloffDist = dist;
+}
+
+// FUNCTION: USA 0x000B8E9E
+// PROTOTYPE: PREVIEW 0x004A3C76 near-identical
+// NAME: proto-pdb:default.pdb
+void SoundManager::SetVolumeSuppression(bool flag)
+{
+    if (flag) {
+        if (!_volSuppressed)
+            _volSuppressed = true;
+    } else {
+        if (_volSuppressed)
+            _volSuppressed = false;
+    }
 }
 
 // FUNCTION: USA 0x000B8EDE
@@ -473,6 +533,35 @@ void SoundManager::BufferMgr::Clean()
     } while (!v0);
 }
 #endif
+
+// FUNCTION: USA 0x000B94CB
+// PROTOTYPE: PREVIEW 0x004A4230 near-identical
+// NAME: proto-pdb:default.pdb
+void SoundManager::StopAllSounds()
+{
+    while (!_playing.empty())
+        (*_playing.begin())->Stop();
+}
+
+// FUNCTION: USA 0x000B94EF
+// PROTOTYPE: PREVIEW 0x004A4254 near-identical
+// NAME: proto-pdb:default.pdb
+void SoundManager::StopAllStreams()
+{
+    while (!_strPlaying.empty())
+        (*_strPlaying.begin())->Stop();
+}
+
+// FUNCTION: USA 0x000B9513
+// PROTOTYPE: PREVIEW 0x004A4278 near-identical
+// NAME: proto-pdb:default.pdb
+void SoundManager::ResetVolumes()
+{
+    for (std::set<SoundNode*, std::less<SoundNode*>, std::allocator<SoundNode*> >::const_iterator i = _playing.begin(); i != _playing.end(); ++i)
+        (*i)->SetVolume((*i)->_volume);
+    for (std::set<SoundStreamer*, std::less<SoundStreamer*>, std::allocator<SoundStreamer*> >::const_iterator i = _strPlaying.begin(); i != _strPlaying.end(); ++i)
+        (*i)->SetVolume((*i)->_volume);
+}
 
 // FUNCTION: USA 0x000B9DEB
 // PROTOTYPE: PREVIEW 0x004A4B1C identical
@@ -643,4 +732,23 @@ SoundNode* SoundManager::CreateSound(const std::basic_string<char, std::char_tra
 {
     ResourceHandle<SoundResource> sh = g_swamp->_soundManager->Load(name);
     return CreateSound(sh, name, flags, parent, bAttach);
+}
+
+// FUNCTION: USA 0x000BA5BB
+// PROTOTYPE: PREVIEW 0x004A52D6 near-identical
+// NAME: proto-pdb:default.pdb
+void SoundManager::ReleaseBuffer(bool is3D, const tWAVEFORMATEX* fmt, IDirectSoundBuffer* buffer)
+{
+    if (is3D) {
+        _3DVoices.Release(buffer);
+    } else {
+        switch (fmt->nChannels) {
+        case 1:
+            _monoVoices.Release(buffer);
+            break;
+        case 2:
+            _stereoVoices.Release(buffer);
+            break;
+        }
+    }
 }

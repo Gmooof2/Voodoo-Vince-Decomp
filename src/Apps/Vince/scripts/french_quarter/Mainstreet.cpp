@@ -198,6 +198,10 @@ DECOMP_SIZE_ASSERT(RewardPowerIconMain, 0xD8);
 
 class RewardGateFrogMain : public RewardPowerIconMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     RewardGateFrogMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -206,6 +210,10 @@ DECOMP_SIZE_ASSERT(RewardGateFrogMain, 0xD8);
 
 class GatesRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_CUTAWAY = 0
     };
@@ -228,6 +236,10 @@ DECOMP_SIZE_ASSERT(GatesRegionMain, 0x54);
 
 class GateTrapMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Message { // NAME: proto-pdb:default.pdb
         MESSAGE_CLOSE = 0x14,
         MESSAGE_OPEN = 0x15,
@@ -269,6 +281,10 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class MainstreetRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     MainstreetRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
     virtual void LeavingRegion(SwampSceneNode* node);
@@ -341,6 +357,41 @@ SwampScript* MainstreetRegionMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\Mainstreet.h", 11) MainstreetRegionMain(node);
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x000710A4
+// NAME: proto-pdb:default.pdb
+MainstreetRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MainstreetRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000710E0
+// NAME: proto-pdb:default.pdb
+RewardGateFrogMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RewardGateFrogMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0007111C
+// NAME: proto-pdb:default.pdb
+GatesRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GatesRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00071158
+// NAME: proto-pdb:default.pdb
+GateTrapMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GateTrapMain", creationFunc);
+}
+
 class MonsterMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum Messages { // NAME: proto-pdb:default.pdb
@@ -363,6 +414,10 @@ public:
 
 class GateFrogMain : public PitFrogMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     GateFrogMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
 private:
@@ -517,8 +572,6 @@ void GateTrapMain::Message(SwampScript* source, int message, void* data)
 // FUNCTION: USA 0x00070FCF
 // PROTOTYPE: PREVIEW 0x0045D151 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); wall: relink refuses: external ?Message@MainstreetRegionMain@@UAEXPAVSwampScript@@HPAX@Z does not resolve by name (vtable 0x001DB7E8 slot +0x34 = 0x00070505, unnamed; PDB-declared override) (4.4 T4.c9)
 MainstreetRegionMain::MainstreetRegionMain(SwampSceneNode* node) : LevelScript(node, true)
 {
     pManager->RemoveMatching("Wrench");
@@ -528,7 +581,6 @@ MainstreetRegionMain::MainstreetRegionMain(SwampSceneNode* node) : LevelScript(n
         cangas->SetOption(SwampSceneNode::DontDraw, true, false);
     }
 }
-#endif
 
 // FUNCTION: USA 0x00070B40
 // PROTOTYPE: PREVIEW 0x0045CCC2 identical
@@ -583,10 +635,12 @@ void GatesRegionMain::EnteringRegion(SwampSceneNode* node)
     }
 }
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x00071194
 // PROTOTYPE: PREVIEW 0x0045D316 near-identical
 // NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = vptr store; needs pin ??_7GateFrogMain@@6B@ at
+// 0x001DB8E8); source is final; 5.4 T15.c3
 GateFrogMain::GateFrogMain(SwampSceneNode* node) : PitFrogMain(node)
 {
     ((Critter*)_node)->field_260 = false;
@@ -601,4 +655,11 @@ SwampScript* GateFrogMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("mainstreet\\Mainstreet.cpp", 90) GateFrogMain(node);
+}
+
+// FUNCTION: USA 0x000711E6
+// NAME: proto-pdb:default.pdb
+GateFrogMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GateFrogMain", creationFunc);
 }

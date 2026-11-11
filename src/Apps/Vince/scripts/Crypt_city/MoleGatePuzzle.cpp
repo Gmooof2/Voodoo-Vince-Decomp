@@ -308,6 +308,10 @@ DECOMP_SIZE_ASSERT(MoleHole, 0x10);
 // retail ??1 has no vptr store: the class declares no dtor (C0029)
 class MondoMolePuzzleRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     virtual void FrameTick();
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void EnteringRegion(SwampSceneNode* node);
@@ -348,6 +352,10 @@ DECOMP_SIZE_ASSERT(MondoMolePuzzleRegionMain, 0x2EC);
 // retail ??_G inlines ~MoleTombMain with no vptr store: the class declares no dtor (C0029)
 class MoleTombMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum { // NAME: proto-pdb:default.pdb
         MESSAGE_POPUP = 0x14
     };
@@ -370,13 +378,33 @@ DECOMP_SIZE_ASSERT(MoleTombMain, 0xC4);
 class MoleTomb_AMain : public MoleTombMain { // NAME: proto-pdb:default.pdb
 public:
     MoleTomb_AMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(MoleTomb_AMain, 0xC4);
 
+class MoleTomb_GMain : public MoleTombMain { // NAME: proto-pdb:default.pdb
+public:
+    MoleTomb_GMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleTomb_GMain, 0xC4);
+
 class MoleGateMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Messages { // NAME: proto-pdb:default.pdb
         MESSAGE_GATE_CLOSE = 0x14,
         MESSAGE_GATE_OPEN = 0x15,
@@ -396,6 +424,8 @@ public:
 
     ResourceHandle<AnimationResource> _open; // 0xBC
     bool _solved;                      // 0xC0
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(MoleGateMain, 0xC4);
 
@@ -447,6 +477,10 @@ DECOMP_SIZE_ASSERT(MondoMoleMain, 0x340);
 
 class GateMoleMain : public MondoMoleMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     GateMoleMain(SwampSceneNode* node);
     virtual void Activate();
     virtual void SetState(int state);
@@ -473,13 +507,9 @@ void MondoMolePuzzleRegionMain::Message(SwampScript* source, int message, void* 
 
 // FUNCTION: USA 0x0005EDDC
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); precheck relink `our ranges overlap at 0x00025012`:
-// the ctor emits ??_7Popup, whose slot 0 ??_GPopup@@UAEPAXI@Z folds at 0x00025012 and is not pinned there by name
 Popup::Popup(CritterMain* tomb) : SwampScript(0), _tomb(tomb)
 {
 }
-#endif
 
 // FUNCTION: USA 0x0005EDF9
 // PROTOTYPE: PREVIEW 0x0044B238 identical
@@ -781,18 +811,264 @@ SwampScript* MoleTombMain::creationFunc(SwampSceneNode* node)
     return new("GatekeeperJam\\MoleGatePuzzle.cpp", 58) MoleTombMain(node);
 }
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x0005FC5F
 // PROTOTYPE: PREVIEW 0x0044BFCD identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 25.0, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
+SwampScript* MoleTomb_GMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 673) MoleTomb_GMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0005FE75
+// NAME: proto-pdb:default.pdb
+MoleTombMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTombMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0005FEB1
+// NAME: proto-pdb:default.pdb
+MondoMolePuzzleRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MondoMolePuzzleRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0005FF2C
+// NAME: proto-pdb:default.pdb
+MoleGateMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleGateMain", creationFunc);
+}
+
+class MoleGate_AMain : public MoleGateMain { // NAME: proto-pdb:default.pdb
+private:
+    MoleGate_AMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleGate_AMain, 0xC4);
+
+class MoleGate_BMain : public MoleGateMain { // NAME: proto-pdb:default.pdb
+private:
+    MoleGate_BMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleGate_BMain, 0xC4);
+
+class MoleTomb_BMain : public MoleTombMain { // NAME: proto-pdb:default.pdb
+public:
+    MoleTomb_BMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleTomb_BMain, 0xC4);
+
+class MoleTomb_CMain : public MoleTombMain { // NAME: proto-pdb:default.pdb
+public:
+    MoleTomb_CMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleTomb_CMain, 0xC4);
+
+class MoleTomb_DMain : public MoleTombMain { // NAME: proto-pdb:default.pdb
+public:
+    MoleTomb_DMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleTomb_DMain, 0xC4);
+
+class MoleTomb_EMain : public MoleTombMain { // NAME: proto-pdb:default.pdb
+public:
+    MoleTomb_EMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleTomb_EMain, 0xC4);
+
+class MoleTomb_FMain : public MoleTombMain { // NAME: proto-pdb:default.pdb
+public:
+    MoleTomb_FMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MoleTomb_FMain, 0xC4);
+
+// FUNCTION: USA 0x0005FB63
+// NAME: proto-pdb:default.pdb
 SwampScript* MoleTomb_AMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
-    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 673) MoleTomb_AMain(node);
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 667) MoleTomb_AMain(node);
 }
-#endif
+
+// FUNCTION: USA 0x0005FB8D
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleTomb_BMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 668) MoleTomb_BMain(node);
+}
+
+// FUNCTION: USA 0x0005FBB7
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleTomb_CMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 669) MoleTomb_CMain(node);
+}
+
+// FUNCTION: USA 0x0005FBE1
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleTomb_DMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 670) MoleTomb_DMain(node);
+}
+
+// FUNCTION: USA 0x0005FC0B
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleTomb_EMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 671) MoleTomb_EMain(node);
+}
+
+// FUNCTION: USA 0x0005FC35
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleTomb_FMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 672) MoleTomb_FMain(node);
+}
+
+// FUNCTION: USA 0x0005FC89
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleGateMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 265) MoleGateMain(node);
+}
+
+// FUNCTION: USA 0x0005FCB3
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleGate_AMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 384) MoleGate_AMain(node);
+}
+
+// FUNCTION: USA 0x0005FCDD
+// NAME: proto-pdb:default.pdb
+SwampScript* MoleGate_BMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("GatekeeperJam\\MoleGatePuzzle.cpp", 391) MoleGate_BMain(node);
+}
+
+// FUNCTION: USA 0x0005FF68
+// NAME: proto-pdb:default.pdb
+MoleGate_AMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleGate_AMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0005FFA4
+// NAME: proto-pdb:default.pdb
+MoleGate_BMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleGate_BMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0005FFE0
+// NAME: proto-pdb:default.pdb
+MoleTomb_AMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTomb_AMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0006001C
+// NAME: proto-pdb:default.pdb
+MoleTomb_BMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTomb_BMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00060058
+// NAME: proto-pdb:default.pdb
+MoleTomb_CMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTomb_CMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00060094
+// NAME: proto-pdb:default.pdb
+MoleTomb_DMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTomb_DMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000600D0
+// NAME: proto-pdb:default.pdb
+MoleTomb_EMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTomb_EMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0006010C
+// NAME: proto-pdb:default.pdb
+MoleTomb_FMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTomb_FMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00060148
+// NAME: proto-pdb:default.pdb
+MoleTomb_GMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoleTomb_GMain", creationFunc);
+}
 
 // FUNCTION: USA 0x00060184
 // PROTOTYPE: PREVIEW 0x0044C639 identical
@@ -801,4 +1077,11 @@ SwampScript* GateMoleMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("GatekeeperJam\\MoleGatePuzzle.cpp", 108) GateMoleMain(node);
+}
+
+// FUNCTION: USA 0x000601AB
+// NAME: proto-pdb:default.pdb
+GateMoleMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GateMoleMain", creationFunc);
 }

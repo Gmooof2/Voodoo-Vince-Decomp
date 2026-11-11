@@ -1,6 +1,6 @@
 # Setup: a fresh clone to a green gate
 
-Every step, in order, from nothing to `PY tools/gate.py` green, on native Windows. It takes about 14 minutes of machine
+Every step, in order, from nothing to `PY tools/gate.py` green, on native Windows. It takes about 9 minutes of machine
 time once the prerequisites are in place. `PY` below means your Python 3.15, for example `python`.
 
 Exit codes, unless a step says otherwise: 0 ok, 1 a check failed, 2 refusal (bad or missing config or input). When a step
@@ -86,7 +86,7 @@ stdout prints every value, so do not log it.
 
 ## 5. Inputs
 
-`PY tools/manifest.py verify` (about 30 s): every input file's sha1 and size against `config/inputs.manifest.jsonl`, and
+`PY tools/manifest.py verify` (about 20 s): every input file's sha1 and size against `config/inputs.manifest.jsonl`, and
 the retail pin. Exit 0 match; 1 mismatch, missing or extra file; 2 config or manifest missing. With `xbdm_dll` null its
 one record is not checked and that is no problem: it prints `xbdm_dll: 1 in manifest, not checked (key is null)` and exits
 0, last line `verify: OK — 0 problem(s) among 410 records; not checked: xbdm_dll 1`. A set `xbdm_dll` is checked like any
@@ -106,31 +106,32 @@ Each step refuses without the previous one's output. If a run stops with no outp
 1. `PY tools/proto_map.py --target retail-xbe`, about 20 s. Last line `wrote derived/proto_map/retail-xbe/functions.jsonl (10388 rows), ...`.
 2. `PY tools/dup_report.py`, about 3 s. Last line `classes: ... sum 19683/19683 ok`.
 3. `PY tools/delink.py ingest --fresh`, about 2 minutes. Exit 0.
-4. `PY tools/delink.py --fresh`, about 3 minutes. Last line `marker <path> objects 223`.
-5. `PY tools/xdk_report.py`, about 2 s. Prints `functions (applied): 9045 ...`, last line `sum checks: ok`.
-6. `PY tools/relink.py cut`, about 5 minutes. Last line `cut derived/relink/retail-<sha8>/cut: 10 sections, 538 objects, ...`.
+4. `PY tools/delink.py --fresh`, about 2 minutes. Last line `marker <path> objects 224`.
+5. `PY tools/xdk_report.py`, about 2 s. Prints `functions (applied): 9450 ...`, last line `sum checks: ok`.
+6. `PY tools/relink.py cut`, about 3 minutes. Last line `cut derived/relink/retail-<sha8>/cut: 10 sections, 538 objects, ...`.
    Without it the gate prints `FAIL relink: fail: REFUSED ...`.
 
 Steps 1, 3, 4 and 6 are what the gate reads. Step 5 and the next two feed the other tools:
 
-7. `PY tools/candidates.py --write`, about 4 s, regenerates `docs/matching/next_candidates.md` and
+7. `PY tools/candidates.py --write`, about 6 s, regenerates `docs/matching/next_candidates.md` and
    `docs/matching/delink_residue.md`. `git status --porcelain` is empty afterwards.
 8. `PY tools/name_sites.py`, about 2 s, then `PY tools/name_sites.py --check-cut`: `... FAIL 0`, exit 0.
 
 ## 8. The gate
 
 - `bash tools/run.sh gate -- PY tools/gate.py`, up to about 2 minutes. Green is exit 0, every global line `PASS`, and the bare
-  line `2157 passed, 0 failed of 2157` (N is the `[[function]]` rows of `config/matched_set.toml`). A failed global adds
+  line `2797 passed, 0 failed of 2797` (N is the `[[function]]` rows of `config/matched_set.toml`). A failed global adds
   `; FAIL globals: <names>` and exits 1; a refusal exits 2. The exit code and that line are the only claim of a match.
 - `bash tools/run.sh selftest -- PY tools/gate.py --self-test`, up to about 3 minutes: plants known errors and proves the gate
-  catches each one. Last line `controls: 159 failed as expected of 159`, exit 0.
+  catches each one. Last line `controls: 231 failed as expected of 231`, exit 0. The public tree skips `hook-commitmsg-audit`
+  (`githooks/commit-msg` is not shipped); the private tree runs it as one more control.
 - When it fails: `FAIL lock` first (a file's bytes changed), `FAIL check_env` (step 6), `target missing` or
   `gate: REFUSED cut` (step 7), `FAIL relink: fail: REFUSED` (`relink.py cut`), `FAIL provenance: fail: REFUSED` (step 2's
   upstream, or the prototype inputs), then the named layer.
 
 ## 9. Optional
 
-- `PY tools/relink.py check`, about 60 s: `check all: digests 16/16 OK`; the relinked XBE's sha1 equals the retail pin.
+- `PY tools/relink.py check`, about 40 s: `check all: digests 16/16 OK`; the relinked XBE's sha1 equals the retail pin.
 - `PY tools/progress.py` regenerates `docs/progress.md` from step 5 and the last gate run.
 - `PY tools/match_one.py --help`: build one function's unit and compare it, a quick check while matching. Only the gate
   decides. Start with `docs/matching/START_HERE.md`.

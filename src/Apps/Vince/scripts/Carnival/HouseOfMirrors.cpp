@@ -132,6 +132,13 @@ class Switch_GeneratorMain : public BasicWallSwitchMain { // NAME: proto-pdb:def
 public:
     Switch_GeneratorMain(SwampSceneNode* node);
     virtual void Activate();
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 
 class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
@@ -149,6 +156,13 @@ DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 class BattleDoorsMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
     virtual void Message(SwampScript* source, int message, void* data);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 
 class MirrorMonsterRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
@@ -161,6 +175,13 @@ public:
 
     SwampString _monster;              // 0x4C
     Critter* _child;                   // 0x68
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(MirrorMonsterRegionMain, 0x6C);
 
@@ -195,6 +216,13 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
 
     SwampScript* _parent;              // 0x4C
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(EvilVinceMirrorBrokenMain, 0x50);
 
@@ -220,6 +248,13 @@ class HouseOMirrorsRegionMain : public LevelScript { // NAME: proto-pdb:default.
 public:
     HouseOMirrorsRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(HouseOMirrorsRegionMain, 0x64);
 
@@ -326,4 +361,246 @@ DECOMP_SIZE_ASSERT(FireBugMain, 0x274);
 void pin_emit_FireBugMain_dtor(FireBugMain* p)
 {
     p->FireBugMain::~FireBugMain();
+}
+
+class EvilVinceBeginRegionMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class MirrorMonsterMain : public FireBugMain { // NAME: proto-pdb:default.pdb
+};
+DECOMP_SIZE_ASSERT(MirrorMonsterMain, 0x274);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+class MirrorMonsterAMain : public MirrorMonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    MirrorMonsterAMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MirrorMonsterAMain, 0x274);
+
+class MirrorMonsterBMain : public MirrorMonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    MirrorMonsterBMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MirrorMonsterBMain, 0x274);
+
+class MirrorMonsterCMain : public MirrorMonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    MirrorMonsterCMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MirrorMonsterCMain, 0x274);
+
+class MirrorMonsterDMain : public MirrorMonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    MirrorMonsterDMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MirrorMonsterDMain, 0x274);
+
+class MirrorMonsterEMain : public MirrorMonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    MirrorMonsterEMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MirrorMonsterEMain, 0x274);
+
+class MirrorMonsterFMain : public MirrorMonsterMain { // NAME: proto-pdb:default.pdb
+public:
+    MirrorMonsterFMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(MirrorMonsterFMain, 0x274);
+
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00044228
+// NAME: proto-pdb:default.pdb
+HouseOMirrorsRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HouseOMirrorsRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00044264
+// NAME: proto-pdb:default.pdb
+EvilVinceBeginRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("EvilVinceBeginRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000442A0
+// NAME: proto-pdb:default.pdb
+MirrorMonsterRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorMonsterRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00044390
+// NAME: proto-pdb:default.pdb
+Switch_GeneratorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_GeneratorMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000443CC
+// NAME: proto-pdb:default.pdb
+BattleDoorsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BattleDoorsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000444F6
+// NAME: proto-pdb:default.pdb
+EvilVinceMirrorBrokenMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("EvilVinceMirrorBrokenMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000446E2
+// NAME: proto-pdb:default.pdb
+MirrorMonsterAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorMonsterAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004471E
+// NAME: proto-pdb:default.pdb
+MirrorMonsterBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorMonsterBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004475A
+// NAME: proto-pdb:default.pdb
+MirrorMonsterCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorMonsterCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00044796
+// NAME: proto-pdb:default.pdb
+MirrorMonsterDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorMonsterDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000447D2
+// NAME: proto-pdb:default.pdb
+MirrorMonsterEMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorMonsterEMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004480E
+// NAME: proto-pdb:default.pdb
+MirrorMonsterFMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorMonsterFMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000431F6
+// NAME: proto-pdb:default.pdb
+SwampScript* EvilVinceMirrorBrokenMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HouseOfMirrors\\HouseOfMirrors.cpp", 698) EvilVinceMirrorBrokenMain(node);
+}
+
+// FUNCTION: USA 0x000445E6
+// NAME: proto-pdb:default.pdb
+SwampScript* MirrorMonsterAMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HouseOfMirrors\\HouseOfMirrors.cpp", 291) MirrorMonsterAMain(node);
+}
+
+// FUNCTION: USA 0x00044610
+// NAME: proto-pdb:default.pdb
+SwampScript* MirrorMonsterBMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HouseOfMirrors\\HouseOfMirrors.cpp", 302) MirrorMonsterBMain(node);
+}
+
+// FUNCTION: USA 0x0004463A
+// NAME: proto-pdb:default.pdb
+SwampScript* MirrorMonsterCMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HouseOfMirrors\\HouseOfMirrors.cpp", 313) MirrorMonsterCMain(node);
+}
+
+// FUNCTION: USA 0x00044664
+// NAME: proto-pdb:default.pdb
+SwampScript* MirrorMonsterDMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HouseOfMirrors\\HouseOfMirrors.cpp", 324) MirrorMonsterDMain(node);
+}
+
+// FUNCTION: USA 0x0004468E
+// NAME: proto-pdb:default.pdb
+SwampScript* MirrorMonsterEMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HouseOfMirrors\\HouseOfMirrors.cpp", 335) MirrorMonsterEMain(node);
+}
+
+// FUNCTION: USA 0x000446B8
+// NAME: proto-pdb:default.pdb
+SwampScript* MirrorMonsterFMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HouseOfMirrors\\HouseOfMirrors.cpp", 346) MirrorMonsterFMain(node);
 }

@@ -4,7 +4,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits; // src proto-pdb:default.pdb char_traits
 template <class T> class allocator; // src proto-pdb:default.pdb allocator
-template <class E, class T, class A> class basic_string; // src proto-pdb:default.pdb basic_string
+template <class E, class T, class A> class basic_string { // src proto-pdb:default.pdb basic_string
+public:
+    basic_string(const E* _Ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -224,6 +234,10 @@ public:
     virtual void AnimationFinished();
 protected:
     virtual void SetState(int state);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -321,6 +335,13 @@ void AmbientBirdMain::SetState(int state)
     }
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x0011263A
 // PROTOTYPE: PREVIEW 0x004FCE91 identical
 // NAME: proto-pdb:default.pdb
@@ -328,4 +349,11 @@ SwampScript* AmbientBirdMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\AmbientBird.h", 10) AmbientBirdMain(node);
+}
+
+// FUNCTION: USA 0x00112661
+// NAME: proto-pdb:default.pdb
+AmbientBirdMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("AmbientBirdMain", creationFunc);
 }

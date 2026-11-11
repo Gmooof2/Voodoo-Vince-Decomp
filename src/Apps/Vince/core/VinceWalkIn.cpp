@@ -3,7 +3,18 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    unsigned int _pad00[5];            // 0x00
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -86,6 +97,10 @@ class VinceWalkIn : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     VinceWalkIn(SwampSceneNode* node);
     virtual void FrameTick();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -102,6 +117,20 @@ SwampScript* VinceWalkIn::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\VinceWalkIn.h", 6) VinceWalkIn(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x001367EC
+// NAME: proto-pdb:default.pdb
+VinceWalkIn::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceWalkIn", creationFunc);
 }
 
 // FUNCTION: USA 0x00136637

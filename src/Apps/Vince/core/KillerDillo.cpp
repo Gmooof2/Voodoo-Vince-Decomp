@@ -3,7 +3,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* _Ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    unsigned int _pad00[0x1C / 4];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -135,8 +145,20 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     char field_240[0x324 - 0x240];     // 0x240 (not reached)
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(KillerDilloMain, 0x324);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x001234FA
 // PROTOTYPE: PREVIEW 0x0050C0A2 identical
@@ -216,4 +238,11 @@ SwampScript* KillerDilloMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\KillerDillo.h", 11) KillerDilloMain(node);
+}
+
+// FUNCTION: USA 0x00124B0E
+// NAME: proto-pdb:default.pdb
+KillerDilloMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KillerDilloMain", creationFunc);
 }

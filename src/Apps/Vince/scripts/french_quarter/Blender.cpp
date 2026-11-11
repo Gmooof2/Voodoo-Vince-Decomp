@@ -450,6 +450,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
 
+// FUNCTION: USA 0x00078E59
+// NAME: proto-pdb:default.pdb
+inline bool CollidableNode::DoesJorgeRepelMe(const SwampSceneNode* v0, bool v1) const
+{
+    return true;
+}
+
 class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
 public:
     virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
@@ -756,6 +763,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     Critter* GetCritter() { return (Critter*)GetNode(); }
@@ -785,6 +799,11 @@ DECOMP_SIZE_ASSERT(WeaponMain, 0x180);
 
 class BlenderWeaponMain : public WeaponMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     BlenderWeaponMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -795,6 +814,11 @@ DECOMP_SIZE_ASSERT(BlenderWeaponMain, 0x180);
 // PROTOTYPE: PREVIEW 0x0046515F ambiguous
 // NAME: proto-pdb:default.pdb
 class BlenderMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 public:
     enum State { // NAME: proto-pdb:default.pdb
         STATE_OFF = 0x0,
@@ -855,6 +879,10 @@ public:
     VinceInBlender(SwampSceneNode* node);
     virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -1144,6 +1172,13 @@ SwampScript* VinceInBlender::creationFunc(SwampSceneNode* node)
     return new("bakery\\Blender.cpp", 234) VinceInBlender(node);
 }
 
+// FUNCTION: USA 0x0007928D
+// NAME: proto-pdb:default.pdb
+VinceInBlender::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceInBlender", creationFunc);
+}
+
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1BlenderMain@@UAE@XZ because this unit defines
 // the ctor (not matched yet); this qualified call odr-uses it instead (matched_set [[emitter]] row)
 void pin_emit_BlenderMain_dtor(BlenderMain* p)
@@ -1158,4 +1193,41 @@ SwampScript* BlenderMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\Blender.h", 14) BlenderMain(node);
+}
+
+// FUNCTION: USA 0x000791D9
+// NAME: proto-pdb:default.pdb
+BlenderMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BlenderMain", creationFunc);
+}
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+class BlenderWeapon { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x00079215
+// NAME: proto-pdb:default.pdb
+BlenderWeapon::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("BlenderWeapon", creationFunc);
+}
+
+// FUNCTION: USA 0x00079251
+// NAME: proto-pdb:default.pdb
+BlenderWeaponMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BlenderWeaponMain", creationFunc);
 }

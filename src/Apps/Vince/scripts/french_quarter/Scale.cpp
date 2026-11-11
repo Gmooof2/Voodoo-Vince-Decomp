@@ -191,6 +191,10 @@ public:
     virtual SwampString Save();
     void RestartTimer();
     Critter* GetScale() { return static_cast<Critter*>(_node); }
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -281,6 +285,13 @@ SwampString ScaleMain::Save()
     return format("\t\tstate = %d;\n", v0) + format("\t\tvinceLanded = %d;\n", _vinceLanded);
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x0007C106
 // PROTOTYPE: PREVIEW 0x004680DC identical
 // NAME: proto-pdb:default.pdb
@@ -288,4 +299,11 @@ SwampScript* ScaleMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\Scale.h", 11) ScaleMain(node);
+}
+
+// FUNCTION: USA 0x0007C12D
+// NAME: proto-pdb:default.pdb
+ScaleMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ScaleMain", creationFunc);
 }

@@ -106,6 +106,10 @@ public:
     virtual void EnteringRegion(SwampSceneNode*);
     virtual void LeavingRegion(SwampSceneNode*);
     virtual void FrameTick();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -138,10 +142,24 @@ FireRegionMain::FireRegionMain(SwampSceneNode* node) : SwampScript(node), _flame
     RegisterSaveLoadVar("flameTime", &_flameTime, gSettings.GetMainstreetFlameTime());
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x00121A2B
 // NAME: proto-pdb:default.pdb
 SwampScript* FireRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\FireRegion.h", 13) FireRegionMain(node);
+}
+
+// FUNCTION: USA 0x00121A4F
+// NAME: proto-pdb:default.pdb
+FireRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FireRegionMain", creationFunc);
 }

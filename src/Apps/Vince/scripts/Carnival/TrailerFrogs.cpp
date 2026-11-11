@@ -105,6 +105,11 @@ DECOMP_SIZE_ASSERT(PitFrogMain, 0x39C);
 // candidates fail) folded with ??_GPitFrogMain, whose vtable is PitFrog.obj's; match_one: `not defined in TrailerFrogs.obj` (C0320, 5.3 T6)
 class TrailerFrogMain : public PitFrogMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     TrailerFrogMain(SwampSceneNode* node);
     virtual void Activate();
 
@@ -165,6 +170,11 @@ DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 // folded (12 ??_G names); the row's name is WheelOfMystery.obj's class; match_one: `not defined in TrailerFrogs.obj` (C0320, 5.3 T6)
 class Switch_TrailerFrogsMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     Switch_TrailerFrogsMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -190,6 +200,11 @@ DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 
 class TrailerFrogsMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_FROGNOISE = 1
     };
@@ -202,6 +217,13 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(TrailerFrogsMain, 0x124);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x0003DA13
 // PROTOTYPE: PREVIEW 0x0042BEF6 identical
@@ -279,11 +301,12 @@ SwampScript* TrailerFrogMain::creationFunc(SwampSceneNode* node)
     return new("Midway\\TrailerFrogs.cpp", 21) TrailerFrogMain(node);
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store, literal)
 // FUNCTION: USA 0x0003DE5D
 // PROTOTYPE: PREVIEW 0x0042C324 near-identical
 // NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = vptr store; needs pin ??_7TrailerFrogMain@@6B@ at
+// 0x001CF6C0); source is final; 5.4 T15.c3
 TrailerFrogMain::TrailerFrogMain(SwampSceneNode* node) : PitFrogMain(node)
 {
     _numFrogs = 0;
@@ -291,3 +314,24 @@ TrailerFrogMain::TrailerFrogMain(SwampSceneNode* node) : PitFrogMain(node)
     ((Critter*)_node)->field_260 = false;
 }
 #endif
+
+// FUNCTION: USA 0x0003DE21
+// NAME: proto-pdb:default.pdb
+Switch_TrailerFrogsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_TrailerFrogsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0003DED5
+// NAME: proto-pdb:default.pdb
+TrailerFrogsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TrailerFrogsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0003DF38
+// NAME: proto-pdb:default.pdb
+TrailerFrogMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TrailerFrogMain", creationFunc);
+}

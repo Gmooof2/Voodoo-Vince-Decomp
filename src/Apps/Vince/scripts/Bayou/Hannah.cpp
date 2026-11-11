@@ -330,6 +330,10 @@ public:
     float _time;                       // 0xEC
     float _totalTime;                  // 0xF0
     GameCam* _vincecam;                // 0xF4
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -509,6 +513,10 @@ public:
     float _minCrapTime;                // 0x124
     float _maxCrapTime;                // 0x128
     char field_12C[0x138 - 0x12C];     // 0x12C
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -576,10 +584,6 @@ template <class T> void RELEASE(T*& obj); // NAME: proto-pdb:default.pdb
 
 // FUNCTION: USA 0x00028D42
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); precheck relink refuses `our movieplayer.obj: external
-// ??$RELEASE@UD3DTexture@@@@YAXAAPAUD3DTexture@@@Z 0x00028D42 lies in a replaced range` (fold-alias caller, C0233
-// Fix 1: MoviePlayer.cpp needs this body to emit its alias; 5.3 T6.c13)
 template <class T>
 void RELEASE(T*& obj)
 {
@@ -588,7 +592,6 @@ void RELEASE(T*& obj)
         obj = 0;
     }
 }
-#endif
 extern "C" void __stdcall D3DDevice_SetStreamSource(unsigned int, D3DVertexBuffer*, unsigned int); // src proto-pdb:default.pdb D3DDevice_SetStreamSource
 extern "C" void __fastcall D3DDevice_SetVertexShaderConstant1(int, const void*); // src proto-pdb:default.pdb D3DDevice_SetVertexShaderConstant1
 extern "C" void __fastcall D3DDevice_SetVertexShaderConstant4(int, const void*); // src proto-pdb:default.pdb D3DDevice_SetVertexShaderConstant4
@@ -1060,4 +1063,25 @@ void HannahMain::TossCrap()
     crapspeed = gSettings.GetParamFloat(format("HANNAH_DEBRIS_SPEED_%d", _attackLevel), 1.0f);
     crap->SetVelocity(Vector3(vel.x * crapspeed, vel.y * crapspeed, vel.z * crapspeed));
     SoundManager::PlaySound("hurrspit", 0x20, GetNode(), true, 0.0f, 0.0f);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0002B25A
+// NAME: proto-pdb:default.pdb
+HannahMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HannahMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002B296
+// NAME: proto-pdb:default.pdb
+VinceBlowBack::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceBlowBack", creationFunc);
 }

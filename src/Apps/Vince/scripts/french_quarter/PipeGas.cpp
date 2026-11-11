@@ -124,7 +124,9 @@ public:
     virtual void InvalidateScript();                               // vtable+0x60
 
     void RegisterFrameTick();
+protected:
     void RegisterSaveLoadVar(const SwampString& name, bool* addr, bool defaultval);
+public:
 
     char field_4[0x1C];                // 0x04
     SwampSceneNode* _node;             // 0x20
@@ -152,6 +154,10 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
 
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -177,8 +183,6 @@ void PipeGasMain::Message(SwampScript* source, int message, void* data)
     *(bool*)data = _lit;
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked = vptr store, literals)
 // FUNCTION: USA 0x00081613
 // PROTOTYPE: PREVIEW 0x0046D505 near-identical
 // NAME: proto-pdb:default.pdb
@@ -192,10 +196,12 @@ SwampSceneNode* CreateFlameHeatShimmer()
     shimmer->SetNoiseTextureOffsetRate(1, Vector2(0.0f, -0.9f));
     return shimmer;
 }
-#endif
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked = vptr store, literals)
+// best: match_one objdiff 100.0, bytes provisional (masked 1), T15.c4: needs pin ??_7PipeGasMain@@6B@ 0x001DFDE8
+// 5.5 T8.c1: match_one PASS (objdiff 100, masked 0) with the vtable pin; precheck gate_check rc 2 "relink: our ranges
+// overlap at 0x000E2D89": the emitted vtable's slot 0 ??_GPipeGasMain@@UAEPAXI@Z lands on the fold VA 0x000E2D89
+// (40 ??_E fold-alias pins there, none for ??_GPipeGasMain); needs that fold-alias pin (C0250)
 // FUNCTION: USA 0x000816C8
 // PROTOTYPE: PREVIEW 0x0046D5BA near-identical
 // NAME: proto-pdb:default.pdb
@@ -224,4 +230,19 @@ void PipeGasMain::Load(const BeepTDF& tdf)
 {
     CritterMain::Load(tdf);
     TurnOnFlame();
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x00081B8F
+// NAME: proto-pdb:default.pdb
+PipeGasMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PipeGasMain", creationFunc);
 }

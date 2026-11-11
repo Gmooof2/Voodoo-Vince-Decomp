@@ -19,11 +19,11 @@ CLI: delink.py --fresh [--config P]   (T11)
   ingest --fresh with tools/ghidra_scripts/ApplySymbols.java (config/retail/symbols.txt names) run before
   ExportProgram.java, which writes the post-apply export to derived/ghidra/retail-<sha8>/applied/ (T5's
   pre-apply files beside it are never touched; refusal 2 if they are missing); then analyzeHeadless -process -noanalysis -readOnly + DelinkProgram.java with one
-  /include-range <text_start>-<text_end-1> /export pair per `delink = true` unit of config/retail/units.toml (split
-  into several calls by command-line length) to derived/delink/retail-<sha8>/<name, backslash and / -> __>; hashes.txt
+  /include-range <text_start>-<text_end-1> /export pair per `delink = true` unit of config/retail/units.toml (one
+  call: DelinkRanges.java reads them from an args file, 5.4 T3.c2) to derived/delink/retail-<sha8>/<name, backslash and / -> __>; hashes.txt
   (<sha256>  <file>, sorted), objdiff.json (target-only units) and `objdiff-cli report generate` -> report.json.
   cut.complete is unlinked first and written last (`cut-complete v1 hashes-sha256 <hex64> objects <N>`, T1 2.1);
-  readers refuse without a valid one (cut_check). Logs .run/<phase>/logs/delink_fresh*.log. Exit 0 ok; 1 any rc, ApplySymbols failure, missing object or report unit;
+  readers refuse without a valid one (cut_check). Memory guard (ghidra_mem_guard) first in ingest and --fresh. Logs .run/<phase>/logs/delink_fresh*.log. Exit 0 ok; 1 any rc, ApplySymbols failure, missing object or report unit;
   2 refusal (sha1, T5 export missing).
   REL32 post-pass (T3 2.1; every `delink = true` unit since T5 2.1): after label demotion, _add_rel32 adds REL32
   relocs to each unit's .text at its census sites without a reloc (function symbol at the target, field 0; else the
@@ -49,6 +49,7 @@ Prints counts, addresses, names and hashes only (D46).
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import struct
@@ -97,33 +98,38 @@ def pinned_sha1():
     return None
 
 
-CUT_MARKER = "cut.complete"  # T1 (2.1, D36): written last by fresh(); every cut reader calls cut_check first
-MARKER_RE = re.compile(rb"cut-complete v1 hashes-sha256 ([0-9a-f]{64}) objects ([0-9]+)\n")
+# T1 (2.1, D36): cut.complete written last by fresh(); every cut reader calls cut_check first. 5.4 T3.c2: the
+# contract lives in byte_compare (verifier-locked, identical text); was: a second copy of all four here.
+from byte_compare import CUT_MARKER, MARKER_RE, cut_check, cut_dir  # noqa: E402,F401
+
+# 5.4 T3.c2: free physical memory a Ghidra launch needs, else refuse before anything is deleted or written.
+# 4608 MB = Claude Code's low-memory kill level (C0201, ~4.5 GB free) + 1185 MB java peak working set measured over
+# delink --fresh + relink cut (5.4 T3.c2, PowerShell PeakWorkingSet64 1 s poll, MAXMEM 2G; the cut alone 792 MB,
+# the ingest's analysis is the peak), rounded up to 512 MB: 5793 -> 6144.
+GHIDRA_MIN_FREE_MB = 6144
 
 
-def cut_dir(pin):
-    """The cut for a pinned retail sha1: derived/delink/retail-<pin[:8]>."""
-    return REPO / "derived" / "delink" / f"retail-{pin[:8]}"
+def ghidra_mem_guard(what):
+    """0 when free physical memory >= the threshold (env VV_GHIDRA_MIN_FREE_MB overrides; controls only),
+    else prints the refusal and returns 2."""
+    import ctypes
 
-
-def cut_check(d):
-    """None when d/cut.complete is valid (exact line, sha256 of hashes.txt bytes, objects == its line count),
-    else the refusal reason naming the marker path."""
-    m = Path(d) / CUT_MARKER
-    if not m.is_file():
-        return f"{m} absent: cut incomplete or stale (run PY tools/delink.py --fresh)"
-    g = MARKER_RE.fullmatch(m.read_bytes())
-    if not g:
-        return f"{m} malformed (want one line 'cut-complete v1 hashes-sha256 <hex64> objects <N>')"
-    h = Path(d) / "hashes.txt"
-    if not h.is_file():
-        return f"{m} present but {h} absent"
-    data = h.read_bytes()
-    if hashlib.sha256(data).hexdigest() != g.group(1).decode("ascii"):
-        return f"{m} hashes-sha256 != sha256 of {h} (cut changed after --fresh)"
-    if int(g.group(2)) != len(data.splitlines()):
-        return f"{m} objects {int(g.group(2))} != {len(data.splitlines())} lines of {h}"
-    return None
+    class MEMORYSTATUSEX(ctypes.Structure):
+        _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+    st = MEMORYSTATUSEX()
+    st.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)):
+        return refuse(f"{what}: GlobalMemoryStatusEx failed; memory guard cannot run")
+    need = int(os.environ.get("VV_GHIDRA_MIN_FREE_MB", GHIDRA_MIN_FREE_MB))
+    free = st.ullAvailPhys // (1024 * 1024)
+    if free < need:
+        return refuse(f"{what}: free physical memory {free} MB < {need} MB threshold; nothing written "
+                      f"(close programs and rerun)")
+    return 0
 
 
 def write_marker(d, n_objects):
@@ -145,6 +151,8 @@ def load_jsonl(p):
 def ingest(args, pre=(), logname="delink_ingest", sub=None):
     """pre: extra (script, *args) postScripts run before ExportProgram.java (--fresh adds ApplySymbols).
     sub: export to derived/ghidra/retail-<sha8>/<sub>/ instead (--fresh: "applied"), leaving T5's files intact."""
+    if ghidra_mem_guard("ingest"):  # 5.4 T3.c2: first, before the project or the export is removed
+        return 2
     cfg = vv_inputs.load_config(args.config)
     if not PIN.is_file():
         return refuse(f"pin missing: {PIN}")
@@ -182,7 +190,7 @@ def ingest(args, pre=(), logname="delink_ingest", sub=None):
     LOGS.mkdir(parents=True, exist_ok=True)
     bat = Path(cfg["ghidra_dir"]) / "support" / "analyzeHeadless.bat"
     cmd = [str(bat), str(proj), tag, "-import", str(xbe), "-loader", "XbeLoader",
-           "-scriptPath", str(SCRIPTS)]
+           "-scriptPath", str(SCRIPTS), "-preScript", "TrimAnalyzers.java"]  # 5.4 T3.c4: analyzer trim
     for script in pre:
         cmd += ["-postScript", *script]
     cmd += ["-postScript", "ExportProgram.java", str(out),
@@ -385,7 +393,6 @@ def one(args):
 SYMBOLS = REPO / "config" / "retail" / "symbols.txt"
 SYMBOLS_PIN = REPO / "config" / "retail" / "symbols_pin.txt"  # 2.1 T4: applied after SYMBOLS, as gate.py SYMTABS
 UNITS = REPO / "config" / "retail" / "units.toml"
-ARG_BUDGET = 5500  # chars of DelinkProgram args per analyzeHeadless call; cmd.exe caps a line at 8191 incl. JVM args
 APPLY_RE = re.compile(r"ApplySymbols: lines (\d+) renamed (\d+) labelled (\d+) failed (\d+) "
                       r"\(same-name labels removed (\d+), duplicate names reset (\d+)\) "
                       r"created (\d+) clipped (\d+) inside (\d+) createFailed (\d+) holes (\d+) instrs (\d+) "
@@ -553,6 +560,8 @@ def fresh(args):
     import tomllib
     import xbe_info
     t0 = time.monotonic()
+    if ghidra_mem_guard("--fresh"):  # 5.4 T3.c2: before the cut marker is unlinked
+        return 2
     pin = pinned_sha1() if PIN.is_file() else None
     if pin:  # T1 (2.1, D36): first filesystem action; the cut is incomplete until write_marker() below
         (cut_dir(pin) / CUT_MARKER).unlink(missing_ok=True)
@@ -605,30 +614,29 @@ def fresh(args):
         if p.is_file():
             p.unlink()
     bat = Path(cfg["ghidra_dir"]) / "support" / "analyzeHeadless.bat"
-    chunks, cur, size = [], [], 0
+    # 5.4 T3.c2: every unit range in one args file, one analyzeHeadless call (DelinkRanges.java runs DelinkProgram
+    # once); was: chunks under ARG_BUDGET (5500 chars; cmd.exe caps a line at 8191), one call each (6 calls)
+    lines = ["/exporter", "COFF relocatable object"]
     for u, f in zip(units, files):
         if u["text_end"] <= u["text_start"]:
             return fail(f"empty range for unit {u['name']}")
-        a = ["/include-range", f"{u['text_start']:08x}-{u['text_end'] - 1:08x}", "/export", str(outdir / f)]
-        n = len(subprocess.list2cmdline(a)) + 1
-        if cur and size + n > ARG_BUDGET:
-            chunks.append(cur)
-            cur, size = [], 0
-        cur += a
-        size += n
-    chunks.append(cur)
-    for k, a in enumerate(chunks):
-        cmd = [str(bat), str(proj), tag, "-process", xbe.name, "-noanalysis", "-readOnly",
-               "-postScript", "DelinkProgram.java", "/exporter", "COFF relocatable object", *a,
-               "-log", str(LOGS / f"delink_fresh_export{k}.ghidra.log"),
-               "-scriptlog", str(LOGS / f"delink_fresh_export{k}.script.log")]
-        with open(LOGS / f"delink_fresh_export{k}.log", "w", encoding="utf-8") as log:
-            rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT).returncode
-        if rc != 0:
-            return fail(f"analyzeHeadless rc {rc} (see {LOGS / f'delink_fresh_export{k}.log'})")
-        # a script exception (e.g. DelinkProgram "Failed to export") leaves rc 0 and skips the rest of the call
-        if "REPORT SCRIPT ERROR" in (LOGS / f"delink_fresh_export{k}.log").read_text(encoding="utf-8", errors="replace"):
-            return fail(f"DelinkProgram script error (see {LOGS / f'delink_fresh_export{k}.log'})")
+        lines += ["/include-range", f"{u['text_start']:08x}-{u['text_end'] - 1:08x}", "/export", str(outdir / f)]
+    chunks = [lines]  # one call; the summary line below still counts calls
+    LOGS.mkdir(parents=True, exist_ok=True)
+    argf = LOGS / "delink_fresh_export.args"
+    argf.write_text("".join(s + "\n" for s in lines), encoding="utf-8")
+    elog = LOGS / "delink_fresh_export.log"
+    cmd = [str(bat), str(proj), tag, "-process", xbe.name, "-noanalysis", "-readOnly",
+           "-scriptPath", str(SCRIPTS), "-postScript", "DelinkRanges.java", str(argf),
+           "-log", str(LOGS / "delink_fresh_export.ghidra.log"),
+           "-scriptlog", str(LOGS / "delink_fresh_export.script.log")]
+    with open(elog, "w", encoding="utf-8") as log:
+        rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT).returncode
+    if rc != 0:
+        return fail(f"analyzeHeadless rc {rc} (see {elog})")
+    # a script exception (e.g. DelinkProgram "Failed to export") leaves rc 0 and skips the rest of the call
+    if "REPORT SCRIPT ERROR" in elog.read_text(encoding="utf-8", errors="replace"):
+        return fail(f"DelinkProgram script error (see {elog})")
     missing = [f for f in files if not (outdir / f).is_file()]
     if missing:
         return fail(f"{len(missing)} objects not written: {missing[:10]}")
@@ -854,6 +862,16 @@ def main(argv):
     p.add_argument("va", help="retail function entry VA (hex)")
     p.add_argument("--config", help="config path (default config/local_paths.json)")
     args = ap.parse_args(argv)
+    if args.cmd == "ingest" or (not args.cmd and not args.repro and args.fresh):
+        # 5.4 T4: usage record only, stdout unchanged; lazy import (the gate's lock-imports control imports delink)
+        import timing
+        phase = _phase_run_dir().name
+        with timing.step("delink_ingest" if args.cmd else "delink_fresh",
+                         label=None if phase == ".run" else phase,
+                         # 5.4 T21: shared gate marker
+                         marker="delink.py " + " ".join(map(str, sys.argv[1:] if argv is None else argv))) as rec:
+            rec.rc = ingest(args) if args.cmd else fresh(args)
+        return rec.rc
     if args.cmd:
         return {"ingest": ingest, "pick": pick, "one": one, "relocscan": relocscan}[args.cmd](args)
     if args.repro:

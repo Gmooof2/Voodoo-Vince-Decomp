@@ -448,8 +448,7 @@ bool PlayMovie(const SwampString& movie)
 }
 #endif
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 96.22, bytes mismatch (masked 1)
+// callees/literals pinned 5.4 T25.c1
 // FUNCTION: USA 0x000DA108
 // PROTOTYPE: PREVIEW 0x004C5630 near-identical
 // NAME: proto-pdb:default.pdb
@@ -469,8 +468,13 @@ void MoviePlayer::Stop()
             _clear = true;
         }
         XMVDecoder_TerminateImmediately(_decoder);
-        if ((_flags & NOTIFY) && _node && _node->GetScript()) {
-            _node->GetScript()->QueueMovieFinishedMessage(_name);
+        if (_flags & NOTIFY) {
+            // !FAKE: c2 register allocation; local; retail keeps _node in edi across both GetScript calls;
+            // the proto PDB lists no such local
+            SwampSceneNode* node = _node;
+            if (node && node->GetScript()) {
+                node->GetScript()->QueueMovieFinishedMessage(_name);
+            }
         }
     }
     _active = false;
@@ -492,7 +496,6 @@ void MoviePlayer::Stop()
     }
     _file.Close();
 }
-#endif
 
 // FUNCTION: USA 0x000DA1DE
 // PROTOTYPE: PREVIEW 0x004C5709 identical

@@ -6,6 +6,7 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string(const E* _Ptr);
     ~basic_string() { _Tidy(true); }
     basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
     basic_string& assign(const E* _Ptr);
@@ -316,6 +317,14 @@ private:
     int _wheresVince;                  // 0x108
     float _vinceFloorTimer;            // 0x10C
     char field_110[0x10];              // 0x110
+
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(DinoBossMain, 0x120);
 
@@ -632,3 +641,17 @@ void DinoBossMain::TimerEvent(unsigned int timerid)
     }
 }
 #endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00088B8D
+// NAME: proto-pdb:default.pdb
+DinoBossMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DinoBossMain", creationFunc);
+}

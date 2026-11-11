@@ -217,6 +217,13 @@ public:
     virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
 
     char field_BC[0x130 - 0xBC];       // 0xBC
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(KosmoBotLegsMain, 0x130);
 
@@ -251,6 +258,10 @@ class Camera_elevatorMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     Camera_elevatorMain(SwampSceneNode* node);
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -380,6 +391,13 @@ public:
     ResourceHandle<AnimationResource> _animAttack; // 0xE0
     ResourceHandle<AnimationResource> _animDamage; // 0xE4
     ResourceHandle<AnimationResource> _animDeath;  // 0xE8
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(KosmoBotHeadMain, 0xEC);
 
@@ -434,6 +452,13 @@ public:
 
     std::vector<Vector3> _cannonLocs;  // 0xBC
     SwampShuffleQueue<SwampString> _handSmackSounds; // 0xCC
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(KosmoBotMidriffMain, 0xE0);
 
@@ -593,6 +618,13 @@ class AssDoorRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     AssDoorRegionMain(SwampSceneNode* node);
     virtual void LeavingRegion(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(AssDoorRegionMain, 0x4C);
 
@@ -602,6 +634,14 @@ AssDoorRegionMain::AssDoorRegionMain(SwampSceneNode* node)
     : SwampScript(node)
 {
     ((RegionTrigger*)node)->Enable(false);
+}
+
+// FUNCTION: USA 0x00049CC3
+// NAME: proto-pdb:default.pdb
+SwampScript* AssDoorRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\Kosmo.cpp", 512) AssDoorRegionMain(node);
 }
 
 // FUNCTION: USA 0x0004A615
@@ -781,3 +821,92 @@ void KosmoBotMidriffMain::AnimationTrigger(const SwampString& name, float value,
     }
 }
 #endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x0004DC4F
+// NAME: proto-pdb:default.pdb
+Camera_elevatorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Camera_elevatorMain", creationFunc);
+}
+
+class ControlRoomMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class ClownMissileMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    ClownMissileMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_BC[0xD8 - 0xBC];        // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(ClownMissileMain, 0xD8);
+
+// FUNCTION: USA 0x0004BA6A
+// NAME: proto-pdb:default.pdb
+SwampScript* ClownMissileMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\Kosmo.cpp", 543) ClownMissileMain(node);
+}
+
+// FUNCTION: USA 0x0004DB5F
+// NAME: proto-pdb:default.pdb
+KosmoBotLegsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KosmoBotLegsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004DB9B
+// NAME: proto-pdb:default.pdb
+KosmoBotMidriffMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KosmoBotMidriffMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004DBD7
+// NAME: proto-pdb:default.pdb
+KosmoBotHeadMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KosmoBotHeadMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004DC13
+// NAME: proto-pdb:default.pdb
+ControlRoomMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ControlRoomMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004DC8B
+// NAME: proto-pdb:default.pdb
+AssDoorRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("AssDoorRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004DCC7
+// NAME: proto-pdb:default.pdb
+ClownMissileMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ClownMissileMain", creationFunc);
+}

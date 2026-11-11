@@ -18,12 +18,18 @@ Checks (each failure `FAIL <id> <file>:<line>: <why>`):
   src-pdb      `// src proto-pdb:default.pdb <identifier>` resolves as proto-pdb does
   src-retail   `// src retail 0x<VA> "<text>"` equals the retail XBE bytes at VA through the NUL
   hedge        probably|likely|seems|maybe|perhaps|presumably|appears to|guess (whole words, any case) in a comment,
-               except exact lines in config/provenance_accepted.txt (`path<TAB>verbatim line<TAB>reason`)
+               except exact lines in config/provenance_accepted.txt (`path<TAB>verbatim line<TAB>reason`; a line whose
+               first field is a BASELINE_CHECKS id is a baseline entry, see accepted)
   accepted     (T7) each accepted entry equals (stripped) a line of DIR/<path minus `src/`> whose comment holds a
-               hedge word; else `FAIL accepted <path>: entry matches no hedge line` (stale or widened)
-  fake-diff    each line holding `// !FAKE:` removed between REV (default HEAD) and the working tree pairs with a code
-               change, or a `// !FAKE:` added, in the same function (difflib on `git show REV:path` vs the file; a hunk
-               that changes only comments is no code change; 4.1 T4; was: own-line labels, any changed non-comment line)
+               hedge word; else `FAIL accepted <path>: entry matches no hedge line` (stale or widened). 5.5 T13:
+               baseline entries `<check><TAB><path><TAB><verbatim line><TAB><reason>` (check in BASELINE_CHECKS) each
+               waive one hit of that check on a line of that text; an unused entry fails `accepted` (stale; the
+               baseline only shrinks)
+  fake-diff    each line holding `// !FAKE:` removed pairs with a code change, or a `// !FAKE:` added, in the same
+               function (difflib; a hunk that changes only comments is no code change; 4.1 T4), per step: each commit
+               of REV..HEAD vs its first parent (`git rev-list --reverse`), then the working tree vs HEAD (5.5 T13 I56;
+               was: one diff REV vs the working tree, a removal undone by a later commit's re-add unseen; was: own-line
+               labels, any changed non-comment line)
   name-retail  each `NAME: retail` identifier has a retail XBE string naming it: equal, `.?AV<Class>@@`, or a
                NUL-terminated string holding it as a whole token
   d66          `volatile`, `#pragma optimize`, `__asm` in a matched function body has `// !FAKE:` on the line or
@@ -36,6 +42,22 @@ Checks (each failure `FAIL <id> <file>:<line>: <why>`):
                FUNCTION line's; comments and literals skipped) in any file of DIR, with or without `// !FAKE:` (D116)
   include      (5.1 T1) a quoted `#include "<name>"` in any file of DIR whose (file dir / name).resolve() is not an
                existing file inside DIR (escaping DIR or missing); every line, `#if` arms included; no allowlist
+  attr         (5.5 T13, D138) `__declspec(noreturn)` in code in any file of DIR, unless `// !FAKE:` on or above the line
+               whose reason field records a before/after (holds `->`, not `no before/after recorded`)
+  pragma-scope (5.5 T13, D138) `#pragma intrinsic` in any file of DIR after its first FUNCTION line or at a brace
+               depth above 0 (a file's head only)
+  fake-fields  (5.5 T13, I43, D33) each line of any file of DIR holding `// !FAKE:` has three non-empty `;`-separated
+               fields after the tag on that line (kind; instrument; reason, the reason the rest of the line)
+  members      (5.5 T13.c3, S4, D78) in any file of DIR (a scope parse, FileParse: comments, literals, directives and
+               dead `#if 0` / NON_MATCHING arms blanked; function bodies not entered), each data member, method and
+               nested typedef of a class/struct/union resolves as a member of its owner or of any base (LF_BCLASS,
+               LF_VBCLASS, LF_IVBCLASS, transitively; operator names normalized), each namespace-scope typedef is an
+               S_UDT, PDB type or name, each enumerator a PDB enumerator; `field_<off>` and `_pad*` data pass;
+               parameters are not checked (census-only). was: no member check (the 5.5 T3 census only)
+  untagged     (5.5 T13.c3, I52) in each scoped file and its quoted headers, a free-function definition that is not a
+               FUNCTION line's own definition fails without a NAME tag (on its line or the `//` block above) and with
+               no PDB proc, public or symbols.txt/symbols_pin name; a marked `pin_emit_` scaffold (matched_set's test:
+               depth 0, `!FAKE:` and `scaffold` in the `//` lines directly above) passes. was: no check
 NAME tags (proto-pdb, name-retail) and placeholder run on every file of DIR (4.5 T16.2 G18; was: scoped files only);
 src-pdb, src-retail, d66 bodies and locals on scoped files.
   locals      (T6.c2) each S_BPREL32/S_REGREL32/S_REGISTER local (params included) of a matched function's proc in
@@ -43,18 +65,25 @@ src-pdb, src-retail, d66 bodies and locals on scoped files.
                PDB procs named exactly as the obj proc) or neutral (`v<N>`, `tmp`, `i`, `p`); line = first whole-word
                use in the body. The obj proc is the one whose offset field relocates to the matched symbol. Objs: unit
                flags (build.flags_of) + /Z7 via msvc71.compile_one, cached in
-               derived/provenance_locals/<sha1(source, flags, quoted headers)>.obj (scratch .run/3.2/provenance_locals,
-               deleted at exit). Coverage printed: functions with obj locals / without / no obj proc. C++ is never
-               parsed for locals.
+               derived/provenance_locals/<sha1(source, flags, quoted headers)>.obj (scratch: a fresh per-run dir
+               `provenance_locals.*` under .run/<phase>/, only it deleted at exit; 5.5 T13 G5; was: the shared
+               .run/3.2/provenance_locals, deleted whole). Coverage printed: functions with obj locals / without / no
+               obj proc; a matched function with no obj proc fails `locals` at its FUNCTION line (5.5 T13 G4; was:
+               counted only). C++ is never parsed for locals.
+  neutral     (5.5 T13, S5) a neutral obj local that is not a local of its PDB proc, where that proc has locals, has
+               `// !FAKE:` on or above its first use line (was: any neutral name passed)
 --casts writes docs/matching/cast_census.md (C-style casts to a pointer to a PDB-named type or to an S_UDT typedef of
 a class/struct/union, C0112; never fails).
 --self-test copies DIR to .run/3.2/provenance_selftest/, plants one violation per check (fake-diff on a synthetic
-pair; accepted: a scratch accepted file with a real line + " probably"), expects each check's failures to rise,
+pair; accepted: a scratch accepted file with a real line + " probably"; body plants in the first matched body whose `{`
+is at its FUNCTION line's depth and whose PROTOTYPE proc has PDB locals, 5.5 T13.c3; was: the first `{` of scoped[0]'s
+matched extents), expects each check's failures to rise,
 prints `controls: N failed as expected of N`, deletes the scratch.
 D46: prints file:line, the check id and identifiers as written in our source only; never retail bytes or text.
 Exit: 0 clean; 1 any violation (or a control that did not fail); 2 refusal (unreadable PDB, XBE, matched set, git).
 """
 import argparse
+import bisect
 import difflib
 import hashlib
 import re
@@ -62,12 +91,15 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import time
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import annotations  # noqa: E402
 import build  # noqa: E402
+import byte_compare  # noqa: E402  5.5 T13 G5: _phase_run_dir
 import coff_info  # noqa: E402
 import matched_set  # noqa: E402
 import msvc71  # noqa: E402
@@ -84,12 +116,18 @@ ACCEPTED = REPO / "config" / "provenance_accepted.txt"
 CENSUS = REPO / "docs" / "matching" / "cast_census.md"
 SCRATCH = REPO / ".run" / "3.2" / "provenance_selftest"
 LOCALS_CACHE = REPO / "derived" / "provenance_locals"
-LOCALS_SCRATCH = REPO / ".run" / "3.2" / "provenance_locals"
+LOCALS_SCRATCH = byte_compare._phase_run_dir() / "provenance_locals"  # the base: per-run dirs beside it (5.5 T13 G5)
+# was: REPO / ".run" / "3.2" / "provenance_locals" (one shared dir, removed whole by each run)
 UPSTREAM = "@{u}"  # fake-diff rev: the merge-base of HEAD and its upstream (3.5 T4 W5)
 EXTS = annotations.EXTS
 FUNC = annotations.FUNC
 CHECKS = ("proto-pdb", "placeholder", "src-pdb", "src-retail", "hedge", "fake-diff", "name-retail", "d66", "locals",
-          "accepted", "forceinline", "noinline", "pragma", "include")  # 5.1 T1: +include
+          "accepted", "forceinline", "noinline", "pragma", "include",  # 5.1 T1: +include
+          "neutral", "attr", "pragma-scope", "fake-fields",  # 5.5 T13
+          "members", "untagged")  # 5.5 T13.c3
+# 5.5 T13: checks an accepted baseline entry waives (5.5 T13.c3: +members, untagged; was: the first four only)
+BASELINE_CHECKS = ("neutral", "attr", "pragma-scope", "fake-fields", "members", "untagged")
+FAKE_TAG = "// !FAKE:"
 
 ID = r"~?[A-Za-z_]\w*"
 QUAL = rf"{ID}(?:\s*<[^()]*?>)?(?:::{ID}(?:\s*<[^()]*?>)?)*"
@@ -115,6 +153,9 @@ NOT_CAST_NEXT = re.compile(r"\s*(?:[;{,)\]=:]|const\b|throw\b|$)")
 PROTO_VA = re.compile(r"^\s*// PROTOTYPE: PREVIEW 0x([0-9A-Fa-f]{8})\b")
 NEUTRAL = re.compile(r"^(?:v\d+|tmp|i|p)$")
 INCLUDE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
+NORETURN = re.compile(r"\b__declspec\s*\(\s*noreturn\s*\)")  # 5.5 T13 (D138): attr
+INTRINSIC = re.compile(r"^\s*#\s*pragma\s+intrinsic\b")  # 5.5 T13 (D138): pragma-scope
+HIT = re.compile(r"FAIL (\S+) (src/[^:]+):(\d+): ")  # 5.5 T13: a fail line's check, path and line (baseline)
 
 
 class Refuse(Exception):
@@ -248,6 +289,392 @@ def func_ident(lines, i):
     return None, i
 
 
+# ---------- 5.5 T13.c3: scope parser for `members` and `untagged` (ported from the 5.5 T3 census) ----------
+BUILTIN = {"int", "char", "float", "double", "void", "long", "short", "unsigned", "signed", "bool", "const",
+           "volatile", "__int64", "wchar_t", "__int8", "__int16", "__int32", "struct", "class", "enum", "union",
+           "typename"}
+CVKW = re.compile(r"\b(const|volatile|struct|class|enum|union|typename|register|mutable|static|inline|virtual|"
+                  r"explicit|extern|friend|__cdecl|__stdcall|__fastcall|__thiscall)\b")
+ACCESS = re.compile(r"\b(public|protected|private)\s*:(?!:)")
+FP_DECL = re.compile(r"\(\s*(?:__\w+\s+)?(?:[\w:]+\s*::\s*)?\*\s*(?:const\s+)?([A-Za-z_]\w*)\s*\)\s*\(")  # fn pointer
+CLASS_HEAD = re.compile(r"^(typedef\s+)?(class|struct|union)\b\s*(?:__declspec\s*\([^)]*\)\s*)?"
+                        r"([A-Za-z_][\w:]*)?\s*(<.*>)?\s*(:[^{]*)?$", re.S)
+ENUM_HEAD = re.compile(r"^(typedef\s+)?enum\b\s*([A-Za-z_]\w*)?\s*$", re.S)
+NS_HEAD = re.compile(r"^namespace\b\s*([A-Za-z_]\w*)?\s*$", re.S)
+EXTERN_C = re.compile(r'^extern\s*"\s*"\s*$', re.S)  # `extern "C"` after literal contents are blanked
+NM_IF = re.compile(r"^\s*#\s*(ifdef|ifndef|if|elif|else|endif)\b(.*)$")
+PAD_FIELD = re.compile(r"field_[0-9A-Fa-f]+|_pad.*")  # data members that pass `members` (placeholder, padding)
+
+
+def arms(ls):
+    """-> (dead[i]: line in a `#if 0` arm or a NON_MATCHING-defined arm, directive[i])."""
+    dead, direc, st = [], [], []  # frame: [kind, state] kind nm|zero|other, state True = dead arm
+    cont = False
+    for line in ls:
+        m = NM_IF.match(line)
+        is_dir = cont or bool(re.match(r"^\s*#", line))
+        cont = is_dir and line.rstrip().endswith("\\")
+        if m:
+            k, rest = m.group(1), m.group(2).split("//")[0].strip()
+            if k == "ifdef":
+                st.append(["nm", True] if rest == "NON_MATCHING" else ["other", False])
+            elif k == "ifndef":
+                st.append(["nm", False] if rest == "NON_MATCHING" else ["other", False])
+            elif k == "if":
+                if rest == "0":
+                    st.append(["zero", True])
+                elif re.fullmatch(r"defined\s*\(?\s*NON_MATCHING\s*\)?|NON_MATCHING", rest):
+                    st.append(["nm", True])
+                elif re.fullmatch(r"!\s*defined\s*\(?\s*NON_MATCHING\s*\)?", rest):
+                    st.append(["nm", False])
+                else:
+                    st.append(["other", False])
+            elif k == "elif" and st:
+                st[-1] = ["other", False]
+            elif k == "else" and st:
+                if st[-1][0] in ("nm", "zero"):
+                    st[-1][1] = not st[-1][1]
+            elif k == "endif" and st:
+                st.pop()
+        dead.append(any(f[1] for f in st))
+        direc.append(is_dir)
+    return dead, direc
+
+
+def clean_lines(ls):
+    """Lines with comments and string/char literal contents blanked (lengths kept); preprocessor and dead-arm lines
+    blanked."""
+    dead, direc = arms(ls)
+    out, inblock = [], False
+    for i, line in enumerate(ls):
+        if direc[i] or dead[i]:
+            out.append(" " * len(line))
+            continue
+        buf, j = [], 0
+        while j < len(line):
+            if inblock:
+                e = line.find("*/", j)
+                if e < 0:
+                    buf.append(" " * (len(line) - j))
+                    j = len(line)
+                else:
+                    buf.append(" " * (e + 2 - j))
+                    inblock, j = False, e + 2
+                continue
+            ch = line[j]
+            if ch in "\"'":
+                k = j + 1
+                while k < len(line) and line[k] != ch:
+                    k += 2 if line[k] == "\\" else 1
+                k = min(k, len(line) - 1)
+                buf.append(ch + " " * (k - j - 1) + ch)
+                j = k + 1
+            elif line.startswith("//", j):
+                buf.append(" " * (len(line) - j))
+                break
+            elif line.startswith("/*", j):
+                inblock = True
+                buf.append("  ")
+                j += 2
+            else:
+                buf.append(ch)
+                j += 1
+        out.append("".join(buf)[:len(line)].ljust(len(line)))
+    return out
+
+
+def match_brace(t, i):
+    """Index of the `}` matching the `{` at i (or len)."""
+    d = 0
+    for k in range(i, len(t)):
+        if t[k] == "{":
+            d += 1
+        elif t[k] == "}":
+            d -= 1
+            if d == 0:
+                return k
+    return len(t)
+
+
+def tmpl_head_off(s):
+    """s without its leading `template <...>` heads -> (rest, offset of rest in s)."""
+    s2 = s.lstrip()
+    off = len(s) - len(s2)
+    while s2.startswith("template"):
+        m = re.match(r"template\s*<", s2)
+        if not m:
+            break
+        d, k = 0, m.end() - 1
+        for k in range(m.end() - 1, len(s2)):
+            if s2[k] == "<":
+                d += 1
+            elif s2[k] == ">":
+                d -= 1
+                if d == 0:
+                    break
+        rest = s2[k + 1:]
+        r2 = rest.lstrip()
+        off += (len(s2) - len(rest)) + (len(rest) - len(r2))
+        s2 = r2
+    return s2, off
+
+
+def split_top(s, sep=","):
+    """Split s on sep at paren/angle/bracket depth 0 -> [(piece, offset)]."""
+    out, d, st = [], 0, 0
+    for k, c in enumerate(s):
+        if c in "(<[{":
+            d += 1
+        elif c in ")>]}":
+            d = max(0, d - 1)
+        elif c == sep and d == 0:
+            out.append((s[st:k], st))
+            st = k + 1
+    out.append((s[st:], st))
+    return out
+
+
+def first_paren(s):
+    """The call paren of a declaration: after `operator<sym>` if present, else the first `(` at angle depth 0;
+    -> (name, name offset, paren index, qualifier) or None."""
+    m = re.search(r"\boperator\b", s)
+    if m:
+        k = m.end()
+        while k < len(s) and s[k].isspace():
+            k += 1
+        p = s.find("(", k + 2) if s.startswith("()", k) else s.find("(", k)
+        if p < 0:
+            return None
+        sym = re.sub(r"\s+", " ", s[m.end():p]).strip()
+        sym = sym if re.match(r"[A-Za-z_]", sym) else sym.replace(" ", "")
+        nm = "operator" + (" " + sym if re.match(r"[A-Za-z_]", sym) else sym)
+        q = m.start()
+        mm = re.search(r"((?:[A-Za-z_]\w*\s*(?:<[^()]*?>)?\s*::\s*)*)$", s[:q])
+        return nm, q, p, (mm.group(1).replace(" ", "") if mm else "")
+    d = 0
+    for k, c in enumerate(s):
+        if c == "<":
+            d += 1
+        elif c == ">":
+            d = max(0, d - 1)
+        elif c == "(" and d == 0:
+            mm = re.search(r"((?:[A-Za-z_]\w*\s*(?:<[^()]*?>)?\s*::\s*)*)(~?\s*[A-Za-z_]\w*)\s*$", s[:k])
+            if not mm:
+                return None
+            return re.sub(r"\s", "", mm.group(2)), mm.start(2), k, re.sub(r"\s", "", mm.group(1))
+    return None
+
+
+def data_declarators(s):
+    """Data member names of a member declaration (no call paren): [(name, offset)]."""
+    out = []
+    for k, (piece, off) in enumerate(split_top(s)):
+        piece = piece.split("=")[0]
+        piece = re.sub(r":\s*\w+\s*$", "", piece)  # bitfield
+        q = re.sub(r"(\s*\[[^\]]*\])+\s*$", "", piece.rstrip())
+        mm = re.search(r"([A-Za-z_]\w*)\s*$", q)
+        if not mm or mm.group(1) in BUILTIN:
+            continue
+        if k == 0 and not CVKW.sub(" ", q[:mm.start(1)]).strip():
+            continue  # a lone type (e.g. a stray macro)
+        out.append((mm.group(1), off + mm.start(1)))
+    return out
+
+
+def opnorm(op):
+    """Operator name without class/struct/union/enum keywords and spaces."""
+    return re.sub(r"\s+", "", re.sub(r"\b(class|struct|union|enum)\s+", "", op))
+
+
+class FileParse:
+    """Scope parse of one file (comments, literals, directives and dead `#if` arms blanked): decls [(kind, owner,
+    name, line idx)] with kind data|method|typedef|typedef-nested|enumerator (parameters not recorded: census-only),
+    free_defs [(qualified name, line idx)] of free-function definitions. Function bodies are not entered."""
+
+    def __init__(self, ls):
+        cl = clean_lines(ls)
+        self.t = "\n".join(cl)
+        self.starts = [0]
+        for line in cl:
+            self.starts.append(self.starts[-1] + len(line) + 1)
+        self.decls = []
+        self.free_defs = []
+        self.namespaces = set()
+        self.parse(0, len(self.t), {"ns": [], "cls": []})
+
+    def line(self, off):
+        return bisect.bisect_right(self.starts, off) - 1
+
+    def add(self, kind, ctx, name, off):
+        self.decls.append((kind, "::".join(ctx["ns"] + ctx["cls"]), name, self.line(off)))
+
+    def parse(self, i, end, ctx):
+        t, st, k = self.t, i, i
+        while k < end:
+            c = t[k]
+            if c == ";":
+                self.stmt(st, k, ctx)
+                st = k = k + 1
+                continue
+            if c == "}":
+                return k
+            if c == "{":
+                k = self.block(st, k, ctx)
+                st = k
+                continue
+            k += 1
+        return end
+
+    def head(self, st, k):
+        s = ACCESS.sub(lambda m: " " * len(m.group()), self.t[st:k])
+        s2, off = tmpl_head_off(s)
+        s3 = s2.lstrip()
+        off += len(s2) - len(s3)
+        s3 = re.sub(r"^(?:__declspec\s*\([^)]*\)\s*)+", lambda m: " " * len(m.group()), s3)
+        return s3, st + off
+
+    def block(self, st, k, ctx):
+        """Head t[st:k] then `{` at k; -> index after the construct."""
+        t = self.t
+        h, hoff = self.head(st, k)
+        hs = h.strip()
+        close = match_brace(t, k)
+        m = NS_HEAD.match(hs)
+        if m:
+            if m.group(1):
+                self.namespaces.add(m.group(1))
+            self.parse(k + 1, close, dict(ctx, ns=ctx["ns"] + ([m.group(1)] if m.group(1) else [])))
+            return close + 1
+        if EXTERN_C.match(hs):
+            self.parse(k + 1, close, ctx)
+            return close + 1
+        m = CLASS_HEAD.match(hs)
+        if m and "(" not in hs and "=" not in hs:
+            self.parse(k + 1, close, dict(ctx, cls=ctx["cls"] + [m.group(3) or "__anon"]))
+            return self.declarators(close, ctx, typedef=bool(m.group(1)))
+        m = ENUM_HEAD.match(hs)
+        if m:
+            for piece, off in split_top(t[k + 1:close]):
+                mm = re.match(r"\s*([A-Za-z_]\w*)", piece)
+                if mm:
+                    self.add("enumerator", ctx, mm.group(1), k + 1 + off + mm.start(1))
+            return self.declarators(close, ctx, typedef=bool(m.group(1)))
+        if hs.endswith("=") or not hs:
+            e = t.find(";", close)
+            return (e + 1) if e >= 0 else close + 1
+        fp = first_paren(h)
+        if fp:
+            name, noff, _p, qual = fp
+            if ctx["cls"]:
+                self.add("method", ctx, name, hoff + noff)
+            else:
+                q = qual.rstrip(":")
+                q = strip_templates(q) if q else ""
+                if not q or q.split("::")[0] in self.namespaces:
+                    self.free_defs.append(("::".join(ctx["ns"] + ([q] if q else []) + [name]), self.line(hoff + noff)))
+        return close + 1
+
+    def declarators(self, close, ctx, typedef):
+        t = self.t
+        e = t.find(";", close)
+        if e < 0:
+            return close + 1
+        s = t[close + 1:e]
+        if "{" in s or "}" in s:
+            return close + 1
+        for name, off in data_declarators(" x " + s):
+            o = close + 1 + off - 3
+            if typedef:
+                self.add("typedef-nested" if ctx["cls"] else "typedef", ctx, name, o)
+            elif ctx["cls"]:
+                self.add("data", ctx, name, o)
+        return e + 1
+
+    def stmt(self, st, k, ctx):
+        h, hoff = self.head(st, k)
+        hs = h.strip()
+        if not hs or re.match(r"(friend|using|template|static_assert|extern\s*\")\b", hs):
+            return
+        if re.match(r"(class|struct|union|enum)\s+[\w:]+\s*$", hs):
+            return  # forward declaration
+        if hs.startswith("typedef"):
+            fm = FP_DECL.search(h)
+            if fm:
+                name, o = fm.group(1), hoff + fm.start(1)
+            else:
+                mm = re.search(r"([A-Za-z_]\w*)\s*$", re.sub(r"(\s*\[[^\]]*\])+\s*$", "", h.rstrip()))
+                if not mm:
+                    return
+                name, o = mm.group(1), hoff + mm.start(1)
+            self.add("typedef-nested" if ctx["cls"] else "typedef", ctx, name, o)
+            return
+        eq = h.find("=")
+        fm = FP_DECL.search(h)
+        fp = first_paren(h)
+        if fp and fp[0] == "sizeof":
+            fp = None  # `char pad[N - sizeof(T)];` is data
+        is_func = fp is not None and (eq < 0 or eq > fp[2] or fp[0].startswith("operator")) \
+            and not (fm and fm.start() <= (fp[2] if fp else 0))
+        if is_func:
+            if ctx["cls"]:
+                self.add("method", ctx, fp[0], hoff + fp[1])
+            return  # census: parameters recorded here; not checked (census-only)
+        if ctx["cls"]:
+            if fm:
+                self.add("data", ctx, fm.group(1), hoff + fm.start(1))
+                return
+            for name, off in data_declarators(h):
+                self.add("data", ctx, name, hoff + off)
+
+
+def fl_bases(fl, seen=None):
+    """Base class type indices of fieldlist `fl` (LF_BCLASS, LF_VBCLASS, LF_IVBCLASS; LF_INDEX followed; 5.5 T13.c3).
+    The walk as pdb_types.fl_names; unknown leaves end it."""
+    seen = set() if seen is None else seen
+    out = []
+    if fl in seen or fl not in pdb_types.recs:
+        return out
+    seen.add(fl)
+    b, o = pdb_types.recs[fl][1], 0
+    while o < len(b):
+        if b[o] >= 0xF0:
+            o += b[o] & 0xF
+            continue
+        lf = struct.unpack_from("<H", b, o)[0]
+        if lf in (0x150D, 0x1502):
+            _, p = pdb_types.num(b, o + 8) if lf == 0x150D else pdb_types.num(b, o + 4)
+            _, o = pdb_types.cstr(b, p)
+        elif lf in (0x150F, 0x1510, 0x150E):
+            _, o = pdb_types.cstr(b, o + 8)
+        elif lf == 0x1511:
+            p = o + 8 + (4 if (struct.unpack_from("<H", b, o + 2)[0] >> 2) & 7 in (4, 6) else 0)
+            _, o = pdb_types.cstr(b, p)
+        elif lf == 0x1400:  # bclass: attr, type, offset
+            out.append(struct.unpack_from("<I", b, o + 4)[0])
+            _, o = pdb_types.num(b, o + 8)
+        elif lf in (0x1401, 0x1402):  # vbclass / ivbclass: attr, btype, vbptr type, two numerics
+            out.append(struct.unpack_from("<I", b, o + 4)[0])
+            _, p = pdb_types.num(b, o + 12)
+            _, o = pdb_types.num(b, p)
+        elif lf == 0x1409:
+            o += 8
+        elif lf == 0x1404:
+            out += fl_bases(struct.unpack_from("<I", b, o + 4)[0], seen)
+            o += 8
+        else:
+            break
+    return out
+
+
+def class_name_of(b):  # name field of an LF_CLASS/LF_STRUCTURE record body
+    return pdb_types.cstr(b, pdb_types.num(b, 16)[1])[0]
+
+
+def class_name(ti):  # name of the class/struct type record ti, else None
+    leaf, b = pdb_types.recs.get(ti, (None, b""))
+    return class_name_of(b) if leaf in (0x1504, 0x1505) else None
+
+
 class Pdb:
     """Name sets from default.pdb: publics (demangled to scope::name), procs, TPI types and members."""
 
@@ -295,6 +722,50 @@ class Pdb:
         self.member_of = {}
         for t, ms in self.members.items():
             self.member_of.setdefault(strip_templates(t), set()).update(ms)
+        # 5.5 T13.c3 (members, untagged; the 5.5 T3 census's PdbX): S_UDT names (module streams and globals), proc
+        # names, publics, enumerators, members with operator names normalized, and class -> direct base names
+        self.udt, self.proc_names, self.enumerators = set(), set(), set()
+        for m in p["modules"]:
+            self.proc_names |= {strip_templates(pr["name"]) for pr in m["procs"]}
+            st = self.streams[m["stream"]] if m["stream"] is not None and m["stream"] < len(self.streams) else None
+            pos = 4
+            while st and pos + 4 <= len(st):
+                ln, kind = struct.unpack_from("<HH", st, pos)
+                if ln < 2:
+                    break
+                if kind == 0x1108 and ln > 6:
+                    self.udt.add(pdb_types.cstr(st[pos + 4:pos + 2 + ln], 4)[0])
+                pos += 2 + ln
+        if symrec is not None and symrec < len(self.streams) and self.streams[symrec]:
+            for kind, rec in pdb_info.iter_records(self.streams[symrec]):
+                if kind == 0x1108 and len(rec) > 4:
+                    self.udt.add(pdb_types.cstr(rec, 4)[0])
+        self.publics = {q for pub in p["publics"] if (q := demangle_scope(pub["name"]))}
+        self.mem, self.bases = {}, {}
+        for t, ms in self.members.items():
+            self.mem.setdefault(strip_templates(t), set()).update(
+                opnorm(x) if x.lstrip("~").startswith("operator") else strip_templates(x) for x in ms)
+        for leaf, b in pdb_types.recs.values():
+            if leaf == 0x1507 and struct.unpack_from("<I", b, 8)[0]:
+                self.enumerators |= pdb_types.fl_names(struct.unpack_from("<I", b, 8)[0])
+            elif leaf in (0x1504, 0x1505):
+                prop, fl = struct.unpack_from("<HI", b, 2)
+                if fl and not prop & 0x80:  # not a forward reference
+                    self.bases.setdefault(strip_templates(class_name_of(b)), set()).update(
+                        strip_templates(x) for x in map(class_name, fl_bases(fl)) if x)
+
+    def has_member(self, own, nm):
+        """nm (operator names opnorm'd) a member of own or of any base, transitively (5.5 T13.c3)."""
+        seen, st = {own}, [own]
+        while st:
+            t = st.pop()
+            if nm in self.mem.get(t, ()):
+                return True
+            for bn in self.bases.get(t, ()):
+                if bn not in seen:
+                    seen.add(bn)
+                    st.append(bn)
+        return False
 
     def locals_of(self, name):
         """pdb_types.locals records of the procs named exactly `name` (cached)."""
@@ -469,7 +940,9 @@ def scoped_files(src, matched):
     return files, out
 
 
-def load_accepted(path=ACCEPTED):
+def load_accepted(path=ACCEPTED, baseline=None):
+    """-> hedge set {(path, stripped line)}; 5.5 T13: a line whose first field is in BASELINE_CHECKS is a baseline
+    entry `check<TAB>path<TAB>line<TAB>reason`, counted into the Counter baseline[(check, path, stripped line)]."""
     path = Path(path)
     acc = set()
     if path.is_file():
@@ -477,10 +950,38 @@ def load_accepted(path=ACCEPTED):
             if not line.strip() or line.startswith("#"):
                 continue
             f = line.split("\t")
+            if f[0] in BASELINE_CHECKS:
+                if len(f) != 4 or not f[3].strip():
+                    raise Refuse(f"{path.name}: need check<TAB>path<TAB>line<TAB>reason: {line[:60]}")
+                if baseline is not None:
+                    baseline[(f[0], f[1], f[2].strip())] += 1
+                continue
             if len(f) != 3:
                 raise Refuse(f"{path.name}: need path<TAB>line<TAB>reason: {line[:60]}")
             acc.add((f[0], f[1].strip()))
     return acc
+
+
+def apply_baseline(src, fails, baseline):
+    """5.5 T13: fails minus one hit per baseline entry (check, path, stripped line text), plus `FAIL accepted` for each
+    entry left unused (stale: the baseline only shrinks)."""
+    left, out, cache = Counter(baseline), [], {}
+    for f in fails:
+        m = HIT.match(f)
+        if m and m.group(1) in BASELINE_CHECKS:
+            path, n = m.group(2), int(m.group(3))
+            if path not in cache:
+                p = src / path.removeprefix("src/")
+                cache[path] = lines_of(p) if p.is_file() else []
+            ls = cache[path]
+            key = (m.group(1), path, ls[n - 1].strip() if n <= len(ls) else None)
+            if left[key] > 0:
+                left[key] -= 1
+                continue
+        out.append(f)
+    for (c, path, text), n in sorted(left.items()):
+        out += [f"FAIL accepted {path}: baseline `{c}` entry matches no `{c}` hit (stale): {text[:60]}"] * n
+    return out
 
 
 def fake_pairs(old, new):
@@ -551,16 +1052,108 @@ def check_fake_diff(src, rev, fails, base=None):
     if rev == UPSTREAM:
         rev = git("merge-base", "HEAD", UPSTREAM, cwd=top).strip()
     srel = src.relative_to(top).as_posix()
-    for st in git("diff", "--name-status", "--no-renames", rev, "--", srel, cwd=top).splitlines():
+    # 5.5 T13 (I56): each commit of rev..HEAD vs its first parent, then the working tree vs HEAD; was: one diff rev vs
+    # the working tree (a `// !FAKE:` removed in one commit and re-added in a later one was never seen)
+    for c in git("rev-list", "--reverse", f"{rev}..HEAD", cwd=top).split():
+        fake_diff_step(top, srel, f"{c}^", c, fails)
+    fake_diff_step(top, srel, "HEAD", None, fails)
+
+
+def fake_diff_step(top, srel, old_rev, new_rev, fails):
+    """fake-diff of srel between old_rev and new_rev (None: the working tree) in the repo top (5.5 T13 I56)."""
+    for st in git("diff", "--name-status", "--no-renames", old_rev, *([new_rev] if new_rev else []), "--", srel,
+                  cwd=top).splitlines():
         stat, rel = st.split("	", 1)
         if Path(rel).suffix.lower() not in EXTS:
             continue
-        old = [] if stat == "A" else git("show", f"{rev}:{rel}", cwd=top).splitlines()
-        p = top / rel
-        new = lines_of(p) if p.is_file() else []
+        old = [] if stat == "A" else git("show", f"{old_rev}:{rel}", cwd=top).splitlines()
+        if new_rev is None:
+            p = top / rel
+            new = lines_of(p) if p.is_file() else []
+        else:
+            new = [] if stat == "D" else git("show", f"{new_rev}:{rel}", cwd=top).splitlines()
         for i in fake_pairs(old, new):
             fails.append(f"FAIL fake-diff {rel}:{i + 1}: removed `// !FAKE:` with no changed code line in its function"
-                         f" ({rev} line)")
+                         f" ({old_rev} line)")
+
+
+def check_members(src, files, pdb, fails):
+    """5.5 T13.c3 (S4, D78): each data member, method, typedef and enumerator FileParse finds in any file resolves in
+    default.pdb (a member as a member of its owner or of any base, transitively)."""
+    for p in files:
+        rel = "src/" + p.relative_to(src).as_posix()
+        for kind, owner, name, li in FileParse(lines_of(p)).decls:
+            own = strip_templates(owner)
+            if kind == "enumerator":
+                ok = name in pdb.enumerators
+            elif kind == "typedef":
+                ok = name in pdb.udt or pdb.resolves((own + "::" if own else "") + name) or name in pdb.full
+            elif kind == "data" and PAD_FIELD.fullmatch(name):
+                continue
+            elif "__anon" in own.split("::"):
+                ok = name in pdb.simple
+            else:  # data, method, typedef-nested; operator names normalized both sides
+                ok = (pdb.has_member(own, opnorm(name) if name.startswith("operator") else name)
+                      or pdb.resolves(own + "::" + name))
+            if not ok:
+                fails.append(f"FAIL members {rel}:{li + 1}: {kind} `{(own + '::' if own else '') + name}` not in "
+                             f"default.pdb (as a member of its owner or a base) (D78)")
+
+
+def symbol_names():
+    """Names of every symbols.txt / symbols_pin row, as written and demangle_scope'd (5.5 T13.c3)."""
+    out = set()
+    for path in SYMBOLS:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            f = line.split()
+            if len(f) >= 6 and not f[0].startswith("#"):
+                nm = " ".join(f[3:-2])
+                out |= {nm, demangle_scope(nm)} - {None}
+    return out
+
+
+def name_tagged(ls, i):  # a NAME tag on line i or in the `//` block directly above it
+    j = i
+    while j >= 0 and (j == i or ls[j].strip().startswith("//")):
+        if NAME_TAG.search(ls[j]):
+            return True
+        j -= 1
+    return False
+
+
+def marked_scaffold(ls, i, name, depth):  # matched_set's marked test: depth 0, pin_emit_, `!FAKE:` + scaffold above
+    j, above = i - 1, []
+    while j >= 0 and ls[j].strip().startswith("//"):
+        above.append(ls[j])
+        j -= 1
+    note = " ".join(above)
+    return depth == 0 and name.startswith(matched_set.SCAFFOLD_PREFIX) and "!FAKE:" in note and "scaffold" in note
+
+
+def check_untagged(src, scoped, pdb, fails):
+    """5.5 T13.c3 (I52): a free-function definition in a scoped file or its quoted headers, other than a FUNCTION
+    line's own definition, has a NAME tag, a PDB proc/public name or a symbols name, or is a marked scaffold."""
+    syms, seen = symbol_names(), set()
+    for p, _ls in scoped:
+        for f in [p] + quoted_headers(p):
+            f = f.resolve()
+            if f in seen or not f.is_relative_to(src):
+                continue
+            seen.add(f)
+            ls = lines_of(f)
+            annotated = {func_ident(ls, s)[1] for _va, s, _e in bodies(ls)}
+            cd = None
+            for q, li in FileParse(ls).free_defs:
+                q = strip_templates(q)
+                if li in annotated or name_tagged(ls, li):
+                    continue
+                if any(n in pdb.proc_names or n in pdb.publics or n in syms for n in (q, q.split("::")[-1])):
+                    continue
+                cd = cd or code_depths(ls)
+                if marked_scaffold(ls, li, q.split("::")[-1], cd[li][0]):
+                    continue
+                fails.append(f"FAIL untagged src/{f.relative_to(src).as_posix()}:{li + 1}: free function `{q}` has "
+                             f"no NAME tag and no PDB or symbols name (I52)")
 
 
 def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED, base=None, config=None,
@@ -568,7 +1161,8 @@ def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED
     fails = []
     func_va, data_va, row_name = symbol_starts()
     files, scoped = scoped_files(src, matched)
-    acc = load_accepted(accepted)
+    baseline = Counter()
+    acc = load_accepted(accepted, baseline)
     emitters = emitter_idents(list_path)
     for path, text in sorted(acc):  # accepted: each entry is still a hedge line of its file (not stale or widened)
         f = src / path.removeprefix("src/")
@@ -604,6 +1198,18 @@ def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED
                 if cd[i][0] > cd[s][0] and PRAGMA.match(cd[i][1]):
                     fails.append(f"FAIL pragma {rel}:{i + 1}: `#pragma` inside a function "
                                  f"body is refused, `// !FAKE:` or not (D116)")
+        first = min((s for _va, s, _e in bs), default=None)  # 5.5 T13 (D138): `#pragma intrinsic` at the head only
+        for i, (dp, code) in enumerate(cd):
+            if INTRINSIC.match(code) and (dp > 0 or (first is not None and i > first)):
+                fails.append(f"FAIL pragma-scope {rel}:{i + 1}: `#pragma intrinsic` "
+                             f"{'at brace depth ' + str(dp) if dp > 0 else 'after the first FUNCTION line'} (D138)")
+            if NORETURN.search(code) and not noreturn_proved(ls, i):  # 5.5 T13 (D138)
+                fails.append(f"FAIL attr {rel}:{i + 1}: `__declspec(noreturn)` without a `// !FAKE:` whose reason "
+                             f"records a before/after (D138)")
+        for i, line in enumerate(ls):  # 5.5 T13 (I43, D33): three non-empty fields on the `!FAKE` line
+            if FAKE_TAG in line and not all(x.strip() for x in fake_fields(line)):
+                fails.append(f"FAIL fake-fields {rel}:{i + 1}: `// !FAKE:` needs three non-empty `;`-separated fields "
+                             f"on its line (kind; instrument; reason)")
         for i, line in enumerate(ls):  # 5.1 T1: a quoted include resolves to an existing file inside src
             inc = INCLUDE.match(line)
             if inc:
@@ -681,19 +1287,40 @@ def run_checks(src, pdb, xbe, rev, matched, list_path=MATCHED, accepted=ACCEPTED
                     fails.append(f"FAIL d66 {rel}:{i + 1}: `{w.group(0)}` without `// !FAKE:` on or above the line")
     if rev or base is not None:
         check_fake_diff(src, rev, fails, base)
+    check_members(src, files, pdb, fails)  # 5.5 T13.c3
+    check_untagged(src, scoped, pdb, fails)
     cov = check_locals(src, scoped, pdb, matched, fails, config, cache)
-    return fails, len(scoped), len(files), cov
+    return apply_baseline(src, fails, baseline), len(scoped), len(files), cov
+
+
+def fake_at(ls, i):
+    """Index of the `// !FAKE:` line on line i or heading the comment block directly above it, else None."""
+    if FAKE_TAG in ls[i]:
+        return i
+    j = i - 1
+    while j >= 0 and ls[j].strip().startswith("//"):
+        if ls[j].strip().startswith(FAKE_TAG):
+            return j
+        j -= 1
+    return None
 
 
 def has_fake(ls, i):
-    if "// !FAKE:" in ls[i]:
-        return True
-    j = i - 1
-    while j >= 0 and ls[j].strip().startswith("//"):
-        if ls[j].strip().startswith("// !FAKE:"):
-            return True
-        j -= 1
-    return False
+    return fake_at(ls, i) is not None  # 5.5 T13: through fake_at (same lines)
+
+
+def fake_fields(line):
+    """[kind, instrument, reason] after the `// !FAKE:` tag (the reason: the rest of the line, `;` kept), or the fewer
+    fields there are (5.5 T13)."""
+    f = line.split(FAKE_TAG, 1)[1].split(";")
+    return f[:2] + [";".join(f[2:])] if len(f) >= 3 else f + [""] * (3 - len(f))
+
+
+def noreturn_proved(ls, i):
+    """5.5 T13 (D138): a `// !FAKE:` on or above line i whose reason holds a before/after record (`->`)."""
+    j = fake_at(ls, i)
+    r = fake_fields(ls[j])[2] if j is not None else ""
+    return "->" in r and "no before/after recorded" not in r.lower()
 
 
 def quoted_headers(path, seen=None):
@@ -718,23 +1345,25 @@ def locals_key(src_file, flags):
     return h.hexdigest()
 
 
-def locals_obj(src_file, flags, bindir, cache=True):
+def locals_obj(src_file, flags, bindir, cache=True, scratch=None):
     """/Z7 obj of src_file under flags, from the cache keyed by sha1(source, flags, quoted headers); compiled on a miss.
-    cache=False (the gate, 3.5 T4 F5): always compiled into LOCALS_SCRATCH, the cache neither read nor written (a cold
-    pass at 607 measured 2.6-2.8 s, 8.0 s disk-cold; the key holds no compiler identity and a hit is not re-validated)."""
+    cache=False (the gate, 3.5 T4 F5): always compiled into the scratch dir, the cache neither read nor written (a cold
+    pass at 607 measured 2.6-2.8 s, 8.0 s disk-cold; the key holds no compiler identity and a hit is not re-validated).
+    scratch: the compile dir (5.5 T13 G5: check_locals' per-run dir; default LOCALS_SCRATCH)."""
+    scratch = LOCALS_SCRATCH if scratch is None else Path(scratch)
     obj = LOCALS_CACHE / f"{locals_key(src_file, flags)}.obj"
     if cache and obj.is_file():  # was: `if obj.is_file()` for every caller (a planted obj trusted by the gate)
         return obj
-    LOCALS_SCRATCH.mkdir(parents=True, exist_ok=True)
-    tmp = LOCALS_SCRATCH / obj.name
+    scratch.mkdir(parents=True, exist_ok=True)
+    tmp = scratch / obj.name
     tmp.unlink(missing_ok=True)
     if not cache:
-        ok, codes, _text = msvc71.compile_one(bindir, src_file, flags + ["/Z7"], tmp, scratch=LOCALS_SCRATCH)
+        ok, codes, _text = msvc71.compile_one(bindir, src_file, flags + ["/Z7"], tmp, scratch=scratch)
         if not ok:
             raise Refuse(f"locals: /Z7 compile of {src_file.name} failed (codes {' '.join(codes) or '-'})")
         return tmp
     LOCALS_CACHE.mkdir(parents=True, exist_ok=True)
-    ok, codes, _text = msvc71.compile_one(bindir, src_file, flags + ["/Z7"], tmp, scratch=LOCALS_SCRATCH)
+    ok, codes, _text = msvc71.compile_one(bindir, src_file, flags + ["/Z7"], tmp, scratch=scratch)
     if not ok:
         raise Refuse(f"locals: /Z7 compile of {src_file.name} failed (codes {' '.join(codes) or '-'})")
     tmp.replace(obj)
@@ -801,6 +1430,8 @@ def check_locals(src, scoped, pdb, matched, fails, config=None, cache=True):
     except build.Refuse as e:
         raise Refuse(f"locals: {e}")
     cov = {"with": 0, "without": 0, "noproc": 0}
+    LOCALS_SCRATCH.parent.mkdir(parents=True, exist_ok=True)  # 5.5 T13 G5: a fresh dir per run, only it removed
+    scratch = Path(tempfile.mkdtemp(prefix=LOCALS_SCRATCH.name + ".", dir=LOCALS_SCRATCH.parent))
     try:
         for p, ls in scoped:
             rel = p.relative_to(src).as_posix()
@@ -811,13 +1442,15 @@ def check_locals(src, scoped, pdb, matched, fails, config=None, cache=True):
                 flags = build.flags_of(us[0])
             except build.Refuse as e:
                 raise Refuse(f"locals: {e}")
-            procs = obj_procs(locals_obj(p, flags, Path(bindir), cache))
+            procs = obj_procs(locals_obj(p, flags, Path(bindir), cache, scratch))
             for va, s, e in bodies(ls):
                 if va not in matched:
                     continue
                 pr = procs.get(matched[va]["symbol"])
                 if pr is None:
-                    cov["noproc"] += 1
+                    cov["noproc"] += 1  # 5.5 T13 G4: and a fail; was: counted only
+                    fails.append(f"FAIL locals src/{rel}:{s + 1}: no obj proc for the matched function (its locals "
+                                 f"unchecked)")
                     continue
                 cov["with" if pr[1] else "without"] += 1
                 allowed = pdb_local_names(pdb, ls, s, e, pr[0]) if pr[1] else set()
@@ -825,8 +1458,11 @@ def check_locals(src, scoped, pdb, matched, fails, config=None, cache=True):
                     if not NEUTRAL.match(x["name"]) and x["name"] not in allowed:
                         fails.append(f"FAIL locals src/{rel}:{use_line(ls, s, e, x['name']) + 1}: local "
                                      f"`{x['name']}` is neither a PDB local of its proc nor neutral")
+                    elif allowed and x["name"] not in allowed and not has_fake(ls, u := use_line(ls, s, e, x["name"])):
+                        fails.append(f"FAIL neutral src/{rel}:{u + 1}: neutral local `{x['name']}` is not a PDB local "
+                                     f"of its proc and has no `// !FAKE:` on or above its first use")  # 5.5 T13 (S5)
     finally:
-        shutil.rmtree(LOCALS_SCRATCH, ignore_errors=True)
+        shutil.rmtree(scratch, ignore_errors=True)  # was: rmtree(LOCALS_SCRATCH) (another run's scratch too)
     return cov
 
 
@@ -917,12 +1553,18 @@ def self_test(src, pdb, xbe, matched, list_path=MATCHED, accepted=ACCEPTED):
     try:
         base = counts(run_checks(dst, pdb, xbe, None, matched, list_path, accepted)[0])
         _files, scoped = scoped_files(dst, matched)
-        p, ls = scoped[0]
-        va, s, _e = next(b for b in bodies(ls) if b[0] in matched)
-        ls = list(ls)
-        k = next(i for v, s2, e2 in bodies(ls) if v in matched for i in range(s2, e2) if ls[i].strip() == "{")
+        # 5.5 T13.c3: plant in the first matched body whose `{` is at its FUNCTION line's depth and whose PROTOTYPE
+        # proc has PDB locals (was: scoped[0]'s first `{` in any matched extent, a pin_emit_ scaffold in
+        # `namespace std {`, so locals, pragma and neutral did not fail)
+        p, ls, va, s, k = next((p, list(ls), va, s, k) for p, ls in scoped for cd in [code_depths(ls)]
+                               for va, s, e in bodies(ls)
+                               if va in matched and s + 1 < e and PROTO_VA.match(ls[s + 1])
+                               for k in [next((i for i in range(s, e) if ls[i].strip() == "{"), None)]
+                               if k is not None and cd[k][0] == cd[s][0] and pdb_local_names(pdb, ls, s, e, ""))
         ls.insert(k + 1, "#pragma warning(disable:4100)")  # 4.5 T16.2: an in-body pragma (pragma control)
         ls.insert(k + 1, "    volatile int zz_selftest_local = 0;")  # a free-named stack local (locals control)
+        ls.insert(k + 1, "    volatile int v99 = 0;")  # 5.5 T13: a neutral local, no `!FAKE` (neutral control; fails
+        # only where the proc has PDB locals)
         ls.insert(s + 1, "volatile int zz_selftest_d66;")
         ls += ["struct ZzSelftestNotInPdb; // NAME: proto-pdb:default.pdb",
                "int function_00000001;",
@@ -933,6 +1575,11 @@ def self_test(src, pdb, xbe, matched, list_path=MATCHED, accepted=ACCEPTED):
                "// !FAKE: inliner; __forceinline; planted",
                "__forceinline int zz_selftest_forceinline() { return 0; }",
                "__declspec(noinline) int zz_selftest_noinline();",  # 4.5 T16.2 (noinline control)
+               "__declspec(noreturn) void zz_selftest_attr();",  # 5.5 T13 (attr control)
+               "#pragma intrinsic(memcpy)",  # 5.5 T13 (pragma-scope control: after the first FUNCTION line)
+               "// !FAKE: inliner; planted",  # 5.5 T13 (fake-fields control: two fields)
+               "struct ZzSelftestMembers { int zz_selftest_member; };",  # 5.5 T13.c3 (members control)
+               "int zz_selftest_helper() { return 0; }",  # 5.5 T13.c3 (untagged control)
                "#if 0", '#include "../zz_selftest_missing.h"', "#endif"]  # 5.1 T1 (include control: a missing
         # target; under `#if 0` so the locals /Z7 compile still succeeds, the lint reads every arm)
         p.write_text("\n".join(ls) + "\n", encoding="utf-8", newline="\n")

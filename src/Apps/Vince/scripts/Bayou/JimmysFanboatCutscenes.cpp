@@ -192,8 +192,15 @@ protected:
 };
 DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class JimmyVictoryDanceCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
+    JimmyVictoryDanceCutscene(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Ids { // NAME: proto-pdb:default.pdb
         ID_JIMMY = 0x1,
         ID_RC_CONTROLLER = 0x2
@@ -207,6 +214,7 @@ protected:
     virtual void Cleanup();                                        // vtable+0x70
 private:
     virtual void SetState(int state);                              // vtable+0x74
+    static SwampScript* creationFunc(SwampSceneNode* node);
 
     GatorNode* _jimmy;                 // 0x78
     GatorNode* _controller;            // 0x7C
@@ -258,4 +266,26 @@ void JimmyVictoryDanceCutscene::SetState(int state)
         break;
     }
     _state = state;
+}
+
+// FUNCTION: USA 0x000276BB
+// NAME: proto-pdb:default.pdb
+SwampScript* JimmyVictoryDanceCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("JimmysFanboat\\JimmysFanboatCutscenes.cpp", 19) JimmyVictoryDanceCutscene(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x000276E2
+// NAME: proto-pdb:default.pdb
+JimmyVictoryDanceCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("JimmyVictoryDanceCutscene", creationFunc);
 }

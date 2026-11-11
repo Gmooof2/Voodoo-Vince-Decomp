@@ -1,7 +1,7 @@
 # Start here: matching one function (1.6 T4; Halo 2 START_HERE shape)
 
 PY = the python on the card. Forms (annotations, tags, asserts, `!FAKE`, NON_MATCHING, method): `CONVENTIONS.md`.
-Matched means the gate (D40, D26); nothing else is a claim.
+Matched means the gate (D123, was D40; D26); nothing else is a claim.
 
 ## 1. Setup check (every session, before any edit)
 - `PY tools/manifest.py verify` exits 0 (inputs and the retail XBE pin).
@@ -22,7 +22,8 @@ Matched means the gate (D40, D26); nothing else is a claim.
 
 ## 3. Work loop
 - Iterate with `PY tools/match_one.py --symbol <name> --task T<n>` (builds the unit alone; objdiff + bytes; not a
-  claim). `--task` is required; every run, refusals too, appends one line to the attempt ledger
+  claim). `--task` is required, `T<n>` or dotted `T<n>.<k>` (5.4 T2); an invalid id is refused rc 2 with no ledger row;
+  every other run, refusals too, appends one line to the attempt ledger
   `docs/matching/attempts-<phase>.jsonl` (4.4 T11: `attempts.jsonl` is the frozen base, read first; `--ledger P` for
   scratch runs; test runs never write the committed ledger).
 - A resubmission refuses (rc 2, 5.2 T15): an attempt or control whose unit source sha256 and opt equal an earlier
@@ -44,7 +45,7 @@ Matched means the gate (D40, D26); nothing else is a claim.
   a standalone compile never decides a unit claim.
 - No invented structure (D78): every field, type, callee, guard and constant comes from the prototype PDB, the retail
   disassembly or retail strings; an unknown stays `field_<offset>`, `function_<VA>`, `undefined4`.
-- D80 is inactive: retail /GL is no (docs/evidence/toolchain.md:169-172). If /GL turns `yes` or `unknown`, never swap
+- D80 (never filed in rules/INDEX.md) is inactive: retail /GL is no (docs/evidence/toolchain.md:169-172). If /GL turns `yes` or `unknown`, never swap
   arguments or change a signature at a call into an unmatched callee; match the callee first.
 - Every match-only construct gets `// !FAKE:`; the D116 forms (was D79) never appear, with or without the marker (CONVENTIONS §4).
 - Keep the attempt journal in the task log: edit, `match_one` lines, undo to the last best (CK18).
@@ -57,6 +58,12 @@ Matched means the gate (D40, D26); nothing else is a claim.
 - Batch form, the expert runs it: `PY tools/match_finish_batch.py T<n> (--symbol S ... | --symbols-from FILE) --paths P ...`
   (`--help`; 4.1 T7). Rows the full gate fails leave, guarded per CONVENTIONS §5, and the gate re-runs. Coders never run
   the gate: they stop at `match_one` and name their rows and files.
+  A killed finish is recovered by the next run (5.5 T6): it restores `.run/<phase>/finish/<TaskId>/` first. After
+  a batch, regenerate pool_buckets before wave_rows (wave_rows refuses a stale header).
+- Before the batch finish a coder may run `PY tools/precheck.py SYMS TAG [FILE ...]` on its wave (scratch, never a
+  claim): build, the gate's own `matched_set.check` and `annotations.check` (5.4 T2: a missing `// FUNCTION:` line and
+  a wrong `[[emitter]]` name now fail here as at the gate), `relink.gate_check`, provenance_lint; exit 0 iff all pass.
+  It holds the gate's run lock for gate_check and refuses while the list differs from HEAD (5.5 T6).
 - Coders per batch, measured so far: 2 clean at 4.3 T4 (~50 matches/wall h, 12-50 B rows) and 4 clean at 4.3 T5
   (~66 matches/wall h, 52-128 B rows; 0 collisions, 0 wrong failures each). Rule for T8: 6 coders only if T5's
   matches per wall hour beat T4's by a quarter or more (49.7 x 1.25 = 62.1) with no collision or wrong failure, else

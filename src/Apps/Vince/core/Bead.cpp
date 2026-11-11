@@ -239,6 +239,13 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 class BeadMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     enum Messages { // NAME: proto-pdb:default.pdb
@@ -253,6 +260,11 @@ public:
     virtual void Message(SwampScript* from, int message, void* data);
     static int GetBeadValue(int size);
     static SwampString GetBeadBaseName(int size);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -335,7 +347,8 @@ int BeadMain::GetBeadValue(int size)
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 3)
+// best: match_one objdiff 100.0, bytes match (masked 0) 5.5 T8.c3; wall: relink: the ctor emits ??_7BeadMain, whose
+// slot ?SetState@CritterMain@@UAEXH@Z does not resolve by name (needs a retail VA pin for it)
 // FUNCTION: USA 0x00126256
 // PROTOTYPE: PREVIEW 0x0050ED64 near-identical
 // NAME: proto-pdb:default.pdb
@@ -381,9 +394,61 @@ SwampScript* BeadMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Bead.h", 53) BeadMain(node);
 }
 
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+class Bead2 { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x00126C5C
+// NAME: proto-pdb:default.pdb
+Bead2::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Bead2", creationFunc);
+}
+
+class Bead3 { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+// FUNCTION: USA 0x00126C98
+// NAME: proto-pdb:default.pdb
+Bead3::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Bead3", creationFunc);
+}
+
+// FUNCTION: USA 0x00126CD4
+// NAME: proto-pdb:default.pdb
+BeadMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BeadMain", creationFunc);
+}
+
 class Bead2Main : public BeadMain { // NAME: proto-pdb:default.pdb
 public:
     Bead2Main(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -398,9 +463,21 @@ SwampScript* Bead2Main::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Bead.h", 87) Bead2Main(node);
 }
 
+// FUNCTION: USA 0x00126D10
+// NAME: proto-pdb:default.pdb
+Bead2Main::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Bead2Main", creationFunc);
+}
+
 class Bead3Main : public BeadMain { // NAME: proto-pdb:default.pdb
 public:
     Bead3Main(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -412,4 +489,11 @@ SwampScript* Bead3Main::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Bead.h", 96) Bead3Main(node);
+}
+
+// FUNCTION: USA 0x00126D4C
+// NAME: proto-pdb:default.pdb
+Bead3Main::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Bead3Main", creationFunc);
 }

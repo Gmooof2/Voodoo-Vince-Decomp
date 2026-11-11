@@ -363,6 +363,10 @@ DECOMP_SIZE_ASSERT(RegionTrigger, 0x124);
 
 class MusicRegion : public RegionTrigger { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     MusicRegion();
     virtual ~MusicRegion();
     virtual void Load(const BeepTDF&);
@@ -376,6 +380,12 @@ private:
     static SwampSceneNode* creationFunc();
 };
 DECOMP_SIZE_ASSERT(MusicRegion, 0x160);
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
 
 class MusicRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -431,7 +441,7 @@ void MusicRegion::Show() const
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 2 = the two Play calls)
+// 5.5 T7.c5 D115 (R518): callee ?Play@SoundStreamer@@QAEXXZ 0x000D9104 pin disabled; relink cannot resolve the call by name; leaves the matched set
 // FUNCTION: USA 0x00112A0B
 // PROTOTYPE: PREVIEW 0x004FD261 near-identical
 // NAME: proto-pdb:default.pdb
@@ -507,6 +517,13 @@ SwampSceneNode* MusicRegion::creationFunc()
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\core\\Music.h", 14) MusicRegion;
+}
+
+// FUNCTION: USA 0x0011508F
+// NAME: proto-pdb:default.pdb
+MusicRegion::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("MusicRegion", creationFunc);
 }
 
 inline void* operator new(unsigned int, void* p) { return p; }

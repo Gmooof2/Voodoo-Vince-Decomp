@@ -4,7 +4,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 template <class T, class A = allocator<T> > class vector {
 public:
     ~vector() { _Tidy(); }
@@ -143,6 +153,11 @@ DECOMP_SIZE_ASSERT(CarriedObjectMain, 0xF8);
 // NAME: proto-pdb:default.pdb
 class NetMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     enum States { // NAME: proto-pdb:default.pdb
         STATE_SWIPING = 3
     };
@@ -159,15 +174,19 @@ public:
 };
 DECOMP_SIZE_ASSERT(NetMain, 0x110);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x0006972D
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); wall: matched_set refuses: the symbols_pin.txt row 0x0006972D has no size (-)
 void NetMain::AnimationInterrupted()
 {
     AnimationFinished();
 }
-#endif
 
 // FUNCTION: USA 0x00069732
 // NAME: proto-pdb:default.pdb
@@ -193,4 +212,51 @@ SwampScript* NetMain::creationFunc(SwampSceneNode* node)
 void pin_emit_NetMain_dtor(NetMain* p)
 {
     p->NetMain::~NetMain();
+}
+
+class CarriedObject : public Critter { // NAME: proto-pdb:default.pdb
+};
+
+class Net : public CarriedObject { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+    Net();
+private:
+    static SwampSceneNode* creationFunc();
+    // !FAKE: opaque shell; size from the retail push (0x308), the PDB says 0x2F8
+    char field_0[0x308];               // 0x00
+};
+
+// FUNCTION: USA 0x00069E08
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100, bytes provisional (masked 1): ctor ??0Net@@QAE@XZ at 0x00069DE8 unpinned (needs pin + re-cut)
+SwampSceneNode* Net::creationFunc()
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Net.h", 18) Net;
+}
+#endif
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x00069E2A
+// NAME: proto-pdb:default.pdb
+Net::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Net", creationFunc);
+}
+
+// FUNCTION: USA 0x00069E66
+// NAME: proto-pdb:default.pdb
+NetMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("NetMain", creationFunc);
 }

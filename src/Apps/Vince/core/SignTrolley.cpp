@@ -1108,6 +1108,11 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 
 class SignTrolleyMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     enum Messages { // NAME: proto-pdb:default.pdb
         MESSAGE_ACTIVATESTOP = 0x14,
         MESSAGE_GETPADNODE = 0x15
@@ -1131,6 +1136,13 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SignTrolleyMain, 0x104);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
@@ -1235,7 +1247,9 @@ void pin_emit_MapStop_assign(TrolleyManager::MapStop* p, const TrolleyManager::M
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store, literal)
+// best: match_one objdiff 100.0, bytes provisional (masked 1), T15.c4: needs pin ??_7SignTrolleyMain@@6B@ 0x001F8350
+// 5.5 T8.c5: pin present, match_one PASS (objdiff 100, masked 0); wall: precheck gate_check relink FAIL `.rdata digest`
+// with this ctor live (vtable ??_7SignTrolleyMain emitted, contents differ from retail); OK with it guarded
 // FUNCTION: USA 0x0012D338
 // PROTOTYPE: PREVIEW 0x00515D67 near-identical
 // NAME: proto-pdb:default.pdb
@@ -1506,3 +1520,10 @@ template TrolleyManager::MapStop * std::_Copy_backward_opt<TrolleyManager::MapSt
 // PROTOTYPE: PREVIEW 0x00516AF7 identical
 // NAME: proto-pdb:default.pdb
 template void std::fill<TrolleyManager::MapStop *,TrolleyManager::MapStop>(TrolleyManager::MapStop *,TrolleyManager::MapStop *,TrolleyManager::MapStop const &);
+
+// FUNCTION: USA 0x0012F559
+// NAME: proto-pdb:default.pdb
+SignTrolleyMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SignTrolleyMain", creationFunc);
+}

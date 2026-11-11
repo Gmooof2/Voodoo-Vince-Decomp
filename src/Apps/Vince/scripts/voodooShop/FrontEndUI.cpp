@@ -67,7 +67,8 @@ public:
         T& operator*() const { return *_Myptr; }
         T* operator->() const { return _Myptr; }
         iterator& operator++() { ++_Myptr; return *this; }
-        iterator operator+(int _Off) const { return iterator(_Myptr + _Off); }
+        iterator operator+(int _Off) const { iterator _Tmp = *this; return (_Tmp += _Off); }
+        iterator& operator+=(int _Off) { _Myptr += _Off; return (*this); }
         bool operator!=(const iterator& _Right) const { return _Myptr != _Right._Myptr; }
         T* _Myptr;
     };
@@ -78,7 +79,7 @@ public:
     iterator end() { return iterator(_Mylast); }
     unsigned int size() const;
     unsigned int capacity() const;
-    T& operator[](unsigned int _Pos) { return _Myfirst[_Pos]; }
+    T& operator[](unsigned int _Pos) { return (*(begin() + _Pos)); }
     void push_back(const T& _Val);
     void clear() { _Tidy(); }
 	vector& operator=(const vector& _Right)
@@ -562,8 +563,7 @@ FrontEndUI::FrontEndUI()
     g_swamp->_input->SetJpadPipedToDpad(true);
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 92.81, bytes mismatch (masked 4)
+// callees/literals pinned 5.4 T25.c1
 // FUNCTION: USA 0x0013EC2F
 // PROTOTYPE: PREVIEW 0x0052754D near-identical
 // NAME: proto-pdb:default.pdb
@@ -588,4 +588,3 @@ void ChaptersMenu::BuildChapterList()
     }
     _chapterList.push_back(le);
 }
-#endif

@@ -101,6 +101,15 @@ public:
 };
 DECOMP_SIZE_ASSERT(RumbleResource, 0x30);
 
+extern "C" double __cdecl ceil(double); // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x000D1AE8
+// NAME: proto-pdb:default.pdb
+unsigned int RumbleResource::SamplesRequired() const
+{
+    return (unsigned int)ceil(_rate * _duration);
+}
+
 // FUNCTION: USA 0x000D1B0E
 // PROTOTYPE: PREVIEW 0x004BCDC9 identical
 // NAME: proto-pdb:default.pdb

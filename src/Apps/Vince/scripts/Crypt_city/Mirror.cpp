@@ -165,6 +165,10 @@ public:
     virtual SwampString Save();
     bool IsPuzzleDone() const;
     void TestForAim();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -224,7 +228,9 @@ void MirrorUrnMain::TestForAim()
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 3 = vptr store, two literals)
+// best: match_one objdiff 100.0, bytes match (masked 0) (5.5 T8.c2, ??_7MirrorUrnMain pinned); wall: precheck
+// relink `our ranges overlap at 0x000E2D89`: vtable slot 0 ??_GMirrorUrnMain is the shared fold-alias ??_E at
+// 0x000E2D89 (symbols_pin.txt:4458), our mirror.obj places its own ??_G there
 // FUNCTION: USA 0x0006B9B0
 // PROTOTYPE: PREVIEW 0x00457D73 near-identical
 // NAME: proto-pdb:default.pdb
@@ -282,4 +288,18 @@ SwampScript* MirrorUrnMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Mirror.h", 12) MirrorUrnMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0006BFD9
+// NAME: proto-pdb:default.pdb
+MirrorUrnMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MirrorUrnMain", creationFunc);
 }

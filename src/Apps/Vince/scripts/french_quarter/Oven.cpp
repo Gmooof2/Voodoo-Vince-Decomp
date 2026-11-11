@@ -117,6 +117,8 @@ public:
     virtual void HitBy(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&); // vtable+0x50
     virtual void Load(const BeepTDF&);                             // vtable+0x54
     virtual SwampString Save();                                    // vtable+0x58
+    virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
+    virtual void InvalidateScript();                               // vtable+0x60
 
     void RegisterTimerEvent(unsigned int, float, bool);
     void RemoveTimerEvents();
@@ -131,8 +133,14 @@ class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    virtual void CollidedWith(CollisionType, SwampSceneNode*, const Ptr<CollisionResultObject>&);
+    virtual bool CanChaseTo(const Vector3&);                       // vtable+0x64
+    virtual bool CanPatrolTo(const Vector3&);                      // vtable+0x68
+protected:
+    virtual void SetState(int);                                    // vtable+0x6C
+public:
 
-    int _state;                        // 0x4C
+    int _state;                       // 0x4C
     char field_50[0x6C];               // 0x50
 };
 DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
@@ -144,7 +152,14 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 class OvenMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     OvenMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     virtual void Activate();
+    virtual void AnimationFinished();
+    virtual void TimerEvent(unsigned int);
+    virtual void Message(SwampScript*, int, void*);
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
 
@@ -236,10 +251,6 @@ SwampString OvenMain::Save()
     return format("\t\tnomorecookies=%d;\n", _noMoreCookies);
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store, literal); with it ??_GOvenMain 0x0007B380
-// 100.0 bytes match (5.3 T6.c2), wall: relink `external PTR_??_GOvenMain@@UAEPAXI@Z_001dea50: 0 VAs by name`
-// (??_7OvenMain 0x001DEA50 unpinned); lift: pin ??_7OvenMain@@6B@, then match this ctor
 // FUNCTION: USA 0x0007B2CF
 // PROTOTYPE: PREVIEW 0x004672D6 near-identical
 // NAME: proto-pdb:default.pdb
@@ -251,7 +262,6 @@ OvenMain::OvenMain(SwampSceneNode* node)
     ((Critter*)_node)->_CritterType = CRITTER_TYPE_STATIC;
     _state = 0;
 }
-#endif
 
 // FUNCTION: USA 0x0007B5A0
 // NAME: proto-pdb:default.pdb
@@ -274,4 +284,41 @@ SwampScript* OvenMain::creationFunc(SwampSceneNode* node)
 void pin_emit_OvenMain_dtor(OvenMain* p)
 {
     p->OvenMain::~OvenMain();
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0007BA1B
+// NAME: proto-pdb:default.pdb
+OvenMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("OvenMain", creationFunc);
+}
+
+class Conveyor { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x0007BA57
+// NAME: proto-pdb:default.pdb
+Conveyor::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Conveyor", creationFunc);
 }

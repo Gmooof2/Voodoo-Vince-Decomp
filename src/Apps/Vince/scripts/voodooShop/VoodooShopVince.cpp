@@ -4,7 +4,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -154,6 +164,10 @@ class VoodooShopVinceMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     VoodooShopVinceMain(SwampSceneNode* node);
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -163,6 +177,7 @@ DECOMP_SIZE_ASSERT(VoodooShopVinceMain, 0xC0);
 
 #ifdef NON_MATCHING
 // best: match_one objdiff 96.27, bytes mismatch (masked 0)
+// T15.c6: retail loads lo (eax) and hi (edi) before push ebx, then mov ebx,eax and spills lo to [ebp-4] (the freed handle slot); 18 probe forms (no locals, order, int, split +=, refs, outer scope) keep 46 normdiff
 // FUNCTION: USA 0x0013F331
 // PROTOTYPE: PREVIEW 0x00527C0D near-identical
 // NAME: proto-pdb:default.pdb
@@ -198,4 +213,19 @@ SwampScript* VoodooShopVinceMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("VoodooShopVince.cpp", 12) VoodooShopVinceMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x0013F44D
+// NAME: proto-pdb:default.pdb
+VoodooShopVinceMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VoodooShopVinceMain", creationFunc);
 }

@@ -153,9 +153,7 @@ void Swamp_Init(const SwampString& renderswitches)
 // FUNCTION: USA 0x000AD5F9
 // PROTOTYPE: PREVIEW 0x004123ED identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but 0x000AD5F9 folds 38 vector<T*>::_Tidy aliases; listed, relink refuses BasketCase.obj's external vector<Critter*>::_Tidy "lies in a replaced range" (4.3 T12)
 template void std::vector<Param,std::allocator<Param> >::_Tidy();
-#endif
 
 // FUNCTION: USA 0x000AD679
 // PROTOTYPE: PREVIEW 0x00498500 identical

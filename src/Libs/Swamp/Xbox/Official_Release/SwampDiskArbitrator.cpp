@@ -186,8 +186,7 @@ public:
     unsigned char _buffer[131072];     // 0x104
 };
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 89.71, bytes mismatch (masked 1): register allocation only
+// callees/literals pinned 5.4 T25.c1
 // FUNCTION: USA 0x000D37C0
 // PROTOTYPE: PREVIEW 0x004BEACA near-identical
 // NAME: proto-pdb:default.pdb
@@ -197,9 +196,10 @@ bool DiskQueue::AddReadRequest(BeepFile* f, unsigned int offset, void* data, uns
     if (_queue.size() >= _maxSize) {
         Request& last = _queue.back();
         if ((last.priority & 0xF0000000) < (priority << 28)) {
-            if (last.resultLoc)
+            if (last.resultLoc) {
                 *last.resultLoc = 0;
-            _queue.pop_back();
+                _queue.pop_back();
+            }
         } else {
             *resultLoc = 0;
             return false;
@@ -211,15 +211,14 @@ bool DiskQueue::AddReadRequest(BeepFile* f, unsigned int offset, void* data, uns
     r.data = data;
     r.bytes = bytes;
     _lastID = (_lastID - 1) & 0x0FFFFFFF;
-    r.priority = (priority << 28) + _lastID;
     r.resultLoc = resultLoc;
+    r.priority = (priority << 28) + _lastID;
     _queue.Add(r);
     *resultLoc = 1;
     if (_numRequestsPending < MAX_PENDING_COUNT)
         Update();
     return true;
 }
-#endif
 
 // FUNCTION: USA 0x000D3871
 // PROTOTYPE: PREVIEW 0x004BEB7E identical

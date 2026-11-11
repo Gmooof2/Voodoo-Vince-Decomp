@@ -4,7 +4,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* _Ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    unsigned int _pad00[0x1C / 4];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -13,11 +23,19 @@ class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3;              // NAME: proto-pdb:default.pdb
 
+struct AABox;                // NAME: proto-pdb:default.pdb
+
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
-    void SetOption(unsigned int, bool, bool);
+    enum NodeRenderingSettings { Alpha = 0x0 }; // NAME: proto-pdb:default.pdb
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
 
-    char field_0[0xA4];                // 0x00
+    void SetOption(unsigned int, bool, bool);
+    void SetRenderingSetting(unsigned int setting, unsigned int value, bool recurse);
+
+    char field_4[0xA0];                // 0x04
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
@@ -105,10 +123,80 @@ public:
     virtual void FrameTick();
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(TrainingSignMain, 0xBC);
 
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+#ifdef NON_MATCHING
+#include <math.h> // sqrtf stand-in for retail's inline-asm sqrt (D116 wall)
+
+struct Vector3 { // NAME: proto-pdb:default.pdb
+    float x;                           // 0x00
+    float y;                           // 0x04
+    float z;                           // 0x08
+};
+
+class Vince : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+};
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Vince* GetVince() const { return _vinceCache; }
+
+    char field_0[0x28];                // 0x00
+    Vince* _vinceCache;                // 0x28
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
+class Globals { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x8A0];               // 0x00
+    float field_8A0;                   // 0x8A0
+    float field_8A4;                   // 0x8A4
+};
+
+extern Globals gSettings; // NAME: proto-pdb:default.pdb
+
+// best: match_one objdiff 69.88, bytes mismatch; wall-d45 (C0219, D116): retail's xz length is inline-asm sqrt (rsqrtss + fcompi/fcmovbe/ffree), and it reads both GetWorldPosition results through eax
+// FUNCTION: USA 0x00136828
+// PROTOTYPE: PREVIEW 0x005209EE identical
+// NAME: proto-pdb:default.pdb
+void TrainingSignMain::FrameTick()
+{
+    float alpha = 0.0f;
+    Vince* vince = pManager->GetVince();
+    const Vector3& signPos = _node->GetWorldPosition();
+    const Vector3& vincePos = vince->GetWorldPosition();
+    float dx = vincePos.x - signPos.x;
+    float dz = vincePos.z - signPos.z;
+    float dist = sqrtf(dx * dx + dz * dz);
+    float fadeEnd = gSettings.field_8A4;     // 0x8A4
+    float fadeStart = gSettings.field_8A0;   // 0x8A0
+    if (fadeStart >= fadeEnd)
+        fadeStart = fadeEnd - 0.01f;
+    if (dist <= fadeEnd) {
+        float t = dist - fadeStart;
+        if (t < 0.0f)
+            t = 0.0f;
+        alpha = 1.0f - t / (fadeEnd - fadeStart);
+    }
+    _node->SetRenderingSetting(SwampSceneNode::Alpha, (unsigned int)(alpha * 255.0f), true);
+}
+#endif
 
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes provisional (masked 1 = the vptr store); /O2 /Oy control 90.53
@@ -131,4 +219,11 @@ SwampScript* TrainingSignMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("scripts\\common\\TrainingSign.cpp", 6) TrainingSignMain(node);
+}
+
+// FUNCTION: USA 0x00136972
+// NAME: proto-pdb:default.pdb
+TrainingSignMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TrainingSignMain", creationFunc);
 }

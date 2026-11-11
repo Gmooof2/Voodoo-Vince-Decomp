@@ -132,9 +132,7 @@ DECOMP_SIZE_ASSERT(Settings, 0x34);
 
 // FUNCTION: USA 0x001114D9
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but 0x001114D9 also folds vector<std::string>::size, which FrontEndUI.obj calls as an external (4.3 T12)
 template unsigned int std::vector<Param,std::allocator<Param> >::size()const;
-#endif
 
 // FUNCTION: USA 0x00111571
 // PROTOTYPE: PREVIEW 0x004FBDAC identical

@@ -260,7 +260,7 @@ class Vince : public Critter { // NAME: proto-pdb:default.pdb
 public:
     void PutOutFire();
 
-    char field_251[0x2F5 - 0x251];     // 0x251
+    char field_254[0x2F5 - 0x254];     // 0x254 (Critter is 4-aligned: _OnFloor at 0x250 pads to 0x254)
     bool _inputEnabled;                // 0x2F5
     bool _canUseEyeCam;                // 0x2F6
 };
@@ -294,6 +294,10 @@ public:
     virtual bool LosingControl(const SwampString&);
     virtual void Message(SwampScript*, int, void*);
     Vince* GetVince() { return (Vince*)_node; }
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -320,7 +324,7 @@ void VinceWalkOut::FrameTick()
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1 = the vptr store)
+// best: match_one objdiff 100.0, bytes provisional (masked 1); T15.c5 va_dis byte-equal but the vptr store: needs ??_7VinceWalkOut@@6B@ 0x001F9BB0 pinned
 // FUNCTION: USA 0x00136386
 // PROTOTYPE: PREVIEW 0x00520576 near-identical
 // NAME: proto-pdb:default.pdb
@@ -375,4 +379,18 @@ SwampScript* VinceWalkOut::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\VinceWalkOut.h", 6) VinceWalkOut(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0013659F
+// NAME: proto-pdb:default.pdb
+VinceWalkOut::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceWalkOut", creationFunc);
 }

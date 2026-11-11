@@ -127,8 +127,6 @@ DECOMP_SIZE_ASSERT(FFlyPointSurf, 0x4);
 
 // FUNCTION: USA 0x0006F150
 // NAME: proto-pdb:default.pdb
-// ??_GFFlySphereSurf: compiler-generated with the vtable the ctor emits; match_one objdiff 100.0, bytes match (masked 0);
-// wall (5.3 T6.c3 precheck): matched_set refuses, symbols_pin.txt 0x0006F150 pin has no size; lift = size the pin
 class FFlySphereSurf : public FFlyEmitterSurface { // NAME: proto-pdb:default.pdb
 public:
     virtual int Spawn(FFlyEmitter& emitter, FFlyParticle* p, float param1, float param2, unsigned int max);

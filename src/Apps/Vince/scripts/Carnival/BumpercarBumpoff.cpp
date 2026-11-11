@@ -118,6 +118,8 @@ DECOMP_SIZE_ASSERT(AirplaneMain, 0xF0);
 
 class TentPlaneMain : public AirplaneMain { // NAME: proto-pdb:default.pdb
 public:
+    TentPlaneMain(SwampSceneNode* node);
+public:
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_SHOOT = 0x1,
         TIMER_INSTRUCTIONS = 0x2
@@ -127,6 +129,12 @@ public:
 
     int _gunIndex;                     // 0xF0
     bool _firstRide;                   // 0xF4
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(TentPlaneMain, 0xF8);
 
@@ -202,9 +210,19 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class BumpercarBumpoffRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    BumpercarBumpoffRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(BumpercarBumpoffRegionMain, 0x64);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 
 class BcboStartBattleRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -236,6 +254,77 @@ public:
     bool _activateChapter;             // 0xBD
 };
 DECOMP_SIZE_ASSERT(AreaLoadRegionMain, 0xC0);
+class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
+
+    char field_BC[0x110 - 0xBC];       // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
+
+class AreaLoad_insideKosmobotRegionMain : public AreaLoadRegionMain { // NAME: proto-pdb:default.pdb
+public:
+    AreaLoad_insideKosmobotRegionMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(AreaLoad_insideKosmobotRegionMain, 0xC0);
+
+class DoorExitBumpoffMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DoorExitBumpoffMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorExitBumpoffMain, 0x110);
+
+class BcboStartBattleARegionMain : public BcboStartBattleRegionMain { // NAME: proto-pdb:default.pdb
+private:
+    BcboStartBattleARegionMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(BcboStartBattleARegionMain, 0x4C);
+
+class BcboStartBattleBRegionMain : public BcboStartBattleRegionMain { // NAME: proto-pdb:default.pdb
+private:
+    BcboStartBattleBRegionMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(BcboStartBattleBRegionMain, 0x4C);
+
+class BcboStartBattleCRegionMain : public BcboStartBattleRegionMain { // NAME: proto-pdb:default.pdb
+private:
+    BcboStartBattleCRegionMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(BcboStartBattleCRegionMain, 0x4C);
+
 
 // FUNCTION: USA 0x0004DD3F
 // PROTOTYPE: PREVIEW 0x0043ACD6 identical
@@ -333,4 +422,116 @@ void BcboStartBattleRegionMain::Message(SwampScript* source, int message, void* 
         tmp->GetScript()->Message(this, 0x15, 0);
         break;
     }
+}
+
+// FUNCTION: USA 0x0004E888
+// NAME: proto-pdb:default.pdb
+SwampScript* BumpercarBumpoffRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumpercarBumpoff.cpp", 25) BumpercarBumpoffRegionMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0004E8AC
+// NAME: proto-pdb:default.pdb
+BumpercarBumpoffRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BumpercarBumpoffRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004E924
+// NAME: proto-pdb:default.pdb
+TentPlaneMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TentPlaneMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004E99C
+// NAME: proto-pdb:default.pdb
+AreaLoad_insideKosmobotRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("AreaLoad_insideKosmobotRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004E9D8
+// NAME: proto-pdb:default.pdb
+DoorExitBumpoffMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorExitBumpoffMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004EA14
+// NAME: proto-pdb:default.pdb
+BcboStartBattleARegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BcboStartBattleARegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004EA50
+// NAME: proto-pdb:default.pdb
+BcboStartBattleBRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BcboStartBattleBRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004EA8C
+// NAME: proto-pdb:default.pdb
+BcboStartBattleCRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BcboStartBattleCRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004DE1B
+// NAME: proto-pdb:default.pdb
+SwampScript* BcboStartBattleARegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumpercarBumpoff.cpp", 354) BcboStartBattleARegionMain(node);
+}
+
+// FUNCTION: USA 0x0004DE42
+// NAME: proto-pdb:default.pdb
+SwampScript* BcboStartBattleBRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumpercarBumpoff.cpp", 361) BcboStartBattleBRegionMain(node);
+}
+
+// FUNCTION: USA 0x0004DE69
+// NAME: proto-pdb:default.pdb
+SwampScript* BcboStartBattleCRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumpercarBumpoff.cpp", 368) BcboStartBattleCRegionMain(node);
+}
+
+// FUNCTION: USA 0x0004DF27
+// NAME: proto-pdb:default.pdb
+SwampScript* AreaLoad_insideKosmobotRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumpercarBumpoff.cpp", 281) AreaLoad_insideKosmobotRegionMain(node);
+}
+
+// FUNCTION: USA 0x0004E37B
+// NAME: proto-pdb:default.pdb
+SwampScript* TentPlaneMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumpercarBumpoff.cpp", 158) TentPlaneMain(node);
+}
+
+// FUNCTION: USA 0x0004E85E
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorExitBumpoffMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumpercarBumpoff.cpp", 299) DoorExitBumpoffMain(node);
 }

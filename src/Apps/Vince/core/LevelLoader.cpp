@@ -35,6 +35,8 @@ template <> void vector<pair<SwampString, SwampString> >::_Tidy();
 // would emit _Xlen<AreaStats>, a second copy of the 0x00139A45 fold that relink appends past retail .text (vsize +0x35)
 // (5.2 T3.c4)
 template <> void vector<AreaStats>::_Xlen() const;
+// Onion's cut object defines this _Tidy (0x00019214; relink: our objects and a cut object both define it) (5.4 T12.1.c12)
+template <> void vector<AreaStats>::_Tidy();
 }
 #endif
 

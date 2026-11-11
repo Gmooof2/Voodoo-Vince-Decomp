@@ -153,9 +153,15 @@ DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 
 class KosmoPigCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
+    KosmoPigCutscene(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int id);
     virtual void FrameTick();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_KOSMOFADE = 0
     };
@@ -222,4 +228,28 @@ void KosmoPigCutscene::SetState(int state)
         break;
     }
     _state = state;
+}
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+// FUNCTION: USA 0x0007F171
+// NAME: proto-pdb:default.pdb
+SwampScript* KosmoPigCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("docks\\KosmoPigCutscene.cpp", 17) KosmoPigCutscene(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0007F198
+// NAME: proto-pdb:default.pdb
+KosmoPigCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KosmoPigCutscene", creationFunc);
 }

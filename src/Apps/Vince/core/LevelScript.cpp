@@ -26,8 +26,11 @@ template <class T, class A = allocator<T> > class vector { // src proto-pdb:defa
 public:
     // !FAKE: inliner; hand form of the VC7.1 body; vector() { _Buy(0); } folds to these three stores (C0191)
     vector() { _Myfirst = 0; _Mylast = 0; _Myend = 0; }
-    ~vector();
+    ~vector() { _Tidy(); }
     unsigned int size() const;
+
+protected:
+    void _Tidy();
 
 private:
     char field_0[4];                   // 0x00 _Vector_val::_Alval (allocator, 1 byte) + pad
@@ -93,6 +96,8 @@ protected:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+// FUNCTION: USA 0x000ECE14
+// NAME: proto-pdb:default.pdb
 class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     enum Messages { // NAME: proto-pdb:default.pdb
@@ -186,12 +191,9 @@ void pin_emit_ProgressHint_assign(LevelScript::ProgressHint* p, const LevelScrip
 // FUNCTION: USA 0x000ECDD8
 // PROTOTYPE: PREVIEW 0x004D80D2 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; wall: relink refuses: ??_GLevelScript (0x000ECE14, inlines the implicit ~LevelScript) calls ~vector<ProgressHint> 0x00017F50, unnamed: external ??1?$vector@UProgressHint@LevelScript@@V?$allocator@UProgressHint@LevelScript@@@std@@@std@@QAE@XZ does not resolve by name (4.4 T4.c9)
 LevelScript::LevelScript(SwampSceneNode* node, bool isZone)
     : SwampScript(node), _isZone(isZone), _inRegion(false), _progressHintLevel(0)
 {
     if (_isZone)
         LoadHints();
 }
-#endif

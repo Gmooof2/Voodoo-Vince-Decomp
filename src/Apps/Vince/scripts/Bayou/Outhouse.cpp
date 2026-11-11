@@ -166,6 +166,13 @@ private:
     virtual void Message(SwampScript* source, int message, void* data);
 
     SoundNode* _tickSound;             // 0x13C
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(Switch_DoorOuthouseMain, 0x140);
 
@@ -245,4 +252,65 @@ void Switch_DoorOuthouseMain::TimerEvent(unsigned int id)
         BasicWallSwitchMain::TimerEvent(id);
         break;
     }
+}
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+// FUNCTION: USA 0x00022BE8
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_DoorOuthouseMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("EarthWoodandWater\\Outhouse.cpp", 94) Switch_DoorOuthouseMain(node);
+}
+
+class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
+
+    char field_BC[0x110 - 0xBC];       // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
+
+// PDB size 0x114; retail creationFunc pushes 0x110: the shell follows the retail push
+class DoorOuthouseMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DoorOuthouseMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorOuthouseMain, 0x110);
+
+// FUNCTION: USA 0x00022CB5
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100, bytes provisional (masked 1; wall: ctor ??0DoorOuthouseMain@@QAE@PAVSwampSceneNode@@@Z call target 0x00022C0F has no retail VA row: needs a ctor pin + re-cut) (5.5 T27.c7)
+SwampScript* DoorOuthouseMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("EarthWoodandWater\\Outhouse.cpp", 19) DoorOuthouseMain(node);
+}
+#endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00022CDC
+// NAME: proto-pdb:default.pdb
+DoorOuthouseMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorOuthouseMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00022D18
+// NAME: proto-pdb:default.pdb
+Switch_DoorOuthouseMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_DoorOuthouseMain", creationFunc);
 }

@@ -83,9 +83,26 @@ public:
 
 extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class GwistlethorpeMausoleumRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    GwistlethorpeMausoleumRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(GwistlethorpeMausoleumRegionMain, 0x64);
 
@@ -102,4 +119,19 @@ void GwistlethorpeMausoleumRegionMain::EnteringRegion(SwampSceneNode* node)
         CritterManager* p;
         (p = pManager)->ActivateMatching("mondomole", (v1 = _node)->GetZone());
     }
+}
+
+// FUNCTION: USA 0x000696CD
+// NAME: proto-pdb:default.pdb
+SwampScript* GwistlethorpeMausoleumRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Gwistlethorpe.h", 13) GwistlethorpeMausoleumRegionMain(node);
+}
+
+// FUNCTION: USA 0x000696F1
+// NAME: proto-pdb:default.pdb
+GwistlethorpeMausoleumRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GwistlethorpeMausoleumRegionMain", creationFunc);
 }

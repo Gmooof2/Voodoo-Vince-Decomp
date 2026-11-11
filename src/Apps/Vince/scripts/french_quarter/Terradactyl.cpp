@@ -5,8 +5,13 @@ template <class E> struct char_traits;
 template <class T> class allocator;
 template <class E, class T, class A> class basic_string {
 public:
+    basic_string(const E* _Ptr);
+    ~basic_string() { _Tidy(true); }
     basic_string& operator=(const E* _Ptr) { return assign(_Ptr); }
     basic_string& assign(const E* _Ptr);
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
     unsigned int _pad00[0x1C / 4];
@@ -185,6 +190,10 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void SetState(int state);
     virtual void Load(const BeepTDF& tdf);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void DamageVince(SwampSceneNode* pvince);
@@ -194,6 +203,13 @@ private:
 };
 DECOMP_SIZE_ASSERT(TerradactylMain, 0xDC);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x0008BC6A
 // PROTOTYPE: PREVIEW 0x0047778D identical
 // NAME: proto-pdb:default.pdb
@@ -201,6 +217,13 @@ SwampScript* TerradactylMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\museum\\Terradactyl.h", 7) TerradactylMain(node);
+}
+
+// FUNCTION: USA 0x0008BC91
+// NAME: proto-pdb:default.pdb
+TerradactylMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TerradactylMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0008BA65

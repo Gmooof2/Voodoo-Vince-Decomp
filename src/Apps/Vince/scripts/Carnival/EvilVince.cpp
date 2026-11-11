@@ -116,6 +116,13 @@ public:
         STATE_JUMPIN = 10
     };
     virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
 
     char field_240[0x2C4 - 0x240];     // 0x240
 };
@@ -287,7 +294,14 @@ template<class _Elem, class _Traits = char_traits<_Elem>, class _Ax = allocator<
 class basic_string { // src proto-pdb:default.pdb basic_string
 public:
     basic_string(const _Elem *_Ptr);
+#ifdef NON_MATCHING
+    // inline dtor for the RegisterMe temp (C0406); guarded with that row
+    ~basic_string() { _Tidy(true); }
+#endif
     int compare(const _Elem *_Ptr) const;
+protected:
+    void _Tidy(bool _Built = false, size_t _Newsize = 0);
+public:
 
     _Ax _Alval;
     union _Bxty { // src proto-pdb:default.pdb _Bxty
@@ -561,3 +575,21 @@ void EvilVinceMain::AnimationTrigger(const SwampString& name, float value, float
     if (_state == STATE_ATTACK && name == "trigger_whammy")
         SetState(STATE_WHAMMY);
 }
+
+#ifdef NON_MATCHING
+// best: match_one objdiff 69.6, bytes mismatch; wall: EH flag, the unit's /EHa (1.4 T9 pin) gives the SwampString
+// temp an __EH_prolog frame retail lacks; control "/O1 /Oy /wd4530" PASS 100 masked 0 (C0347), 5.5 T8.c4
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00046AC1
+// NAME: proto-pdb:default.pdb
+EvilVinceMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("EvilVinceMain", creationFunc);
+}
+#endif

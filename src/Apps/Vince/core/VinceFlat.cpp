@@ -203,6 +203,10 @@ public:
     virtual void TimerEvent(unsigned int id);
     Vince* GetVince() { return (Vince*)_node; }
     virtual ~VinceFlat();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -213,6 +217,13 @@ private:
     bool _playSuccess;                 // 0x59
 };
 DECOMP_SIZE_ASSERT(VinceFlat, 0x5C);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x00121740
 // NAME: proto-pdb:default.pdb
@@ -236,8 +247,6 @@ void VinceFlat::Message(SwampScript* source, int message, void* data)
 // FUNCTION: USA 0x0012177A
 // PROTOTYPE: PREVIEW 0x0050A43D identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; wall: relink refuses: external ??1VinceFlat@@UAE@XZ does not resolve by name (??_G 0x001348F8 calls 0x00121879, unnamed fold of ~VinceFlat/~BasketStopperMain) (4.4 T4.c9)
 VinceFlat::VinceFlat(SwampSceneNode* node) : SwampScript(node), _playQuip(false), _playSuccess(false)
 {
     GetVince()->SetCurSpeed(0.0f);
@@ -250,7 +259,6 @@ VinceFlat::VinceFlat(SwampSceneNode* node) : SwampScript(node), _playQuip(false)
     _state = STATE_FLAT;
     GetVince()->InvalidateAllSubScripts();
 }
-#endif
 
 // FUNCTION: USA 0x00121947
 // PROTOTYPE: PREVIEW 0x0050A5F1 identical
@@ -259,4 +267,11 @@ SwampScript* VinceFlat::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\VinceFlat.h", 13) VinceFlat(node);
+}
+
+// FUNCTION: USA 0x0012196B
+// NAME: proto-pdb:default.pdb
+VinceFlat::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceFlat", creationFunc);
 }

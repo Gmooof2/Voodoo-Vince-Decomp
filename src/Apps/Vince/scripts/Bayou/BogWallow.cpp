@@ -11,6 +11,7 @@ public:
     basic_string& operator=(const basic_string& _Right) { return assign(_Right, 0, npos); }
     basic_string& assign(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
     int compare(const E* _Ptr) const;
+    unsigned int size() const { return _Mysize; }
 
     static const unsigned int npos;
 
@@ -18,7 +19,9 @@ protected:
     void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
 
 private:
-    char field_0[0x1C];                // 0x00
+    char field_0[0x14];                // 0x00
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
 };
 template <class E, class T, class A>
 inline bool operator==(const basic_string<E, T, A>& _Left, const E* _Right)
@@ -140,24 +143,30 @@ DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
-    virtual void Load(const BeepTDF&);                             // vtable+0x34
+    Critter();
+    virtual void Load(const BeepTDF&);                           // vtable+0x34
     virtual SwampString Save();                                    // vtable+0x38
     virtual void Stun(float);                                      // vtable+0x3C
     virtual float GetGravity();                                    // vtable+0x40
     virtual void ReturnToHome();                                   // vtable+0x44
     virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
     bool IsStunned() const;
+    int GetHealth() const { return _health; }
     void PlaySound(const SwampString& name, unsigned int flags, bool bAttach, float minDist3D, float maxDist3D);
 
     float _MaxSpeed;                   // 0x200
     float _CurSpeed;                   // 0x204
     float _stunTimer;                  // 0x208
+    char field_20C[0x26C - 0x20C];     // 0x20C
+    int _health;                       // 0x26C proto 0x25C
 };
 
 // FUNCTION: USA 0x0002BFC9
 // PROTOTYPE: PREVIEW 0x0041AA67 identical
 // NAME: proto-pdb:default.pdb
-bool Critter::IsStunned() const
+// !FAKE: c2 register summary; out-of-class inline drops IsStunned's register summary so Vince::CanBeAttacked
+// saves this in esi across the call as retail does (C0222)
+inline bool Critter::IsStunned() const
 {
     return _stunTimer > 0.0f;
 }
@@ -165,6 +174,15 @@ bool Critter::IsStunned() const
 class Crawdaddy : public Critter { // NAME: proto-pdb:default.pdb
 public:
     virtual bool CanJorgeCollideWithMe(const SwampSceneNode* jorgeNode, const Vector3& delta) const;
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+    // !FAKE: opaque tail; size from the retail push (0x2D8), the PDB says 0x2C8
+    char field_270[0x2D8 - 0x270];     // 0x270
 };
 
 class SwampScript { // NAME: proto-pdb:default.pdb
@@ -224,13 +242,9 @@ DECOMP_SIZE_ASSERT(CrawdaddyHintRegionMain, 0x50);
 
 // FUNCTION: USA 0x0002BFA9
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); precheck relink `our ranges overlap at 0x00025012`:
-// the ctor emits ??_7CrawdaddyHintRegionMain, whose slot 0 ??_GCrawdaddyHintRegionMain@@UAEPAXI@Z folds at 0x00025012 and is not pinned there by name
 CrawdaddyHintRegionMain::CrawdaddyHintRegionMain(SwampSceneNode* node) : SwampScript(node), _trapUpHintDone(false), _trapDownHintDone(false)
 {
 }
-#endif
 
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -305,6 +319,49 @@ void CrawdadTrapMain::Message(SwampScript* source, int message, void* data)
     BasicDoorMain::Message(source, message, data);
     if (message == 6 && _state != STATE_CLOSED)
         _node->InvalidateChildren();
+}
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    void ActivateMatching(const SwampString& s, unsigned int zone);
+    Critter* Find(const SwampString& name);
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
+
+// Retail layout (C0147): Vince _vehicleName 0x518 -> 0x548 (as Critter.cpp, Onion.cpp); the span below is opaque.
+class Vince : public Critter { // NAME: proto-pdb:default.pdb
+public:
+    Critter* GetVehicle() const;
+    bool CanBeAttacked() const;
+
+    char field_270[0x2F5 - 0x270];     // 0x270
+    bool _inputEnabled;                // 0x2F5 proto 0x2E5
+    char field_2F6[0x316 - 0x2F6];     // 0x2F6
+    bool _pause;                       // 0x316 proto 0x306
+    char field_317[0x34C - 0x317];     // 0x317
+    float _monsterIgnoreTimer;         // 0x34C proto 0x338
+    char field_350[0x548 - 0x350];     // 0x350
+    SwampString _vehicleName;          // 0x548 proto 0x518
+};
+
+// FUNCTION: USA 0x0002BFE3
+// PROTOTYPE: PREVIEW 0x0041AA81 near-identical
+// NAME: proto-pdb:default.pdb
+bool Vince::CanBeAttacked() const
+{
+    return _inputEnabled && GetHealth() > 0 && !IsStunned() && !_pause && _monsterIgnoreTimer == 0.0f;
+}
+
+// FUNCTION: USA 0x0002C108
+// PROTOTYPE: PREVIEW 0x0041ABB5 near-identical
+// NAME: proto-pdb:default.pdb
+Critter* Vince::GetVehicle() const
+{
+    Critter* vehicle = 0;
+    if (_vehicleName.size() != 0)
+        vehicle = pManager->Find(_vehicleName);
+    return vehicle;
 }
 
 // FUNCTION: USA 0x0002C173
@@ -443,15 +500,15 @@ class TheBogWallowRegionMain : public LevelScript { // NAME: proto-pdb:default.p
 public:
     TheBogWallowRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(TheBogWallowRegionMain, 0x64);
-
-class CritterManager { // NAME: proto-pdb:default.pdb
-public:
-    void ActivateMatching(const SwampString& s, unsigned int zone);
-};
-
-extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 // FUNCTION: USA 0x0002D107
 // PROTOTYPE: PREVIEW 0x0041BB30 identical
@@ -560,4 +617,206 @@ void CrawdaddyMain::Message(SwampScript* source, int message, void* data)
 void pin_emit_CrawdadTrapMain_dtor(CrawdadTrapMain* p)
 {
     p->CrawdadTrapMain::~CrawdadTrapMain();
+}
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x0002DAB1
+// NAME: proto-pdb:default.pdb
+Crawdaddy::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Crawdaddy", creationFunc);
+}
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+// FUNCTION: USA 0x0002C027
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 38.3, bytes provisional (masked 1): inline ctor stores ??_7Crawdaddy@@6B@ (0x001CCE78),
+// no retail VA in symbols (needs vtable pin + re-cut)
+SwampSceneNode* Crawdaddy::creationFunc()
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BogWallow\\BogWallow.cpp", 23) Crawdaddy;
+}
+#endif
+
+class SwitchMain : public CritterMain { // NAME: proto-pdb:default.pdb
+
+    char field_BC[0x13C - 0xBC];       // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(SwitchMain, 0x13C);
+
+class BasicWallSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
+};
+DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+class DrawBridgeMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DrawBridgeMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DrawBridgeMain, 0x110);
+
+class GatePipeMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    GatePipeMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(GatePipeMain, 0x110);
+
+class Switch_DrawBridgeMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_DrawBridgeMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_DrawBridgeMain, 0x13C);
+
+class Switch_TrapMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_TrapMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_TrapMain, 0x13C);
+
+class Switch_GateMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_GateMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_GateMain, 0x13C);
+
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0002DAED
+// NAME: proto-pdb:default.pdb
+DrawBridgeMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DrawBridgeMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002DB29
+// NAME: proto-pdb:default.pdb
+GatePipeMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GatePipeMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002DB65
+// NAME: proto-pdb:default.pdb
+Switch_DrawBridgeMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_DrawBridgeMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002DBA1
+// NAME: proto-pdb:default.pdb
+Switch_TrapMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_TrapMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002DBDD
+// NAME: proto-pdb:default.pdb
+Switch_GateMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_GateMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002DC19
+// NAME: proto-pdb:default.pdb
+TheBogWallowRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TheBogWallowRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0002D36E
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_DrawBridgeMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BogWallow\\BogWallow.cpp", 708) Switch_DrawBridgeMain(node);
+}
+
+// FUNCTION: USA 0x0002D398
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_TrapMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BogWallow\\BogWallow.cpp", 725) Switch_TrapMain(node);
+}
+
+// FUNCTION: USA 0x0002D3C2
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_GateMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BogWallow\\BogWallow.cpp", 741) Switch_GateMain(node);
+}
+
+// FUNCTION: USA 0x0002D913
+// NAME: proto-pdb:default.pdb
+SwampScript* DrawBridgeMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BogWallow\\BogWallow.cpp", 464) DrawBridgeMain(node);
+}
+
+// FUNCTION: USA 0x0002D93D
+// NAME: proto-pdb:default.pdb
+SwampScript* GatePipeMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BogWallow\\BogWallow.cpp", 498) GatePipeMain(node);
+}
+
+// FUNCTION: USA 0x0002D9D6
+// NAME: proto-pdb:default.pdb
+SwampScript* TheBogWallowRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BogWallow\\BogWallow.cpp", 760) TheBogWallowRegionMain(node);
 }

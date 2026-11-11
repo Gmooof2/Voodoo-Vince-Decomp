@@ -221,6 +221,7 @@ class Vince : public Critter { // NAME: proto-pdb:default.pdb
 
 class CarriedObject : public Critter { // NAME: proto-pdb:default.pdb
 public:
+    CarriedObject();
     char field_2C8[0x2E4 - 0x2C8];     // 0x2C8 (not reached)
 };
 DECOMP_SIZE_ASSERT(CarriedObject, 0x2E4);
@@ -233,11 +234,21 @@ DECOMP_SIZE_ASSERT(SquareObject, 0x2E4);
 
 class Beret : public Critter { // NAME: proto-pdb:default.pdb
 public:
+    Beret();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     virtual void Load(const BeepTDF& tdf);
     virtual void Render(const Matrix& m) const;
     void SetVisible(bool);
+private:
+    static SwampSceneNode* creationFunc();
+
+    // retail creationFunc pushes size 0x2D8 (prototype PDB 0x2C8): opaque tail, not reached
+    char field_2C8[0x2D8 - 0x2C8];     // 0x2C8 (not reached)
 };
-DECOMP_SIZE_ASSERT(Beret, 0x2C8);
+DECOMP_SIZE_ASSERT(Beret, 0x2D8); // was 0x2C8 (prototype PDB size)
 
 class CritterManager { // NAME: proto-pdb:default.pdb
 public:
@@ -357,9 +368,24 @@ class CarriedObjectMain : public CritterMain { // NAME: proto-pdb:default.pdb
 };
 DECOMP_SIZE_ASSERT(CarriedObjectMain, 0xF8);
 
+// base LevelScript (proto PDB) not declared: not reached by this unit's rows
+class TheSquareRegionMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
 class MasqueradeMaskMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
     MasqueradeMaskMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -368,6 +394,10 @@ DECOMP_SIZE_ASSERT(MasqueradeMaskMain, 0xF8);
 class MoneyMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
     MoneyMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -388,8 +418,24 @@ public:
 };
 DECOMP_SIZE_ASSERT(StoreDialogueRegionMain, 0xA4);
 
+class DialogueJazzRegionMain : public StoreDialogueRegionMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+    DialogueJazzRegionMain(SwampSceneNode* node);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DialogueJazzRegionMain, 0xA4);
+
 class DialoguePawnRegionMain : public StoreDialogueRegionMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     DialoguePawnRegionMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -398,6 +444,10 @@ DECOMP_SIZE_ASSERT(DialoguePawnRegionMain, 0xA4);
 
 class DialogueCostumeRegionMain : public StoreDialogueRegionMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     DialogueCostumeRegionMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -406,6 +456,10 @@ DECOMP_SIZE_ASSERT(DialogueCostumeRegionMain, 0xA4);
 
 class DialogueBurlesqueRegionMain : public StoreDialogueRegionMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     DialogueBurlesqueRegionMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -414,6 +468,10 @@ DECOMP_SIZE_ASSERT(DialogueBurlesqueRegionMain, 0xA4);
 
 class DialogueMovieRegionMain : public StoreDialogueRegionMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     DialogueMovieRegionMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -423,6 +481,10 @@ DECOMP_SIZE_ASSERT(DialogueMovieRegionMain, 0xA4);
 class HornMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
     HornMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -431,6 +493,10 @@ DECOMP_SIZE_ASSERT(HornMain, 0xF8);
 class PopcornMain : public CarriedObjectMain { // NAME: proto-pdb:default.pdb
 public:
     PopcornMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -447,6 +513,10 @@ public:
         STATE_OPEN = 1
     };
     MuseumGateMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
@@ -466,6 +536,10 @@ public:
         MESSAGE_ENDHORN = 0x14
     };
     VincePlayHorn(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     virtual void Message(SwampScript* source, int message, void* data);
     Vince* GetVince() { return (Vince*)_node; }
 private:
@@ -498,6 +572,10 @@ public:
         STATE_IDLE2 = 3
     };
     SkeletonJazzGuyMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     virtual void SoundFinished(const SwampString& name);
     virtual void TimerEvent(unsigned int timerId);
     virtual void AnimationFinished();
@@ -550,55 +628,80 @@ public:
     enum Messages { // NAME: proto-pdb:default.pdb
         MESSAGE_CHECKHAIR = 0x14
     };
+    BeretMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
     void CheckHair();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(BeretMain, 0xBC);
 
 class VinceKickedOut : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Messages { // NAME: proto-pdb:default.pdb
         MESSAGE_SPECIAL_COSTUME = 0x14
     };
+    VinceKickedOut(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
 
     bool _playSpecialCostumeBall;      // 0x4C
     char field_50[0x68 - 0x50];        // 0x50 (_state, _animNames; not reached)
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(VinceKickedOut, 0x68);
 
 class CostumeBallRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    CostumeBallRegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_ENDSUCCESS = 0,
         TIMER_ENDFAILURE = 1
     };
     virtual void TimerEvent(unsigned int timerId);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(CostumeBallRegionMain, 0x4C);
 
 class PawnShopRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
+    PawnShopRegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_ENDSUCCESS = 0,
         TIMER_ENDFAILURE = 1
     };
     virtual void TimerEvent(unsigned int timerId);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(PawnShopRegionMain, 0x4C);
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x000714CE
 // PROTOTYPE: PREVIEW 0x0045D650 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 54.166668, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* MasqueradeMaskMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 48) MasqueradeMaskMain(node);
 }
-#endif
 
 // FUNCTION: USA 0x0007158F
 // PROTOTYPE: PREVIEW 0x0045D711 identical
@@ -612,42 +715,38 @@ SwampScript* MoneyMain::creationFunc(SwampSceneNode* node)
 // FUNCTION: USA 0x00071769
 // PROTOTYPE: PREVIEW 0x0045D8A4 identical
 // NAME: proto-pdb:default.pdb
-SwampScript* DialoguePawnRegionMain::creationFunc(SwampSceneNode* node)
+SwampScript* DialogueJazzRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
-    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 504) DialoguePawnRegionMain(node);
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 504) DialogueJazzRegionMain(node);
 }
 
 // FUNCTION: USA 0x00071793
 // PROTOTYPE: PREVIEW 0x0045D8CE identical
 // NAME: proto-pdb:default.pdb
-SwampScript* DialogueCostumeRegionMain::creationFunc(SwampSceneNode* node)
+SwampScript* DialoguePawnRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
-    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 505) DialogueCostumeRegionMain(node);
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 505) DialoguePawnRegionMain(node);
 }
 
 // FUNCTION: USA 0x000717BD
 // PROTOTYPE: PREVIEW 0x0045D8F8 identical
 // NAME: proto-pdb:default.pdb
-SwampScript* DialogueBurlesqueRegionMain::creationFunc(SwampSceneNode* node)
+SwampScript* DialogueCostumeRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
-    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 506) DialogueBurlesqueRegionMain(node);
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 506) DialogueCostumeRegionMain(node);
 }
 
 // FUNCTION: USA 0x000717E7
 // PROTOTYPE: PREVIEW 0x0045D922 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 50.0, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
-SwampScript* DialogueMovieRegionMain::creationFunc(SwampSceneNode* node)
+SwampScript* DialogueBurlesqueRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
-    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 507) DialogueMovieRegionMain(node);
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 507) DialogueBurlesqueRegionMain(node);
 }
-#endif
 
 // FUNCTION: USA 0x000739B9
 // PROTOTYPE: PREVIEW 0x0045FAF7 identical
@@ -667,18 +766,15 @@ SwampScript* PopcornMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 113) PopcornMain(node);
 }
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x00073A07
 // PROTOTYPE: PREVIEW 0x0045FB45 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 20.0, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* MuseumGateMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 129) MuseumGateMain(node);
 }
-#endif
 
 // FUNCTION: USA 0x00073AD0
 // PROTOTYPE: PREVIEW 0x0045FC0E identical
@@ -689,18 +785,15 @@ SwampScript* VincePlayHorn::creationFunc(SwampSceneNode* node)
     return new("theSquare\\theSquare.cpp", 408) VincePlayHorn(node);
 }
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x00074455
 // PROTOTYPE: PREVIEW 0x00460567 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 41.935482, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* SkeletonJazzGuyMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 155) SkeletonJazzGuyMain(node);
 }
-#endif
 
 // FUNCTION: USA 0x00071282
 // NAME: proto-pdb:default.pdb
@@ -1040,4 +1133,596 @@ void VinceKickedOut::Message(SwampScript* source, int message, void* data)
             _playSpecialCostumeBall = true;
         }
     }
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+class VinceLeaveTheater : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    VinceLeaveTheater(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_4C[0x50 - 0x4C];        // 0x4C (not reached)
+};
+DECOMP_SIZE_ASSERT(VinceLeaveTheater, 0x50);
+
+class VinceLeaveStore1 : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    VinceLeaveStore1(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(VinceLeaveStore1, 0x4C);
+
+class BurlesqueClubRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    BurlesqueClubRegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(BurlesqueClubRegionMain, 0x4C);
+
+class VinceLeaveBurlesque : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    VinceLeaveBurlesque(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_4C[0x50 - 0x4C];        // 0x4C (not reached)
+};
+DECOMP_SIZE_ASSERT(VinceLeaveBurlesque, 0x50);
+
+class JazzClubRegionMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    JazzClubRegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(JazzClubRegionMain, 0x4C);
+
+class DoorMovieTheaterMain : public StoreDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DoorMovieTheaterMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorMovieTheaterMain, 0xC4);
+
+class DoorBurlesqueClubMain : public StoreDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DoorBurlesqueClubMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorBurlesqueClubMain, 0xC4);
+
+class DoorCostumeBallMain : public StoreDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DoorCostumeBallMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorCostumeBallMain, 0xC4);
+
+class DoorJazzClubMain : public StoreDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DoorJazzClubMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorJazzClubMain, 0xC4);
+
+class DoorPawnShopMain : public StoreDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    DoorPawnShopMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorPawnShopMain, 0xC4);
+
+class DialogueHorseRegionMain : public DialogueRegionMain { // NAME: proto-pdb:default.pdb
+public:
+    DialogueHorseRegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DialogueHorseRegionMain, 0xA4);
+
+class Money : public SquareObject { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~Money();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+
+    // retail creationFunc pushes size 0x2F4 (prototype PDB 0x2E4): opaque tail, not reached
+    char field_2E4[0x2F4 - 0x2E4];     // 0x2E4 (not reached)
+};
+DECOMP_SIZE_ASSERT(Money, 0x2F4);
+
+class Popcorn : public SquareObject { // NAME: proto-pdb:default.pdb
+public:
+    virtual const char* GetAttachToBoneName() const;
+    virtual ~Popcorn();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+
+    // retail creationFunc pushes size 0x2F4 (prototype PDB 0x2E4): opaque tail, not reached
+    char field_2E4[0x2F4 - 0x2E4];     // 0x2E4 (not reached)
+};
+DECOMP_SIZE_ASSERT(Popcorn, 0x2F4);
+
+class MasqueradeMask : public SquareObject { // NAME: proto-pdb:default.pdb
+public:
+    virtual const char* GetAttachToBoneName() const;
+    virtual ~MasqueradeMask();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+
+    // retail creationFunc pushes size 0x2F4 (prototype PDB 0x2E4): opaque tail, not reached
+    char field_2E4[0x2F4 - 0x2E4];     // 0x2E4 (not reached)
+};
+DECOMP_SIZE_ASSERT(MasqueradeMask, 0x2F4);
+
+// FUNCTION: USA 0x00071323
+// NAME: proto-pdb:default.pdb
+SwampScript* BurlesqueClubRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 323) BurlesqueClubRegionMain(node);
+}
+
+// FUNCTION: USA 0x0007134A
+// NAME: proto-pdb:default.pdb
+SwampScript* CostumeBallRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 359) CostumeBallRegionMain(node);
+}
+
+// FUNCTION: USA 0x00071371
+// NAME: proto-pdb:default.pdb
+SwampScript* PawnShopRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 374) PawnShopRegionMain(node);
+}
+
+// FUNCTION: USA 0x00071398
+// NAME: proto-pdb:default.pdb
+SwampScript* JazzClubRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 389) JazzClubRegionMain(node);
+}
+
+// FUNCTION: USA 0x0007173F
+// NAME: proto-pdb:default.pdb
+SwampScript* DialogueHorseRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 512) DialogueHorseRegionMain(node);
+}
+
+// FUNCTION: USA 0x00071811
+// NAME: proto-pdb:default.pdb
+SwampScript* DialogueMovieRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 508) DialogueMovieRegionMain(node);
+}
+
+// FUNCTION: USA 0x00073A31
+// NAME: proto-pdb:default.pdb
+SwampScript* BeretMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 203) BeretMain(node);
+}
+
+// FUNCTION: USA 0x00073A5B
+// NAME: proto-pdb:default.pdb
+SwampScript* VinceLeaveTheater::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 221) VinceLeaveTheater(node);
+}
+
+// FUNCTION: USA 0x00073A82
+// NAME: proto-pdb:default.pdb
+SwampScript* VinceLeaveStore1::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 241) VinceLeaveStore1(node);
+}
+
+// FUNCTION: USA 0x00073AA9
+// NAME: proto-pdb:default.pdb
+SwampScript* VinceLeaveBurlesque::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 338) VinceLeaveBurlesque(node);
+}
+
+// FUNCTION: USA 0x00073C74
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorMovieTheaterMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 433) DoorMovieTheaterMain(node);
+}
+
+// FUNCTION: USA 0x00073C9E
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorBurlesqueClubMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 444) DoorBurlesqueClubMain(node);
+}
+
+// FUNCTION: USA 0x00073CC8
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorCostumeBallMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 455) DoorCostumeBallMain(node);
+}
+
+// FUNCTION: USA 0x00073CF2
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorJazzClubMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 466) DoorJazzClubMain(node);
+}
+
+// FUNCTION: USA 0x00073D1C
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorPawnShopMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 477) DoorPawnShopMain(node);
+}
+
+// FUNCTION: USA 0x0007412A
+// NAME: proto-pdb:default.pdb
+SwampScript* VinceKickedOut::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 259) VinceKickedOut(node);
+}
+
+// FUNCTION: USA 0x000714F5
+// NAME: proto-pdb:default.pdb
+SwampSceneNode* Beret::creationFunc()
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 188) Beret;
+}
+
+// FUNCTION: USA 0x000743F5
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = inline-ctor vptr store; needs pin ??_7Money@@6B@ at
+// 0x001DCC58); source is final; 5.5 T27.c5
+SwampSceneNode* Money::creationFunc()
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 90) Money;
+}
+#endif
+
+// FUNCTION: USA 0x00074425
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = inline-ctor vptr store; needs pin ??_7Popcorn@@6B@ at
+// 0x001DCCA8); source is final; 5.5 T27.c5
+SwampSceneNode* Popcorn::creationFunc()
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 105) Popcorn;
+}
+#endif
+
+// FUNCTION: USA 0x0007447F
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = inline-ctor vptr store; needs pin
+// ??_7MasqueradeMask@@6B@ at 0x001DCE00); source is final; 5.5 T27.c5
+SwampSceneNode* MasqueradeMask::creationFunc()
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\thesquare\\theSquare.h", 41) MasqueradeMask;
+}
+#endif
+
+// FUNCTION: USA 0x00074610
+// NAME: proto-pdb:default.pdb
+TheSquareRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TheSquareRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0007464C
+// NAME: proto-pdb:default.pdb
+MasqueradeMask::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("MasqueradeMask", creationFunc);
+}
+
+// FUNCTION: USA 0x00074688
+// NAME: proto-pdb:default.pdb
+MasqueradeMaskMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MasqueradeMaskMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074700
+// NAME: proto-pdb:default.pdb
+HornMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HornMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0007473C
+// NAME: proto-pdb:default.pdb
+Money::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Money", creationFunc);
+}
+
+// FUNCTION: USA 0x00074778
+// NAME: proto-pdb:default.pdb
+MoneyMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MoneyMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000747B4
+// NAME: proto-pdb:default.pdb
+Popcorn::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Popcorn", creationFunc);
+}
+
+// FUNCTION: USA 0x000747F0
+// NAME: proto-pdb:default.pdb
+PopcornMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PopcornMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0007482C
+// NAME: proto-pdb:default.pdb
+MuseumGateMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MuseumGateMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074868
+// NAME: proto-pdb:default.pdb
+SkeletonJazzGuyMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SkeletonJazzGuyMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000748A4
+// NAME: proto-pdb:default.pdb
+Beret::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("Beret", creationFunc);
+}
+
+// FUNCTION: USA 0x000748E0
+// NAME: proto-pdb:default.pdb
+BeretMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BeretMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0007491C
+// NAME: proto-pdb:default.pdb
+VinceLeaveTheater::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceLeaveTheater", creationFunc);
+}
+
+// FUNCTION: USA 0x00074958
+// NAME: proto-pdb:default.pdb
+VinceLeaveStore1::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceLeaveStore1", creationFunc);
+}
+
+// FUNCTION: USA 0x00074994
+// NAME: proto-pdb:default.pdb
+VinceKickedOut::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceKickedOut", creationFunc);
+}
+
+// FUNCTION: USA 0x00074A0C
+// NAME: proto-pdb:default.pdb
+BurlesqueClubRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BurlesqueClubRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074A48
+// NAME: proto-pdb:default.pdb
+VinceLeaveBurlesque::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceLeaveBurlesque", creationFunc);
+}
+
+// FUNCTION: USA 0x00074A84
+// NAME: proto-pdb:default.pdb
+CostumeBallRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CostumeBallRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074AC0
+// NAME: proto-pdb:default.pdb
+PawnShopRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PawnShopRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074AFC
+// NAME: proto-pdb:default.pdb
+JazzClubRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("JazzClubRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074B38
+// NAME: proto-pdb:default.pdb
+DoorMovieTheaterMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorMovieTheaterMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074B74
+// NAME: proto-pdb:default.pdb
+DoorBurlesqueClubMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorBurlesqueClubMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074BB0
+// NAME: proto-pdb:default.pdb
+DoorCostumeBallMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorCostumeBallMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074BEC
+// NAME: proto-pdb:default.pdb
+DoorJazzClubMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorJazzClubMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074C28
+// NAME: proto-pdb:default.pdb
+DoorPawnShopMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorPawnShopMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074C64
+// NAME: proto-pdb:default.pdb
+DialogueJazzRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialogueJazzRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074CA0
+// NAME: proto-pdb:default.pdb
+DialoguePawnRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialoguePawnRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074CDC
+// NAME: proto-pdb:default.pdb
+DialogueCostumeRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialogueCostumeRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074D18
+// NAME: proto-pdb:default.pdb
+DialogueBurlesqueRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialogueBurlesqueRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074D54
+// NAME: proto-pdb:default.pdb
+DialogueMovieRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialogueMovieRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074D90
+// NAME: proto-pdb:default.pdb
+DialogueHorseRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialogueHorseRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00074DCC
+// NAME: proto-pdb:default.pdb
+VincePlayHorn::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VincePlayHorn", creationFunc);
 }

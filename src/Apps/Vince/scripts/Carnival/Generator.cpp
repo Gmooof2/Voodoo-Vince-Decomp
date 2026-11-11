@@ -203,6 +203,10 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void Load(const BeepTDF& tdf);
     virtual void SetState(int);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -310,6 +314,13 @@ void GeneratorMain::Message(SwampScript* source, int message, void* data)
     }
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x0003B53D
 // PROTOTYPE: PREVIEW 0x00429C35 identical
 // NAME: proto-pdb:default.pdb
@@ -317,4 +328,11 @@ SwampScript* GeneratorMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\Generator.h", 11) GeneratorMain(node);
+}
+
+// FUNCTION: USA 0x0003B564
+// NAME: proto-pdb:default.pdb
+GeneratorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GeneratorMain", creationFunc);
 }

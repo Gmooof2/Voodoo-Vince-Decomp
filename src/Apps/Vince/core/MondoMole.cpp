@@ -243,6 +243,10 @@ public:
     virtual void AnimationFinished();
     virtual void Load(const BeepTDF&);
     virtual void SetState(int);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -291,6 +295,10 @@ public:
     virtual void AnimationTrigger(const SwampString& name, float value, float prev, unsigned int bone);
     virtual void SetState(int);
     virtual void DeathFX();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -530,4 +538,25 @@ SwampScript* MondoMoleMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\MondoMole.h", 17) MondoMoleMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00121331
+// NAME: proto-pdb:default.pdb
+MondoMoundMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MondoMoundMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0012136D
+// NAME: proto-pdb:default.pdb
+MondoMoleMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MondoMoleMain", creationFunc);
 }

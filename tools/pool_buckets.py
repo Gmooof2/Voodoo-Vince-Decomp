@@ -13,10 +13,16 @@ counts do not sum to pool minus matched; 2 refused (missing input, unit absent f
   multiple-targets, other.
 - `## Absent`: docs/evidence/qa_absent.md rows by QA result (QA evidence only, I5: no names derived).
 - `## Lane sizing` (5.1 T9): ambiguous rows by settling class (k1, D115, D113, caller-xref, none) and near no-name rows
-  by caller-site / vtable-slot reach; 8 in-memory plants (wrong body, wrong proto per class) must be refused.
+  by caller-site / vtable-slot reach; 8 in-memory plants (wrong body, wrong proto per class) must be refused. 5.4 T9:
+  candidates registerme (RegisterMe ctor row and body push the same class-name literal) and abs-site with
+  registerme-settled pairs as chain callers; creationFunc chain sum.
+- `## Near sizing (5.4 T7)`: near lane unmatched by bucket x size bin and unit; name-not-admitted size `-` rows by
+  sizing route (ghidra-extent, cut-extent, none); near reloc targets by naming route; `??_G` rows by their ctor's place;
+  unit-not-delink rows by unit (settled-edge); fold rows (C0154 verdict); pilot ranking (top 8). Each a checked sum.
 Inputs added: derived/proto_map/retail-xbe/functions.jsonl, derived/dup_report/retail_folds.jsonl,
 config/retail/symbols.txt + symbols_pin.txt, derived/ghidra/retail-<pin8>/applied/functions.jsonl, qa_absent.md.
-A NOTES/NOTES_VA key no unmatched row uses prints a WARN line (no failure): its row was matched, drop the key.
+A NOTES/NOTES_VA key no unmatched row uses fails (exit 1, `FAIL note key ...`): its row was matched, drop the key
+(5.5 T6; was a WARN line). Refused (2) when candidates.fresh() reports candidates.jsonl stale against its inputs.
 """
 import argparse
 import bisect
@@ -56,12 +62,11 @@ NOTES = {
         "??0PuddleRegionMain@@QAE@PAVSwampSceneNode@@@Z",)},
     # 4.3 T5: match_one 100 (RegionTrigger ctor 63.57: also an /O1 AABox inline limit), vtable slots unnamed (C0203)
     **{sym: ("wall-vtable-relink", "4.3 T5 C0203") for sym in (
-        "??0VinceCeilingFan@@QAE@PAVSwampSceneNode@@@Z", "??0RegionTrigger@@QAE@XZ",
-        "??0LevelScript@@QAE@PAVSwampSceneNode@@_N@Z")},
+        "??0RegionTrigger@@QAE@XZ",)},  # 5.5 T8: ??0VinceCeilingFan dropped (matched)
+    # 5.4 T12.1.c12: ??0LevelScript dropped (matched with its ??_G companion)
     # 4.3 T8: match_one 100, vtable slots unnamed (C0203)
     **{sym: ("wall-vtable-relink", "4.3 T8 C0203") for sym in (
-        "??0MainstreetRegionMain@@QAE@PAVSwampSceneNode@@@Z",
-        "??0UIClusterMain@@QAE@PAVSwampSceneNode@@@Z", "??0VinceFlat@@QAE@PAVSwampSceneNode@@@Z",
+        "??0UIClusterMain@@QAE@PAVSwampSceneNode@@@Z",  # 5.5 T6: ??0VinceFlat dropped (matched); 5.5 T8: ??0MainstreetRegionMain dropped (matched)
         "??0VinceZapHat@@QAE@PAVSwampSceneNode@@@Z")},
     # 4.4 T4: the 4.3 T8 C0215/C0217 relink-refused rows matched (T3 relink change, D117 ruling); keys dropped
     "?DumpMemoryLeaks@AllocationTracker@@QAE_NXZ": ("wall-dir32", "4.3 T8.c17 C0155: 99.62"),
@@ -83,9 +88,12 @@ NOTES_VA = {
     # 4.4 T4: 0x000292A6, 0x000775B9, 0x000775E2, 0x000CA770, 0x000E88E1 dropped (matched 4.3 T16)
     # 5.1 T14.c2: throw rows 13-16 (0x000AF749..0x000AFFA7) dropped (relink lift T14.c1); T14: 0x0008B96D Load (T14.c3)
     # 5.2 T13.c1: 0x00011B38 dropped (matched; CameraManager/Critter/ParticleManager emit their erase alias bodies)
-    0x0006A5D2: ("relink-refused", "4.3 T16 C0250: LanternMain::FrameTick fold-VA row; CutsceneDriver::FrameTick "
-                 "callers (InsideKosmobotCutscenes) fail `lies in a replaced range`; a non-template alias cannot be "
-                 "redefined in callers (D78)"),
+    # 5.4 T19.c1: fold-alias rows 0x0006A5D2 0x0003FE34 0x000C10B1 0x000C10C4 0x000C1AA9 0x000ECEA5 0x0005D056 0x000AD5F9
+    # 0x000BDB11 0x000AB5CD 0x00111476 0x001114D9 dropped (precheck rc 0 after the T3 relink weak resolve)
+    # 5.4 T19.c2: 0x000C1AA9 restored (pin_rows bracket, below)
+    0x000C1AA9: ("relink-refused", "5.4 T19.c2: pin_rows 0x000113EB 0x00011473 route-bracket:outside-bracket when listed "
+                 "(proto 0x0040072B COMDAT in 5 PDB modules incl. Init.obj anchors Init's bracket at a retail VA "
+                 "outside Init's text)"),
     0x0001819A: ("relink-refused", "4.3 T16 C0250: ??4ResourceHandle<VertexShaderResource> matched row would overlap "
                  "SwampRenderer/ShootingCam COMDAT copies at the fold VA; guarded to keep SetVertexShader + "
                  "ClearStateCache"),
@@ -117,7 +125,7 @@ NOTES_VA = {
             "(pin_rows)") for va in (0x0003DDD1, 0x0012A5A7, 0x0005F9A5, 0x0006EE68, 0x0008BFDD, 0x000EDC3B, 0x00080806)},
     **{va: ("relink-refused", "5.2 T9 C0233/C0273: fold-VA row, other units define or call another alias; or an "
             "unplaced COMDAT callee (FanBoat _Erase/??_G _Node)")
-       for va in (0x0003FE34, 0x0002DF5B, 0x0002DF9F, 0x0002E6E8, 0x00030F6F, 0x0003289B)},
+       for va in (0x0002DF5B, 0x0002DF9F, 0x0002E6E8, 0x00030F6F, 0x0003289B)},
     **{va: ("wall-d45", "5.2 T9 C0321: retail hand-written SSE __asm") for va in (0x000DCE88, 0x000DD1EC, 0x000DD24E,
                                                                               0x000DD46A)},
     # 5.2 T11 guarded rows (T11 summary, C0324, C0325)
@@ -182,9 +190,6 @@ NOTES_VA = {
     0x00129063: ("wall-thinker", "5.2 T12 R5.2-009: lever E (T12.c28) 20 runs, best allowed 97.625 +0x35: retail keeps 3 products on x87 stack, elapsed in memory; every hand form moves elapsed to a register; 100 only with D78-barred free operators (C0361)"),
     0x000D1A27: ("wall-thinker", "5.2 T12 R5.2-009: probe t1 re-run (T12.c28): objdiff omits score (0.0), build real 129 B vs 125, +0x7 no push edi, zero stores and [m],0; best 96.49"),
     # 5.2 T12 guarded rows (T12 summary; .run verdicts from coders c1-c25, C0327-C0357)
-    0x000C10B1: ("relink-refused", "5.2 T12: C0273 fold-VA alias: inline alias body needed in caller units CameraManager/ParticleManager/SwampFireFlyNode (T12.c2)"),
-    0x000C10C4: ("relink-refused", "5.2 T12: C0273 fold-VA alias, callers in other units (T12.c2)"),
-    0x000C1AA9: ("relink-refused", "5.2 T12: C0273 fold-VA alias, caller CameraManager.obj (T12.c2)"),
     0x000D9E55: ("callee-unnamed", "5.2 T12: masked _GetTickCount@0 0x0014A4D9 ghidra-only name (C0192); code identical (T12.c3)"),
     0x0013851E: ("wall-dir32", "5.2 T12: false DIR32 DAT_80000000 on push 0x80000000 at .text+0x4B (C0329) (T12.c3)"),
     0x000DF7BC: ("unit-coupled", "5.2 T12: passes only with PointInTriangle 0x000DF5B7 compiled (C0249) (T12.c6)"),
@@ -212,9 +217,10 @@ NOTES_VA = {
     0x000DD29C: ("wall-d45", "5.2 T12: SSE inline asm (T12.c9)"),
     0x000DD37A: ("wall-d45", "5.2 T12: frameless SSE asm (T12.c9)"),
     0x000DD86A: ("wall-d45", "5.2 T12: fsincos asm (T12.c9)"),
-    0x000EDBA5: ("wall-vtable-relink", "5.2 T12: site-corr vtable pin symbols_pin.txt:3504 0x001ED988 needs promotion (T12.c12)"),
-    0x000ECEA5: ("relink-refused", "5.2 T12: C0233 replaced-range relink refusal (T12.c12)"),
-    0x0004194C: ("wall-dir32", "5.2 T12: local label in push imm32, bytes match objdiff 0.0 (T12.c12)"),
+    0x000F3905: ("wall-d45", "5.4 T14: CheckAttackDir rsqrtss inline asm via ebp slots, no and esp (C0324, D116); best 84.41 guarded (T14.c5)"),
+    # 5.5 T8: 0x000EDBA5 dropped (matched)
+    0x0004194C: ("wall-dir32", "5.2 T12: local label in push imm32, bytes match objdiff 0.0 (T12.c12); 5.5 T8.c4: "
+                 "unchanged (objdiff 0.0, bytes match)"),
     0x00103D55: ("callee-unnamed", "5.2 T12: own __ehhandler$ funclet 0x001532A8 unnamed; code exact with C0325 form (T12.c16)"),
     0x00033F22: ("wall-dir32", "5.2 T12: false DIR32 on displacements 0x10014/0x10018 (C0329) (T12.c16)"),
     0x00038B65: ("unit-coupled", "5.2 T12: static unzlocal_GetCurrentFileInfoInternal 0x000388BB must match first (custom eax convention, same-unit only; D127) (T12.c16)"),
@@ -230,37 +236,283 @@ NOTES_VA = {
     0x000196B3: ("relink-refused", "5.2 T12: external _Tree<CreationFunc>::_Tidy does not resolve (C0126) (T12.c15)"),
     0x0008BFB5: ("relink-refused", "5.3 T2.c5: relink refusal (reloc field past its buffer, TrophyRoom site 0x0009D068; C0369) was ctor without its pin_emit scaffold: our ??_G calls ??1 out of line, T7 placed ??1 from that site at 0x0009D06B (retail inlines ??1); ctor + scaffold: gate_check rc 0. Still refused: pin_rows site-corr ??0BasicDoorMain, ??_7TeslaCoilPartMain (C0264)"),
     # was: "5.3 T2.c3: relink REFUSED reloc field past its buffer (TrophyRoom piece 0x0009C34F, site 0x0009D068, 3356 B; C0369) + pin_rows site-corr ??0BasicDoorMain, ??_7TeslaCoilPartMain (C0264); was 5.2 T12.c15 struct.error"
-    0x0005D056: ("relink-refused", "5.2 T12: external _Construct<HeightSample> 0x000AE5C1 in replaced range (T12.c15)"),
     0x000C6110: ("relink-refused", "5.2 T12: external _Tree<SoundNode>::_Lbound does not resolve by name (T12.c15)"),
-    0x000AD5F9: ("relink-refused", "5.2 T12: basketcase.obj external vector<Critter*>::_Tidy in replaced range (T12.c15)"),
     0x000DAA38: ("relink-refused", "5.2 T12: external ??1BundleBackgroundLoader does not resolve by name (needs dtor pin) (T12.c15)"),
-    0x000BDB11: ("relink-refused", "5.2 T12: swampgatornode.obj vector<Override>::size in replaced range (C0233) (T12.c15)"),
     0x000BE048: ("relink-refused", "5.2 T12: gate_check placement FAILs at fold callers (C0233) (T12.c15)"),
-    0x000AB5CD: ("relink-refused", "5.2 T12: music.obj vector<Overlay>::size in replaced range (C0233) (T12.c15)"),
-    0x00111476: ("relink-refused", "5.2 T12: frontendui.obj vector<string>::capacity in replaced range (C0233) (T12.c15)"),
-    0x001114D9: ("relink-refused", "5.2 T12: same as 0x00111476 for size (T12.c15)"),
     0x0012A563: ("relink-refused", "5.2 T12: external WaterRegionMain::LeavingRegion unpinned vtable slot (C0320) (T12.c15)"),
     0x000E03D8: ("unit-coupled", "5.2 T12: unguarding breaks _main: push 0 -> $T521 vs retail $T318 pin (T12.c15)"),
     0x000E04F0: ("unit-coupled", "5.2 T12: same as 0x000E03D8 (T12.c15)"),
     0x001380DE: ("wall-data-name", "5.2 T12: literal pin __real@3f8ccccd (1.1f) -> 0x001F9EC0 for callee IsInRange 0x00138088; Update byte-equal with both guards flipped (free probe) (T12.c21)"),
     0x000CA9BA: ("wall-dir32", "5.2 T12: false DIR32 DAT_80000000 at .text+0x6B9 on immediate 0x80000000 (C0329) (T12.c25)"),
     # 5.3 T6 guarded identical rows (T6 summary, C0377, C0378); guarded ambiguous rows: validation.md "5.3 Batches"
-    **{va: ("relink-refused", "5.3 T6: ctor match_one 100; its vtable slot-0 ??_G folds at a VA pinned under other "
-            "names, relink `our ranges overlap`; pin (VA, ??_G<Class>) (C0377)")
-       for va in (0x0005EDDC, 0x0002BFA9, 0x001089BD)},
-    0x0014FBE1: ("wall-vtable-relink", "5.3 T6.c5: ??1Decal match_one 100; vptr store emits ??_7Decal whose slot "
-                 "UpdateAnimation@SwampSceneNode has no retail VA; pin the slot (C0256)"),
+    # 5.4 T6: 0x0005EDDC, 0x0002BFA9 (??_G fold pins), 0x0014FBE1 (slot access), 0x000E274C, 0x000E2A07 (T3 fold-alias
+    #   resolve) matched; dropped here
+    0x001089BD: ("relink-refused", "5.4 T6.c4: ctor match_one 100 (??_GCutsceneDriver pinned 0x001089F9); relink "
+                 "`?SetState@CutsceneDriver@@UAEXH@Z does not resolve by name`: vtable slot +0x74 -> 0x000946F7 empty "
+                 "fold, PDB public MAE (protected); lift: SetState protected + pin the name at 0x000946F7"),
     # 5.3 T9: UIBeadMain (was attempted-open 98.5 at T7) walled by T9.c1
     0x000E27C0: ("callee-unnamed", "5.3 T9.c1: ctor match_one 100 + bytes only with GetBeadDest 0x000E1053 defined in "
                  "the TU (cl emits `add esp,4` vs `pop ecx` for a declared callee; 719 orders probed); GetBeadDest "
-                 "guarded, its 0.125f at .data 0x0021EE68 unnamed; lift: pin 0x0021EE68, match both together"),
-    # 5.3 T7 guarded identical rows (C0379)
-    **{va: ("relink-refused", "5.3 T7.c5: ctor match_one 100; vtable FrameTick/Message slots name fold aliases "
-            "inside matched UIPageMain rows, relink `lies in a replaced range`; relink fold-alias resolve (C0379)")
-       for va in (0x000E274C, 0x000E2A07)},
+                 "guarded, its 0.125f at .data 0x0021EE68 unnamed; 5.4 T6: pin refused (proto operand "
+                 "SETTINGS_FILE+4, no public), GetBeadDest bytes differ only at that fmul operand (T6.c4)"),
+    # 5.4 T12.1.c6: ??_G rows <= 128 B guarded by companion ctor (C0320, C0377); ambiguous-lane ??_G rows are not
+    # bucketed here (near sizing (d) lists them by ctor place; since T12.1.c7 (d) reads their NOTES_VA keys)
+    0x0002D8E6: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0009EA70 ??0LiftMain in RocketLab.obj (row unit "
+                 "BogWallow.obj: fold-name) fails reloc provisional; needs ??_7LiftMain 0x001E74D8 and "
+                 "??0BasicDoorMain 0x00107C33 promoted from site-corr"),
+    # 5.4 T12.1.c7: T12.1.c4/c5 walls (0x0004271B near + ambiguous ??_G; the rest ambiguous, listed in (d) "Other")
+    0x0008B511: ("cut-nosym", "5.4 T12.1.c5: fold-name wall (C0377): the unit's own folded class is SwitchMuseumMain "
+                 "(pinned at 0x0008B511); a draft under that name gave bytes masked 0, objdiff None; needs the cut "
+                 "and row named ??1SwitchMuseumMain, then a re-cut"),
+    0x001228EC: ("cut-extent", "5.4 T12.1.c5: measured extent 2588 vs row 18 (LAB_001228F9 at +0xD); needs a pin at "
+                 "0x001228F9, then a re-cut; not drafted"),
+    0x0003B64F: ("cut-wall-attempted", "5.4 T12.1.c5: extent 72 vs row 15 (LAB_0003B65E at +0xF); needs a pin at "
+                 "0x0003B65E, then a re-cut; prior: 1 attempt, best 20"),
+    0x00121879: ("pin-only-alias", "5.4 T12.1.c2: row named ??1WhammyResultTwisterMain, not defined in "
+                 "VinceFlat.obj; draft as implicit ??1VinceFlat gives bytes match, objdiff None; needs the cut "
+                 "named ??1VinceFlat@@UAE@XZ, then a re-cut; prior: 4 attempts"),
+    0x00138EA1: ("pin-only-alias", "5.4 T12.1.c2: row name not defined in VoodooShop.obj; ??0CaptionLine via "
+                 "pin_emit_CaptionLine_copy gives bytes match, objdiff None; needs a re-cut under "
+                 "??0CaptionLine@FrontEndMenu and an [[emitter]] row; prior: 4 attempts"),
+    0x00029271: ("pin-only-alias", "5.4 T12.1.c2: row name not defined in Hannah.obj; the pin has no size "
+                 "(symbols_pin.txt:3165); needs a sized pin under ?EnteringRegion@HannahStartBattleRegionMain, "
+                 "then a re-cut; prior: 2 attempts"),
+    # 5.4 T12.1.c12: 0x000194FB ??1LevelStats dropped (matched; LevelLoader decl-only vector<AreaStats>::_Tidy)
+    0x000D8BD2: ("xdk-callee-unnamed", "5.4 T12.1.c12: SetPosition@IDirectSoundStream 100, bytes provisional "
+                 "(masked 1); relink: _IDirectSoundStream_SetPosition@20 at 0x0017A28A has only a ghidra name; "
+                 "needs a sized pin func 0x29 (symbols_pin.txt:72 Pause@8 form), then matched_set's near-corr "
+                 "add refusal re-checked; prior: 2 attempts"),
+    0x000F4F4E: ("unit-coupled", "5.4 T12.1.c13: ??_GVinceGiblets is VinceGiblets' name (ctor 0x00078D86, other "
+                 "unit); Monster.obj's own ctor ??0MonsterGiblets 0x000F4E73 fails reloc 0x1EE33C, 0x1EE34C; "
+                 "needs those pinned, the ctor matched, the row re-cut as ??_GMonsterGiblets; not drafted"),
+    0x0003F9AB: ("pin-only-alias", "5.4 T12.1.c4: fold-name wall: the VA is pinned as "
+                 "?AnimationFinished@TargetSwitchMain (symbols_pin.txt:4199, proto ScareHouse.obj); a draft under "
+                 "that name gives bytes match, objdiff None; needs the row renamed (pin, then a re-cut); prior: 2 "
+                 "attempts"),
+    0x00042737: ("cut-wall-attempted", "5.4 T12.1.c4: cut extent: objdiff 1.30, bytes match; needs a pin at the "
+                 "neighbour FUN_00042BFD, then a re-cut (C0377); prior: 3 attempts"),
+    # 5.4 T27: wave rows that failed (logs/T27.c7, c11, c13)
+    # 5.5 T8: 0x00068334 dropped (matched)
+    0x00136828: ("wall-d45", "5.4 T27.c7: TrainingSignMain::FrameTick retail inline-asm rsqrtss xz length (D116, "
+                 "C0219, C0324, C0410); best 69.88 guarded, 1 attempt"),
+    # 5.5 T8: 0x000C5F3D dropped (matched)
+    0x0004271B: ("wall-vtable-relink", "5.4 T12.1.c4: companion ctor 0x0004261B fails reloc 0x000419F4 0x001D0B28 "
+                 "0x002363F8; needs them named; no draft"),
+    # 5.4 T12.1.c7: ambiguous-lane ??_G rows of the c6 screen (+ 3 T12.1.c3 drafts), shown in near sizing (d);
+    # bucket: own ??_7 a blocker -> wall-vtable-relink, else unnamed data reloc-data, unnamed code callee-unnamed,
+    # provisional only reloc-provisional; no ctor row unit-coupled; fold-name with the ctor done/passing refused-by-tool
+    0x00019905: ("reloc-data", "5.4 T12.1: companion ctor 0x000196CA ??0OnionMain fails reloc; needs 0x00018110 "
+                 "(unnamed code), 0x001C8228 (unnamed data)"),
+    0x0002A085: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00029E9F ??0HannahMain fails reloc; needs "
+                 "0x0002DF55 (unnamed code), ??_7HannahMain@@6B@ 0x001CC968 (site-corr)"),
+    0x0002D967: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0002D741 ??0CrawdadTrapMain fails reloc; needs "
+                 "??0BasicDoorMain 0x00107C33 (site-corr), ??_7CrawdadTrapMain@@6B@ 0x001CD418 (site-corr)"),
+    0x000307D7: ("callee-unnamed", "5.4 T12.1: companion ctor 0x000306E1 ??0FanBoatWake fails reloc; needs "
+                 "0x0002DE9D (unnamed code)"),
+    0x00032F2E: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00032A6A ??0FanBoatMain fails reloc; needs 11 "
+                 "unnamed targets 0x0002E3C5..0x001CD98C, ??_7FanBoatMain@@6B@ 0x001CD998 (site-corr)"),
+    0x00037459: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00036F03 ??0FileHandler fails reloc; needs "
+                 "??_7FileHandler@@6B@ 0x001CDC3C (site-corr)"),
+    0x000374B7: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000372DD ??0MemoryFileHandler fails reloc; needs "
+                 "??_7MemoryFileHandler@@6B@ 0x001CDD2C (site-corr)"),
+    0x000374D3: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00036F95 ??0StandardFileHandler fails reloc; "
+                 "needs ??_7StandardFileHandler@@6B@ 0x001CDC84 (site-corr)"),
+    0x000374EF: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00037090 ??0ZipFileHandler fails reloc; needs "
+                 "??_7ZipFileHandler@@6B@ 0x001CDCBC (site-corr)"),
+    0x0003750B: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00037187 ??0AsyncFileHandler fails reloc; needs "
+                 "??_7AsyncFileHandler@@6B@ 0x001CDCF4 (site-corr)"),
+    0x0003B78F: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0003B727 ??0WheelOfMysteryMain fails reloc; "
+                 "needs ??_7WheelOfMysteryMain@@6B@ 0x001CE960 (site-corr)"),
+    0x0003DA72: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0003BF6D ??0switch_wheelOfMysteryMain in "
+                 "WheelOfMystery.obj (row unit TrailerFrogs.obj: fold-name) fails reloc; needs "
+                 "??_7switch_wheelOfMysteryMain@@6B@ 0x001CEB30 (site-corr)"),
+    0x0003DEB9: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0011740E ??0PitFrogMain in PitFrog.obj (row unit "
+                 "TrailerFrogs.obj: fold-name) fails reloc; needs 0x0002DF55 (unnamed code), ??_7PitFrogMain@@6B@ "
+                 "0x001F0E38 (site-corr)"),
+    0x000406B0: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000404C0 ??0CarRideMain fails reloc; needs "
+                 "??_7CarRideMain@@6B@ 0x001D0270 (site-corr)"),
+    0x0004844D: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0004708D ??0BumperCarMain fails reloc; needs 10 "
+                 "unnamed targets 0x001D1CCC..0x001D1D9C, ??_7BumperCarMain@@6B@ 0x001D1DB0 (site-corr)"),
+    0x0004C9B8: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0004C846 ??0KosmoBotHeadMain fails reloc; needs "
+                 "??_7KosmoBotHeadMain@@6B@ 0x001D29F8 (site-corr)"),
+    0x0005011F: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00123308 ??0potion_boomerangMain in "
+                 "Boomerang.obj (row unit LandORides.obj: fold-name) fails reloc; needs "
+                 "??_7potion_boomerangMain@@6B@ 0x001F2E00 (site-corr)"),
+    0x000577EB: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0005775D ??0ShootingUI fails reloc; needs "
+                 "??_7ShootingUI@@6B@ 0x001D5FF8 (site-corr)"),
+    0x000578F3: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00057819 ??0OverheatUI fails reloc; needs "
+                 "??_7OverheatUI@@6B@ 0x001D6040 (site-corr)"),
+    0x00059192: ("unit-coupled", "5.4 T12.1: no ??0ZombieMain row in candidates (ctor inlined or absent); needs the "
+                 "ZombieGuidanceCounselor.obj code that emits the vtable matched first (C0320)"),
+    0x0005C6DD: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0005CB52 ??0VinceSpring fails reloc; needs "
+                 "??_7VinceSpring@@6B@ 0x001D7690 (site-corr)"),
+    0x0005F12D: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0005F06C ??0MondoMolePuzzleRegionMain fails "
+                 "reloc; needs ??_7MondoMolePuzzleRegionMain@@6B@ 0x001D8198 (site-corr)"),
+    0x000649D0: ("reloc-data", "5.4 T12.1: companion ctor 0x00064515 ??0RodeoRatMain fails reloc; needs 0x001D9880 "
+                 "(unnamed data)"),
+    0x0006606F: ("reloc-data", "5.4 T12.1: companion ctor 0x00065C84 ??0VinceOnRatMain fails reloc; needs 0x001D9B28 "
+                 "(unnamed data)"),
+    0x00066B4C: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0012150E ??0WeaponMain in Weapon.obj (row unit "
+                 "RatRaceRodeo.obj: fold-name) fails reloc; needs ??_7WeaponMain@@6B@ 0x001F2770 (site-corr)"),
+    0x00067BF9: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000640D5 ??0RockChunkMain fails reloc; needs "
+                 "??_7RockChunkMain@@6B@ 0x001D9548 (site-corr), ?_chunkCount@RockChunkMain 0x002364F0 (site-corr)"),
+    0x00067E78: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00067C3F ??0MrsGMain fails reloc; needs "
+                 "?Create@SwampParticleManager 0x000B8AFF (site-corr), ??_7MrsGMain@@6B@ 0x001D9E30 (site-corr)"),
+    0x00069D82: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00069CBD ??0NetMain fails reloc; needs "
+                 "??_7NetMain@@6B@ 0x001DA578 (site-corr)"),
+    0x0006A74F: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0006A615 ??0LanternMain fails reloc; needs "
+                 "??_7LanternMain@@6B@ 0x001DA8D8 (site-corr)"),
+    0x0006C1F2: ("unit-coupled", "5.4 T12.1: no ??0BellMain row in candidates (ctor inlined or absent); needs the "
+                 "Bell.obj code that emits the vtable matched first (C0320)"),
+    0x0006C681: ("refused-by-tool", "5.4 T12.1: companion ctor 0x0009FB0D ??0WheelPlatformAMain in MainTunnel.obj "
+                 "done (row unit Bell.obj: fold-name, match_one refuses `not defined`); needs the row renamed to "
+                 "Bell.obj's own folded class (C0377)"),
+    0x000716AB: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x001220E8 ??0DialogueRegionMain in "
+                 "DialogueRegion.obj (row unit theSquare.obj: fold-name) fails reloc; needs "
+                 "??_7DialogueRegionMain@@6B@ 0x001F2B20 (site-corr)"),
+    0x00073BE0: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00058A18 ??0ZombieCryptMain in "
+                 "ZombieGuidanceCounselor.obj (row unit theSquare.obj: fold-name) fails reloc; needs "
+                 "??_7ZombieCryptMain@@6B@ 0x001D6798 (site-corr)"),
+    0x00073E24: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00073D67 ??0VinceKickedOut fails reloc; needs "
+                 "??_7VinceKickedOut@@6B@ 0x001DCB60 (site-corr)"),
+    0x00074389: ("reloc-data", "5.4 T12.1: companion ctor 0x00074151 ??0SkeletonJazzGuyMain fails reloc; needs 8 "
+                 "unnamed targets 0x001D8F64..0x001DCD90"),
+    0x00077F62: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00077F2A ??0VinceShared fails reloc; needs "
+                 "??_7VinceShared@@6B@ 0x001DDD78 (site-corr)"),
+    0x0007912F: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00078E5E ??0BlenderMain fails reloc; needs "
+                 "?Create@SwampParticleManager 0x000B8AFF (site-corr), ??_7BlenderMain@@6B@ 0x001DE060 (site-corr)"),
+    0x0007984C: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000796EC ??0FlourSackMain fails reloc; needs "
+                 "0x0010F0F8 and ??_7FlourSackMain@@6B@ 0x001DE3C0 pinned, slot 0x00079B36 named (T12.1.c3); prior: "
+                 "3 attempts, best 100"),
+    0x0007A1C3: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0007A185 ??0GingerDeadMan fails reloc; needs "
+                 "??0Critter 0x000EDA8A (site-corr), ??_7GingerDeadMan@@6B@ 0x001DE550 (site-corr)"),
+    0x0007B033: ("reloc-data", "5.4 T12.1: companion ctor 0x0007AA42 ??0GingerDeadManMain fails reloc; needs "
+                 "0x001DE8A0 (unnamed data)"),
+    0x0007B380: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0007B2CF ??0OvenMain fails reloc; needs "
+                 "??_7OvenMain@@6B@ 0x001DEA50 pinned, slot 0x0007B761 named (T12.1.c3); prior: 4 attempts, best 100"),
+    0x0007BC6F: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0007BB1B ??0ScaleMain fails reloc; needs "
+                 "??_7ScaleMain@@6B@ 0x001DEB90 (site-corr)"),
+    0x0007C238: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0007C190 ??0WallSwitchMain fails reloc; needs "
+                 "??_7WallSwitchMain@@6B@ 0x001DECC0 (site-corr)"),
+    0x0007FAE6: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0008023B ??0PrimoMain fails reloc; needs "
+                 "??_7PrimoMain@@6B@ 0x001DF908 (site-corr)"),
+    0x000810A8: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00080967 ??0ReggieWreckageMain fails reloc; "
+                 "needs ??_7ReggieWreckageMain@@6B@ 0x001DFC70 (site-corr)"),
+    0x0008F6B0: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0008F3D8 ??0DollyMain fails reloc; needs "
+                 "??_7DollyMain@@6B@ 0x001E3B08 (site-corr)"),
+    0x0009DF88: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0009DEFE ??0FlamePipesMain fails reloc; needs "
+                 "??_7FlamePipesMain@@6B@ 0x001E73B0 (site-corr)"),
+    0x000A22DD: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000A20BC ??0LaundryCarMain fails reloc; needs "
+                 "??_7LaundryCarMain@@6B@ 0x001E8688 (site-corr)"),
+    0x000A27B2: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000A26B8 ??0VinceLaundryCar fails reloc; needs "
+                 "vptr store target 0x001E8798 pinned, then the ctor matched (T12.1.c3)"),
+    0x000AA6F2: ("refused-by-tool", "5.4 T12.1: companion ctor 0x0004DE90 ??0AreaLoadRegionMain in "
+                 "BumpercarBumpoff.obj done (row unit ThrottleUp.obj: fold-name, match_one refuses `not defined`); "
+                 "needs the row renamed to ThrottleUp.obj's own folded class (C0377)"),
+    0x000C8A77: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000C88CB ??0FireFlyNode fails reloc; needs "
+                 "??_7FireFlyNode@@6B@ 0x001EB4A8 (site-corr)"),
+    0x000C8A93: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000C8A19 ??0FireFlyNodeClone fails reloc; needs "
+                 "??_7FireFlyNodeClone@@6B@ 0x001EB4D0 (site-corr)"),
+    0x000CB46B: ("callee-unnamed", "5.4 T12.1: companion ctor 0x000CB04C ??0SwampCamera fails reloc; needs "
+                 "0x0002DE9D (unnamed code)"),
+    0x000E1E61: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000E4764 ??0OptionsMenuGuts fails reloc; needs "
+                 "0x00238C4C (unnamed data), 0x002398F4 (unnamed data), 0x002398F8 (unnamed data), 0x002398FC "
+                 "(unnamed data), ??_7OptionsMenuGuts@@6B@ 0x001EC8BC (site-corr)"),
+    0x000E2D89: ("refused-by-tool", "5.4 T12.1: companion ctor 0x0013F3E8 ??0VoodooShopVinceMain in "
+                 "VoodooShopVince.obj done (row unit HUDUI.obj: fold-name, match_one refuses `not defined`); needs "
+                 "the row renamed to HUDUI.obj's own folded class (C0377); prior: 2 ledger attempts, best None"),
+    0x000E6178: ("unit-coupled", "5.4 T12.1: no ??0PauseUI row in candidates (ctor inlined or absent); needs the "
+                 "HUDUI.obj code that emits the vtable matched first (C0320)"),
+    0x000E8469: ("unit-coupled", "5.4 T12.1: no ??0SkullUI row in candidates (ctor inlined or absent); needs the "
+                 "HUDUI.obj code that emits the vtable matched first (C0320)"),
+    0x000E88C5: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000E86A5 ??0HealthUI fails reloc; needs "
+                 "0x0002DF55 (unnamed code), ??_7HealthUI@@6B@ 0x001ED544 (site-corr)"),
+    0x000E8A5E: ("unit-coupled", "5.4 T12.1: no ??0BeadsUI row in candidates (ctor inlined or absent); needs the "
+                 "HUDUI.obj code that emits the vtable matched first (C0320)"),
+    0x000FDAE9: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x000FDA9A ??0AnimCam fails reloc; needs "
+                 "??_7AnimCam@@6B@ 0x001EEF90 (site-corr)"),
+    0x001113F7: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00110B55 ??0BubbaGatorMain fails reloc; needs "
+                 "??_C@_05IJFEKAIL@tail3?$AA@ 0x001F02BC (site-corr), ??_7BubbaGatorMain@@6B@ 0x001F0648 (site-corr)"),
+    0x00129BBE: ("reloc-data", "5.4 T12.1: companion ctor 0x001298F2 ??0VinceSwing fails reloc; needs 0x0002DF55 "
+                 "(unnamed code), 0x00122751 (unnamed code), 0x00128D9D (unnamed code), 0x001F7940 (unnamed data)"),
+    0x0012D3D2: ("reloc-data", "5.4 T12.1: companion ctor 0x0012D338 ??0SignTrolleyMain fails reloc; needs "
+                 "0x001F8350 (unnamed data)"),
+    0x0012F261: ("unit-coupled", "5.4 T12.1: no ??0TrolleyScreen row in candidates (ctor inlined or absent); needs "
+                 "the SignTrolley.obj code that emits the vtable matched first (C0320)"),
+    0x0013064C: ("reloc-data", "5.4 T12.1: companion ctor 0x00130513 ??0TrolleyMain fails reloc; needs 0x001F8678 "
+                 "(unnamed data)"),
+    0x001322E6: ("refused-by-tool", "5.4 T12.1: companion ctor 0x0008C38C ??0VinceZapHat in VinceZapHat.obj pass "
+                 "(row unit FanCeiling.obj: fold-name, match_one refuses `not defined`); needs the row renamed to "
+                 "FanCeiling.obj's own folded class (C0377)"),
+    0x00133F3D: ("callee-unnamed", "5.4 T12.1: companion ctor 0x00133E96 ??0WhammyProjectileMain fails reloc; needs "
+                 "0x0002DE9D (unnamed code)"),
+    0x001348F8: ("refused-by-tool", "5.4 T12.1: companion ctor 0x0012177A ??0VinceFlat in VinceFlat.obj done (row "
+                 "unit Whammy.obj: fold-name, match_one refuses `not defined`); needs the row renamed to "
+                 "Whammy.obj's own folded class (C0377)"),
+    0x001349BD: ("reloc-provisional", "5.4 T12.1: companion ctor 0x0013469C ??0WhammyResultFrozenMain fails reloc; "
+                 "needs ?GetStandardAnimation@MonsterMain 0x000F4B90 (site-corr)"),
+    0x00134E35: ("reloc-data", "5.4 T12.1: companion ctor 0x00134D1B ??0VinceWhammyMain fails reloc; needs "
+                 "0x001F96D4 (unnamed data), 0x001F96E8 (unnamed data)"),
+    0x00135F1E: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x00135939 ??0WhammyPropMain fails reloc; needs "
+                 "0x000380F3 (unnamed code), ??_7WhammyPropMain@@6B@ 0x001F99E8 (site-corr)"),
+    0x00136A64: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x001369D4 ??0EyeCam fails reloc; needs "
+                 "??_7EyeCam@@6B@ 0x001F9D84 (site-corr)"),
+    0x0013A54A: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0013AAE9 ??0VoodooShopLevelMain fails reloc; "
+                 "needs 17 unnamed targets 0x001DA954..0x001FADF4, ??_7VoodooShopLevelMain@@6B@ 0x001FAAD8 "
+                 "(site-corr)"),
+    0x0013E05D: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0013E079 ??0FrontEndMenu fails reloc; needs "
+                 "??_7FrontEndMenu@@6B@ 0x001FB1B4 (site-corr)"),
+    0x0013E46E: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0013E119 ??0ExtrasMenu fails reloc; needs "
+                 "??_7ExtrasMenu@@6B@ 0x001FB200 (site-corr)"),
+    0x0013EC13: ("wall-vtable-relink", "5.4 T12.1: companion ctor 0x0013F0F1 ??0ChaptersMenu fails reloc; needs "
+                 "__ftol2 0x00141F74 (site-corr), ??_7ChaptersMenu@@6B@ 0x001FB26C (site-corr)"),
+    0x0014FBC5: ("callee-unnamed", "5.4 T12.1: companion ctor 0x0014FA4E ??0Decal fails reloc; needs 0x0002DE9D "
+                 "(unnamed code), __ftol2 0x00141F74 (site-corr)"),
+    # 5.4 T15: attempted-open rows given their verdict (logs/T15.c1-c6.md)
+    **{va: ("wall-vtable-relink", f"5.4 T15: objdiff 100, only the vptr store masked; needs {vt} pinned (T15.{c}); T25.c1: pin_rows refused slot-names (slot-unnamed/slot-name-differs/slot-site-corr) and vtable-slots (vtable-differs), C0412")
+       for va, vt, c in (
+        (0x00136386, "??_7VinceWalkOut@@6B@ 0x001F9BB0", "c5"), (0x000A26B8, "??_7VinceLaundryCar@@6B@ 0x001E8798", "c5"),
+        (0x000A0D59, "??_7ChuteKillerDilloMain@@6B@ 0x001E81C8", "c3"),
+        (0x00071194, "??_7GateFrogMain@@6B@ 0x001DB8E8", "c3"), (0x0003DE5D, "??_7TrailerFrogMain@@6B@ 0x001CF6C0", "c3"),
+        (0x0003C202, "??_7FrogOfMysteryMain@@6B@ 0x001CEC78", "c3"),
+        (0x00068019, "??_7MrsGCollapsedMain@@6B@ 0x001D9F60 + literals 0x001D9FD4, 0x001D9F50", "c4"))},
+    # 5.5 T8: 0x0007B2CF ??0OvenMain dropped (matched); 7 T15 ctor keys re-noted below with their T8 wall
+    # 5.5 T8 wave (logs/T8.c1-c6, C0430): vptr ctors that pass match_one 100 but fail precheck's relink
+    **{va: ("wall-vtable-relink", "5.5 T8: match_one 100; relink `our ranges overlap at 0x000E2D89`: slot 0 is the "
+            "shared folded ??_E/??_G body, no ??_G<class> fold-alias pin there; needs that pin + re-cut (C0250, C0430)")
+       for va in (0x000816C8, 0x00129D49, 0x0006B9B0, 0x0005D5AE)},
+    **{va: ("wall-vtable-relink", "5.5 T8: match_one 100; relink: vtable slot ?SetState@CritterMain@@UAEXH@Z does not "
+            "resolve by name; needs that slot pinned (C0203, C0430)") for va in (0x0009DCC3, 0x00126256)},
+    # 5.5 T8: 0x000717E7 DialogueBurlesque creationFunc matched after match_one.resolve dedupes a name+VA dual row
+    **{va: ("wall-vtable-relink", "5.5 T8: match_one 100; relink .rdata digest differs: the emitted ??_7 does not "
+            "equal retail's (C0430)") for va in (0x0012D338, 0x001317E0)},
+    # 5.5 T6: the 5.4 T15 callee-unnamed keys 0x0010892C, 0x000D9519, 0x000DA108, 0x000D91A7, 0x000C5B67,
+    # 0x0003786D, 0x000D37C0, 0x0013EC2F dropped (matched; stale keys now fail)
+    0x000E1053: ("wall-data-name", "5.4 T15: GetBeadDest needs .data 0x0021EE68 (0.125f) named; then UIBeadMain 0x000E27C0 with it (T15.c1, 5.3 T9); T25.c1: proto twin reads ?SETTINGS_FILE@@3PBDB+4, no public at the VA, no pin (D78)"),
+    0x000E0421: ("wall-data-name", "5.4 T15: ReadErrorHalt: flag 0x00238C28 has no PDB public (D78); also CXBFont::Create 0x000FFC12, literals 0x001EC730/0x001EC7C8/0x001EC7D4; no draft (T15.c1)"),
+    **{va: ("wall-d78", f"5.4 T15: retail calls 0x000B9E3C with 2 args, proto SoundManager::SetMute(bool) has 1 (D78); best {b} (T15.c2)")
+       for va, b in ((0x001086CE, "89.09"), (0x00108762, "96.88"))},
+    0x000640D5: ("unit-coupled", "5.4 T15: ??0RockChunkMain passes (100, bytes, masked 0) only at unit opt /O1 /Oy /Ob1 (C0121; SetState inlined at /O1 /Oy); every matched RatRaceRodeo row must re-pass under /Ob1 (T15.c4)"),
+    0x0008F1E9: ("wall-thinker", "5.4 T15 M17: DollyMain SetState best 97.62: retail keeps Fetch's by-value temp in the dead arg slot "
+                 "[ebp+8] and copy-constructs ah from it; levers P2a static_cast<const ResourceHandle&>(Fetch()) and P2b *&Fetch() "
+                 "let cl elide the copy (ah built at [ebp-4], 377 B, normdiff 111); C0225/C0275 class (T15.c3, T15.c7)"),
+    0x0010EB1A: ("wall-thinker", "5.4 T15 M17: CarriedObject Message best 97.87 (15 ledger + 8 probes): frame slot packing 0xf0 vs 0xe4 "
+                 "(rotation temp -0x84 vs -0x78) + esi/edi swap in USE; temps from inlined free Vector3 operators and one-arg "
+                 "Quaternion::Apply the PDB does not record (D78/D117); C0191 hand forms make scoped temps (T15.c4)"),
+    0x000ED7EA: ("wall-thinker", "5.4 T15 M17: CanJorgeCollideWithMe best 99.92: branch layout, one jcc target +0x54 (jump threading through "
+                 "two known bools, C0400); ~60 forms (T8 29, T15 31) cover every logical spelling, no PDB locals, proto byte-identical; "
+                 "only a blind permutation search left (T15.c6)"),
+    0x0013F331: ("wall-thinker", "5.4 T15 M17: AnimationFinished@VoodooShopVinceMain best 96.27: regalloc, retail spills min to the dead "
+                 "handle slot [ebp-4] and copies to ebx after a lazy push; no allowed construct forces it; PDB locals only `this` (T15.c6)"),
 }
 # Symbols past the stop whose pa-thinker consultation (M17) is done: symbol -> source. None in 3.3.
-THINKER = {}
+THINKER = {  # M17 pa-thinker rounds (symbol -> consultation)
+    "?SetSubtitle@HUDUI@@QAEXPBGM@Z": "5.4 T15 M17: lever P1a matched (T15.c7)",
+    "?SetState@DollyMain@@MAEXH@Z": "5.4 T15 M17: levers P2a/P2b tried, copy elided; wall-thinker",
+    "?Message@CarriedObjectMain@@UAEXPAVSwampScript@@HPAX@Z": "5.4 T15 M17: wall-thinker (slot packing, D78/D117)",
+    "?CanJorgeCollideWithMe@Critter@@UBE_NPBVSwampSceneNode@@ABUVector3@@@Z": "5.4 T15 M17: wall-thinker (branch layout, C0400)",
+    "?AnimationFinished@VoodooShopVinceMain@@UAEXXZ": "5.4 T15 M17: wall-thinker (regalloc spill to dead slot)",
+}
 
 # (key, verdict, needs); the order is the precedence.
 BUCKETS = [
@@ -645,6 +897,144 @@ def cls_caller_xref(S, P, t):  # a caller site P -> t, no other proto dest at t
             and all(pd == P for pd, _c in S.ctx["by_rd"].get(t, ())))
 
 
+# T11.1.c1: the two classes ruled at 5.4 T10 (D133 registerme, D134 abs-site) lifted from lane_sizing (5.4 T9) the
+# same way; S also carries rm_ok (rm_scan) and abs_pd/abs_rd (abs_index).
+RM_RE = re.compile(r"\?\?0RegisterMe@(\w+)@@QAE@XZ")
+
+
+def rm_scan(img, pubs, rlen, eset):
+    """5.4 T9 registerme (lifted T11.1.c1): a `??0RegisterMe@X@@QAE@XZ` row and body t push the same one string literal
+    at the same mask offset (retail: an abs dest in .rdata/.data, NUL-terminated; proto: a ??_C@ public), its text == X,
+    img.match. -> (rm_x {P: X}, rm_ok {(P, t)}, rm_row {P: S|D|M|N}, rm_d [(P, X, text)] first 10 D rows)."""
+    import name_sites
+    rm_x = {P: m.group(1) for P in rlen if len(pubs.get(P, ())) == 1
+            and (m := RM_RE.fullmatch(next(iter(pubs[P]))))}
+    dnames = [s for s in img.x["sections"] if s.get("name") in (".rdata", ".data")]
+
+    def rlits(t, n):  # retail literals of body t over n bytes: [(mask offset, bytes through NUL)]
+        rb = img.rbytes(t, n)
+        if rb is None:
+            return []
+        out = []
+        for o, _w, k in proto_map.mask_proc(rb, t, img.rlo, img.rhi)[0]:
+            if k != "abs":
+                continue
+            d = name_sites.target(rb, t, o, k)
+            s = next((s for s in dnames if s["virtualAddr"] <= d < s["virtualAddr"] + s["rawSize"]), None)
+            if s is None:
+                continue
+            raw = img.xb[s["rawAddr"] + d - s["virtualAddr"]:s["rawAddr"] + s["rawSize"]]
+            i = raw.find(b"\0", 0, name_sites.STR_CAP)
+            if i >= 0:
+                out.append((o, bytes(raw[:i + 1])))
+        return out
+
+    rlc, rm_ok, rm_row = {}, set(), {}  # rm_row: P -> "S" | "D" (equal bytes, text != X) | "M" (match refused) | "N"
+    rm_d = []
+    for P, X in sorted(rm_x.items()):
+        pb = img.pbytes(P, rlen[P])
+        plit = []
+        for o, _w, k in (proto_map.mask_proc(pb, P, img.plo, img.phi)[0] if pb is not None else ()):
+            if k != "abs":
+                continue
+            d = name_sites.target(pb, P, o, k)
+            nm = next((n for n in sorted(pubs.get(d, ())) if n.startswith("??_C@")), None)
+            ln_ = name_sites.str_len(img, nm, d) if nm else None
+            if ln_:
+                plit.append((o, bytes(img.pbytes(d, ln_))))
+        st = set()
+        for t in sorted(eset.get(P, ())):
+            if (t, rlen[P]) not in rlc:
+                rlc[(t, rlen[P])] = rlits(t, rlen[P])
+            rl = rlc[(t, rlen[P])]
+            if len(plit) != 1 or len(rl) != 1 or plit[0] != rl[0]:
+                continue
+            txt = rl[0][1][:-1].decode("latin-1")
+            if txt != X:
+                st.add("D")
+                if len(rm_d) < 10 and (not rm_d or rm_d[-1][0] != P):
+                    rm_d.append((P, X, txt))
+            elif img.match(P, t, rlen[P]) is None:
+                st.add("M")
+            else:
+                st.add("S")
+                rm_ok.add((P, t))
+        rm_row[P] = next((c for c in "SDM" if c in st), "N")
+    return rm_x, rm_ok, rm_row, rm_d
+
+
+def abs_index(img, ctx, pin, chain=(), rlen=None):
+    """5.3 T1 c3 abs-site (lifted T11.1.c1): near_ctx's caller index (name_sites.py:1426-1450) over `abs` masks: the
+    accepted callers of symbols.txt and pin (unique public, img.match), proto dest an exec VA outside the caller; then
+    (5.4 T9) each chain pair (cpva, cva) not already an accepted caller, length rlen[cpva].
+    -> (abs_pd {pd: [(rd, caller)]}, abs_rd {rd: [(pd, caller)]}, abs_src {(pd, rd, caller): accepted|chain},
+    abs_all {rd: [(pd, caller)]} every accepted abs mask (data dests too), abs_off {(pd, rd, caller): mask offset})."""
+    import name_sites
+    import units_seed
+    procs = ctx["procs"]
+    abs_pd, abs_rd = defaultdict(list), defaultdict(list)
+    abs_src = {}  # 5.4 T9: (pd, rd, caller) -> "accepted" | "chain"
+    abs_all = defaultdict(list)  # 5.4 T7: rd -> [(pd, caller)] over every abs mask (data dests too), for near_sizing (c)
+    abs_off = {}  # T11.1.c1: (pd, rd, caller) -> mask offset in the caller (D135 push site)
+    for tab, ok in ((candidates.SYMS, units_seed.STATUSES), (pin, candidates.PIN_STATUSES)):
+        for ln in candidates.need(tab).read_text(encoding="utf-8").splitlines():
+            f = ln.split()
+            if len(f) < 6 or ln.startswith("#") or f[1] != "func" or f[-1] not in ok \
+                    or f[-1] in ("site-corr", "boundary", "near-corr"):
+                continue
+            cva, pv = int(f[0], 16), ctx["pubname"].get(" ".join(f[3:-2]), set())
+            if len(pv) != 1:
+                continue
+            cpva = next(iter(pv))
+            ln_ = procs.get(cpva)
+            m = img.match(cpva, cva, ln_) if ln_ else None
+            if m is None:
+                continue
+            pb, rb = img.pbytes(cpva, ln_), img.rbytes(cva, ln_)
+            for o, _w, k in m[1]:
+                if k != "abs":
+                    continue
+                pd = name_sites.target(pb, cpva, o, k)
+                abs_all[name_sites.target(rb, cva, o, k)].append((pd, cva))
+                if not img.pexec(pd) or cpva <= pd < cpva + ln_:
+                    continue
+                rd = name_sites.target(rb, cva, o, k)
+                abs_pd[pd].append((rd, cva))
+                abs_rd[rd].append((pd, cva))
+                abs_src[(pd, rd, cva)] = "accepted"
+                abs_off[(pd, rd, cva)] = o
+    # 5.4 T9 chain: every registerme-settled (P, t) as a caller of the abs-site index (same abs-mask loop as above)
+    acc_c = {c for v in abs_pd.values() for _rd, c in v}
+    for cpva, cva in sorted(chain):
+        if cva in acc_c:
+            continue
+        ln_ = rlen[cpva]
+        m = img.match(cpva, cva, ln_)
+        pb, rb = img.pbytes(cpva, ln_), img.rbytes(cva, ln_)
+        for o, _w, k in m[1]:
+            if k != "abs":
+                continue
+            pd = name_sites.target(pb, cpva, o, k)
+            if not img.pexec(pd) or cpva <= pd < cpva + ln_:
+                continue
+            rd = name_sites.target(rb, cva, o, k)
+            abs_pd[pd].append((rd, cva))
+            abs_rd[rd].append((pd, cva))
+            abs_src[(pd, rd, cva)] = "chain"
+            abs_off[(pd, rd, cva)] = o
+    return abs_pd, abs_rd, abs_src, abs_all, abs_off
+
+
+def cls_registerme(S, P, t):  # D133: the row's pushed literal equals the body's byte for byte and reads X, img.match
+    return (P, t) in S.rm_ok
+
+
+def cls_abs_site(S, P, t):  # D134: an abs site P -> t in an accepted caller, agree >= 1, conflicts 0, t a body of P
+    return (t in S.eset.get(P, ()) and any(rd == t and c != t for rd, c in S.abs_pd.get(P, ()))
+            and all(rd == t for rd, c in S.abs_pd.get(P, ()) if c != t)
+            and all(pd == P for pd, c in S.abs_rd.get(t, ()) if c != t))
+
+
 def vt_slot_pairs(img, ctx, pub_vas):
     """5.1 T9 (lifted T13.2.c3): accepted vtables (name_sites' table rule), proto VA = the unique PDB public of the
     name -> ({(proto slot dword, retail slot dword)}, vtables)."""
@@ -678,10 +1068,11 @@ def vt_slot_pairs(img, ctx, pub_vas):
     return slots, nvt
 
 
-def ruled_state(img, pubs, ctx):
+def ruled_state(img, pubs, ctx, pin_path=None):
     """5.3 T3: S for bracket/fold_alias/fold_k1 (T13.2.c3: and cls_k1/cls_d115/cls_d113/cls_caller_xref) from the
     inputs main reads (functions.jsonl, Ghidra entries, gaps, matched_set.toml VAs, units.toml), plus S.A, S.H (recount
-    order). Refuses (exit 2) on a missing input."""
+    order). Refuses (exit 2) on a missing input. T11.1.c1: and cls_registerme (S.rm_ok) / cls_abs_site (S.abs_pd,
+    S.abs_rd: accepted callers of symbols.txt and pin_path, default candidates.SYMS_PIN; no chain), S.entries, S.gaps."""
     try:
         fx = candidates.load_jsonl(candidates.need(candidates.FUNCS))
         units = sorted((u for u in tomllib.loads(candidates.need(UNITS).read_text(encoding="utf-8"))["unit"]
@@ -698,16 +1089,20 @@ def ruled_state(img, pubs, ctx):
     matched = {as_int(f["va"]) for f in tomllib.loads(MATCHED.read_text(encoding="utf-8")).get("function", [])}
     A, H, _pbs, rlen = recount(img, fx, entries, gaps)
     claims, erow, rowt, eset, tclaim = amb_index(A, H)
+    _x, rm_ok, _r, _d = rm_scan(img, pubs, rlen, eset)  # T11.1.c1
+    abs_pd, abs_rd, _s, _a, abs_off = abs_index(img, ctx, pin_path or candidates.SYMS_PIN)
     return SimpleNamespace(img=img, pubs=pubs, ctx=ctx, rlen=rlen, eset=eset, erow=erow, rowt=rowt, claims=claims,
                            tclaim=tclaim, brk=bracket_windows(fx, units, matched, A), A=A, H=H, units=units,
-                           nc={}, nok={}, slots=vt_slot_pairs(img, ctx, sorted(pubs))[0])  # T13.2.c3
+                           nc={}, nok={}, slots=vt_slot_pairs(img, ctx, sorted(pubs))[0],  # T13.2.c3
+                           rm_ok=rm_ok, abs_pd=abs_pd, abs_rd=abs_rd, abs_off=abs_off, entries=entries, gaps=gaps)
 
 
-def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
+def lane_sizing(fx, entries, why, sums, fail, matched, irows, res, keep=None):
     """5.1 T9: size the ambiguous rows and the near no-name rows by the evidence that would settle each pair; sizing
     only, nothing written to a pin file. Plants (wrong body, wrong proto per class) run first; one passing -> FAIL,
     no counts. Returns the `## Lane sizing` doc lines, or None on a failed plant. 5.3 T1: irows = unmatched identical
-    pool rows (freed counts); res is filled with the ambiguous_residue.md row lines."""
+    pool rows (freed counts); res is filled with the ambiguous_residue.md row lines. 5.4 T7: keep (a dict) receives
+    the state near_sizing reads (S, A, ev, YC, ycls, edge-settled units, slot_rv, every accepted-caller abs site)."""
     import name_sites
     import pin_rows  # VT_CAP; vt_slots is pin_rows.State.vt_slots re-run on name_sites' img (no State build)
     import units_seed
@@ -759,34 +1154,6 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
                 if img.pexec(pv) and sec_end(rv) is not None:
                     dslots.add((pv, rv))
 
-    # 5.3 T1 c3 abs-site: near_ctx's caller index (name_sites.py:1426-1450) over `abs` masks: the same accepted callers
-    # (unique public, img.match), proto dest an exec VA outside the caller
-    abs_pd, abs_rd = defaultdict(list), defaultdict(list)
-    for tab, ok in ((candidates.SYMS, units_seed.STATUSES), (candidates.SYMS_PIN, candidates.PIN_STATUSES)):
-        for ln in candidates.need(tab).read_text(encoding="utf-8").splitlines():
-            f = ln.split()
-            if len(f) < 6 or ln.startswith("#") or f[1] != "func" or f[-1] not in ok \
-                    or f[-1] in ("site-corr", "boundary", "near-corr"):
-                continue
-            cva, pv = int(f[0], 16), ctx["pubname"].get(" ".join(f[3:-2]), set())
-            if len(pv) != 1:
-                continue
-            cpva = next(iter(pv))
-            ln_ = procs.get(cpva)
-            m = img.match(cpva, cva, ln_) if ln_ else None
-            if m is None:
-                continue
-            pb, rb = img.pbytes(cpva, ln_), img.rbytes(cva, ln_)
-            for o, _w, k in m[1]:
-                if k != "abs":
-                    continue
-                pd = name_sites.target(pb, cpva, o, k)
-                if not img.pexec(pd) or cpva <= pd < cpva + ln_:
-                    continue
-                rd = name_sites.target(rb, cva, o, k)
-                abs_pd[pd].append((rd, cva))
-                abs_rd[rd].append((pd, cva))
-
     # 5.3 T1 recount: proto_map's matcher (proto_map.py:444-445, :488-494) uncapped over the retail exec sections;
     # bodies = hits that are Ghidra entries or config/gap_functions.toml gaps (progress.GAPS); functions.jsonl untouched
     gaps = {g["va"] for g in tomllib.loads((REPO / "config" / "gap_functions.toml").read_text(encoding="utf-8"))
@@ -823,6 +1190,13 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
         ctok = proto_map.tokens(rb, t, img.rlo, img.rhi)[0][:len(ptok)]
         return proto_map.similarity(ptok, ctok) >= proto_map.THRESHOLD
 
+    # 5.4 T9 registerme (T11.1.c1: lifted to rm_scan)
+    rm_x, rm_ok, rm_row, rm_d = rm_scan(img, pubs, rlen, eset)
+
+    # 5.3 T1 c3 abs-site and 5.4 T9 chain (T11.1.c1: lifted to abs_index): accepted callers, then every
+    # registerme-settled (P, t) as a caller
+    abs_pd, abs_rd, abs_src, abs_all, _off = abs_index(img, ctx, candidates.SYMS_PIN, rm_ok, rlen)
+
     PRED = {"k1": lambda P, t: cls_k1(S, P, t),  # T13.2.c3: the 5.1 T9 four lifted to module functions over S
             "D115": lambda P, t: cls_d115(S, P, t),
             "D113": lambda P, t: cls_d113(S, P, t),
@@ -833,6 +1207,7 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
             "outside-window": outside_window,
             "bracket": lambda P, t: bracket(S, P, t),
             "data-slot": lambda P, t: t in eset.get(P, ()) and (P, t) in dslots,
+            "registerme": lambda P, t: (P, t) in rm_ok,  # 5.4 T9
             "abs-site": lambda P, t: t in eset.get(P, ()) and any(rd == t and c != t for rd, c in abs_pd.get(P, ()))
             and all(rd == t for rd, c in abs_pd.get(P, ()) if c != t)
             and all(pd == P for pd, c in abs_rd.get(t, ()) if c != t)}
@@ -1056,6 +1431,48 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
               f"extent {cfx['inext']}: data-slot's reach); code immediate {cfx['imm']} (immediates {cfx['immh']}: in an "
               f"accepted caller {cfx['imm_a']}, in an unnamed or unaccepted function {cfx['imm_b']}); none "
               f"{cfx['none']} (without code immediates)")
+    # 5.4 T9 registerme / abs-site chain / creationFunc chain
+    rmr = Counter(rm_row[P] for P, _r, _es in A if P in rm_x)
+    rmb = Counter(t for _P, t in rm_ok)
+    rm2 = sorted(t for t, n in rmb.items() if n >= 2)
+    PL.append(f"- registerme: rows {sum(rmr.values())}; settled {rmr['S']} (literal text == class name), literal bytes "
+              f"equal but text differs {rmr['D']}" + (" (" + ", ".join(f"0x{P:08X} {X} {txt!r}" for P, X, txt in rm_d)
+                                                     + ")" if rm_d else "")
+              + f", equal literal but img.match refused {rmr['M']}, no literal match {rmr['N']}; bodies settled by 2+ "
+              f"rows {len(rm2)}" + (" (" + ", ".join(f"0x{t:06X}" for t in rm2) + ")" if rm2 else ""))
+    srcn = Counter(abs_src.values())
+    via = Counter()
+    for P, _r, es in A:
+        sv = {abs_src[(P, rd, c)] for t in es if ev[("abs-site", P, t)] for rd, c in abs_pd.get(P, ()) if rd == t and c != t}
+        for s in sv:
+            via[s] += 1
+    PL.append(f"- abs-site callers: accepted {srcn['accepted']} sites, chain {srcn['chain']} sites; rows settled via "
+              f"accepted {via['accepted']}, via chain {via['chain']}")
+    cch = Counter()
+    cpairs, cmiss = [], []  # 5.4 T9 c2: chained (P, rd) of classes e/h; rows (P, r, rd) of class x
+    for (P, r, es), h in zip(A, H):
+        if family(r["names"][0]) != "creationFunc":
+            continue
+        rds = {rd for rd, c in abs_pd.get(P, ()) if abs_src[(P, rd, c)] == "chain"}
+        if not rds:
+            cch["u"] += 1
+        elif len(rds) > 1 or any(pd != P for rd in rds for pd, c in abs_rd[rd] if abs_src[(pd, rd, c)] == "chain"):
+            cch["f"] += 1
+        else:
+            rd = next(iter(rds))
+            kc = "e" if rd in es and rd in entries else "g" if rd in gaps else "h" if rd in h else "x"
+            cch[kc] += 1
+            if kc in ("e", "h"):
+                cpairs.append((P, rd))
+            elif kc == "x":
+                cmiss.append((P, r, rd))
+    sums.append(f"creationFunc chain: rows {cfr} = ctor unsettled {cch['u']} + push rd an entry (settles) {cch['e']} "
+                f"+ rd a gap {cch['g']} + rd a non-entry hit of the row (R183 candidate) {cch['h']} + rd not a hit "
+                f"{cch['x']} + refused by conflict (t pushed from 2+ ctors with different protos, retail fold) {cch['f']}")
+    PL.append("- " + sums[-1])
+    if sum(cch.values()) != cfr:
+        fail.append(sums[-1])
+    pl_t9 = len(PL)  # 5.4 T9 c2 lines go here, built after the edge loop
 
     # k = 0 rows (R183): a hit has start evidence if a caller site, a vtable slot or a pin func line reaches it
     def sev(t):
@@ -1085,6 +1502,7 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
     idt = sorted(v for r in fx if r["class"] == "identical" and len(r["targetVAs"]) == 1
                  and (v := int(r["targetVAs"][0], 16)) not in matched)
     eP, EL, ecnt, eu, efree = defaultdict(list), [], Counter(), 0, 0
+    esett = set()  # 5.4 T7: (unit name, index) with >= 1 settled edge (ruled or candidates only)
     for u in units:
         eds = EDGE.findall(u.get("delink_reason", "")) if u["kind"] == "game" and not u["delink"] else []
         if not eds:
@@ -1105,9 +1523,103 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
                          + f" -> {'/'.join(cl) or 'none'}{body}")
         nfree = bisect.bisect_left(idt, u["text_end"]) - bisect.bisect_left(idt, u["text_start"])
         efree += nfree if sett else 0
+        if sett:
+            esett.add((u["name"], u["index"]))
         EL.append(f"- {tag} (0x{u['text_start']:06X}-0x{u['text_end']:06X}): " + "; ".join(parts)
                   + f"; identical rows a cut would free {nfree}")
     ne_ = sum(ecnt.values())
+
+    # 5.4 T9 c2 chain sites: rel masks of every chained creationFunc pair (img.match) -> sites (pd, rd2)
+    csites, cref = set(), 0
+    for P, rd in cpairs:
+        n = rlen[P]
+        m = img.match(P, rd, n)
+        if m is None:
+            cref += 1
+            continue
+        pb, rb = img.pbytes(P, n), img.rbytes(rd, n)
+        for o, _w, k in m[1]:
+            if k != "rel":
+                continue
+            pd = name_sites.target(pb, P, o, k)
+            if not P <= pd < P + n:
+                csites.add((pd, name_sites.target(rb, rd, o, k)))
+    cs_pd = defaultdict(set)
+    for pd, rd2 in csites:
+        cs_pd[pd].add(rd2)
+    agree = lambda P: sorted(t for t in cs_pd.get(P, ()) if t in eset.get(P, ()))  # noqa: E731
+    cgain, cconf, d115b = Counter(), [], {}  # d115b: D115 row P -> its D115-settled bodies
+    for (P, _r, es), cl in zip(A, ycls):
+        if agree(P):
+            cgain[cl if cl in ("D115", "none") else "other"] += 1
+            if cl not in ("D115", "none"):
+                cgain["o:" + cl] += 1
+        if cl == "D115":
+            d115b[P] = {t for t in es if ev[("D115", P, t)]}
+            cconf += [(P, t) for t in sorted(cs_pd.get(P, ())) if t not in d115b[P]]
+    ngain = len({P for P, _r, _es in A} & {pd for pd, rd2 in csites if rd2 in eset.get(pd, ())})
+    nng = sum(1 for p in nn if int(byva[p]["candidateVA"], 16) in cs_pd.get(int(p, 16), ()))
+    ed115, eend = [], defaultdict(set)  # edge protos of a D115 row (the edge ctors); end-edge protos per unit
+    for u in units:
+        for side, _nm, pv in (EDGE.findall(u.get("delink_reason", "")) if u["kind"] == "game" and not u["delink"]
+                              else ()):
+            P = int(pv, 16)
+            if side == "end":
+                eend[(u["name"], u["index"])].add(P)
+            if P in d115b and P not in ed115:
+                ed115.append(P)
+    eag = [f"0x{P:08X} -> 0x{t:06X}" for P in ed115 for t in sorted(cs_pd.get(P, ())) if t in d115b[P]]
+    exs = [f"0x{P:08X} -> 0x{t:06X}" for P in ed115 for t in sorted(cs_pd.get(P, ())) if t not in d115b[P]]
+    sums.append(f"chain sites: ambiguous rows gaining an agreeing site {ngain} = D115 {cgain['D115']} + none "
+                f"{cgain['none']} + other classes {cgain['other']}")
+    if ngain != cgain["D115"] + cgain["none"] + cgain["other"]:
+        fail.append(sums[-1])
+    oc = ", ".join(f"{c} {cgain['o:' + c]}" for c in YC if cgain["o:" + c])
+    T9L = [f"- chain sites: pairs {len(cpairs)} (img.match refused {cref}), rel sites {len(csites)}; " + sums[-1][13:]
+           + (f" ({oc})" if oc else "") + f"; near no-name rows gaining one {nng} of {len(nn)}; D115 edge ctor protos "
+           f"({', '.join(f'0x{P:08X}' for P in ed115) or 'none'}) gaining an agreeing site: {', '.join(eag) or 'none'}"
+           + f", conflicting: {', '.join(exs) or 'none'}; conflicts (pd == P of a D115 row, rd2 != its "
+           f"D115 body) {len(cconf)}" + (" (" + ", ".join(f"0x{P:08X} -> 0x{t:06X}" for P, t in cconf[:10]) + ")"
+                                        if cconf else "")]
+    # 5.4 T9 c2 registerme bodies by placement
+    rm_t = defaultdict(set)
+    for P, t in rm_ok:
+        rm_t[t].add(P)
+    rbp, eall = Counter(), set().union(*eend.values())
+    for t in rm_t:
+        u = unit_at(units, ustarts, t)
+        if u is None or u["kind"] != "game":
+            rbp["o"] += 1
+            rbp["eo"] += bool(rm_t[t] & eall)
+        elif u["delink"]:
+            rbp["n" if t in funcs else "u"] += 1
+        else:
+            rbp["k"] += 1
+            rbp["e"] += bool(rm_t[t] & eend.get((u["name"], u["index"]), set()))
+    sums.append(f"registerme bodies {len(rm_t)} = delinked game unit named {rbp['n']} + delinked unnamed {rbp['u']} "
+                f"+ kept game unit {rbp['k']} + outside every game unit {rbp['o']}")
+    if len(rm_t) != rbp["n"] + rbp["u"] + rbp["k"] + rbp["o"]:
+        fail.append(sums[-1])
+    T9L.append(f"- registerme bodies: {sums[-1][18:]} (M27 end-edge procs: in their kept unit {rbp['e']}, "
+               f"outside every game unit {rbp['eo']})")
+    # 5.4 T9 c2 registerme misses: no literal match rows (proto abs dests) and creationFunc chain rd not a hit
+    ml = []
+    for P, r, _es in A:
+        if P not in rm_x or rm_row.get(P) != "N":
+            continue
+        pb = img.pbytes(P, rlen[P])
+        ds = [f"0x{d:08X} " + ("??_C@" if any(x.startswith("??_C@") for x in pubs.get(d, ())) else "not ??_C@")
+              for o, _w, k in (proto_map.mask_proc(pb, P, img.plo, img.phi)[0] if pb is not None else ())
+              if k == "abs" and (d := name_sites.target(pb, P, o, k)) is not None]
+        ml.append(f"0x{P:08X} {r['names'][0][:60]} (abs dests: {', '.join(ds) or 'none'})")
+    xl = []
+    for P, r, rd in cmiss:
+        j = bisect.bisect_right(fvas, rd) - 1
+        xl.append(f"0x{P:08X} {r['names'][0][:60]} rd 0x{rd:06X} (nearest func at or below: "
+                  + (f"0x{fvas[j]:06X} {funcs[fvas[j]]['name'][:60]}" if j >= 0 else "none") + ")")
+    T9L.append(f"- registerme misses: no literal match {len(ml)}: {'; '.join(ml) or 'none'} | creationFunc chain rd "
+               f"not a hit {len(xl)}: {'; '.join(xl) or 'none'}")
+    PL[pl_t9:pl_t9] = T9L
 
     # residue: rows no ruled class settles, one line each (ambiguous_residue.md). 5.3 T10.2: every ruled class in YC
     # (D128-D130 included), was RULED only (rowcls), so bracket and fold-k1 settled rows sat in the residue
@@ -1149,7 +1661,9 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
          "body, every row claiming it has only that body), outside-window (near_check outside-window, one public, "
          f"similarity >= {proto_map.THRESHOLD} to the section end, xref agree >= 1, conflicts 0), bracket (the row's one "
          "unit, the only body between its matched neighbours' retail ends), data-slot (a dword pair of an accepted "
-         f"non-vtable data line, {ndl} lines, {len(dslots)} pairs), abs-site (an `abs` immediate of an accepted caller "
+         f"non-vtable data line, {ndl} lines, {len(dslots)} pairs), registerme (5.4 T9: a `??0RegisterMe@X@@QAE@XZ` "
+         "row and body push one string literal at the same mask offset, equal bytes, text == X, img.match), abs-site "
+         "(an `abs` immediate of an accepted caller or, 5.4 T9, a registerme-settled pair as chain caller, "
          f"P -> t, agree >= 1 and conflicts 0; {sum(map(len, abs_pd.values()))} sites). Candidate rows count apart "
          "from the ruled rows.", ""]
     for c in CN + CAND:
@@ -1185,6 +1699,324 @@ def lane_sizing(fx, entries, why, sums, fail, matched, irows, res):
           f"- near_check reasons: {cs(nrs, sorted(nrs))}", "", "Plants (in memory, before counting):", ""]
     L += [f"- {c} (0x{pp:08X}, 0x{tt:06X}): refused" for c, pp, tt, _ok in plants]
     L += [f"- {c}: no settled pair, not planted" for c in unpl]
+    if keep is not None:  # 5.4 T7
+        keep.update(S=S, A=A, ev=ev, YC=YC, ycls=ycls, esett=esett, slot_rv=slot_rv, abs_all=abs_all, funcs=funcs,
+                    units=units, ustarts=ustarts)
+    return L + [""]
+
+
+def near_sizing(fx, why, sums, fail, K, cand, unm_n, out_n, out, matched, led, objs, pin, used):
+    """5.4 T7: size the near lane and the near-identical rows outside it by the routes that exist today; sizing only,
+    nothing written. K = lane_sizing's keep; cand = every candidates.jsonl row; out = the identical lane's buckets.
+    Parts (a)-(g), each with a checked sum. Returns the `## Near sizing (5.4 T7)` doc lines. used collects the
+    NOTES/NOTES_VA keys (d) hits (5.4 T12.1.c7: ambiguous ??_G rows are guarded there)."""
+    import name_sites
+    import units_seed
+    S, A, ev, YC, funcs, units, ustarts = (K[k] for k in ("S", "A", "ev", "YC", "funcs", "units", "ustarts"))
+    pubs, ctx = S.pubs, S.ctx
+    cs = lambda C, ks: ", ".join(f"{k} {C[k]}" for k in ks if C[k])  # noqa: E731
+    short = lambda u: u.split("\\")[-1]  # noqa: E731
+    BINS = ("<=32", "33-64", "65-128", "129-512", ">512")
+    sbin = lambda n: ("<=32" if n <= 32 else "33-64" if n <= 64 else "65-128" if n <= 128  # noqa: E731
+                      else "129-512" if n <= 512 else ">512")
+    BK = [k for k, _v, _n in BUCKETS]
+    RB = ("stdsig-reloc", "reloc-provisional", "reloc-code", "reloc-data")
+    bk = {id(r): k for o in (out, out_n) for k, rs in o.items() for r in rs}  # ids: near and identical rows differ
+    byva = {r["protoVA"]: r for r in fx}
+    pin8 = (coff_info.pinned_sha() or "")[:8]
+    gf = {int(g["entry"], 16): (g["size"], int(g["bodyMax"], 16)) for g in candidates.load_jsonl(
+        REPO / "derived" / "ghidra" / f"retail-{pin8}" / "applied" / "functions.jsonl")}
+    acc_st = set(units_seed.STATUSES) | set(candidates.PIN_STATUSES)
+
+    def tries(r):  # match_one.is_attempt runs on the row (assign's dedupe)
+        return sum(1 for x in {id(x): x for x in led[r["va"]] + led[r["symbol"]]}.values() if match_one.is_attempt(x))
+
+    def check(s, ok):
+        sums.append(s)
+        if not ok:
+            fail.append(s)
+
+    L = ["## Near sizing (5.4 T7)", "",
+         "Sizing only: no pin, lane, units.toml or candidates change. Every figure from this run's state (near lane "
+         "buckets, the outside reasons, lane_sizing's ruled classes and edge proposal, units.toml, the ledger).", ""]
+
+    # (a) near lane unmatched by bucket x size bin and by unit
+    byu = defaultdict(list)
+    for r in unm_n:
+        byu[r["unit"]].append(r)
+    nb_ = sum(len(v) for v in out_n.values())
+    check(f"near sizing (a) unmatched near {len(unm_n)} = by unit {sum(map(len, byu.values()))} = by bucket {nb_}",
+          len(unm_n) == sum(map(len, byu.values())) == nb_)
+    L += [f"### (a) Near lane unmatched: {len(unm_n)}", "", "By bucket x size bin (row size, bytes):", ""]
+    L += [f"- {k} {len(out_n[k])}: " + cs(Counter(sbin(r["size"]) for r in out_n[k]), BINS) for k in BK if out_n.get(k)]
+    L += ["", f"By unit ({len(byu)} units, count desc): count; buckets; bins", ""]
+    for u, rs in sorted(byu.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        L.append(f"- {short(u)} {len(rs)}; " + cs(Counter(bk[id(r)] for r in rs), BK) + "; "
+                 + cs(Counter(sbin(r["size"]) for r in rs), BINS))
+
+    # (b) name not admitted, size `-`: the route that would size each pin line
+    nna = sum(1 for w in why.values() if w[0] == "name not admitted")
+    nb = sorted(p for p, w in why.items() if w == ("name not admitted", "size -"))
+    tstarts = sorted({va for va, *_ in name_sites.load_table()})
+    brt, BL, bnd = Counter(), [], Counter()
+    for p in nb:
+        va = int(byva[p]["candidateVA"], 16)
+        f, u, g = funcs[va], unit_at(units, ustarts, va), gf.get(va)
+        j = bisect.bisect_right(tstarts, va)
+        ins = [tstarts[j]] if g and j < len(tstarts) and tstarts[j] < va + g[0] else []
+        gw = ("no Ghidra entry at va" if g is None else "non-contiguous" if g[0] != g[1] - va + 1
+              else f"table start inside (0x{ins[0]:06X})" if ins else None)
+        if gw is None:
+            rt, d = "ghidra-extent", f"size 0x{g[0]:X}"
+        else:
+            ext, cf = None, byte_compare.cut_dir(pin) / u["name"].replace("\\", "__").replace("/", "__")
+            if cf.name not in objs and cf.is_file():
+                objs[cf.name] = byte_compare.load_obj(cf)[1]
+            c = objs.get(cf.name)
+            fs = [y for y in c["symbols"].values() if byte_compare.is_func(y) and y["name"] == f["name"]] if c else []
+            if fs:
+                _s, lo, hi = byte_compare.extent(c, fs[0])
+                ext = hi - lo
+            rt, d = ("cut-extent", f"size 0x{ext:X}; Ghidra: {gw}") if ext else \
+                ("none", gw + ("; no cut object" if c is None else "; no cut func symbol"))
+        brt[rt] += 1
+        bnd[("boundary pin" if candidates.BOUNDARY.match(f["name"]) else "named", rt)] += 1
+        BL.append(f"- {p} 0x{va:06X} {f['name'][:70]} [{f['status']}] {short(u['name'])}: {rt} ({d})")
+    check(f"near sizing (b) name not admitted size - {len(nb)} = " + " + ".join(
+        f"{k} {brt[k]}" for k in ("ghidra-extent", "cut-extent", "none")),
+          sum(brt.values()) == len(nb) and len(nb) <= nna)
+    L += ["", f"### (b) Name not admitted, size `-`: {len(nb)} (reason total {nna})", "",
+          "Route that would size the pin line: ghidra-extent (corr_near's extent gate: a Ghidra entry at va, contiguous "
+          "size == bodyMax - va + 1, no symbols table start inside), cut-extent (only the cut func symbol's extent), "
+          "none (why). Line: protoVA candidateVA name unit: route.", "",
+          f"- by route: {cs(brt, ('ghidra-extent', 'cut-extent', 'none'))}",
+          "- by line name (boundary pin = a cut-boundary label `boundary_<VA>`, candidates.BOUNDARY, not name "
+          "evidence: sizing it admits no row name): " + ", ".join(f"{a} {b} {n}" for (a, b), n in sorted(bnd.items())),
+          ""] + BL
+
+    # (c) reloc rows: each unresolved (else provisional) target by the naming route that could reach it
+    rr = [r for k in RB for r in out_n.get(k, [])]
+    amb_t, near_c = defaultdict(list), defaultdict(list)
+    for P, _r, es in A:
+        for t in es:
+            amb_t[t].append(P)
+    for r in fx:
+        if r["class"] == "near-identical" and r.get("candidateVA"):
+            near_c[int(r["candidateVA"], 16)].append(int(r["protoVA"], 16))
+    drecs = []
+
+    def code_route(t):
+        for P in amb_t.get(t, ()):
+            c = next((c for c in YC if ev.get((c, P, t))), None)
+            if c:
+                return c
+        if any(near_chk(S, P, t)["verdict"] == "pass" for P in near_c.get(t, ())):
+            return "near-corr"
+        if K["slot_rv"].get(t):
+            return "D113"
+        if any(cls_caller_xref(S, pd, t) for pd, _c in ctx["by_rd"].get(t, ())):
+            return "caller-xref"
+        return "none: " + ("near_check " + near_chk(S, near_c[t][0], t)["reason"] if near_c.get(t)
+                           else "ambiguous body, no ruled class" if t in amb_t else "no proto row reaches it")
+
+    def data_route(t):
+        pds = {pd for pd, c in K["abs_all"].get(t, ()) if c != t}
+        if len(pds) != 1:
+            return "none: " + ("no accepted abs site" if not pds else "abs site conflict")
+        pd = next(iter(pds))
+        ns = pubs.get(pd, ())
+        if len(ns) != 1:
+            return "none: " + ("no-public" if not ns else "multi-public")
+        n = next(iter(ns))
+        if n.startswith("??_7"):
+            return "vtable-D113"
+        if n.startswith(("??_C@", "__real@")):
+            return "literal"
+        if not drecs:
+            drecs.append(name_sites.data_records(S.img))
+        sz = name_sites.rec_size(drecs[0], pd, n)
+        return "gdata-size" if isinstance(sz, int) else f"none: {sz}"
+
+    troute, tkind, rfree = {}, {}, Counter()
+    for r in rr:
+        un = [s for s in r["sites"] if s["resolved"] is None]
+        ts = un or [s for s in r["sites"] if not candidates.accepted(s["resolved"], s["target"], funcs)]
+        for s in ts:
+            t = s["target"]
+            if t in troute:
+                continue
+            tkind[t] = "code" if s["kind"] == "rel" or t in gf else "data"
+            troute[t] = ("pinned-provisional" if s["resolved"] is not None
+                         else code_route(t) if tkind[t] == "code" else data_route(t))
+        rfree["freed" if ts and all(not troute[s["target"]].startswith("none") for s in ts) else "blocked"] += 1
+    rc_ = Counter(v.split(":")[0] for v in troute.values())
+    RTS = ("pinned-provisional",) + tuple(YC) + ("near-corr", "vtable-D113", "literal", "gdata-size", "none")
+    nsub = Counter(v[6:] for v in troute.values() if v.startswith("none"))
+    check(f"near sizing (c) reloc rows {len(rr)} = freed if every reachable target named {rfree['freed']} + blocked "
+          f"{rfree['blocked']}", rfree["freed"] + rfree["blocked"] == len(rr) and sum(rc_.values()) == len(troute))
+    L += ["", f"### (c) Near reloc rows: {len(rr)} ({cs(Counter(bk[id(r)] for r in rr), RB)})", "",
+          "Targets: a row's unresolved site targets, else its provisional ones (status not accepted). Code (rel, or a "
+          "Ghidra entry): pinned-provisional, the ruled classes via an ambiguous row whose body it is (" + ", ".join(YC)
+          + "), near-corr (near_check pass of a near-identical row whose candidateVA it is), D113 (an accepted vtable "
+          "slot holds it), caller-xref (an accepted caller site, no other proto dest), else none. Data: pinned-"
+          "provisional, else the one proto dest of the accepted callers' abs sites at it, its one PDB public: "
+          "vtable-D113 (??_7), literal (??_C@/__real@), gdata-size (pdb_types size of its S_GDATA32 record, name_sites "
+          "--promote-data step b), else none.", "",
+          f"- targets distinct {len(troute)} (code {sum(1 for k in tkind.values() if k == 'code')}, data "
+          f"{sum(1 for k in tkind.values() if k == 'data')}); by route: {cs(rc_, RTS)}",
+          f"- none by why: {cs(nsub, sorted(nsub))}",
+          f"- rows freed if every reachable target were named {rfree['freed']}, blocked {rfree['blocked']} "
+          "(stdsig-reloc rows also need the std route)"]
+
+    # (d) ??_G rows and their class ctors
+    G_RE = re.compile(r"^\?\?_G(.+)@@[A-Z][A-Z]EPAXI@Z$")
+    gall = [r for r in cand if r.get("lane") == "ambiguous" and r["symbol"].startswith("??_G")]
+    gpass = [r for r in gall if r["pass"]]
+    gr = sorted((r for r in gpass if (r["symbol"], r["va"]) not in matched), key=lambda r: r["va"])
+    msym = {s for s, _v in matched}
+    crow = defaultdict(list)  # candidates rows of ctors by class prefix lookup
+    for r in cand:
+        if r["symbol"].startswith("??0"):
+            crow[r["symbol"]].append(r)
+    ctor_pub = defaultdict(set)
+    for n, vs in ctx["pubname"].items():
+        if n.startswith("??0"):
+            ctor_pub[n].update(vs)
+    ycls = {P: c for (P, _r, _es), c in zip(A, K["ycls"])}
+
+    def ctor_place(X):
+        pre = "??0" + X + "@@"
+        if any(s.startswith(pre) for s in msym):
+            return "matched already", "-"
+        named = sorted(f["status"] for f in funcs.values() if f["name"].startswith(pre))
+        ok_ = [s for s in named if s in acc_st or s == "near-corr"]
+        rt = f"named ({ok_[0]})" if ok_ else f"pinned-provisional ({named[0]})" if named else None
+        crs = [r for s, rs in crow.items() if s.startswith(pre) for r in rs if (s, r["va"]) not in matched]
+        if crs:
+            r = crs[0]
+            ln = r.get("lane", "identical")
+            pl = f"{ln} lane " + (bk.get(id(r), "?") if ln != "ambiguous" else "pass" if r["pass"] else "fail")
+            return pl, rt or ("name pinned, row in lane" if ln != "ambiguous" else "none")
+        pvs = sorted(v for n, vs in ctor_pub.items() if n.startswith(pre) for v in vs)
+        if not pvs:
+            return "no proto row: no ctor public", rt or "none"
+        for v in pvs:
+            fr = byva.get(f"0x{v:08X}")
+            if fr is None:
+                continue
+            if fr["class"] == "ambiguous":
+                c = ycls.get(v, "none")
+                return f"ambiguous ({c})", rt or (c if c != "none" else "none")
+            if fr["class"] == "near-identical":
+                w = why.get(fr["protoVA"])
+                rv = int(fr["candidateVA"], 16) if fr.get("candidateVA") else None
+                nc = rv is not None and near_chk(S, v, rv)["verdict"] == "pass"
+                return f"outside lane: {w[0]}" + (f" ({w[1]})" if w and w[1] else "") if w else "near lane", \
+                    rt or ("near-corr" if nc else "none")
+            return f"class {fr['class']}", rt or "none"
+        return "no proto row: public, no functions.jsonl row", rt or "none"
+
+    gpl, GL, gnb = Counter(), defaultdict(list), Counter()
+    for r in gr:
+        m = G_RE.match(r["symbol"])
+        pl, rt = ctor_place(m.group(1)) if m else ("no class parse", "none")
+        gpl[pl] += 1
+        note = NOTES.get(r["symbol"]) or NOTES_VA.get(r["va"])  # 5.4 T12.1.c7: guard by NOTES/NOTES_VA
+        if note:
+            used.add(r["symbol"] if r["symbol"] in NOTES else r["va"])
+            gnb[note[0]] += 1
+        GL[pl].append(f"  - 0x{r['va']:06X} {r['symbol'][:70]} {short(r['unit'])}: route {rt}"
+                      + (f" — {note[0]}: {note[1]}" if note else ""))
+    check(f"near sizing (d) ??_G passing unmatched {len(gr)} = by ctor place {sum(gpl.values())}",
+          sum(gpl.values()) == len(gr) == len(gpass) - sum(1 for r in gpass if (r["symbol"], r["va"]) in matched))
+    L += ["", f"### (d) `??_G` rows: {len(gr)}", "",
+          "Filter: candidates.jsonl lane ambiguous, `symbol` starts `??_G` (names[0] is undecorated), pass, not in "
+          f"matched_set. Reconcile: lane `??_G` rows {len(gall)}, passing {len(gpass)}, passing matched "
+          f"{len(gpass) - len(gr)}, passing unmatched {len(gr)}. Class X from `??_GX@@?AEPAXI@Z`; ctor = PDB publics / "
+          "candidates rows `??0X@@`. Place: matched already, a candidates lane row (identical, near + bucket, "
+          "ambiguous pass/fail), else the ctor public's functions.jsonl row (ambiguous + settling class, outside "
+          "reason, class), else no proto row. Route: named (symbols status), a ruled class, near-corr, or none. "
+          "A row a NOTES/NOTES_VA key guards ends ` — <bucket>: <reason>` (5.4 T12.1.c7).", "",
+          f"- guarded by NOTES/NOTES_VA {sum(gnb.values())}: {cs(gnb, sorted(gnb)) or 'none'}", ""]
+    for pl in sorted(GL, key=lambda k: (-gpl[k], k)):
+        L += [f"- {pl}: {gpl[pl]}"] + GL[pl]
+    # 5.4 T12.1.c7: other ambiguous-lane rows (not `??_G`) a NOTES/NOTES_VA key guards; listed so the key is used
+    go = sorted((r for r in cand if r.get("lane") == "ambiguous" and not r["symbol"].startswith("??_G")
+                 and (r["symbol"], r["va"]) not in matched
+                 and (NOTES.get(r["symbol"]) or NOTES_VA.get(r["va"]))), key=lambda r: r["va"])
+    L += ["", f"Other ambiguous-lane rows (not `??_G`, unmatched) a NOTES/NOTES_VA key guards: {len(go)}", ""]
+    for r in go:
+        note = NOTES.get(r["symbol"]) or NOTES_VA.get(r["va"])
+        used.add(r["symbol"] if r["symbol"] in NOTES else r["va"])
+        L.append(f"- 0x{r['va']:06X} {r['symbol'][:70]} {short(r['unit'])} — {note[0]}: {note[1]}")
+
+    # (e) unit not delink by unit
+    nd = [p for p, w in why.items() if w == ("cut", "unit not delink")]
+    cu = Counter()
+    for p in nd:
+        u = unit_at(units, ustarts, int(byva[p]["candidateVA"], 16))
+        cu[(u["name"], u["index"])] += 1
+    se = [k for k in cu if k in K["esett"]]
+    check(f"near sizing (e) unit not delink {len(nd)} = by unit {sum(cu.values())} ({len(cu)} units; settled-edge "
+          f"{len(se)} units, {sum(cu[k] for k in se)} rows)", sum(cu.values()) == len(nd))
+    L += ["", f"### (e) Outside, unit not delink: {len(nd)} ({len(cu)} units)", "",
+          "Count desc; `settled-edge` = the unit has >= 1 M27 ambiguous edge a ruled or candidate class settles "
+          f"(edge proposal; {len(K['esett'])} units).", ""]
+    L += [f"- {short(n)}#{i} {c}" + (" settled-edge" if (n, i) in K["esett"] else "")
+          for (n, i), c in sorted(cu.items(), key=lambda kv: (-kv[1], kv[0]))]
+
+    # (f) fold rows
+    fby = defaultdict(int)
+    for x in candidates.load_jsonl(candidates.need(candidates.FOLDS)):
+        fby[int(x["retailVA"], 16)] += len(x.get("protos", ()))
+    fl = sorted(p for p, w in why.items() if w[0] == "fold")
+    FL, pays = [], 0
+    for p in fl:
+        P, va = int(p, 16), int(byva[p]["candidateVA"], 16)
+        u = unit_at(units, ustarts, va)
+        dl = bool(u and u["kind"] == "game" and u["delink"])
+        nc, k1 = near_chk(S, P, va), cls_k1(S, P, va)
+        ok = dl and (nc["verdict"] == "pass" or k1)
+        pays += ok
+        al = funcs.get(va)
+        FL.append(f"- {p} 0x{va:06X} {byva[p]['names'][0][:60]}: group {fby.get(va, 0)}; unit "
+                  f"{short(u['name']) if u else '-'} delink {'yes' if dl else 'no'}; alias named "
+                  f"{al['name'][:50] + ' (' + al['status'] + ')' if al else 'no'}; near_check {nc['reason']}"
+                  f"{'; k1' if k1 else ''} -> {'lane' if ok else 'no'}")
+    check(f"near sizing (f) fold {len(fl)} = would enter the lane {pays} + not {len(fl) - pays}",
+          len(fl) == sum(1 for w in why.values() if w[0] == "fold"))
+    L += ["", f"### (f) Outside, fold: {len(fl)}", "",
+          "Line: protoVA foldVA name: fold group size (retail_folds protos at the VA); owning unit, delinked; another "
+          "alias named in symbols at the VA; near_check reason (k1 if cls_k1) -> lane if delinked and (pass or k1).", ""]
+    L += FL + ["", f"- verdict: a fold-VA naming rule (C0154) would put {pays} row(s) in the lane: "
+               + ("pays" if pays else "does not pay")]
+
+    # (g) pilot ranking
+    gcls = defaultdict(list)  # class X -> its ??_G lane rows (any unit)
+    for r in gall:
+        m = G_RE.match(r["symbol"])
+        if m and (r["symbol"], r["va"]) not in matched:
+            gcls[m.group(1)].append(r)
+    rdy = ("ready", "ready-opt-unknown")
+    PR = []
+    for u, rs in byu.items():
+        if len(rs) < 3:
+            continue
+        nr = sum(1 for r in rs if bk[id(r)] in rdy)
+        nbin = len({sbin(r["size"]) for r in rs})
+        pair = next((r["symbol"] for r in rs if r["symbol"].startswith("??0") and bk[id(r)] in rdy + RB
+                     and any(g["pass"] or all(v["pass"] for k, v in g["checks"].items() if k != "reloc")
+                             for g in gcls.get(r["symbol"][3:].split("@@")[0], ()))), None)
+        at = [tries(r) for r in rs]
+        PR.append((-nr, -nbin, pair is None, sum(at), u, len(rs), sum(1 for x in at if x), pair))
+    PR.sort()
+    nu3 = sum(1 for v in byu.values() if len(v) >= 3)
+    check(f"near sizing (g) pilot units ranked {len(PR)} = near units with >= 3 unmatched {nu3}", len(PR) == nu3)
+    L += ["", f"### (g) Pilot ranking: near units with >= 3 unmatched rows: {len(PR)} (top 8)", "",
+          "Rank: ready rows (ready, ready-opt-unknown) desc, distinct size bins desc, a ctor row (ready or reloc) with "
+          "its `??_G` (pass, or failing reloc only) first, ledger attempts asc. No pick.", ""]
+    L += [f"{i}. {short(u)}: rows {n}, ready {-a}, bins {-b}, ctor+??_G {p or '-'}, attempts {t} on {na} rows"
+          for i, (a, b, _np, t, u, n, na, p) in enumerate(PR[:8], 1)]
     return L + [""]
 
 
@@ -1207,13 +2039,17 @@ def main(argv):
     for p in (CAND, LEDGER, MATCHED, UNITS):
         if not p.is_file():
             refuse(f"missing input {p.relative_to(REPO)}")
+    stale = candidates.fresh()  # 5.5 T6 (C4)
+    if stale:
+        refuse("candidates.jsonl stale: " + "; ".join(stale) + " (run PY tools/candidates.py --write)")
     pin = coff_info.pinned_sha() or ""
     cut = byte_compare.cut_dir(pin)
     why = byte_compare.cut_check(cut)
     if why:
         refuse(why)
     rows = [json.loads(x) for x in CAND.read_text(encoding="utf-8").splitlines() if x.strip()]
-    nrows = [r for r in rows if r.get("lane") == "near"]  # 3.4 T13: near lane section
+    crows = rows  # 5.4 T7: every lane, the same row objects (near_sizing reads their buckets by id)
+    nrows =[r for r in rows if r.get("lane") == "near"]  # 3.4 T13: near lane section
     rows = [r for r in rows if r.get("lane", "identical") == "identical"]  # 3.4 T2: near lane in next_candidates.md
     ledger = match_one.load_ledger()
     ms = tomllib.loads(MATCHED.read_text(encoding="utf-8"))
@@ -1285,13 +2121,16 @@ def main(argv):
     if tq != ncls["absent"] or len(qa) != ncls["absent"] or None in ab:
         fail.append(sums[-1])
     residue = []  # 5.3 T1: ambiguous_residue.md row lines
+    keep = {}
     sizing = lane_sizing(fx, entries, why, sums, fail, {va for _s, va in matched},  # 5.1 T9; bracket anchors 5.3 T1
-                         unmatched, residue)
+                         unmatched, residue, keep)
+    nsz = near_sizing(fx, why, sums, fail, keep, crows, unm_n, out_n, out, matched, led, objs, pin, used) \
+        if sizing is not None else []  # 5.4 T7
 
-    for key in sorted(set(NOTES) | set(NOTES_VA), key=str):
+    for key in sorted(set(NOTES) | set(NOTES_VA), key=str):  # 5.5 T6 (C4): fails; was a WARN line
         if key not in used:
-            print(f"pool_buckets: WARN note key {key if isinstance(key, str) else f'0x{key:08X}'} "
-                  "is not an unmatched row of any lane")
+            fail.append(f"note key {key if isinstance(key, str) else f'0x{key:08X}'} "
+                        "is not an unmatched row of any lane (drop it)")
     for s in sums:
         print(f"{s}: {'FAIL' if any(f.startswith(s) for f in fail) else 'OK'}")
     if fail:
@@ -1368,7 +2207,7 @@ def main(argv):
         ps = sorted(ab[k])
         L += [f"### {k}: {len(ps)}", f"- verdict: {ABSN[k]}", f"- rows with > 1 QA result: {abx[(k, True)]}",
               "- protoVAs: " + (", ".join(ps) if 0 < len(ps) <= 8 else f"{ps[0]} .. {ps[-1]}" if ps else "-"), ""]
-    L += sizing
+    L += sizing + nsz
     out_path = Path(a.out).resolve()  # relative to the working directory, inside the repo or not (4.1 T10)
     out_path.write_text("\n".join(L).rstrip("\n") + "\n", encoding="utf-8", newline="\n")
     R = ["# Ambiguous residue: functions.jsonl ambiguous rows no ruled class settles (5.3 T1)", "",

@@ -286,7 +286,9 @@ DECOMP_SIZE_ASSERT(LoadScreen, 0x30);
 class SmartBase { // NAME: proto-pdb:default.pdb
 public:
     SmartBase() : _RefCount(0) {}
+protected:
     virtual ~SmartBase() {}            // vtable+0x00
+public:
     void AddRef() { _RefCount++; }
     void SubRef()
     {
@@ -305,6 +307,7 @@ class ResourceCache { // NAME: proto-pdb:default.pdb
 public:
     bool AllocateHunk(unsigned int size, void** ptr, unsigned long protectFlags);
     void FreeHunk(void* ptr);
+    unsigned int GetLargestAvailableSpace() const;
 };
 struct HottieFile { // NAME: proto-pdb:default.pdb
     unsigned int locName;              // 0x00
@@ -318,7 +321,16 @@ DECOMP_SIZE_ASSERT(HottieFile, 0x18);
 class HottieBundle { // NAME: proto-pdb:default.pdb
 public:
     const HottieFile* GetFileInfo(const std::string& name) const;
+
+    unsigned int id;                   // 0x00
+    unsigned int version;              // 0x04
+    unsigned int sizeInfo;             // 0x08
+    unsigned int sizeHeaders;          // 0x0C
+    unsigned int sizeTotal;            // 0x10
+    unsigned int offsetStrings;        // 0x14
+    unsigned int numFiles;             // 0x18
 };
+DECOMP_SIZE_ASSERT(HottieBundle, 0x1C);
 struct z_stream_s { // NAME: proto-pdb:default.pdb
     unsigned char* next_in;            // 0x00
     unsigned int avail_in;             // 0x04
@@ -377,13 +389,18 @@ template Ptr<BundleWrapper>& Ptr<BundleWrapper>::operator=(BundleWrapper* obj);
 
 extern "C" void __stdcall Sleep(unsigned long); // NAME: proto-pdb:default.pdb
 
+class FileHandler; // NAME: proto-pdb:default.pdb
 class BeepFile { // NAME: proto-pdb:default.pdb
 public:
     BeepFile();
     ~BeepFile();
     bool OpenForAsync(const std::string& filename);
+    void Close();
+    bool IsValid() const { return _fh != 0; }
+    unsigned int Size();
 
-    char field_0[0x20];                // 0x00
+    FileHandler* _fh;                  // 0x00
+    char field_4[0x20 - 0x4];          // 0x04 (_filename, not reached)
 };
 DECOMP_SIZE_ASSERT(BeepFile, 0x20);
 
@@ -465,11 +482,31 @@ class TextureManager : public ResourceManager<TextureResource> { // NAME: proto-
 // row (same name, no fold merge), so the call stays external to it
 template <> void ResourceManager<TextureResource>::OutputContents() const;
 
+class DiskQueue { // NAME: proto-pdb:default.pdb
+public:
+    bool AddReadRequest(BeepFile* f, unsigned int offset, void* data, unsigned int bytes, unsigned int* resultLoc,
+                        unsigned int priority);
+
+    char field_0[0x7C];                // 0x00
+};
+
+// Retail layout: DiskQueue shrank 0x84 -> 0x7C, so _dvdQueue sits at 0x7C (proto 0x84).
+class DiskArbitrator { // NAME: proto-pdb:default.pdb
+public:
+    DiskQueue& GetDVDQueue() { return _dvdQueue; }
+
+    DiskQueue _hardDriveQueue;         // 0x00
+    DiskQueue _dvdQueue;               // 0x7C (proto 0x84)
+};
+
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
+    DiskArbitrator& GetDiskArbitrator() const { return *_diskArbitrator; }
+
     char field_0[0xC];                         // 0x00
     SwampScene* _scene;                        // 0x0C
-    char field_10[0x8];                        // 0x10
+    char field_10[0x4];                        // 0x10
+    DiskArbitrator* _diskArbitrator;           // 0x14
     AnimationManager* _animationManager;       // 0x18
     FireFlyManager* _fireFlyManager;           // 0x1C
     RumbleManager* _rumbleManager;             // 0x20
@@ -691,6 +728,64 @@ BundleBackgroundLoader::BundleBackgroundLoader(const std::string& filename, unsi
     _file.OpenForAsync(filename);
 }
 #endif
+
+// FUNCTION: USA 0x000DAAFD
+// NAME: proto-pdb:default.pdb
+bool BundleBackgroundLoader::IsLoadingComplete(bool waitForMemoryToFreeUp)
+{
+    while (_file.IsValid()) {
+        if (!_bundle.IsValid()) {
+            // !FAKE: provenance; neutral stand-in locals v1/v2; the PDB records no local (match_one 100.0 -> 95.63 with v2 and p dropped)
+            unsigned int v1 = 0;
+            if (_topDownAllocation)
+                v1 = 2;
+            unsigned int v2;
+            if (_summaryOnly) {
+                v2 = sizeof(HottieBundle);
+                v1 |= 2;
+            } else {
+                v2 = _file.Size();
+            }
+            _currentReadSize = (v2 + 0x7FF) & ~0x7FF;
+            if (waitForMemoryToFreeUp && BundleWrapper::GetMemoryPool().GetLargestAvailableSpace() < _currentReadSize)
+                return false;
+            // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__
+            _bundle = new("SwampLoader.cpp", 627) BundleWrapper(_currentReadSize, v1);
+        }
+        if (_statusRead == 1)
+            return false;
+        if (_statusRead != 2) {
+            g_swamp->GetDiskArbitrator().GetDVDQueue().AddReadRequest(&_file, _currentReadLoc, _bundle->GetPtr(),
+                                                                      _currentReadSize, &_statusRead, 13);
+            return false;
+        }
+        _currentReadLoc += _currentReadSize;
+        _currentReadSize = 0;
+        _statusRead = 23;
+        // !FAKE: provenance; neutral stand-in locals p/tmp; the PDB records no local (match_one 100.0 -> 99.03 with p dropped)
+        HottieBundle* p = _bundle->GetPtr();
+        if (p->id != 0x20544F48 || p->version != 1) {
+            _bundle = 0;
+            _file.Close();
+            return true;
+        }
+        if (!_summaryOnly || _headerLoaded) {
+            _file.Close();
+            return true;
+        }
+        _headerLoaded = true;
+        unsigned int tmp = (p->sizeHeaders + 0x7FF) & ~0x7FF;
+        if (tmp == 0x800) {
+            _file.Close();
+            return true;
+        }
+        // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__
+        _bundle = new("SwampLoader.cpp", 680) BundleWrapper(tmp, _topDownAllocation ? 2 : 0);
+        _currentReadLoc = 0;
+        _currentReadSize = tmp;
+    }
+    return true;
+}
 
 // FUNCTION: USA 0x000DACA4
 // NAME: proto-pdb:default.pdb

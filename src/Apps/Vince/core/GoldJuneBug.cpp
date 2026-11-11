@@ -282,7 +282,7 @@ void GoldenJuneBugMain::SetState(int state)
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1 = the vptr store)
+// best: match_one objdiff 100.0, bytes provisional (masked 1); T15.c5 va_dis byte-equal but the vptr store: needs ??_7GoldenJuneBugMain@@6B@ 0x001F8A50 pinned
 // FUNCTION: USA 0x001317E0
 // PROTOTYPE: PREVIEW 0x0051A213 near-identical
 // NAME: proto-pdb:default.pdb

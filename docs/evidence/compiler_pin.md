@@ -216,7 +216,7 @@ Addresses and names only, no bytes (D46). `main` (Main.obj, 0x3C, proto_map iden
   handler). cl 13.10 emits it as a static `$T<n>` in .rdata (fixture `/FAs`: `$T<n> DD 0ffffffffH / FLAT:$L<filter> /
   FLAT:$L<handler>`; no PDB symbol, Main.obj module has only `$L` labels for main). Pinned under our object's `$T<n>`
   name (byte_compare and objdiff resolve by exact name); a source change that renumbers it fails the gate visibly.
-- Pinned 2.2 T9.c1: `$T318` (Main.obj at "/O1 /Oy", match_one `--listing`: `$T318 DD 0ffffffffH`, `push OFFSET FLAT:$T318`).
+- Pinned 2.2 T9.c1: 0x001EC830 `$T318` (Main.obj at "/O1 /Oy", match_one `--listing`: `$T318 DD 0ffffffffH`, `push OFFSET FLAT:$T318`).
 
 ### __fltused 0x002231E0 (2.3 T6)
 Addresses and CRT constants only, no bytes (D46). CRT `int _fltused = 0x9875;` (fltused.c); every float-using object
@@ -359,6 +359,7 @@ Addresses and names only, no bytes (D46). Hand route: callee-bytes refuses a stu
 - `?LeavingRegion@SwampScript@@UAEXPAVSwampSceneNode@@@Z`: retail ??_7BasketStopperMain@@6B@ slot 15, ??_7BasketStopperPanMain@@6B@ slot 15, ??_7CutsceneAnimationScript@@6B@ slot 15, ??_7CutsceneRegionMain@@6B@ slot 15, ??_7SwampScript@@6B@ slot 15, ??_7UIClusterMain@@6B@ slot 15 (+3 more) = 0x000946F7; the same proto vtable slots = proto 0x004FD174, whose 28 publics include `?LeavingRegion@SwampScript@@UAEXPAVSwampSceneNode@@@Z`; proto proc length 3, proto and retail bytes masked-equal over it (pin_rows Images.match).
 - `?MovieFinished@SwampScript@@UAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`: retail ??_7AssDoorRegionMain@@6B@ slot 18, ??_7BasketStopperMain@@6B@ slot 18, ??_7BasketStopperPanMain@@6B@ slot 18, ??_7BcboStartBattleRegionMain@@6B@ slot 18, ??_7CameraHelperRegionMain@@6B@ slot 18, ??_7CarnivalLevelMain@@6B@ slot 18 (+12 more) = 0x000946F7; the same proto vtable slots = proto 0x004FD174, whose 28 publics include `?MovieFinished@SwampScript@@UAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`; proto proc length 3, proto and retail bytes masked-equal over it (pin_rows Images.match).
 - `?Render@SwampSceneNode@@MBEXABUMatrix@@@Z`: retail ??_7AmbientSound@@6B@ slot 8, ??_7GameCam@@6B@ slot 8, ??_7RegionTrigger@@6B@ slot 8 = 0x000946F7; the same proto vtable slots = proto 0x004FD174, whose 28 publics include `?Render@SwampSceneNode@@MBEXABUMatrix@@@Z`; proto proc length 3, proto and retail bytes masked-equal over it (pin_rows Images.match).
+- `?SetState@CutsceneDriver@@MAEXH@Z` (5.4 T11.1.c2): retail ??_7CutsceneDriver@@6B@ (0x001EFA08) slot 29 (+0x74) = 0x000946F7 (va_dis vt); proto ??_7CutsceneDriver@@6B@ 0x005D85E8 slot +0x74 = proto 0x004FD174, whose 28 publics include `?SetState@CutsceneDriver@@MAEXH@Z`; same body as the pins above. Pin: `0x000946F7 func - ?SetState@CutsceneDriver@@MAEXH@Z proto-pdb-public+retail-disasm disasm-verified`.
 - `?SoundFinished@SwampScript@@UAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`: retail ??_7AssDoorRegionMain@@6B@ slot 16, ??_7BasketStopperMain@@6B@ slot 16, ??_7BasketStopperPanMain@@6B@ slot 16, ??_7BcboStartBattleRegionMain@@6B@ slot 16, ??_7CameraHelperRegionMain@@6B@ slot 16, ??_7CarnivalLevelMain@@6B@ slot 16 (+12 more) = 0x000946F7; the same proto vtable slots = proto 0x004FD174, whose 28 publics include `?SoundFinished@SwampScript@@UAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`; proto proc length 3, proto and retail bytes masked-equal over it (pin_rows Images.match).
 - `?SoundStreamerFinished@SwampScript@@UAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`: retail ??_7AssDoorRegionMain@@6B@ slot 17, ??_7BasketStopperMain@@6B@ slot 17, ??_7BasketStopperPanMain@@6B@ slot 17, ??_7BcboStartBattleRegionMain@@6B@ slot 17, ??_7CameraHelperRegionMain@@6B@ slot 17, ??_7CarnivalLevelMain@@6B@ slot 17 (+12 more) = 0x000946F7; the same proto vtable slots = proto 0x004FD174, whose 28 publics include `?SoundStreamerFinished@SwampScript@@UAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z`; proto proc length 3, proto and retail bytes masked-equal over it (pin_rows Images.match).
 - `?TimerEvent@SwampScript@@UAEXI@Z`: retail ??_7AssDoorRegionMain@@6B@ slot 5, ??_7BasketStopperMain@@6B@ slot 5, ??_7BasketStopperPanMain@@6B@ slot 5, ??_7BcboStartBattleRegionMain@@6B@ slot 5, ??_7CameraHelperRegionMain@@6B@ slot 5, ??_7CutsceneAnimationScript@@6B@ slot 5 (+7 more) = 0x000946F7; the same proto vtable slots = proto 0x004FD174, whose 28 publics include `?TimerEvent@SwampScript@@UAEXI@Z`; proto proc length 3, proto and retail bytes masked-equal over it (pin_rows Images.match).
@@ -485,3 +486,124 @@ C0256 follow-up list, each checked unnamed in symbols.txt and symbols_pin.txt (s
 - 0x0006A5D2 LanternMain::FrameTick (C0250): every public at proto 0x004569D0 (4: DoDebugUpdates, FrameTick of CutsceneDriver, LevelFlythroughCamMain, LanternMain) is already pinned fold-alias disasm-verified (symbols_pin.txt:2299-2302); retail slot 4 of KosmobotPreludeCutscene, LanternMain, CutsceneDriver and calls from KosmoJustDessertsCutscene/KosmoPigCutscene FrameTick agree. The wall is relink (`external lies in a replaced range`), not a missing name.
 - 0x0001819A ??4ResourceHandle<VertexShaderResource> (C0250, C0154): all 7 publics at proto 0x004180D1 pinned fold-alias (symbols_pin.txt:2179-2185); 148 proto callers agree. The wall is relink overlap of a matched row with COMDAT copies at a fold VA.
 - 0x0010F1FB FloorSwitchMain::HitBy (C0154; pool_buckets NOTES_VA): proto 0x004F9B19, 1 public, callee passes at the VA (symbols.txt row, unverified status). The refusal is its callee ResetPopupTimer 0x0007EA16, already pinned fold-alias for SwitchMain and SwitchSafeMain (symbols_pin.txt:2312-2313), lying in the replaced SwitchSafe range. No pin lifts any of the three.
+
+### T15 needs pinned (5.4 T25.c1)
+Hand lines (`proto-pdb-public+retail-disasm`; `site-corr+callee-bytes` refused first, reason given). Each: retail call
+site in the T15 row (objdiff 100, bytes provisional) at the same call ordinal as the proto twin's call to the public's VA
+(`va_dis.py dis <row> <len> <protoVA>`, `va_dis.py sym`). No bytes here (D46).
+- `?Play@SoundStreamer@@QAEXXZ` 0x000D9104 (callee-bytes-differ): SoundStreamer::Stop 0x000D91A7 call @0x000D920D vs proto
+  0x004C4782 call 0x004C46F3 (public at +0); SoundStreamer::Set 0x000D9519 @0x000D95B3 vs proto 0x004C4ACE -> 0x004C46F3;
+  CutsceneDriver::BeginPlayback proto 0x004F32BF tail-jmp 0x004C46F3.
+- `?Stopped@SoundManager@@AAEXPAVSoundStreamer@@@Z` 0x000D90CA (callee-bytes-differ): Stop 0x000D91A7 @0x000D91F4 (+0x4D)
+  vs proto 0x004C47CF (+0x4D) -> 0x004C46B9 (the SoundStreamer* overload; the SoundNode* one is another VA).
+- `?CancelRequests@SoundStreamer@@AAEXXZ` 0x000D8D1D (callee-bytes-differ): Stop 0x000D91A7 last call @0x000D9259 vs proto
+  last call -> 0x004C4319.
+- `?CancelRequest@DiskQueue@@QAEXPAI@Z` 0x000D3074 (callee-bytes-differ): MoviePlayer::Stop 0x000DA108 first call @0x000DA127
+  vs proto 0x004C5630 first call -> 0x004BE34B.
+- `??0MemoryFileHandler@@QAE@I@Z` 0x0003729B (callee-bytes-differ): BeepFile::Open 0x0003786D 3rd call @0x00037893 vs proto
+  0x00425F41 3rd call -> 0x0042598A (the `@I@Z` overload).
+- `?Update@DiskQueue@@QAEXXZ` 0x000D3314 (callee-bytes-differ): DiskQueue::AddReadRequest 0x000D37C0 4th call @0x000D3859 vs
+  proto 0x004BEACA 4th call -> 0x004BE5F8.
+- `??0HeavyObjectMain@@QAE@PAVSwampSceneNode@@@Z` 0x0010F0F8 (callee-bytes-differ): ??0GasCanisterMain 0x0009DCC3 first call
+  @0x0009DCD0 (base ctor) vs proto 0x00488DBE -> 0x004F9A16.
+- `_IDirectSoundBuffer_SetVolume@8` 0x001799C8 (callee-name-rule): SoundNode::SetVolume 0x000C5B67 last call @0x000C5C01 vs
+  proto 0x004B0E6A last call -> 0x00562F68; symbols.txt holds the undecorated `IDirectSoundBuffer_SetVolume` (C0192).
+- Auto-route lines (no bullet needed): push_back<LevelEntry> 0x0013EB42 callee-bytes; `__real@c53b8000` 0x001EB434
+  real-bytes; `??_C` literals 0x001D9FD4, 0x001D9F50 (proto public at 0x005C30E0, bytes equal; proto ctor has one push),
+  0x001E72F0 literal-bytes.
+- Refused (left out): the 16 `??_7` vtables of the 5.4 T15 wall-vtable-relink rows: slot-names `slot-unnamed` (11),
+  `slot-name-differs` (VinceLaundryCar, PipeGasMain, OvenMain, GasCanisterMain), `slot-site-corr` (MrsGCollapsedMain);
+  vtable-slots `vtable-differs` (all 16). .data 0x0021EE68: the proto site (GetBeadDest 0x004CC326 fmul) is 0x00607880 =
+  `?SETTINGS_FILE@@3PBDB`+4, no public at the VA (D78). 0x00238C28 skipped (no PDB public, D78).
+- Promoted in place 5.4 T25.c4 (site-corr -> hand `proto-pdb-public+retail-disasm`; pin_rows i10 refused the T25 rows):
+  `?SetVolume@SoundStreamer@@QAEXM@Z` 0x000D8C2D: MusicManager::Resume 0x00112A0B calls 3, 4 @0x00112A56, @0x00112A64 vs
+  proto 0x004FD261 calls 3, 4 -> 0x004C422A (public at +0; calls 1, 2 -> Play on both sides). `__ftol2` 0x00141F74:
+  SoundNode::SetVolume 0x000C5B67 @0x000C5BF4 (call before the last) vs proto 0x004B0E6A @0x004B0EF5 -> 0x0052B844
+  (public at +0), the next call on both sides IDirectSoundBuffer_SetVolume.
+
+### Row-end pins for the T25 cut-wall rows (5.4 T26.c1)
+C0103: T = row VA + row size (a LAB_ the row's Ghidra body runs past), P = protoVA + (T - VA); proto publics and proc
+lengths from default.pdb / proto functions, `name_sites.Images.masked_equal(P, T, proc length)`. No bytes here (D46).
+- 0x000419CA `?creationFunc@ScareHouseMonsterMain@@...` (row 0x000419A0 +0x2A): P 0x0042FDD2, one public, masked-equal over
+  proc length 42 -> public, sized 0x2A.
+- Boundary (`boundary_%08X`; one public at P, bytes differ, no masked-equal site names T): 0x00121AFC (row 0x00121AD8,
+  P 0x0050A7A6 PowerIconMain::HitBy), 0x0006C75B (0x0006C734, P 0x00458A43 BellMain::Message).
+- Hand `proto-pdb-public+retail-disasm` (C0412; first written as boundaries, re-cut 1's gate failed pin_rows
+  `route-registerme:callee-name-rule` on the RegisterMe pin whose site names T; callee bytes differ: new() file/line).
+  Each: retail `??0RegisterMe@X` (pinned, masked-equal to its proto twin) +0x1A abs -> T vs proto twin +0x1A -> the public:
+  - `?creationFunc@ReggieWreckageMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z` 0x0008132B (row 0x00081304): RegisterMe 0x000815B9 vs proto 0x0046D4AB -> 0x0046D21D.
+  - `?creationFunc@Beret@@CAPAVSwampSceneNode@@XZ` 0x000714F5 (row 0x000714CE): RegisterMe 0x000748A4 vs proto 0x00460986 -> 0x0045D677.
+  - `?creationFunc@BeretMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z` 0x00073A31 (row 0x00073A07): RegisterMe 0x000748E0 vs proto 0x004609C2 -> 0x0045FB6F.
+  - `?creationFunc@MasqueradeMask@@CAPAVSwampSceneNode@@XZ` 0x0007447F (row 0x00074455): RegisterMe 0x0007464C vs proto 0x0046072E -> 0x00460591.
+  - `?creationFunc@MoleGateMain@@CAPAVSwampScript@@PAVSwampSceneNode@@@Z` 0x0005FC89 (row 0x0005FC5F): RegisterMe 0x0005FF2C vs proto 0x0044C3E1 -> 0x0044C0F3
+    (the C0103 neighbour P 0x0044BFF7 is MoleTomb_BMain's: proto order differs here).
+- Refused 0x00071811 (row 0x000717E7): P 0x0045D94C holds two publics (SetVisible@Beret, SetVisible@NeedleHat, folded;
+  already pinned fold-alias at 0x0003FE34). RegisterMe@DialogueMovieRegionMain 0x00074D54 +0x1A -> T vs proto 0x00460E36
+  -> 0x0045D922 `?creationFunc@DialogueMovieRegionMain@@...`, a name symbols.txt gives 0x000717E7 (the row itself):
+  conflict, no pin (D78).
+
+### RegisterMe class-name literals (5.4 T27.c1)
+Route (D133, D78): each unmatched `??0RegisterMe@X@@QAE@XZ` candidate row whose +0x0A abs site target is its only
+(or one of two, with +0x1A creationFunc) unresolved reloc: the dword at protoVA+0x0A names exactly one `??_C@` proto PDB
+public; proto bytes == retail bytes at the target through the NUL; text == X; target VA has no symbols.txt / pin line and
+the name sits at no other VA. Tag `proto-pdb-public+site-corr+literal-bytes disasm-verified` (T25 literal form, C0412).
+No bytes or text here (D46).
+- Candidates 386 (223 literal-only, 163 also creationFunc); pinned 386 (`# 5.4 T27.c1` block in symbols_pin.txt);
+  refused 0 (no row hit proto-publics != 1, bytes-differ, text-not-class, va-has-line, name-at-other-va, or a pin_rows fail).
+- pin_rows on the block before the re-cut (`State.replant`): 0 fails; gate pins layer after the re-cut: pass.
+- Re-cut: `.rdata.obj` recut_cmp OTHER defsyms only: 386 Ghidra labels (class 3) become the pinned publics (class 2) at
+  exactly the 386 newly pinned VAs; section bytes, relocs and targets equal (C0412). Delink and `.text` pairs rc 0.
+- Sample: `??0RegisterMe@CannonMain@@QAE@XZ` 0x0005E231 (literal 0x001D7A58) by gen_registerme, objdiff 100, bytes match.
+
+### I79 vtable slot names (5.5 T7.c1b)
+Route (C0256, C0412, D78): each I79 `??_7X@@6B@` (retail VA = the imm32 of the vptr store in ctor `??0X`) pairs
+proto slot k with retail slot k (proto and retail slot counts equal); a slot VA unnamed or holding only
+`boundary_<va>` takes the proto slot-k public. callee() refuses these slots (masked bytes differ, or a stub under
+8 B `callee-short`), so each is a hand row `proto-pdb-public+retail-disasm disasm-verified` listed in
+config/pin_hand.txt. Differing-byte counts only, no bytes (D46).
+- 0x0005DD7D ?FrameTick@CannonMain@@UAEXXZ: slot 4 of `??_7CannonMain@@6B@` 0x001D78E8 (ctor 0x0005D5AE); proto 0x0044A1BC; 11 of 80 bytes differ.
+- 0x0005E09D ?HitBy@CannonMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z: slot 20 of `??_7CannonMain@@6B@` 0x001D78E8 (ctor 0x0005D5AE); proto 0x0044A4DC; 47 of 344 bytes differ.
+- 0x0006BB7E ?Activate@MirrorUrnMain@@UAEXXZ: slot 2 of `??_7MirrorUrnMain@@6B@` 0x001DAB78 (ctor 0x0006B9B0); proto 0x00457F41; 12 of 12 bytes differ.
+- 0x0006BC3D ?Message@MirrorUrnMain@@UAEXPAVSwampScript@@HPAX@Z: slot 13 of `??_7MirrorUrnMain@@6B@` 0x001DAB78 (ctor 0x0006B9B0); proto 0x00457F4D; 97 of 121 bytes differ.
+- 0x0006BCC9 ?FrameTick@MirrorUrnMain@@UAEXXZ: slot 4 of `??_7MirrorUrnMain@@6B@` 0x001DAB78 (ctor 0x0006B9B0); proto 0x00457FC6; 371 of 520 bytes differ.
+- 0x0007B761 ?Message@OvenMain@@UAEXPAVSwampScript@@HPAX@Z: slot 13 of `??_7OvenMain@@6B@` 0x001DEA50 (ctor 0x0007B2CF); proto 0x00467768; 91 of 638 bytes differ.
+- 0x00081950 ?FrameTick@PipeGasMain@@UAEXXZ: slot 4 of `??_7PipeGasMain@@6B@` 0x001DFDE8 (ctor 0x000816C8); proto 0x0046D842; 401 of 501 bytes differ.
+- 0x00085F5C ?LosingControl@VinceWalkOut@@UAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z: slot 11 of `??_7VinceWalkOut@@6B@` 0x001F9BB0 (ctor 0x00136386); slot 11 of `??_7VinceDrinkjug@@6B@` 0x001F79D0 (ctor 0x00129D49); proto 0x00512741; 0 of 5 bytes differ, callee-short (raw-equal stub).
+- 0x0009D8AF ?HitBy@GasCanisterMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z: slot 20 of `??_7GasCanisterMain@@6B@` 0x001E7280 (ctor 0x0009DCC3); proto 0x00488929; 6 of 42 bytes differ.
+- 0x0009E6AC ?FrameTick@GasCanisterMain@@UAEXXZ: slot 4 of `??_7GasCanisterMain@@6B@` 0x001E7280 (ctor 0x0009DCC3); proto 0x00489787; 159 of 202 bytes differ.
+- 0x000A0885 ?Message@ChuteKillerDilloMain@@UAEXPAVSwampScript@@HPAX@Z: slot 13 of `??_7ChuteKillerDilloMain@@6B@` 0x001E81C8 (ctor 0x000A0D59); proto 0x0048B909; 215 of 317 bytes differ.
+- 0x000A3179 ?Message@VinceLaundryCar@@UAEXPAVSwampScript@@HPAX@Z: slot 13 of `??_7VinceLaundryCar@@6B@` 0x001E8798 (ctor 0x000A26B8); proto 0x0048E266; 120 of 764 bytes differ.
+- 0x00115C5B ?AnimationFinished@PitFrogMain@@UAEXXZ: slot 6 of `??_7GateFrogMain@@6B@` 0x001DB8E8 (ctor 0x00071194); slot 6 of `??_7TrailerFrogMain@@6B@` 0x001CF6C0 (ctor 0x0003DE5D); slot 6 of `??_7FrogOfMysteryMain@@6B@` 0x001CEC78 (ctor 0x0003C202); proto 0x005004A9; 12 of 294 bytes differ.
+- 0x00115D81 ?CollidedWith@PitFrogMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z: slot 19 of `??_7GateFrogMain@@6B@` 0x001DB8E8 (ctor 0x00071194); slot 19 of `??_7TrailerFrogMain@@6B@` 0x001CF6C0 (ctor 0x0003DE5D); slot 19 of `??_7FrogOfMysteryMain@@6B@` 0x001CEC78 (ctor 0x0003C202); proto 0x005005CF; 12 of 133 bytes differ.
+- 0x00116013 ?TimerEvent@PitFrogMain@@UAEXI@Z: slot 5 of `??_7GateFrogMain@@6B@` 0x001DB8E8 (ctor 0x00071194); slot 5 of `??_7TrailerFrogMain@@6B@` 0x001CF6C0 (ctor 0x0003DE5D); slot 5 of `??_7FrogOfMysteryMain@@6B@` 0x001CEC78 (ctor 0x0003C202); proto 0x00500857; 67 of 732 bytes differ.
+- 0x001162EF ?FrameTick@PitFrogMain@@UAEXXZ: slot 4 of `??_7GateFrogMain@@6B@` 0x001DB8E8 (ctor 0x00071194); slot 4 of `??_7TrailerFrogMain@@6B@` 0x001CF6C0 (ctor 0x0003DE5D); slot 4 of `??_7FrogOfMysteryMain@@6B@` 0x001CEC78 (ctor 0x0003C202); proto 0x00500B33; 84 of 1304 bytes differ.
+- 0x0012359E ?CollidedWith@KillerDilloMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z: slot 19 of `??_7ChuteKillerDilloMain@@6B@` 0x001E81C8 (ctor 0x000A0D59); proto 0x0050C146; 6 of 98 bytes differ.
+- 0x00123632 ?FrameTick@KillerDilloMain@@UAEXXZ: slot 4 of `??_7ChuteKillerDilloMain@@6B@` 0x001E81C8 (ctor 0x000A0D59); proto 0x0050C1DA; 84 of 1172 bytes differ.
+- 0x00123E13 ?SetState@KillerDilloMain@@MAEXH@Z: slot 27 of `??_7ChuteKillerDilloMain@@6B@` 0x001E81C8 (ctor 0x000A0D59); proto 0x0050C984; 1325 of 1400 bytes differ.
+- 0x00126709 ?FrameTick@BeadMain@@UAEXXZ: slot 4 of `??_7BeadMain@@6B@` 0x001F7248 (ctor 0x00126256); proto 0x0050F262; 54 of 1251 bytes differ.
+- 0x00126BEC ?HitBy@BeadMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z: slot 20 of `??_7BeadMain@@6B@` 0x001F7248 (ctor 0x00126256); proto 0x0050F745; 7 of 52 bytes differ.
+- 0x00129CD5 ?AnimationFinished@VinceDrinkjug@@UAEXXZ: slot 6 of `??_7VinceDrinkjug@@6B@` 0x001F79D0 (ctor 0x00129D49); proto 0x00512746; 2 of 22 bytes differ.
+- 0x0012D503 ?Activate@SignTrolleyMain@@UAEXXZ: slot 2 of `??_7SignTrolleyMain@@6B@` 0x001F8350 (ctor 0x0012D338); proto 0x00516C42; 147 of 167 bytes differ.
+- 0x001318F9 ?Activate@GoldenJuneBugMain@@UAEXXZ: slot 2 of `??_7GoldenJuneBugMain@@6B@` 0x001F8A50 (ctor 0x001317E0); proto 0x0051A32C; 74 of 300 bytes differ.
+- 0x00131E7A ?HitBy@GoldenJuneBugMain@@UAEXW4CollisionType@SwampScript@@PAVSwampSceneNode@@ABV?$Ptr@VCollisionResultObject@@@@@Z: slot 20 of `??_7GoldenJuneBugMain@@6B@` 0x001F8A50 (ctor 0x001317E0); proto 0x0051A89D; 54 of 250 bytes differ.
+- Callee-route slots (`+site-corr+callee-bytes`, masked-equal): 0x0005DE7D CannonMain slot 22; 0x0005DFB9 CannonMain slot 5; 0x00129CEB VinceDrinkjug slot 4; 0x001318CC GoldenJuneBugMain slot 0.
+- Vtables pinned `proto-pdb-public+site-corr+slot-names corr-verified` (9): CannonMain 0x001D78E8; MirrorUrnMain 0x001DAB78; OvenMain 0x001DEA50; PipeGasMain 0x001DFDE8; GasCanisterMain 0x001E7280; BeadMain 0x001F7248; VinceDrinkjug 0x001F79D0; SignTrolleyMain 0x001F8350; GoldenJuneBugMain 0x001F8A50.
+- Refused `??_7ChuteKillerDilloMain@@6B@` 0x001E81C8 (ctor 0x000A0D59): slot 24 0x001234D9: both proto slot publics ?InvalidateScript@MonsterMain@@UAEXXZ and ?InvalidateScript@VinceBlowBack@@UAEXXZ are already pinned at 0x000F36DE (one name per VA, D119).
+- Refused `??_7FrogOfMysteryMain@@6B@` 0x001CEC78 (ctor 0x0003C202): pin_rows route-slotnames:slot-not-independent (no agreeing site; no own-class slot of one public, 8+ B).
+- Refused `??_7GateFrogMain@@6B@` 0x001DB8E8 (ctor 0x00071194): pin_rows route-slotnames:slot-not-independent (no agreeing site; no own-class slot of one public, 8+ B).
+- Refused `??_7MrsGCollapsedMain@@6B@` 0x001D9F60 (ctor 0x00068019): slot 21 0x00107B84 holds the site-corr row ?Load@BasicDoorMain@@UAEXABVBeepTDF@@@Z (the proto slot public, status site-corr, not accepted); left as is per the brief.
+- Refused `??_7TrailerFrogMain@@6B@` 0x001CF6C0 (ctor 0x0003DE5D): pin_rows route-slotnames:slot-not-independent (no agreeing site; no own-class slot of one public, 8+ B).
+- Refused `??_7VinceLaundryCar@@6B@` 0x001E8798 (ctor 0x000A26B8): slot 27 0x000A258D holds the site-corr row ?SetState@VinceLaundryCar@@EAEXH@Z (the proto slot public, status site-corr, not accepted); left as is per the brief.
+- Refused `??_7VinceWalkOut@@6B@` 0x001F9BB0 (ctor 0x00136386): pin_rows route-slotnames:slot-not-independent (no agreeing site; no own-class slot of one public, 8+ B).
+
+### Play@SoundNode DSound callees; slot-row retags (5.5 T7.c5)
+Hand lines (`proto-pdb-public+retail-disasm`; `site-corr+callee-bytes` refused first, reason given; C0412, C0426).
+Callees: retail call in SoundNode::Play 0x000C5F3D at the same offset as proto twin 0x004B123F's call to the public's VA (`va_dis.py dis`, `sym`). Slots: as "I79 vtable slot names". No bytes (D46).
+- `_IDirectSoundBuffer_SetCurrentPosition@8` 0x00179AB4 (callee-name-rule): Play 0x000C5F3D 7th call @0x000C6008 (+0xCB) vs proto 0x004B130A (+0xCB) -> 0x00563054; symbols.txt holds the undecorated name (C0192).
+- `_IDirectSoundBuffer_SetPitch@8` 0x001799E4 (callee-name-rule): Play 0x000C5F3D 9th call @0x000C6034 (+0xF7) vs proto 0x004B1336 (+0xF7) -> 0x00562F84; symbols.txt holds the undecorated `IDirectSoundBuffer_SetPitch`.
+- 0x000A258D ?SetState@VinceLaundryCar@@EAEXH@Z (callee-bytes-differ; was site-corr, blocking slot-names): slot 27 of `??_7VinceLaundryCar@@6B@` 0x001E8798 (ctor 0x000A26B8); proto 0x0048D67A; 31 of 260 bytes differ.
+- 0x00107B84 ?Load@BasicDoorMain@@UAEXABVBeepTDF@@@Z (callee-bytes-differ; was site-corr, blocking slot-names): slot 21 of `??_7MrsGCollapsedMain@@6B@` 0x001D9F60 (ctor 0x00068019); proto 0x004F2538; 60 of 75 bytes differ.
+- Auto-route lines (no bullet needed): `_IDirectSoundBuffer_SetBufferData@12` 0x0017A89C (3rd call @0x000C5FC2 vs proto 0x004B12C4 -> 0x00563E3C), `_IDirectSoundBuffer_SetPlayRegion@12` 0x0017A26A (4th @0x000C5FDC vs 0x004B12DE -> 0x0056380A), `_IDirectSoundBuffer_Play@16` 0x00179A1C (17th @0x000C60D8 vs 0x004B13DA -> 0x00562FBC): `+site-corr+callee-bytes`.
+- D115 (R518): `?Play@SoundStreamer@@QAEXXZ` 0x000D9104 (bullet in "T15 needs pinned") DISABLED; callers Stop 0x000D91A7, Set 0x000D9519, CutsceneDriver::BeginPlayback 0x0010892C, MusicManager::Resume 0x00112A0B back under NON_MATCHING.
+- Vtable pinned `proto-pdb-public+site-corr+slot-names corr-verified`: VinceLaundryCar 0x001E8798 (supersedes its T7.c1b refusal above).
+- Refused `??_7MrsGCollapsedMain@@6B@` 0x001D9F60 (ctor 0x00068019) after the slot 21 retag: pin_rows route-slotnames:slot-not-independent (no agreeing site; no own-class slot of one public, 8+ B).

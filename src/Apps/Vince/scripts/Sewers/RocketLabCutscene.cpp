@@ -14,6 +14,7 @@ protected:
     char _pad00[0x1C];
 };
 }
+typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
 struct Vector3 { // NAME: proto-pdb:default.pdb
     float x; // 0x00
@@ -157,22 +158,40 @@ public:
 };
 DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class EthelRocketLabCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
 public:
     enum States { // NAME: proto-pdb:default.pdb
         STATE_LAST = 0x8
     };
+    EthelRocketLabCutscene(SwampSceneNode* node);
     virtual void AnimationFinished(unsigned int id);
 
 protected:
     virtual void Cleanup();
 
 public:
-    Vince* _vince;                     // 0x78
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+public:
+    Vince* _vince;                    // 0x78
     GatorNode* _ethel;                 // 0x7C
     bool _wasWhammyReady;              // 0x80
 };
 DECOMP_SIZE_ASSERT(EthelRocketLabCutscene, 0x84);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x0009F088
 // PROTOTYPE: PREVIEW 0x0048A12C identical
@@ -207,4 +226,19 @@ void EthelRocketLabCutscene::Cleanup()
     _ethel->Invalidate();
     AreaLoadLocatorMain::FinishedLevelIntro(this);
     InvalidateScript();
+}
+
+// FUNCTION: USA 0x0009F677
+// NAME: proto-pdb:default.pdb
+SwampScript* EthelRocketLabCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("RocketLab\\RocketLabCutscene.cpp", 19) EthelRocketLabCutscene(node);
+}
+
+// FUNCTION: USA 0x0009F69E
+// NAME: proto-pdb:default.pdb
+EthelRocketLabCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("EthelRocketLabCutscene", creationFunc);
 }

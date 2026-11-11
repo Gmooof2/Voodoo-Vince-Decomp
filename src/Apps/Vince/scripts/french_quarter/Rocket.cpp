@@ -198,6 +198,10 @@ void* operator new(unsigned int size, const char* file, int line);
 class RocketMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     RocketMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -280,4 +284,18 @@ SwampScript* RocketMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("mainstreet\\Rocket.cpp", 12) RocketMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00081F1D
+// NAME: proto-pdb:default.pdb
+RocketMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RocketMain", creationFunc);
 }

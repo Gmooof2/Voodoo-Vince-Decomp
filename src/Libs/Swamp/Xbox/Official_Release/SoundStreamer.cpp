@@ -5,6 +5,26 @@
 #include "../../../../include/decomp.h"
 #pragma intrinsic(memset)
 
+#ifndef NON_MATCHING
+// !FAKE: c1xx front end; declaration-only explicit specialization (C0132, C0378); SoundStreamer::Set's string copy calls
+// retail _Copy 0x000112F5 out of line; its header body would emit here with an __ehhandler$ funclet (gate *objects* extra,
+// relink overlap) (5.4 T25.c4)
+template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Copy(unsigned int, unsigned int);
+// _Tidy and the two assigns too (C0231 lever 1): retail's 0x000111D6, 0x00011655, 0x000116E4 (Init.obj rows) call
+// char_traits::copy out of line; this unit's bodies would inline it to memcpy and overlap those rows at relink
+template <> void std::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Tidy(bool, unsigned int);
+template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >&
+std::basic_string<char, std::char_traits<char>, std::allocator<char> >::assign(const std::basic_string<char,
+    std::char_traits<char>, std::allocator<char> >&, unsigned int, unsigned int);
+template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >&
+std::basic_string<char, std::char_traits<char>, std::allocator<char> >::assign(const char*, unsigned int);
+// and assign(const char*) 0x00011779, erase 0x00011289: named retail VAs called out of line (as Init.cpp)
+template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >&
+std::basic_string<char, std::char_traits<char>, std::allocator<char> >::assign(const char*);
+template <> std::basic_string<char, std::char_traits<char>, std::allocator<char> >&
+std::basic_string<char, std::char_traits<char>, std::allocator<char> >::erase(unsigned int, unsigned int);
+#endif
+
 struct IDirectSoundStream { // NAME: proto-pdb:default.pdb
     virtual unsigned long __stdcall AddRef() = 0;                  // vtable+0x00
     virtual unsigned long __stdcall Release() = 0;                 // vtable+0x04
@@ -42,6 +62,8 @@ extern "C" long __stdcall IDirectSoundStream_SetPosition(IDirectSoundStream*, fl
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes provisional (masked 1): callee _IDirectSoundStream_SetPosition@20 (proto-pdb public) has only the ghidra name IDirectSoundStream_SetPosition at 0x0017A28A in symbols.txt
+// 5.4 T12.1.c12 precheck: relink `external _IDirectSoundStream_SetPosition@20 does not resolve by name` and matched_set
+// add refuses `near-corr pin has no lane near row at 0x000D8BD2`; lift: pin 0x0017A28A (as _IDirectSoundStream_Pause@8)
 long __stdcall IDirectSoundStream::SetPosition(float x, float y, float z, unsigned long dwApply)
 {
     return IDirectSoundStream_SetPosition(this, x, y, z, dwApply);
@@ -201,8 +223,9 @@ void SoundStreamer::UpdatePosition()
     }
 }
 
+// callees/literals pinned 5.4 T25.c1
 #ifdef NON_MATCHING
-// best: match_one objdiff 95.44, bytes mismatch (masked 3)
+// 5.5 T7.c5 D115 (R518): callee ?Play@SoundStreamer@@QAEXXZ 0x000D9104 pin disabled; relink cannot resolve the call by name; leaves the matched set
 // FUNCTION: USA 0x000D91A7
 // PROTOTYPE: PREVIEW 0x004C4782 near-identical
 // NAME: proto-pdb:default.pdb
@@ -210,8 +233,13 @@ void SoundStreamer::Stop()
 {
     if (_stream) {
         IDirectSoundStream_FlushEx(_stream, 0, 1);
-        if ((_flags & 0x20) && _node && _node->GetScript()) {
-            _node->GetScript()->QueueSoundStreamerFinishedMessage(_name);
+        if (_flags & 0x20) {
+            // !FAKE: c2 register allocation; local; retail keeps _node in edi across both GetScript calls;
+            // the proto PDB lists no such local
+            SwampSceneNode* node = _node;
+            if (node && node->GetScript()) {
+                node->GetScript()->QueueSoundStreamerFinishedMessage(_name);
+            }
         }
     }
     g_swamp->_soundManager->Stopped(this);
@@ -265,7 +293,7 @@ SoundStreamer::~SoundStreamer()
 #endif
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1): the Play call 0x000D9104 is unresolved (no symbols.txt row)
+// 5.5 T7.c5 D115 (R518): callee ?Play@SoundStreamer@@QAEXXZ 0x000D9104 pin disabled; relink cannot resolve the call by name; leaves the matched set
 // FUNCTION: USA 0x000D9519
 // PROTOTYPE: PREVIEW 0x004C4ACE near-identical
 // NAME: proto-pdb:default.pdb

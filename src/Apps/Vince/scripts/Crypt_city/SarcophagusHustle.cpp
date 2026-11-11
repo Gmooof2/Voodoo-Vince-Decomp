@@ -102,9 +102,18 @@ public:
     static void SetStream(const SwampString&, bool);
 };
 
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
 class SarcophagusHustleRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    SarcophagusHustleRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SarcophagusHustleRegionMain, 0x64);
 
@@ -126,4 +135,26 @@ void SarcophagusHustleRegionMain::EnteringRegion(SwampSceneNode* node)
         WorldData::SetClipDistances(cd);
         CutsceneDriver::SetStream("kosmoAppearsSarHus", false);
     }
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0005C1DD
+// NAME: proto-pdb:default.pdb
+SwampScript* SarcophagusHustleRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("sarcophagusHustle\\SarcophagusHustle.cpp", 17) SarcophagusHustleRegionMain(node);
+}
+
+// FUNCTION: USA 0x0005C201
+// NAME: proto-pdb:default.pdb
+SarcophagusHustleRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SarcophagusHustleRegionMain", creationFunc);
 }

@@ -227,6 +227,10 @@ public:
     virtual void Activate();
     virtual void FrameTick();
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -328,4 +332,18 @@ SwampScript* FanHurricaneMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\bayou\\hurricanehanna\\FanHurricane.h", 6) FanHurricaneMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0002B7F4
+// NAME: proto-pdb:default.pdb
+FanHurricaneMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FanHurricaneMain", creationFunc);
 }

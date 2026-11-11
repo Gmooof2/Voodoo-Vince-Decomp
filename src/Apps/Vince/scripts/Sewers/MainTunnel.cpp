@@ -197,6 +197,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     CritterMain(SwampSceneNode* node);
@@ -236,6 +243,10 @@ public:
     virtual void Activate();
     virtual void FrameTick();
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);
@@ -262,6 +273,10 @@ public:
     virtual void Activate();
     virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);
@@ -316,6 +331,13 @@ private:
     static int _rockDoors;
     // access only: retail mangles _rockDoors private (@@0HA); MainTunnelRegionMain::EnteringRegion stores it
     friend class MainTunnelRegionMain;
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(DoorRockBlockMain, 0xC0);
 
@@ -334,7 +356,15 @@ DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 
 class SwitchBoxGateMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
+    SwitchBoxGateMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwitchBoxGateMain, 0x110);
 
@@ -343,6 +373,10 @@ public:
     MainTunnelRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -364,6 +398,12 @@ public:
     virtual void FrameTick();
 private:
     virtual void SetState(int state);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
     ResourceHandle<AnimationResource> _animIdle; // 0xBC
@@ -717,6 +757,13 @@ public:
     virtual void EnteringRegion(SwampSceneNode* node);
 
     SwampString _target;               // 0x4C
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(DoorRockBlockHintRegionMain, 0x68);
 
@@ -751,14 +798,11 @@ SwampScript* ReverseElevatorMain::creationFunc(SwampSceneNode* node)
 
 // FUNCTION: USA 0x000A0650
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 14.285714, bytes match (masked 0); cut-extent wall C0093/C0140: retail cut symbol 0x120 vs row 0x27 (5.3 T5.c2)
 SwampScript* ArmorDilloChuteMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 96) ArmorDilloChuteMain(node);
 }
-#endif
 
 // FUNCTION: USA 0x000A0A59
 // PROTOTYPE: PREVIEW 0x0048BAEC identical
@@ -841,6 +885,10 @@ void pin_emit_KillerDilloMain_dtor(KillerDilloMain* p)
 class ChuteKillerDilloMain : public KillerDilloMain { // NAME: proto-pdb:default.pdb
 public:
     ChuteKillerDilloMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -851,6 +899,163 @@ public:
 
     SwampScript* _chute;               // 0x324
 };
+
+// FUNCTION: USA 0x000A0B01
+// NAME: proto-pdb:default.pdb
+MainTunnelRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MainTunnelRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A0B3D
+// NAME: proto-pdb:default.pdb
+WheelPlatformAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WheelPlatformAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A0B79
+// NAME: proto-pdb:default.pdb
+ReverseElevatorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ReverseElevatorMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A0BB5
+// NAME: proto-pdb:default.pdb
+ArmorDilloChuteMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ArmorDilloChuteMain", creationFunc);
+}
+
+class SwitchMain : public CritterMain { // NAME: proto-pdb:default.pdb
+
+    char field_BC[0x13C - 0xBC];       // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(SwitchMain, 0x13C);
+
+class BasicWallSwitchMain : public SwitchMain { // NAME: proto-pdb:default.pdb
+};
+DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
+
+class Switch_SwitchBoxGateMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_SwitchBoxGateMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_SwitchBoxGateMain, 0x13C);
+
+class Switch_ReverseElevatorMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_ReverseElevatorMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_ReverseElevatorMain, 0x13C);
+
+class Switch_ArmorDilloChuteMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_ArmorDilloChuteMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_ArmorDilloChuteMain, 0x13C);
+
+// FUNCTION: USA 0x000A06A1
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_SwitchBoxGateMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 162) Switch_SwitchBoxGateMain(node);
+}
+
+// FUNCTION: USA 0x000A06CB
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_ReverseElevatorMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 174) Switch_ReverseElevatorMain(node);
+}
+
+// FUNCTION: USA 0x000A06F5
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_ArmorDilloChuteMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 186) Switch_ArmorDilloChuteMain(node);
+}
+
+// FUNCTION: USA 0x000A071F
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorRockBlockMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 202) DoorRockBlockMain(node);
+}
+
+// FUNCTION: USA 0x000A0749
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorRockBlockHintRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("MainTunnel\\MainTunnel.cpp", 781) DoorRockBlockHintRegionMain(node);
+}
+
+// FUNCTION: USA 0x000A0A2F
+// NAME: proto-pdb:default.pdb
+SwampScript* SwitchBoxGateMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 231) SwitchBoxGateMain(node);
+}
+
+// FUNCTION: USA 0x000A0C2D
+// NAME: proto-pdb:default.pdb
+Switch_SwitchBoxGateMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_SwitchBoxGateMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A0C69
+// NAME: proto-pdb:default.pdb
+Switch_ReverseElevatorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ReverseElevatorMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A0CA5
+// NAME: proto-pdb:default.pdb
+Switch_ArmorDilloChuteMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ArmorDilloChuteMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A0CE1
+// NAME: proto-pdb:default.pdb
+DoorRockBlockMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorRockBlockMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A0D1D
+// NAME: proto-pdb:default.pdb
+SwitchBoxGateMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchBoxGateMain", creationFunc);
+}
 
 // FUNCTION: USA 0x0009FEB2
 // PROTOTYPE: PREVIEW 0x0048AF36 identical
@@ -876,16 +1081,25 @@ void ArmorDilloChuteMain::FrameTick()
     }
 }
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x000A0D59
 // PROTOTYPE: PREVIEW 0x0048BDEC near-identical
 // NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes provisional (masked 1 = vptr store; needs pin ??_7ChuteKillerDilloMain@@6B@ at
+// 0x001E81C8); source is final; 5.4 T15.c3
 ChuteKillerDilloMain::ChuteKillerDilloMain(SwampSceneNode* node) : KillerDilloMain(node)
 {
     _chute = 0;
     ((Critter*)_node)->field_260 = false;
 }
 #endif
+
+// FUNCTION: USA 0x000A0DBE
+// NAME: proto-pdb:default.pdb
+DoorRockBlockHintRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorRockBlockHintRegionMain", creationFunc);
+}
 
 // FUNCTION: USA 0x000A0DFA
 // PROTOTYPE: PREVIEW 0x0048BEA9 identical
@@ -894,4 +1108,11 @@ SwampScript* ChuteKillerDilloMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\sewers\\maintunnel\\MainTunnel.h", 129) ChuteKillerDilloMain(node);
+}
+
+// FUNCTION: USA 0x000A0E24
+// NAME: proto-pdb:default.pdb
+ChuteKillerDilloMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ChuteKillerDilloMain", creationFunc);
 }

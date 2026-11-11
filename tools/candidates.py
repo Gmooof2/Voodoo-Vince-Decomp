@@ -5,6 +5,10 @@ CLI: candidates.py [--write | --check | --control member] [--config P]
   docs/matching/delink_residue.md (3.2 T8: undelinked game units, reason, evidence searched, `unit not delink` rows)
   and derived/candidates/candidates.jsonl and prints fail counts + a Pins block; --check renders fresh and compares
   with both committed docs (first differing line number printed).
+  Stamp (5.5 T6): --write writes candidates.jsonl first (temp + os.replace), then the sidecar STAMP
+  (derived/candidates/candidates.stamp.json: sha256 of each input compute() opens and of candidates.jsonl), then the
+  docs. fresh() -> stale causes ([] when current); --check exits 1 on any. Any EXPECT* count mismatch exits 1
+  before --check or --write (the tuples below are the expectations; a re-cut updates them, old value in a comment).
 Pool (1.4 rule, docs/evidence/compiler_pin.md:8-17): derived/proto_map/retail-xbe/functions.jsonl class identical, one
   targetVA, unit (config/retail/units.toml text_start <= va < text_end) kind game + delink true, not tail (protoVA -
   0x400400 in 0x13BD4E..0x13F2F4), VA not a derived/dup_report/retail_folds.jsonl retailVA, a symbols.txt `func` at VA,
@@ -32,12 +36,13 @@ Ambiguous lane (5.3 T3, amb_lane): class ambiguous rows whose name is pinned (ei
   TAGS; `## Ambiguous lane (5.3 T3)` is the last section. --control amb-outside|amb-site-corr|amb-shared plant a pin
   outside the hits, a site-corr pin, one body pinned by two rows; exit 0 iff each is refused, else DID NOT FAIL and 1.
 Doc holds names, VAs, sizes, units, tags, verdicts and reasons only, no bytes or disassembly (D46); no dates.
-Exit: 0 ok; 1 --check differs; 2 refusal (missing input, retail sha1 != pin).
+Exit: 0 ok; 1 --check differs or stale stamp, or an EXPECT* count differs; 2 refusal (missing input, retail sha1 != pin).
 """
 import argparse
 import bisect
 import hashlib
 import json
+import os
 import re
 import struct
 import sys
@@ -50,6 +55,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import byte_compare  # noqa: E402
+import coff_info  # noqa: E402  pin file (5.5 T6 stamp)
 import delink  # noqa: E402
 import match_one  # noqa: E402  size BUCKETS (near lane, 3.4 T2)
 import pdb_info  # noqa: E402
@@ -71,11 +77,15 @@ PINS = REPO / "config" / "compiler_pin.toml"
 MATCHED = REPO / "config" / "matched_set.toml"  # [[function]] rows: gate-verified matches (D40)
 DOC = REPO / "docs" / "matching" / "next_candidates.md"
 OUT = REPO / "derived" / "candidates" / "candidates.jsonl"
+STAMP = OUT.with_name("candidates.stamp.json")  # 5.5 T6: sha256 of compute()'s inputs and of OUT, written by --write
 CHECKS = ("sig", "reloc", "c0035", "bodymax", "library")
 TAGS = ("float", "switch", "bittest", "inlined", "vcall", "eh")
 EXCL = ("not identical", "targetVAs != 1", "no unit", "unit not game", "unit not delink", "tail", "fold", "no symbol", "boundary")
 RESIDUE = REPO / "docs" / "matching" / "delink_residue.md"  # 3.2 T8: undelinked game units, written with DOC
-EXPECT = dict(zip(EXCL, (5254, 0, 73, 1436, 792, 0, 24, 66, 4)))  # 5.3 T13.2 re-cut 4 (28 rows out of no symbol)
+EXPECT = dict(zip(EXCL, (5254, 0, 73, 1436, 758, 0, 24, 64, 4)))  # 5.5 T26.c1 re-cut over the T7.c7 pinpending pins (1 row out of no symbol)
+# was (5254, 0, 73, 1436, 758, 0, 24, 65, 4) 5.5 T7.c6 re-cut over T7.c2-c5 pins (2 rows out of no symbol)
+# was (5254, 0, 73, 1436, 758, 0, 24, 67, 4) 5.4 T11.1.c3 re-cut 1 (Monster#448 cut: 34 rows out of not delink, 1 to no symbol)
+# was (5254, 0, 73, 1436, 792, 0, 24, 66, 4) 5.3 T13.2 re-cut 4 (28 rows out of no symbol)
 # was (5254, 0, 73, 1436, 792, 0, 24, 94, 4) 5.3 T4 re-cut over T4.c1 pins (7 rows out of no symbol)
 # was (5254, 0, 73, 1436, 792, 0, 24, 101, 4) 5.2 T6 pin pass (25 rows out of no symbol, 1 out of boundary)
 # was (5254, 0, 73, 1436, 792, 0, 24, 126, 5) 5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang (9 rows out of not delink)
@@ -84,7 +94,7 @@ EXPECT = dict(zip(EXCL, (5254, 0, 73, 1436, 792, 0, 24, 66, 4)))  # 5.3 T13.2 re
 # was (5254, 0, 73, 1436, 955, 0, 24, 119, 5) 4.4 T8 B5 cut (HannaCutscenes, DoorPulleyBucket, Spring, bakeryMain, WallSwitch, MainTunnelCutscenes, PowerIcon, VinceWalkIn, Terradactyl: 30 rows out of not delink, 2 to no symbol, 2 to fold)
 # was (5254, 0, 73, 1436, 985, 0, 22, 117, 5) 4.4 T8 B4 cut (theSquare, GasPumps, MoleGatePuzzle, Bell: 116 rows out of not delink, 4 to no symbol, 1 to fold); was (5254, 0, 73, 1436, 1101, 0, 21, 113, 5) 4.4 T7.1 B3 cut (HouseOfMirrors, SwampDebugGeometry, SwampBSP, FontManager: 57 rows out of not delink, 4 to no symbol); was (5254, 0, 73, 1436, 1158, 0, 21, 109, 5) 4.4 T7.1 B2 cut (ZombieGuidanceCounselor, VoodooShop, FFlyController, SwampCollide, SwampSoundResource: 131 rows out of not delink, 13 to no symbol); was (5254, 0, 73, 1436, 1289, 0, 21, 96, 5) 4.4 T7.1 B1 cut (SwampWorld, SwampLight, Whammy, Critter, SwampFireFlyNode: 246 rows out of not delink, 18 to no symbol); was (5254, 0, 73, 1436, 1535, 0, 21, 78, 5) 4.4 T6.1; was (5254, 0, 73, 1436, 1576, 0, 18, 77, 5) 4.4 T4; was (5254, 0, 73, 1436, 1576, 0, 18, 81, 5) 4.3 T15; was (5254, 0, 73, 1436, 1576, 0, 18, 85, 2) 3.4 T1; was (5254, 0, 73, 1436, 1576, 0, 18, 120, 2) 3.3 T1; was (5254, 0, 73, 1436, 1724, 0, 18, 114, 2) 3.2 T8.c1; was (5254, 0, 73, 1436, 2392, 0, 0, 60, 2) 3.2 T3;
 # was 2417 not delink, 1.4
-EXPECT_POOL = 2739  # 5.3 T13.2 re-cut 4; was 2711 (5.3 T4 re-cut over T4.c1 pins); was 2704 (5.2 T6 pin pass); was 2678 (5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was 2669 (5.2 T4 B1 cut FanBoat+BogWallow); was 2618 (5.2 T3 LevelLoader+BasicDoor cut); was 2522 (4.4 T8 B5 cut); was 2496 (4.4 T8 B4 cut); was 2385 (4.4 T7.1 B3 cut); was 2332 (4.4 T7.1 B2 cut); was 2214 (4.4 T7.1 B1 cut); was 1986 (4.4 T6.1 ScareHouse cut + its name_sites pins); was 1949 (4.4 T4 vtable slot pins); was 1945 (4.3 T15, 0x000388BB hand pin); was 1944 (3.4 T1); was 1909 (3.3 T1); was 1767 (3.2 T8.c1); was 1171 (3.2 T3); was 1148 (1.4, compiler_pin.md:31-32)
+EXPECT_POOL = 2775  # 5.5 T26.c1 re-cut over the T7.c7 pinpending pins; was 2774 (5.5 T7.c6 re-cut over T7.c2-c5 pins); was 2772 (5.4 T11.1.c3 re-cut 1); was 2739 (5.3 T13.2 re-cut 4); was 2711 (5.3 T4 re-cut over T4.c1 pins); was 2704 (5.2 T6 pin pass); was 2678 (5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was 2669 (5.2 T4 B1 cut FanBoat+BogWallow); was 2618 (5.2 T3 LevelLoader+BasicDoor cut); was 2522 (4.4 T8 B5 cut); was 2496 (4.4 T8 B4 cut); was 2385 (4.4 T7.1 B3 cut); was 2332 (4.4 T7.1 B2 cut); was 2214 (4.4 T7.1 B1 cut); was 1986 (4.4 T6.1 ScareHouse cut + its name_sites pins); was 1949 (4.4 T4 vtable slot pins); was 1945 (4.3 T15, 0x000388BB hand pin); was 1944 (3.4 T1); was 1909 (3.3 T1); was 1767 (3.2 T8.c1); was 1171 (3.2 T3); was 1148 (1.4, compiler_pin.md:31-32)
 NEAR_EXCL = ("no unit", "unit not game", "unit not delink", "tail", "fold", "no lane name")  # 3.4 T2 near lane
 NEAR_STATUSES = ("near-corr",) + PIN_STATUSES  # lane name statuses
 CALLEE_STATUSES = ("near-corr",)  # 4.2 T9 (D115): accepted for a func-table target only, never data or vtable
@@ -98,13 +108,14 @@ def accepted(status, target, funcs):
             or status in CALLEE_STATUSES and target in funcs)
 
 
-EXPECT_NEAR = dict(zip(NEAR_EXCL, (143, 0, 334, 0, 9, 598)))  # 5.3 T13.2 re-cut 4; was (143, 0, 334, 0, 9, 599) 5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was (148, 0, 339, 0, 9, 593) 5.2 T4 B1 cut FanBoat+BogWallow; was (150, 0, 375, 0, 9, 560) 5.2 T3 LevelLoader+BasicDoor cut; was (152, 0, 388, 0, 9, 549) 4.4 T8 after the T7.1+T8 cuts (27 units); was (167, 0, 598, 0, 6, 380) 4.4 T6.1 ScareHouse cut; was (167, 0, 615, 0, 5, 366) 3.4 T2 (1260 near rows, 238 near-corr pins); was 456 at 96 pins
+EXPECT_NEAR = dict(zip(NEAR_EXCL, (142, 0, 331, 0, 9, 443)))  # 5.5 T27.c2 re-cut over the sized registerme-twin pins; was (142, 0, 331, 0, 9, 598) 5.4 T11.1.c3 re-cut 1; was (143, 0, 334, 0, 9, 598) 5.3 T13.2 re-cut 4; was (143, 0, 334, 0, 9, 599) 5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was (148, 0, 339, 0, 9, 593) 5.2 T4 B1 cut FanBoat+BogWallow; was (150, 0, 375, 0, 9, 560) 5.2 T3 LevelLoader+BasicDoor cut; was (152, 0, 388, 0, 9, 549) 4.4 T8 after the T7.1+T8 cuts (27 units); was (167, 0, 598, 0, 6, 380) 4.4 T6.1 ScareHouse cut; was (167, 0, 615, 0, 5, 366) 3.4 T2 (1260 near rows, 238 near-corr pins); was 456 at 96 pins
 AMB_EXCL = ("no unit", "unit not game", "unit not delink", "tail", "fold", "boundary", "no pin", "pin outside targets",
             "pin not accepted", "shared body")  # 5.3 T3 ambiguous lane
-EXPECT_AMB = dict(zip(AMB_EXCL, (143, 136, 1058, 0, 0, 2, 1275, 0, 105, 0)))  # 5.3 T13.2 re-cut 4
+EXPECT_AMB = dict(zip(AMB_EXCL, (316, 136, 1172, 0, 0, 2, 450, 1, 99, 0)))  # 5.5 T27 retag 66 ctor pins site-corr -> +callee-bytes (66 out of pin not accepted, into the pool); was (316, 136, 1172, 0, 0, 2, 450, 1, 165, 0) 5.5 T27.c4 re-cut t27c over the c4 ctor pins (60 rows out of no pin: 63 to pin not accepted (site-corr), 1 to pin outside targets (??0BumperBlockMain, 30 hits), 4 out of no unit/not delink); was (317, 136, 1175, 0, 0, 2, 510, 0, 102, 0) 5.5 T26.c1 re-cut over the T7.c7 pinpending pins; was (317, 136, 1175, 0, 0, 2, 521, 0, 92, 0) 5.5 T7.c6 re-cut over T7.c2-c5 pins; was (311, 136, 1171, 0, 0, 2, 540, 0, 92, 0) 5.4 T16 after T25/T26 pins; was (311, 136, 1171, 0, 0, 2, 541, 0, 92, 0) 5.4 T11.1.c3 re-cut 1 (T11.1 pins)
+# was (143, 136, 1058, 0, 0, 2, 1275, 0, 105, 0) 5.3 T13.2 re-cut 4
 # was (134, 134, 1050, 0, 0, 2, 1673, 0, 11, 0) 5.3 T13.2 fold = true folds only; was (134, 134, 1050, 0, 2120, 0, 13, 0, 0, 0) 5.3 T4.c3 re-cut, _Buynode fold pair disabled; was (134, 134, 1049, 0, 2121, 0, 13, 0, 0, 0) 5.3 T4 re-cut over T4.c1 pins; was (137, 134, 1058, 0, 2124, 0, 19, 0, 0, 0) 5.3 T3: new
-EXPECT_AMB_POOL = 924  # 5.3 T13.2 re-cut 4; was 639 (5.3 T13.2 fold = true folds only); was 192 5.3 T4.c3 re-cut, 5.3 T4 re-cut over T4.c1 pins; was 171 (5.3 T3: new)
-EXPECT_NEAR_POOL = 176  # 5.3 T13.2 re-cut 4; was 175 (5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was 171 (5.2 T4 B1 cut FanBoat+BogWallow); was 166 (5.2 T3 LevelLoader+BasicDoor cut); was 162 (4.4 T8 after the T7.1+T8 cuts); was 109 4.4 T6.1; was 107 3.4 T2; was 17 at 96 pins
+EXPECT_AMB_POOL = 1467  # 5.5 T27 retag 66 ctor pins; was 1401 5.5 T26.c1 re-cut over the T7.c7 pinpending pins; was 1400 (5.5 T7.c6 re-cut over T7.c2-c5 pins); was 1391 (5.4 T16 after T25/T26 pins); was 1390 5.4 T11.1.c3 re-cut 1 (T11.1 pins); was 924 (5.3 T13.2 re-cut 4); was 639 (5.3 T13.2 fold = true folds only); was 192 5.3 T4.c3 re-cut, 5.3 T4 re-cut over T4.c1 pins; was 171 (5.3 T3: new)
+EXPECT_NEAR_POOL = 335  # 5.5 T27.c2 re-cut over the sized registerme-twin pins; was 180 (5.4 T11.1.c3 re-cut 1); was 176 (5.3 T13.2 re-cut 4); was 175 (5.2 T5 B2 cut CarriedObject+HeavyObject+VinceCutScene+Boomerang; was 171 (5.2 T4 B1 cut FanBoat+BogWallow); was 166 (5.2 T3 LevelLoader+BasicDoor cut); was 162 (4.4 T8 after the T7.1+T8 cuts); was 109 4.4 T6.1; was 107 3.4 T2; was 17 at 96 pins
 PROTO_BASE, TAIL = 0x400400, (0x13BD4E, 0x13F2F4)
 # LF_PROCEDURE / LF_MFUNCTION, 16-bit-index (0x0008/0x0009) and 32-bit-index (0x1008/0x1009) forms (CodeView cvinfo.h)
 PROC_LEAVES = {0x0008: "LF_PROCEDURE_16t", 0x0009: "LF_MFUNCTION_16t", 0x1008: "LF_PROCEDURE", 0x1009: "LF_MFUNCTION"}
@@ -126,6 +137,42 @@ def need(p):
     if not p.is_file() or p.stat().st_size == 0:
         raise Refuse(f"input missing or empty: {p}")
     return p
+
+
+def stamp_inputs(config=None):
+    """5.5 T6: [(key, path)] of every file compute() opens; the XBE by its pin file (setup() checks its sha1)."""
+    pin = coff_info.pinned_sha() or ""
+    t5 = REPO / "derived" / "ghidra" / f"retail-{pin[:8]}"
+    t5 = t5 / "applied" if (t5 / "applied" / "summary.json").is_file() else t5  # byte_compare.setup's tables
+    cfg = vv_inputs.load_config(config)
+    ps = [coff_info.PIN, t5 / "functions.jsonl", t5 / "symbols.jsonl",
+          REPO / "derived" / "ghidra" / f"retail-{pin[:8]}" / "applied" / "functions.jsonl", FUNCS, FOLDS, UNITS,
+          SYMS, SYMS_PIN, PINS, MATCHED, delink.cut_dir(pin) / "hashes.txt"]
+    out = [(p.relative_to(REPO).as_posix(), p) for p in dict.fromkeys(ps)]
+    return out + [(f"prototype_dir/{n}", vv_inputs.input_path("prototype_dir", n, cfg)) for n in ("default.pdb",
+                                                                                                  "default.exe")]
+
+
+def _sha256(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() else None
+
+
+def _replace(path, text):  # 5.5 T6: temp + os.replace, a reader never sees a half-written file
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8", newline="\n")
+    os.replace(tmp, path)
+
+
+def fresh(config=None):
+    """5.5 T6: -> stale causes ([] = candidates.jsonl is current): STAMP absent, candidates.jsonl changed since --write,
+    or an input's sha256 != its stamp value."""
+    if not STAMP.is_file():
+        return [f"{STAMP.relative_to(REPO).as_posix()} absent (run PY tools/candidates.py --write)"]
+    st = json.loads(STAMP.read_text(encoding="utf-8"))
+    why = [] if _sha256(OUT) == st.get("out") else [f"{OUT.relative_to(REPO).as_posix()} changed since --write"]
+    cur = {k: _sha256(p) for k, p in stamp_inputs(config)}
+    old = st.get("inputs", {})
+    return why + [f"input {k} changed since --write" for k in sorted(set(cur) | set(old)) if cur.get(k) != old.get(k)]
 
 
 def load_symbols():
@@ -696,8 +743,8 @@ def render(res):
          "- done: `y` iff (symbol, va) is a `[[function]]` row of config/matched_set.toml (every row gate-verified, D40). "
          f"Done {sum(r['done'] for r in out)} in the pool of {len(res['done'])} matched.",
          "", "## Pins (config/compiler_pin.toml)"] + pin_lines(res) + ["", "## Matched (config/matched_set.toml)", ""]
-    L += [f"- 0x{r['va']:08X} {esc('; '.join(r['names']))} (rank {r['rank']}, size {r['size']}): done"
-          for r in out if r["done"]] or ["None."]
+    # was f"- 0x{va} {names} (rank {rank}, size {size}): done" (5.5 T27.c4: rank/size are in the tables)
+    L += [f"- 0x{r['va']:08X} {esc('; '.join(r['names']))}" for r in out if r["done"]] or ["None."]
     L += ["", "## Passing rows", ""]
     hdr = "| rank | VA | size | name | unit | " + " | ".join(TAGS) + " | done |"
     sep = "|" + "---|" * (6 + len(TAGS))
@@ -708,11 +755,12 @@ def render(res):
                            for r in good]
     else:
         L.append("None.")
-    L += ["", "## All rows (rank order)", "", hdr[:-1] + "| verdict | reasons |", sep + "---|---|"]
+    # was "## All rows (rank order)" over every row; 5.5 T27.c4: failing rows only (passing rows are above), doc size
+    L += ["", "## Failing rows (rank order)", "", hdr[:-1] + "| verdict | reasons |", sep + "---|---|"]
     L += [f"| {r['rank']} | 0x{r['va']:08X} | {r['size']} | {esc('; '.join(r['names']))} | {esc(r['unit'])} | "
           + " | ".join(r["tags"][k] for k in TAGS) + f" | {'y' if r['done'] else '-'} | {'pass' if r['pass'] else 'fail'} | "
           f"{esc(fails(r))} |"
-          for r in out]
+          for r in out if not r["pass"]]
     L += ["", "## Ghidra bodies that end early", "",
           "symbols.txt func rows in a delink unit whose applied functions.jsonl bodyMax < va+size-1 (as `delink.py "
           f"relocscan`): {len(res['early'])}; rows with no Ghidra function at entry: {res['nofunc']}.", ""]
@@ -751,8 +799,9 @@ def render_near(res):  # 3.4 T2: appended after render(res); identical sections 
                      f"{esc(r['unit'])} | " + " | ".join(r["tags"][k] for k in TAGS) + f" | {'y' if r['done'] else '-'} |")
     good = [r for r in near if r["pass"]]
     L += [hdr, sep] + [row(r) for r in good] if good else ["None."]
-    L += ["", "### Near all rows (rank order)", "", hdr[:-1] + "| verdict | reasons |", sep + "---|---|"]
-    L += [row(r) + f" {'pass' if r['pass'] else 'fail'} | {esc(fails(r))} |" for r in near]
+    # was "### Near all rows (rank order)" over every row (5.5 T27.c4: failing only)
+    L += ["", "### Near failing rows (rank order)", "", hdr[:-1] + "| verdict | reasons |", sep + "---|---|"]
+    L += [row(r) + f" {'pass' if r['pass'] else 'fail'} | {esc(fails(r))} |" for r in near if not r["pass"]]
     return "\n".join(L) + "\n"
 
 
@@ -788,8 +837,9 @@ def render_amb(res):  # 5.3 T3: appended after render_near(res)
                      f"{esc(r['unit'])} | " + " | ".join(r["tags"][k] for k in TAGS) + f" | {'y' if r['done'] else '-'} |")
     good = [r for r in amb if r["pass"]]
     L += [hdr, sep] + [row(r) for r in good] if good else ["None."]
-    L += ["", "### Ambiguous all rows (rank order)", "", hdr[:-1] + "| verdict | reasons |", sep + "---|---|"]
-    L += [row(r) + f" {'pass' if r['pass'] else 'fail'} | {esc(fails(r))} |" for r in amb]
+    # was "### Ambiguous all rows (rank order)" over every row (5.5 T27.c4: failing only)
+    L += ["", "### Ambiguous failing rows (rank order)", "", hdr[:-1] + "| verdict | reasons |", sep + "---|---|"]
+    L += [row(r) + f" {'pass' if r['pass'] else 'fail'} | {esc(fails(r))} |" for r in amb if not r["pass"]]
     return "\n".join(L) + "\n"
 
 
@@ -952,25 +1002,36 @@ def main(argv):
             print(f"candidates: REFUSED {e}", file=sys.stderr)
             return 2
     try:
+        pre = {k: _sha256(q) for k, q in stamp_inputs(ARGS.config)} if ARGS.write else None  # 5.5 T6: before compute
         res = compute()
     except (Refuse, byte_compare.Refuse) as e:
         print(f"candidates: REFUSED {e}", file=sys.stderr)
         return 2
     out = res["out"]
+    miss = []  # 5.5 T6 (C3): an EXPECT* mismatch exits 1; was printed only
     for k, v in res["excl"].items():
+        miss += [] if v == EXPECT[k] else [f"excluded {k}"]
         print(f"excluded {k} {v}" + ("" if v == EXPECT[k] else f" (expected {EXPECT[k]})"))
+    miss += [] if len(out) == EXPECT_POOL else ["pool"]
     print(f"pool {len(out)}" + ("" if len(out) == EXPECT_POOL else
                                 f" (expected {EXPECT_POOL}: steps differing above, or inputs regenerated since 1.4)"))
     near = res["near"]  # 3.4 T2
     for k, v in res["nexcl"].items():
+        miss += [] if v == EXPECT_NEAR[k] else [f"near excluded {k}"]
         print(f"near excluded {k} {v}" + ("" if v == EXPECT_NEAR[k] else f" (expected {EXPECT_NEAR[k]})"))
+    miss += [] if len(near) == EXPECT_NEAR_POOL else ["near pool"]
     print(f"near pool {len(near)} of {res['nrows']}" + ("" if len(near) == EXPECT_NEAR_POOL else
                                                          f" (expected {EXPECT_NEAR_POOL})"))
     amb = res["amb"]  # 5.3 T3
     for k, v in res["aexcl"].items():
+        miss += [] if v == EXPECT_AMB[k] else [f"amb excluded {k}"]
         print(f"amb excluded {k} {v}" + ("" if v == EXPECT_AMB[k] else f" (expected {EXPECT_AMB[k]})"))
+    miss += [] if len(amb) == EXPECT_AMB_POOL else ["amb pool"]
     print(f"amb pool {len(amb)} of {res['arows']}" + ("" if len(amb) == EXPECT_AMB_POOL else
                                                        f" (expected {EXPECT_AMB_POOL})"))
+    if miss:
+        print(f"candidates: FAIL counts differ from EXPECT*: {', '.join(miss)} (nothing written)")
+        return 1
     fc, npass = counts(res)
     doc = render(res) + render_near(res) + render_amb(res)
     try:
@@ -979,6 +1040,10 @@ def main(argv):
         print(f"candidates: REFUSED {e}", file=sys.stderr)
         return 2
     if ARGS.check:
+        stale = fresh(ARGS.config)  # 5.5 T6 (S4): was docs only
+        if stale:
+            print("candidates: stale stamp: " + "; ".join(stale))
+            return 1
         why = _differs(RESIDUE, residue)
         if why:
             print(why)
@@ -1000,13 +1065,13 @@ def main(argv):
     print("fail " + "; ".join(f"{k} {v}" for k, v in fc.items()) + f"; pass {npass}")
     print("near fail " + "; ".join(f"{k} {sum(not r['checks'][k]['pass'] for r in near)}" for k in CHECKS)
           + f"; pass {sum(r['pass'] for r in near)}")
-    if ARGS.write:
+    if ARGS.write:  # 5.5 T6 (S4): jsonl first, then its stamp, then the docs; was docs first, plain writes
+        OUT.parent.mkdir(parents=True, exist_ok=True)
+        _replace(OUT, "".join(json.dumps(r, sort_keys=True) + "\n" for r in out + near + amb))
+        _replace(STAMP, json.dumps({"inputs": pre, "out": _sha256(OUT)}, indent=1, sort_keys=True) + "\n")
         DOC.parent.mkdir(parents=True, exist_ok=True)
         DOC.write_text(doc, encoding="utf-8", newline="\n")
         RESIDUE.write_text(residue, encoding="utf-8", newline="\n")
-        OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in out + near + amb), encoding="utf-8",
-                       newline="\n")
         print("Pins")
         print("\n".join(pin_lines(res)))
         print(f"wrote {DOC.relative_to(REPO).as_posix()}, {RESIDUE.relative_to(REPO).as_posix()} and "

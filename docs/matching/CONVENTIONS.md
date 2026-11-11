@@ -63,6 +63,10 @@ int LocString_GetStringID(...)
   row's name and its tag is that row's source column.
 - No renaming of PDB names while the repository is private (D42). Decided for release (D108, developer 2026-10-30):
   prototype-PDB names are kept, no rename; tags stay in the public source; position (b) disclosure applies.
+- Every declared member (data, method, typedef, enumerator) resolves in default.pdb as a member of its owner or a
+  base class (`members`, 5.5 T13); every free function in a matched unit or its quoted headers has a PDB, public or
+  symbols name, or is a marked `pin_emit_` scaffold (`untagged`). Parameters are not checked. Existing sites: a
+  shrink-only baseline in `config/provenance_accepted.txt` (`<check>	<path>	<line>	<reason>`; an unused entry fails).
 
 ## 3. Struct layout: size assert and offset comments (`src/include/decomp.h`)
 - cl 13.10 has no `static_assert`. `DECOMP_SIZE_ASSERT(type, size);` (Halo 2 typedef form
@@ -93,11 +97,14 @@ int LocString_GetStringID(...)
   original lacks; `#pragma` inside a function body (`#pragma optimize` included); `volatile` on a global; global address
   or offset tricks; volatile function pointers; `__asm`/`_asm` (also refused by the gate's `asm` verdict); per-function
   flags (build.py has none: a unit has one `opt`).
+- D138 (amends D116): `#pragma intrinsic` only at a file's head, before its first FUNCTION line (`pragma-scope`);
+  `__declspec(noreturn)` only under a `!FAKE` line whose reason records a before/after (`->`) (`attr`). The
+  three fields are checked on the `!FAKE` line itself (`fake-fields`, 5.5 T13).
 - A call retail inlined that /O1 keeps out of line (D117): no `__forceinline`, no helper the prototype PDB does not
   record. Allowed: a pointer local to the call (`const T* p = &f();`) or hand forms of the body (C0191), each stand-in
   local neutral ("Locals" below) and marked `!FAKE`. A row no allowed form matches is a question for the developer.
 
-## 5. NON_MATCHING (D41, G4)
+## 5. NON_MATCHING (D127, was D41/D124; G4)
 ```
 // FUNCTION: USA 0x<VA>
 // NAME: proto-pdb:default.pdb
@@ -114,7 +121,7 @@ int LocString_GetStringID(...)
 Source: BFM cookbook C0003, C0006, C0133, C0294 (gcc 2.7.2, MIPS; R1.6-004, R1.6-005, R0-012). Kept only where
 generic or where 1.4/1.5 cl 13.10 evidence supports it; the rest waits for a reproducer (D62).
 - Work-loop rules: gate the raw XBE bytes before any transform (CK18): the claim is the gate's byte compare on retail
-  bytes (D40), never a disassembly listing, a decompiler view or a normalised diff; keep an attempt journal in the task
+  bytes (D123, was D40), never a disassembly listing, a decompiler view or a normalised diff; keep an attempt journal in the task
   log (each edit, its `match_one` line, undo to the last best). Judge in the destination unit (CK25): a draft is judged
   in its unit file, built with the unit's `opt` (`match_one.py` builds the whole unit file); a standalone scratch compile
   can refuse a standalone claim, never a unit claim.
@@ -151,8 +158,8 @@ generic or where 1.4/1.5 cl 13.10 evidence supports it; the rest waits for a rep
     merge (gcc jump.c).
 
 ## 7. Readability (developer decision 2026-10-27; BFM gen3 standards, fetched summary R0-004:169-184)
-Readability ranks below every rule and every section above; it relaxes none of them (most at risk: D40, D41, D42, D66,
-D78, D79, D81) and is never match evidence (D81). It acts only where the gate is blind (meaning without bytes), so
+Readability ranks below every rule and every section above; it relaxes none of them (most at risk: D123, D127, D42, D66,
+D78, D116, D81) and is never match evidence (D81). It acts only where the gate is blind (meaning without bytes), so
 every point below is evidence-bound.
 - When more than one source form has passed the gate, keep the one closest to ordinary code: plain control flow, no
   cast or temporary the gate shows can be removed.
@@ -177,6 +184,8 @@ every point below is evidence-bound.
   and D66 constructs; `docs/ops/tools.md` "provenance_lint").
 - Locals: the prototype PDB's local name where `PY tools/pdb_types.py locals` has the function (covered by the
   function's `NAME:` tag), else a neutral form (`v<N>`, `tmp`, `i`, `p`); never a name stating purpose or meaning (D78).
+  Where the PDB proc has locals, a neutral local outside them needs a `!FAKE` line on or above it (`neutral`,
+  5.5 T13; R5.5-003 S5).
 - No rename for readability: placeholders change only with evidence (§2); PDB names stay, in the public release too (D108,
   developer 2026-10-30). D42's "no renaming while private" is unchanged; D108 amends nothing.
 - What a later rename would need, none being planned; it takes a new developer decision reversing D108, plus a

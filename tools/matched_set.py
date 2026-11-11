@@ -11,22 +11,28 @@ text_start <= va < text_end (edge_start/edge_end refuse only when both are ints;
 appends to the file text (header kept). Refuses an XBE whose sha1 differs from the pin, duplicates, missing file.
 3.4 T6.1: a name with no symbols.txt row falls back (add and check, _func_row) to config/retail/symbols_pin.txt:
 exactly one sized `func` pin line, status disasm-verified with another func name at its VA (a fold alias, C0130) or
-whose pin row passes tools/pin_rows.py (D118, 4.2 T5), or near-corr; else refused with the reason. add of a near-corr pin also needs a `"lane": "near"` row of the symbol at
+whose pin row passes tools/pin_rows.py (D118, 4.2 T5), or near-corr, or (D137, 5.5 T27) corr-verified tagged
+proto-pdb-public+registerme-twin whose pin row passes; else refused with the reason. add of a near-corr pin also needs a `"lane": "near"` row of the symbol at
 that VA in derived/candidates/candidates.jsonl (add-time only; check never reads it). One row per retail VA.
 check: per function `xbe_sha1`, `size`, `body_sha1`, `defined`, `asm`; global `"*objects*"` -> `extra` (rules
-eh-funclet, local-label, inline-copy; 5.1 T2 D124: an `[[emitter]]` symbol with a hand-written definition in its
-unit's source (brace depth 0, `{` before `;`) that is not a marked scaffold (`pin_emit_*` under `//` lines with
-`!FAKE:` and `scaffold`) fails `[[emitter]] <symbol> (<obj>) has a hand-written body at <source>:<line>`; a symbol
-with no hand spelling or no definition passes). `asm`: one preprocess per unique (source, flags), sorted, on WORKERS
+eh-funclet, local-label, inline-copy; 5.1 T2 D124, 5.5 T12.c4 G6/I32: an `[[emitter]]` row passes only when its
+symbol is a code symbol of its unit's obj (else `is stale`) and exactly one definition of it (`{` before `;`, any brace
+depth) is found in the unit's source or a quoted header, a marked scaffold (depth 0, `pin_emit_*` under `//` lines
+with `!FAKE:` and `scaffold`); else `has a hand-written body at <file>:<line>`, `has no hand spelling`, `has no marked
+scaffold definition ...` or `has N marked scaffold definitions`; was: only an unmarked depth-0 body in the source
+failed). `*objects*` also carries `inline-copy`, a report never judged (5.5 T12.c4, R5.5-003 S6): the inline-copy
+extras with one sized func table row byte-compared to the retail XBE, `equal E, differ D, no-VA N (of K)`. `asm`: one preprocess per unique (source, flags), sorted, on WORKERS
 threads, results by key (5.1 T2 O18; was: serial). Every layer reported (D51). `built` reconstructed from --src + --objs with
 build.unit_map/unit_path/flags_of (no rebuild; obj = objs/<objname basename>).
 Exit (D26): 0 all pass and N >= 1; 1 any fail; 2 refusal (stderr `matched_set: REFUSED <why>`).
 Library: load(list_path) -> entries (dicts with `kind` "function"|"emitter"); check(entries, built, src_root) ->
-{symbol: {check: verdict}, "*objects*": {"extra": verdict}}; REQUIRED; is_done(row); Refuse.
+{symbol: {check: verdict}, "*objects*": {"extra": verdict, "inline-copy": report}}; REQUIRED; is_done(row); Refuse.
 """
 import argparse
 import concurrent.futures
+import contextlib
 import hashlib
+import io
 import json
 import re
 import shutil
@@ -57,6 +63,7 @@ FIELDS = {"function": {"symbol": str, "unit": str, "va": int, "size": int, "xbe_
           "emitter": {"symbol": str, "unit": str, "reason": str}}
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 ASM = re.compile(r"(?<![A-Za-z0-9_])_?_asm(?![A-Za-z0-9_])")
+INCLUDE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')  # 5.5 T12.c4: as provenance_lint.INCLUDE
 LITERAL = re.compile(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'')
 FUNCLET = re.compile(r"^(?:__ehhandler\$(.+)|__(?:unwindfunclet|catch|tryend)\$(.+)\$\d+)$")
 LOCAL_LABEL = re.compile(r"^\$L\d+$")
@@ -124,32 +131,46 @@ def _symbols():
 
 
 def _pins():
-    """-> {name: [{va, kind, size, status}]} of symbols_pin.txt (format as symbols.txt; status = last field)."""
+    """-> {name: [{va, kind, size, tag, status}]} of symbols_pin.txt (format as symbols.txt; status = last field, tag
+    the one before it: 5.5 T27, the twin route of _pin_row)."""
     rows = {}
     for line in PINS.read_text(encoding="utf-8").splitlines():
         p = line.split()
         if not p or p[0].startswith("#") or len(p) < 6:
             continue
         rows.setdefault(" ".join(p[3:-2]), []).append({"va": int(p[0], 16), "kind": p[1], "status": p[-1],
-                                                         "size": None if p[2] in ("-", "0") else int(p[2], 16)})
+                                                         "size": None if p[2] in ("-", "0") else int(p[2], 16),
+                                                         "tag": p[-2]})  # 5.5 T27
     return rows
+
+
+TWIN_TAG = "proto-pdb-public+registerme-twin"  # D137 (5.5 T27): the one corr-verified tag _pin_row admits
 
 
 def _pin_row(rows, pins, symbol, cfg=None):
     """3.4 T6.1: -> (va, size, status) of `symbol`'s one sized func pin line, status near-corr, or disasm-verified with
     another func name at the same VA in symbols.txt or the pins (a fold alias, C0130), or (D118, 4.2 T5) disasm-verified
     sole name whose pin row passes the pin-row check (pin_rows.row_ok is True, under cfg: the gate's config, 4.5
-    T16.2.c4); else a reason string."""
+    T16.2.c4), or (D137, 5.5 T27) corr-verified with tag TWIN_TAG whose pin row passes the pin-row check; every other
+    corr-verified pin stays refused; else a reason string."""
     fs = [r for r in pins.get(symbol, []) if r["kind"] == "func"]
     if not fs:
         return f"{symbol} not in symbols.txt or symbols_pin.txt"
     if len(fs) != 1:
         return f"{symbol} has {len(fs)} symbols_pin.txt func lines"
     r = fs[0]
-    if r["status"] not in ("disasm-verified", "near-corr"):
-        return f"{symbol} pin status {r['status']} (need disasm-verified fold alias or near-corr)"
+    twin = r["status"] == "corr-verified" and r.get("tag") == TWIN_TAG  # D137 (5.5 T27)
+    # was: if r["status"] not in ("disasm-verified", "near-corr"):
+    if r["status"] not in ("disasm-verified", "near-corr") and not twin:
+        return (f"{symbol} pin status {r['status']} (need disasm-verified fold alias, near-corr, or corr-verified "
+                f"{TWIN_TAG})")
     if r["size"] is None:
         return f"{symbol} pin has no size in symbols_pin.txt"
+    if twin:
+        import pin_rows  # noqa: PLC0415  lazy, pin_rows imports this module
+        ok = pin_rows.row_ok(symbol, cfg)
+        if ok is not True:  # D137: the twin route is admitted only on a passing pin row
+            return f"{symbol} pin corr-verified {TWIN_TAG}: pin-row check: {ok}"
     if r["status"] == "disasm-verified" and not any(
             n != symbol and any(x["kind"] == "func" and x["va"] == r["va"] for x in xs)
             for tab in (rows, pins) for n, xs in tab.items()):
@@ -358,22 +379,25 @@ def _code_depths(lines):
     return out
 
 
-def _hand_body(text, symbol):
-    """5.1 T2 (D124): -> 1-based line of the first hand-written definition of symbol in text that is not a marked
-    scaffold (name `pin_emit_*` and the contiguous `//` lines directly above hold `!FAKE:` and `scaffold`), else None.
-    A definition: a name hit at brace depth 0 on a non-`#` code line whose following code reaches `{` before `;`."""
+def _hand_defs(text, symbol):
+    """5.5 T12.c4 (G6, I32; was _hand_body, 5.1 T2 D124: the first unmarked definition at depth 0, None when none or
+    no spelling) -> None when symbol has no hand spelling, else [(1-based line, marked)] of every definition of it in
+    text at ANY brace depth (`extern "C" {`, `namespace X {` included). A definition: a name hit on a non-`#` code line
+    whose following code reaches `{` before `;`. marked: brace depth 0, name `pin_emit_*`, and the contiguous `//`
+    lines directly above hold `!FAKE:` and `scaffold`."""
     sp = _hand_spelling(symbol)
     if sp is None:
         return None
     rx, name = re.compile(sp[0]), sp[1]
     lines = text.splitlines()
     code = _code_depths(lines)
+    out = []
     for i, (depth, c) in enumerate(code):
         if c.lstrip().startswith("#"):
             continue
         for m in rx.finditer(c):
-            if depth + c[:m.start()].count("{") - c[:m.start()].count("}"):
-                continue
+            # was: `continue` when the depth below was non-zero (a wrapped body was never seen)
+            at = depth + c[:m.start()].count("{") - c[:m.start()].count("}")
             rest = [c[m.end():]] + [cc for _d, cc in code[i + 1:]]
             hit = next((ch for r in rest for ch in r if ch in "{;"), None)
             if hit != "{":
@@ -383,13 +407,78 @@ def _hand_body(text, symbol):
                 above.append(lines[j])
                 j -= 1
             note = " ".join(above)
-            if not (name.startswith(SCAFFOLD_PREFIX) and "!FAKE:" in note and "scaffold" in note):
-                return i + 1
+            out.append((i + 1, not at and name.startswith(SCAFFOLD_PREFIX) and "!FAKE:" in note and "scaffold" in note))
+    return out
+
+
+def _quoted_headers(path, seen=None):
+    """5.5 T12.c4: files reachable from path through `#include "..."` (resolved beside the including file), sorted
+    (as provenance_lint.quoted_headers; local: provenance_lint imports this module)."""
+    seen = set() if seen is None else seen
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        m = INCLUDE.match(line)
+        if m:
+            h = (path.parent / m.group(1)).resolve()
+            if h.is_file() and h not in seen:
+                seen.add(h)
+                _quoted_headers(h, seen)
+    return sorted(seen)
+
+
+def _emitter_verdict(e, b, objsyms, src_root):
+    """5.5 T12.c4 (G6, I32): None when the [[emitter]] row e passes on built row b, else its cause. Passes only when
+    its symbol is a code symbol of b's obj (else stale) and exactly one definition of it is found in b's source or a
+    quoted header, a marked scaffold (_hand_defs). was (5.1 T2): fail only on an unmarked depth-0 body in the source;
+    no spelling, no definition, a header or a wrapped body passed."""
+    s, o = e["symbol"], Path(b["obj"]).name
+    head = f"[[emitter]] {s} ({o})"
+    if not any(n == s and ch & SCN_CNT_CODE for n, _c, _s, ch, _sel in objsyms[str(b["obj"])]):
+        return f"{head} is stale: not defined as code in {o}"
+    root = Path(src_root).resolve()
+    src = (root / b["source"]).resolve()
+    defs = []
+    for p in [src] + [h for h in _quoted_headers(src) if h != src]:
+        d = _hand_defs(p.read_text(encoding="utf-8", errors="replace"), s)
+        if d is None:
+            return f"{head} has no hand spelling (no marked scaffold can be found)"
+        rel = p.relative_to(root).as_posix() if p.is_relative_to(root) else p.as_posix()
+        defs += [(f"{rel}:{ln}", mk) for ln, mk in d]
+    hand = [at for at, mk in defs if not mk]
+    if hand:
+        return f"{head} has a hand-written body at {hand[0]}"
+    if not defs:
+        return f"{head} has no marked scaffold definition in its source or quoted headers"
+    if len(defs) != 1:
+        return f"{head} has {len(defs)} marked scaffold definitions (need 1): {', '.join(at for at, _m in defs)}"
     return None
 
 
+def _inline_report(copies, rows, pins, xb, x):
+    """5.5 T12.c4 (R5.5-003 S6), report only, never a verdict: copies [(obj, name)] of `inline-copy` extras; one with
+    exactly one sized func row (symbols.txt + symbols_pin.txt) is byte-compared (byte_compare.compare, the gate's
+    SYMTABS names) against the retail XBE at that VA -> `equal E, differ D, no-VA N` (differ: not `match`, or refused)."""
+    eq = df = nva = 0
+    byname = None
+    for obj, n in copies:
+        fs = {(r["va"], r["size"]) for r in rows.get(n, []) + pins.get(n, []) if r["kind"] == "func" and r["size"]}
+        if len(fs) != 1:
+            nva += 1
+            continue
+        if byname is None:
+            byname, _c = coff_info.load_names([SYMBOLS, PINS])
+        va, size = next(iter(fs))
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                v, _m, _n = byte_compare.compare(obj, n, va, byname, xb, x, size)
+        except byte_compare.Refuse:
+            v = "refused"
+        eq, df = eq + (v == "match"), df + (v != "match")
+    return f"equal {eq}, differ {df}, no-VA {nva} (of {len(copies)})"
+
+
 def check(entries, built, src_root, config=None):
-    """-> {symbol: {check: verdict}, "*objects*": {"extra": verdict}}; verdict "pass" or "fail: <why>"."""
+    """-> {symbol: {check: verdict}, "*objects*": {"extra": verdict, "inline-copy": report}}; verdict "pass" or
+    "fail: <why>"; the inline-copy report is never a verdict (5.5 T12.c4)."""
     pin, xb, x = _xbe(config)
     rows, pins = _symbols(), _pins()
     bindir = Path(vv_inputs.load_config(config)["msvc71_dir"])
@@ -432,7 +521,7 @@ def check(entries, built, src_root, config=None):
         res[s] = v
     listed = {(e["unit"], e["symbol"]) for e in funcs + emits}
     names = {e["symbol"] for e in funcs}
-    offenders = []
+    offenders, copies = [], []
     for b in built:
         for n, cls, _sec, ch, sel in objsyms[str(b["obj"])]:
             if not ch & SCN_CNT_CODE or (b["unit"], n) in listed:
@@ -443,17 +532,21 @@ def check(entries, built, src_root, config=None):
             if cls == coff_info.SC_STATIC and LOCAL_LABEL.match(n):
                 continue  # local-label
             if sel == SEL_ANY:
+                copies.append((b["obj"], n))
                 continue  # inline-copy
             offenders.append(f"{Path(b['obj']).name}:{n}")
     hand = []  # 5.1 T2 (D124): an [[emitter]] row is only compiler-emitted code or a marked scaffold
     for e in emits:
-        for b in byunit.get(e["unit"], []):
-            ln = _hand_body((Path(src_root) / b["source"]).read_text(encoding="utf-8", errors="replace"), e["symbol"])
-            if ln:
-                hand.append(f"[[emitter]] {e['symbol']} ({Path(b['obj']).name}) has a hand-written body at "
-                            f"{Path(b['source']).as_posix()}:{ln}")
+        bs = byunit.get(e["unit"], [])
+        if not bs:  # 5.5 T12.c4: was: no built obj, no check (pass)
+            hand.append(f"[[emitter]] {e['symbol']} is stale: unit {e['unit']} has no built obj")
+        for b in bs:
+            why = _emitter_verdict(e, b, objsyms, src_root)  # 5.5 T12.c4 (G6, I32); was: _hand_body, source only
+            if why:
+                hand.append(why)
     fails = ([f"unlisted code symbol(s) {', '.join(offenders)}"] if offenders else []) + hand
-    res[OBJECTS] = {"extra": "pass" if not fails else "fail: " + "; ".join(fails)}
+    res[OBJECTS] = {"extra": "pass" if not fails else "fail: " + "; ".join(fails),
+                    "inline-copy": _inline_report(copies, rows, pins, xb, x)}  # 5.5 T12.c4 (S6): report, never judged
     # was: {"extra": "pass" if not offenders else f"fail: unlisted code symbol(s) {', '.join(offenders)}"}
     return res
 
@@ -521,9 +614,10 @@ def main(argv):
         print(f"{'PASS' if ok else 'FAIL'} {s}: " + "; ".join(f"{k} {v[k]}" for k in REQUIRED))
     gl = res[OBJECTS]
     for k, v in gl.items():
-        print(f"{'PASS' if v == 'pass' else 'FAIL'} {OBJECTS} {k}: {v}")
+        print(f"REPORT {OBJECTS} {k} bytes (never a fail): {v}" if k == "inline-copy" else  # 5.5 T12.c4 (S6)
+              f"{'PASS' if v == 'pass' else 'FAIL'} {OBJECTS} {k}: {v}")
     print(f"{npass} passed, {nfail} failed of {npass + nfail}")
-    return 0 if nfail == 0 and npass >= 1 and all(v == "pass" for v in gl.values()) else 1
+    return 0 if nfail == 0 and npass >= 1 and gl.get("extra") == "pass" else 1  # was: all gl values pass
 
 
 if __name__ == "__main__":

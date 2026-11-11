@@ -12,17 +12,23 @@ Exit: 0 built (0 units allowed; prints counts); 1 any compile failure or any C/D
 string, an opt token steering includes or macros (`/FI /I /X /u /D /U`, `-` forms too; 4.5 T16.2), duplicate obj output path
 (case-insensitive; was: duplicate obj name), out dir not under REPO/.run/, missing src root/units/msvc71_dir.
 The out dir is wiped and recreated each run (after the refusal checks).
-Library: build(src_root, out_dir, units_path=UNITS, config=None) -> [{unit, source, obj, flags}] in source order;
-raises Refuse (exit 2) or BuildFailed (exit 1, after every source was tried).
+Library: build(src_root, out_dir, units_path=UNITS, config=None, workers=None) -> [{unit, source, obj, flags}] in
+source order; raises Refuse (exit 2) or BuildFailed (exit 1, after every source was tried; failures in source order).
+5.4 T5.c4: the compiles run in a thread pool of `workers` (default pool_size(): memory-sized), each in its own
+scratch dir <out>/.scratch-<i> (cwd and TMP of its cl; removed after); results kept in source order whatever the
+completion order. main records a timing row (step `build`, label = the phase id); stdout unchanged.
 """
 import argparse
+import re
 import shutil
 import sys
 import tomllib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import msvc71  # noqa: E402
+import timing  # noqa: E402  5.4 T5.c4: free_mb sizes the pool; step records main
 import vv_inputs  # noqa: E402
 
 REPO = vv_inputs.REPO
@@ -32,6 +38,12 @@ PREFIX = "d:\\beep\\"
 MIDDLE = "\\xbox\\officialrelease\\"
 EXT = {"c": ".c", "c++": ".cpp"}
 STEER = ("FI", "I", "X", "u", "D", "U")  # opt tokens refused after `/` or `-` (4.5 T16.2 G18), case-sensitive
+# 5.4 T5.c4: pool size W = clamp((free_mb - RESERVE_MB) // PER_JOB_MB, 1, CAP); 1 when free_mb is unknown.
+# Evidence: phase-ends/current/logs/T5.c4.md.
+RESERVE_MB = 6144  # free memory left to the machine (as gate_controls.RESERVE_MB)
+PER_JOB_MB = 32  # one cl.exe (c1xx/c2 in-process): peak working set max 15 MB, median 9 MB over the 216 src sources
+CAP = 8  # was: 1 (serial loop). Build wall (216 src) at CAP 2/4/8/16: in the gate, its lanes running,
+# 6.39/3.60/2.86/2.45 s (gate total flat ~60 s: the audit lane bounds it); alone 3.5/2.0/1.3/1.3 s
 
 
 class Refuse(Exception):
@@ -88,7 +100,13 @@ def flags_of(unit):
     return toks
 
 
-def build(src_root, out_dir, units_path=UNITS, config=None):
+def pool_size():
+    """5.4 T5.c4: compile workers for the free memory now (see CAP)."""
+    free = timing.free_mb()
+    return 1 if free is None else max(1, min(CAP, (free - RESERVE_MB) // PER_JOB_MB))
+
+
+def build(src_root, out_dir, units_path=UNITS, config=None, workers=None):
     src_root, out_dir = Path(src_root).resolve(), Path(out_dir).resolve()
     if out_dir == RUN or not out_dir.is_relative_to(RUN):
         raise Refuse(f"out dir {out_dir} is not under {RUN}")
@@ -120,10 +138,21 @@ def build(src_root, out_dir, units_path=UNITS, config=None):
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
-    built, failures = [], []
-    for u, s, rel, flags, obj in jobs:
+    for _u, _s, _rel, _flags, obj in jobs:
         obj.parent.mkdir(parents=True, exist_ok=True)
-        ok, codes, text = msvc71.compile_one(Path(bindir), s, flags, obj, scratch=out_dir)
+
+    def one(i):  # 5.4 T5.c4: one cl in its own scratch (cwd, TMP/TEMP); was: scratch=out_dir, shared by the serial loop
+        u, s, rel, flags, obj = jobs[i]
+        scratch = out_dir / f".scratch-{i}"
+        scratch.mkdir()
+        try:
+            return msvc71.compile_one(Path(bindir), s, flags, obj, scratch=scratch)
+        finally:
+            shutil.rmtree(scratch, ignore_errors=True)
+    with ThreadPoolExecutor(max_workers=workers or pool_size()) as ex:  # 5.4 T5.c4; was: a serial loop
+        results = list(ex.map(one, range(len(jobs))))  # map keeps job (source) order
+    built, failures = [], []
+    for (u, s, rel, flags, obj), (ok, codes, text) in zip(jobs, results):
         if ok:
             built.append({"unit": u["name"], "source": rel, "obj": obj, "flags": " ".join(flags)})
         else:
@@ -133,12 +162,31 @@ def build(src_root, out_dir, units_path=UNITS, config=None):
     return built
 
 
+def phase_id():
+    """5.4 T5.c4: the open plan's `# Phase <id>` (as gate._pyc_prefix finds it), the timing label; None if absent.
+    Never raises."""
+    try:
+        plan = REPO / "phase-ends" / "current" / "PHASE_PLAN.md"
+        m = re.search(r"^# Phase (\S+)", plan.read_text(encoding="utf-8"), re.M) if plan.is_file() else None
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
 def main(argv):
     ap = argparse.ArgumentParser(prog="build.py", description=__doc__.splitlines()[0])
     ap.add_argument("--src", required=True, help="source root (path rule applies under it)")
     ap.add_argument("--out", required=True, help="obj dir under .run/ (wiped each run)")
     ap.add_argument("--config", help="local paths config (passed to vv_inputs.load_config)")
     a = ap.parse_args(argv)
+    # 5.4 T5.c4: one record; rc = main's. 5.4 T21: shared gate marker
+    mk = "build.py " + " ".join(map(str, sys.argv[1:] if argv is None else argv))
+    with timing.step("build", label=phase_id(), marker=mk) as rec:
+        rec.rc = _main(a)
+    return rec.rc
+
+
+def _main(a):
     try:
         built = build(a.src, a.out, config=a.config)
     except Refuse as e:

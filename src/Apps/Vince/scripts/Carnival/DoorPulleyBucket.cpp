@@ -132,6 +132,10 @@ class DoorPulleyBucketMain : public BasicDoorMain { // NAME: proto-pdb:default.p
 public:
     DoorPulleyBucketMain(SwampSceneNode* node);
     virtual void FrameTick();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -167,4 +171,18 @@ SwampScript* DoorPulleyBucketMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\DoorPulleyBucket.cpp", 9) DoorPulleyBucketMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0003C641
+// NAME: proto-pdb:default.pdb
+DoorPulleyBucketMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorPulleyBucketMain", creationFunc);
 }

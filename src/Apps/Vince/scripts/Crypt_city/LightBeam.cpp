@@ -117,6 +117,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual ~CritterMain();
@@ -134,6 +141,10 @@ void* operator new(unsigned int size, const char* file, int line);
 class LightBeamMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     LightBeamMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 protected:
     virtual void FrameTick();
 private:
@@ -148,6 +159,13 @@ SwampScript* LightBeamMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\LightBeam.h", 38) LightBeamMain(node);
+}
+
+// FUNCTION: USA 0x0006B864
+// NAME: proto-pdb:default.pdb
+LightBeamMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LightBeamMain", creationFunc);
 }
 
 struct D3DVertexBuffer; // NAME: proto-pdb:default.pdb

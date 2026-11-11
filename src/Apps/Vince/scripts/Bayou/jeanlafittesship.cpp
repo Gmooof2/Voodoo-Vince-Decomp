@@ -116,6 +116,11 @@ public:
     Switch_ShipDoorMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(Switch_ShipDoorMain, 0x13C);
 
@@ -130,6 +135,11 @@ public:
     WindowShipMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(WindowShipMain, 0x110);
 
@@ -144,8 +154,20 @@ public:
     JeanLaFittesShipRegionMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(JeanLaFittesShipRegionMain, 0x64);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x00022D90
 // NAME: proto-pdb:default.pdb
@@ -166,6 +188,13 @@ SwampScript* Switch_ShipDoorMain::creationFunc(SwampSceneNode* node)
     return new("JeanLaFittesShip\\jeanlafittesship.cpp", 76) Switch_ShipDoorMain(node);
 }
 
+// FUNCTION: USA 0x00022F85
+// NAME: proto-pdb:default.pdb
+Switch_ShipDoorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ShipDoorMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00022EC2
 // PROTOTYPE: PREVIEW 0x00411DC3 identical
 // NAME: proto-pdb:default.pdb
@@ -175,6 +204,13 @@ SwampScript* WindowShipMain::creationFunc(SwampSceneNode* node)
     return new("JeanLaFittesShip\\jeanlafittesship.cpp", 57) WindowShipMain(node);
 }
 
+// FUNCTION: USA 0x00022F49
+// NAME: proto-pdb:default.pdb
+WindowShipMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WindowShipMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00022EE9
 // PROTOTYPE: PREVIEW 0x00411DEA identical
 // NAME: proto-pdb:default.pdb
@@ -182,4 +218,11 @@ SwampScript* JeanLaFittesShipRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("JeanLaFittesShip\\jeanlafittesship.cpp", 24) JeanLaFittesShipRegionMain(node);
+}
+
+// FUNCTION: USA 0x00022F0D
+// NAME: proto-pdb:default.pdb
+JeanLaFittesShipRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("JeanLaFittesShipRegionMain", creationFunc);
 }

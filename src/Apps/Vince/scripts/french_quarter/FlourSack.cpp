@@ -285,6 +285,10 @@ DECOMP_SIZE_ASSERT(DialogueRegionMain, 0xA4);
 class DialogueVinceCarryRegionMain : public DialogueRegionMain { // NAME: proto-pdb:default.pdb
 public:
     DialogueVinceCarryRegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -318,6 +322,10 @@ public:
     virtual void Activate();
     virtual void FrameTick();
     virtual void CollidedWith(CollisionType type, SwampSceneNode* critterhit, const Ptr<CollisionResultObject>& cr);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -349,6 +357,8 @@ inline void *__cdecl operator new(unsigned int, void *_Where)
 #ifdef NON_MATCHING
 // best: ??_GFlourSackMain match_one objdiff 100.0, bytes match; wall: relink refuses `floursack.obj: data section
 // .rdata: 0 VAs from its symbols by name` (??_7FlourSackMain 0x001DE3C0 unnamed; lift: pin it, match the ctor 0x796EC)
+// 5.4 wall (T6.c4): ??_7FlourSackMain refused on every vtable route: slot functions 0x00079887, 0x00079B36,
+// 0x00079EC5 are callee-bytes-differ; ??_GFlourSackMain 0x0007984C stays unclaimed
 // !FAKE: c1xx front end; scaffold copy construction; retail emits ??_7FlourSackMain and its ??_G here from the ctor
 // 0x796EC (not matched yet); the implicit copy ctor's vptr store emits them instead ([[emitter]] row)
 void pin_emit_FlourSackMain_vtable(void* p, FlourSackMain* s)
@@ -429,4 +439,25 @@ SwampScript* FlourSackMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\FlourSack.h", 14) FlourSackMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0007A085
+// NAME: proto-pdb:default.pdb
+FlourSackMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FlourSackMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0007A0C1
+// NAME: proto-pdb:default.pdb
+DialogueVinceCarryRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DialogueVinceCarryRegionMain", creationFunc);
 }

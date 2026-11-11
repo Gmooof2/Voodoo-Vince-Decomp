@@ -217,7 +217,6 @@ public:
 protected:
     virtual void Init();                                           // vtable+0x6C
     virtual void Cleanup();                                       // vtable+0x70
-public:
     virtual void SetState(int);                                    // vtable+0x74
 
 private:
@@ -337,7 +336,7 @@ void CutsceneDriver::StopStream()
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 89.09, bytes mismatch (masked 2)
+// best: match_one objdiff 89.09, bytes mismatch (masked 2) (5.4 T15.c2); wall: retail calls unnamed 0x000B9E3C with 2 args (proto SetMute(bool) has 1); unresolved 0x001086B9 (IsValidData out-of-line), 0x001EF988 (float 0.3)
 // FUNCTION: USA 0x001086CE
 // PROTOTYPE: PREVIEW 0x004F3070 near-identical
 // NAME: proto-pdb:default.pdb
@@ -356,6 +355,7 @@ void CutsceneDriver::Init()
 #endif
 
 #ifdef NON_MATCHING
+// best: match_one objdiff 96.88, bytes mismatch (masked 1) (5.4 T15.c2); wall: only diff the SetMute call: retail pushes 2 args to unnamed 0x000B9E3C (proto SetMute(bool) has 1)
 // FUNCTION: USA 0x00108762
 // PROTOTYPE: PREVIEW 0x004F30FA near-identical
 // NAME: proto-pdb:default.pdb
@@ -389,6 +389,7 @@ AnimCam* CutsceneDriver::NewCamera(const SwampString& name)
 }
 
 #ifdef NON_MATCHING
+// 5.5 T7.c5 D115 (R518): callee ?Play@SoundStreamer@@QAEXXZ 0x000D9104 pin disabled; relink cannot resolve the call by name; leaves the matched set
 // FUNCTION: USA 0x0010892C
 // PROTOTYPE: PREVIEW 0x004F32BF near-identical
 // NAME: proto-pdb:default.pdb
@@ -411,8 +412,9 @@ void CutsceneRegionMain::Message(SwampScript* source, int message, void* data)
 // FUNCTION: USA 0x001089BD
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; wall: precheck relink `our ranges overlap at 0x001089F9`: the ctor emits
-// ??_7CutsceneDriver, whose slot 0 ??_GCutsceneDriver folds at 0x001089F9, pinned only as ??_GCameraHelperRegionMain (5.3 T6.c8)
+// best: match_one objdiff 100.0, bytes match (masked 0) (5.5 T8.c4; 5.4 T6.c4 with ??_GCutsceneDriver 0x001089F9);
+// wall: precheck relink `external ?AnimationFinished@CutsceneDriver@@UAEXI@Z does not resolve by name` (??_7CutsceneDriver
+// slot +0x64, no name pinned). The earlier SetState slot wall is lifted (pin 0x000946F7, SetState protected)
 CutsceneDriver::CutsceneDriver(SwampSceneNode* node)
     : SwampScript(node), _cam(0), _cancelled(false), _autostop(true), _state(-1), _cameraShake(0.0f)
 {

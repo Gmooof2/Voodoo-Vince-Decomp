@@ -78,10 +78,12 @@ DECOMP_SIZE_ASSERT(FFlyController, 0xC);
 
 class FFlyControllerV3 { // NAME: proto-pdb:default.pdb
 public:
-    virtual ~FFlyControllerV3();                                 // vtable+0x00
+    FFlyControllerV3() : _min(0), _max(0) {}
+    virtual ~FFlyControllerV3() {}                               // vtable+0x00
     virtual void Initialize(Vector3& min, Vector3& max);         // vtable+0x04
     virtual void Evaluate(double t, Vector3& v) const = 0;       // vtable+0x08
-    virtual void Set(const FFlyCtrlData& data);                  // vtable+0x0C
+    virtual void Set(const FFlyCtrlData& data) {}                // vtable+0x0C
+    static FFlyControllerV3* Create(unsigned int type);
 
     Vector3* _min; // 0x04
     Vector3* _max; // 0x08
@@ -124,6 +126,7 @@ DECOMP_SIZE_ASSERT(FFlyCubicCurveCtrl, 0x20);
 
 class FFlyLinearCurveCtrlV3 : public FFlyControllerV3 { // NAME: proto-pdb:default.pdb
 public:
+    FFlyLinearCurveCtrlV3();
     virtual void Evaluate(double t, Vector3& v) const;
     virtual void Set(const FFlyCtrlData& data);
 
@@ -134,6 +137,7 @@ DECOMP_SIZE_ASSERT(FFlyLinearCurveCtrlV3, 0x40);
 
 class FFlyCubicCurveCtrlV3 : public FFlyControllerV3 { // NAME: proto-pdb:default.pdb
 public:
+    FFlyCubicCurveCtrlV3();
     virtual void Evaluate(double t, Vector3& result) const;
     virtual void Set(const FFlyCtrlData& data);
 
@@ -340,6 +344,22 @@ FFlyController* FFlyController::Create(unsigned int type)
     return 0;
 }
 #endif
+
+// FUNCTION: USA 0x0006EED4
+// PROTOTYPE: PREVIEW 0x0045B181 identical
+// NAME: proto-pdb:default.pdb
+FFlyControllerV3* FFlyControllerV3::Create(unsigned int type)
+{
+    switch (type) {
+    case 1:
+        return new("FFlyController.cpp", 39) FFlyMinMaxCtrlV3;
+    case 2:
+        return new("FFlyController.cpp", 42) FFlyLinearCurveCtrlV3;
+    case 3:
+        return new("FFlyController.cpp", 45) FFlyCubicCurveCtrlV3;
+    }
+    return 0;
+}
 
 // FUNCTION: USA 0x0006EF40
 // PROTOTYPE: PREVIEW 0x0045B1ED identical

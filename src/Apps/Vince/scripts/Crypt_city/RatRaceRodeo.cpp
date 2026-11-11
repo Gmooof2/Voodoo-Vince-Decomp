@@ -139,6 +139,11 @@ public:
     };
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(ExitRampMain, 0xBC);
 
@@ -150,6 +155,11 @@ public:
     };
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(EntranceRampMain, 0xBC);
 
@@ -209,6 +219,11 @@ private:
     virtual void SetState(int state);
 
     ResourceHandle<AnimationResource> _animFall; // 0xBC
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(FloorHoleMain, 0xC0);
 
@@ -265,6 +280,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(FireFlyNode, 0xE8);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x00067E94
 // NAME: proto-pdb:default.pdb
 class MrsGMain : public CritterMain { // NAME: proto-pdb:default.pdb
@@ -316,6 +338,11 @@ private:
     float _minTimeBetweenAttacks;      // 0x108
     float _maxTimeBetweenAttacks;      // 0x10C
     bool _canAttack;                   // 0x110
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(MrsGMain, 0x114);
 
@@ -403,6 +430,13 @@ SwampScript* ExitRampMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 348) ExitRampMain(node);
 }
 
+// FUNCTION: USA 0x000682BC
+// NAME: proto-pdb:default.pdb
+ExitRampMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ExitRampMain", creationFunc);
+}
+
 // FUNCTION: USA 0x000641D0
 // PROTOTYPE: PREVIEW 0x00450767 identical
 // NAME: proto-pdb:default.pdb
@@ -410,6 +444,13 @@ SwampScript* EntranceRampMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 379) EntranceRampMain(node);
+}
+
+// FUNCTION: USA 0x000682F8
+// NAME: proto-pdb:default.pdb
+EntranceRampMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("EntranceRampMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00067C15
@@ -421,6 +462,13 @@ SwampScript* FloorHoleMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 287) FloorHoleMain(node);
 }
 
+// FUNCTION: USA 0x00068244
+// NAME: proto-pdb:default.pdb
+FloorHoleMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FloorHoleMain", creationFunc);
+}
+
 // FUNCTION: USA 0x00067EDE
 // PROTOTYPE: PREVIEW 0x00454495 identical
 // NAME: proto-pdb:default.pdb
@@ -428,6 +476,13 @@ SwampScript* MrsGMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 210) MrsGMain(node);
+}
+
+// FUNCTION: USA 0x00068208
+// NAME: proto-pdb:default.pdb
+MrsGMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MrsGMain", creationFunc);
 }
 
 class Critter; // NAME: proto-pdb:default.pdb
@@ -637,6 +692,11 @@ private:
     ResourceHandle<AnimationResource> _animWeakJumpLand;   // 0xF0
     ResourceHandle<AnimationResource> _animStagger;        // 0xF4
     char field_F8[0x128 - 0xF8];       // 0xF8
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(RodeoRatMain, 0x128);
 
@@ -647,6 +707,13 @@ SwampScript* RodeoRatMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 35) RodeoRatMain(node);
+}
+
+// FUNCTION: USA 0x00068190
+// NAME: proto-pdb:default.pdb
+RodeoRatMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RodeoRatMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00063D47
@@ -697,6 +764,11 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     static int _chunkCount; // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(RockChunkMain, 0xBC);
 
@@ -707,6 +779,13 @@ SwampScript* RockChunkMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 317) RockChunkMain(node);
+}
+
+// FUNCTION: USA 0x00068280
+// NAME: proto-pdb:default.pdb
+RockChunkMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RockChunkMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00063C96
@@ -756,6 +835,11 @@ private:
     ResourceHandle<AnimationResource> _animStagger;        // 0xEC
     bool _whammyReady;                 // 0xF0
     char field_F1[0xF4 - 0xF1];        // 0xF1
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(VinceOnRatMain, 0xF4);
 
@@ -768,8 +852,15 @@ SwampScript* VinceOnRatMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 140) VinceOnRatMain(node);
 }
 
+// FUNCTION: USA 0x000681CC
+// NAME: proto-pdb:default.pdb
+VinceOnRatMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceOnRatMain", creationFunc);
+}
+
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); not finished: vtable and _chunkCount pins site-corr
+// best: match_one objdiff 90.86 at /O1 /Oy (SetState(0) inlined; retail calls 0x00063FFD); --control "/O1 /Oy /Ob1" PASS objdiff 100 + bytes (masked 0), T15.c4: needs unit opt /Ob1
 // FUNCTION: USA 0x000640D5
 // PROTOTYPE: PREVIEW 0x0045066C near-identical
 // NAME: proto-pdb:default.pdb
@@ -799,6 +890,11 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(MrsGCollapsedMain, 0x110);
 
@@ -809,6 +905,13 @@ SwampScript* MrsGCollapsedMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 410) MrsGCollapsedMain(node);
+}
+
+// FUNCTION: USA 0x00068334
+// NAME: proto-pdb:default.pdb
+MrsGCollapsedMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MrsGCollapsedMain", creationFunc);
 }
 
 class Vince; // NAME: proto-pdb:default.pdb
@@ -858,7 +961,7 @@ void MrsGCollapsedMain::Message(SwampScript* source, int message, void* data)
 }
 
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 3 = vptr store, 2 literals)
+// best: match_one objdiff 100.0, bytes provisional (masked 3), T15.c4: needs pins ??_7MrsGCollapsedMain@@6B@ 0x001D9F60, literals 0x001D9FD4 "mrsgcollapsed_collapse", 0x001D9F50 "mrsgDamage02"
 // FUNCTION: USA 0x00068019
 // PROTOTYPE: PREVIEW 0x004545D0 near-identical
 // NAME: proto-pdb:default.pdb
@@ -1055,7 +1158,15 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class RatRaceRodeoRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    RatRaceRodeoRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(RatRaceRodeoRegionMain, 0x64);
 
@@ -1080,6 +1191,21 @@ void RatRaceRodeoRegionMain::EnteringRegion(SwampSceneNode* node)
         CutsceneDriver::SetStream(didintro ? "ratRaceDeathCutscene" : "ratRacePreludeCutscene", false);
         pManager->Remove("vincecowboy");
     }
+}
+
+// FUNCTION: USA 0x00068130
+// NAME: proto-pdb:default.pdb
+SwampScript* RatRaceRodeoRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\ratracerodeo\\RatRaceRodeo.h", 18) RatRaceRodeoRegionMain(node);
+}
+
+// FUNCTION: USA 0x00068154
+// NAME: proto-pdb:default.pdb
+RatRaceRodeoRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RatRaceRodeoRegionMain", creationFunc);
 }
 
 class AnimCam { // NAME: proto-pdb:default.pdb

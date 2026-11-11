@@ -133,6 +133,8 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+// FUNCTION: USA 0x0008C43B
+// NAME: proto-pdb:default.pdb
 class VinceZapHat : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     VinceZapHat(SwampSceneNode* node);
@@ -140,6 +142,12 @@ public:
     Vince* GetVince() { return (Vince*)_node; }
 
     ResourceHandle<AnimationResource> _animSpell; // 0x4C
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(VinceZapHat, 0x50);
 
@@ -156,10 +164,9 @@ void VinceZapHat::AnimationFinished()
 // PROTOTYPE: PREVIEW 0x00477EA0 identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); wall (4.4 T4.c8 relink): vtable slot ??_G 0x001322E6 calls
-// the dtor 0x0008C43B (folded ~VinceZapHat/~VinceCeilingFan), no name in symbols.txt/symbols_pin.txt:
-// `external ??1VinceZapHat@@UAE@XZ does not resolve by name`; with VinceCeilingFan also live, `our ranges overlap at
-// 0x001322E6` (??_GVinceZapHat and ??_GVinceCeilingFan fold to one VA, emitted by two objects)
+// best: match_one objdiff 100.0, bytes match (masked 0); wall (4.4 T4.c8 relink, still in 5.5 T8.c4 precheck with the
+// ??1/??_G fold pins): `our ranges overlap at 0x00132302`, the end of the folded ??_GVinceZapHat/??_GVinceCeilingFan
+// slot 0x001322E6 (+0x1C) and start of the matched ?creationFunc@VinceCeilingFan; with the ctor live, ??_G is emitted
 VinceZapHat::VinceZapHat(SwampSceneNode* node) : SwampScript(node)
 {
     _animSpell = g_swamp->GetAnimationManager()->Load("vince_attack_zaphat");
@@ -169,10 +176,6 @@ VinceZapHat::VinceZapHat(SwampSceneNode* node) : SwampScript(node)
 }
 #endif
 
-#ifdef NON_MATCHING
-// best: ??1VinceZapHat (0x0008C43B) match_one objdiff 27.78, bytes match (masked 0); cut-extent wall (C0085): the
-// delink cut's ??1VinceZapHat spans the unsymboled LAB_0008c44a..0x0008C46E after it; lift = a symbol at 0x0008C44A
-// in the cut (re-cut)
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1VinceZapHat@@UAE@XZ in this unit (no vptr
 // store, so no declared dtor: declared form 21.06 with the vptr store; the ctor that odr-uses it is guarded); this
 // qualified call odr-uses it instead ([[emitter]] row)
@@ -180,4 +183,27 @@ void pin_emit_VinceZapHat_dtor(VinceZapHat* p)
 {
     p->VinceZapHat::~VinceZapHat();
 }
-#endif
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+// FUNCTION: USA 0x0008C44A
+// NAME: proto-pdb:default.pdb
+SwampScript* VinceZapHat::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("museum\\VinceZapHat.cpp", 13) VinceZapHat(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0008C46E
+// NAME: proto-pdb:default.pdb
+VinceZapHat::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceZapHat", creationFunc);
+}

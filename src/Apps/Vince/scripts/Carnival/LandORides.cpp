@@ -169,6 +169,8 @@ void* operator new(unsigned int size, const char* file, int line);
 
 class RidesCannonMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    RidesCannonMain(SwampSceneNode* node);
+public:
     enum States { // NAME: proto-pdb:default.pdb
         STATE_IDLE = 0,
         STATE_COUNTDOWN = 1,
@@ -184,6 +186,12 @@ public:
     virtual void FrameTick();
 
     float _moveScale;                  // 0xBC
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(RidesCannonMain, 0xC0);
 
@@ -194,14 +202,213 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(ChopperMain, 0x4C);
 
 class SwampScriptManager { // NAME: proto-pdb:default.pdb
 public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
     bool CanCreate(const SwampString& name) const;
     SwampScript* Create(const SwampString& name, SwampSceneNode* node) const;
     static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+class SwingCatsMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class ZipperMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class FerrisWheelMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class SlingShotMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class ShrimpBoatMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class TrucksMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class RoundAMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class LandORidesLightsMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class CannonAMain : public RidesCannonMain { // NAME: proto-pdb:default.pdb
+public:
+    CannonAMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(CannonAMain, 0xC0);
+
+class CannonBMain : public RidesCannonMain { // NAME: proto-pdb:default.pdb
+public:
+    CannonBMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(CannonBMain, 0xC0);
+
+class CannonCMain : public RidesCannonMain { // NAME: proto-pdb:default.pdb
+public:
+    CannonCMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(CannonCMain, 0xC0);
+
+class CannonDMain : public RidesCannonMain { // NAME: proto-pdb:default.pdb
+public:
+    CannonDMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(CannonDMain, 0xC0);
+
+class CannonEMain : public RidesCannonMain { // NAME: proto-pdb:default.pdb
+public:
+    CannonEMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(CannonEMain, 0xC0);
+
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+class CannonB { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+class CannonC { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+class CannonD { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+class CannonE { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
 };
 
 class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
@@ -217,6 +424,11 @@ private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     char field_64[0x68 - 0x64];        // 0x64
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(LandORidesRegionMain, 0x68);
 
@@ -227,6 +439,13 @@ SwampScript* ChopperMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\landorides\\LandORides.h", 32) ChopperMain(node);
+}
+
+// FUNCTION: USA 0x00050986
+// NAME: proto-pdb:default.pdb
+ChopperMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ChopperMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0004FB52
@@ -293,6 +512,13 @@ SwampScript* LandORidesRegionMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\landorides\\LandORides.h", 14) LandORidesRegionMain(node);
 }
 
+// FUNCTION: USA 0x0005094A
+// NAME: proto-pdb:default.pdb
+LandORidesRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LandORidesRegionMain", creationFunc);
+}
+
 // FUNCTION: USA 0x000509C2
 // PROTOTYPE: PREVIEW 0x0043D7BD identical
 // NAME: proto-pdb:default.pdb
@@ -302,6 +528,132 @@ void ChopperMain::Activate()
         SwampScriptManager::Instance().Create("VinceRidesChopperCutscene", 0);
     else
         Message(this, 20, 0);
+}
+
+// FUNCTION: USA 0x00050A37
+// NAME: proto-pdb:default.pdb
+SwingCatsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwingCatsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050A73
+// NAME: proto-pdb:default.pdb
+ZipperMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ZipperMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050AAF
+// NAME: proto-pdb:default.pdb
+FerrisWheelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FerrisWheelMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050AEB
+// NAME: proto-pdb:default.pdb
+SlingShotMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SlingShotMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050B27
+// NAME: proto-pdb:default.pdb
+ShrimpBoatMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ShrimpBoatMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050B63
+// NAME: proto-pdb:default.pdb
+TrucksMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TrucksMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050B9F
+// NAME: proto-pdb:default.pdb
+RoundAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RoundAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050BDB
+// NAME: proto-pdb:default.pdb
+LandORidesLightsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LandORidesLightsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050C17
+// NAME: proto-pdb:default.pdb
+RidesCannonMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("RidesCannonMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050C53
+// NAME: proto-pdb:default.pdb
+CannonAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CannonAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050C8F
+// NAME: proto-pdb:default.pdb
+CannonBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CannonBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050CCB
+// NAME: proto-pdb:default.pdb
+CannonCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CannonCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050D07
+// NAME: proto-pdb:default.pdb
+CannonDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CannonDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050D43
+// NAME: proto-pdb:default.pdb
+CannonEMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CannonEMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00050DBB
+// NAME: proto-pdb:default.pdb
+CannonB::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CannonB", creationFunc);
+}
+
+// FUNCTION: USA 0x00050DF7
+// NAME: proto-pdb:default.pdb
+CannonC::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CannonC", creationFunc);
+}
+
+// FUNCTION: USA 0x00050E33
+// NAME: proto-pdb:default.pdb
+CannonD::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CannonD", creationFunc);
+}
+
+// FUNCTION: USA 0x00050E6F
+// NAME: proto-pdb:default.pdb
+CannonE::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CannonE", creationFunc);
 }
 
 // FUNCTION: USA 0x00051153
@@ -322,4 +674,52 @@ void ChopperMain::Message(SwampScript* source, int message, void* data)
         break;
     }
     }
+}
+
+// FUNCTION: USA 0x0004FF0B
+// NAME: proto-pdb:default.pdb
+SwampScript* RidesCannonMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("LandORides\\LandORides.cpp", 348) RidesCannonMain(node);
+}
+
+// FUNCTION: USA 0x0004FF35
+// NAME: proto-pdb:default.pdb
+SwampScript* CannonAMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("LandORides\\LandORides.cpp", 487) CannonAMain(node);
+}
+
+// FUNCTION: USA 0x0004FF5F
+// NAME: proto-pdb:default.pdb
+SwampScript* CannonBMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("LandORides\\LandORides.cpp", 497) CannonBMain(node);
+}
+
+// FUNCTION: USA 0x0004FF89
+// NAME: proto-pdb:default.pdb
+SwampScript* CannonCMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("LandORides\\LandORides.cpp", 506) CannonCMain(node);
+}
+
+// FUNCTION: USA 0x0004FFB3
+// NAME: proto-pdb:default.pdb
+SwampScript* CannonDMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("LandORides\\LandORides.cpp", 515) CannonDMain(node);
+}
+
+// FUNCTION: USA 0x0004FFDD
+// NAME: proto-pdb:default.pdb
+SwampScript* CannonEMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("LandORides\\LandORides.cpp", 524) CannonEMain(node);
 }

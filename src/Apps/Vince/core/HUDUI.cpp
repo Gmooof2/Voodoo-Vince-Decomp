@@ -572,6 +572,10 @@ public:
     float _moveTime;                   // 0xD4
     float _destTime;                   // 0xD8
     SwampScript* _owner;               // 0xDC
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -602,6 +606,13 @@ public:
     float _moveTime;                   // 0xD4
     float _destTime;                   // 0xD8
     SwampScript* _owner;               // 0xDC
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(UIHeartMain, 0xE0);
 
@@ -622,6 +633,10 @@ public:
     float _destTime;                   // 0xD8
     SwampScript* _owner;               // 0xDC
     int _val;                          // 0xE0
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -641,6 +656,10 @@ public:
     SwampScript* _owner;               // 0xDC
     bool _moveNow;                     // 0xE0
     bool _animDone;                    // 0xE1
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -657,6 +676,10 @@ public:
     float _moveTime;                   // 0x64
     float _destTime;                   // 0x68
     SwampScript* _owner;               // 0x6C
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -666,6 +689,10 @@ class UIBagIconMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     UIBagIconMain(SwampSceneNode* node);
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -675,6 +702,13 @@ class UIHeartIconMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     UIHeartIconMain(SwampSceneNode* node);
     virtual void AnimationFinished();
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(UIHeartIconMain, 0xBC);
 
@@ -800,12 +834,13 @@ private:
 
 template <class T, class A> class list {
 public:
-    struct _Node { _Node* _Next; _Node* _Prev; };
+    struct _Node { _Node* _Next; _Node* _Prev; T _Myval; };
     class iterator { public: _Node* _Ptr; };
     iterator begin() { iterator i; i._Ptr = _Myhead->_Next; return i; }
     iterator end() { iterator i; i._Ptr = _Myhead; return i; }
     unsigned int size() const { return _Mysize; }
     bool empty() const { return _Mysize == 0; }
+    T& back() { return _Myhead->_Prev->_Myval; }
     void push_back(const T& _Val) { _Insert(end(), _Val); }
     void pop_front() { erase(begin()); }
     iterator erase(iterator where); // retail 0x000E6B59, no accepted name
@@ -861,6 +896,7 @@ public:
     void EndLetterbox(float fadetime);
     void EndExpandedLetterbox(float fadetime);
     void BloodHaze(float fadetime);
+    void Float2Time(float ftime, int& h, int& m, int& s);
     void SetQuickMessage(const unsigned short* ptr, int fontsize);
     void ClearSubtitle();
     void SetSubtitle(const unsigned short* ptr, float length);
@@ -1056,6 +1092,19 @@ void HUDUI::BloodHaze(float fadetime)
     _bloodHazeAlpha = 0.0f;
 }
 
+// FUNCTION: USA 0x000E0E02
+// PROTOTYPE: PREVIEW 0x004CC17F identical
+// NAME: proto-pdb:default.pdb
+void HUDUI::Float2Time(float ftime, int& h, int& m, int& s)
+{
+    int tmp = (int)ftime;
+    h = tmp / 3600;
+    tmp -= h * 3600;
+    m = tmp / 60;
+    tmp -= m * 60;
+    s = tmp;
+}
+
 // FUNCTION: USA 0x000E0E41
 // PROTOTYPE: PREVIEW 0x004CC1BE identical
 // NAME: proto-pdb:default.pdb
@@ -1139,6 +1188,10 @@ void HealthUIMain::FrameTick()
     }
 }
 
+// GetBeadDest 5.4 T6.c4: match_one FAIL bytes +0x22; va_dis obj: only the fmul reloc differs. 0x21EE68 still has no
+// name in symbols.txt/symbols_pin.txt (the .data pin was refused: proto operand ?SETTINGS_FILE@@3PBDB+4, no retail
+// public); nearest retail name below is ?SwampMayaBlendModes@@3PAPBDA+0x48 (a char* table, not this float: D78).
+// Lift: a pin naming the 0x21EE68 float (5.4 T15.c1: still unpinned, no attempt spent)
 // FUNCTION: USA 0x000E1053
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
@@ -1683,11 +1736,6 @@ void UINode::RenderNumber(int num, float x, float y, float scale, unsigned int c
 
 // FUNCTION: USA 0x000E274C
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0) (5.3 T7.c5); wall: precheck relink `external
-// ?Message@UIHealthMain@@UAEXPAVSwampScript@@HPAX@Z 0x000E0C5F lies in a replaced range`: the ctor emits ??_7UIHealthMain,
-// whose FrameTick/Message slots name fold aliases at 0x000E0F59/0x000E0C5F owned by the matched UIPageMain rows; a
-// defined copy is an unlisted extra (C0322). Lift: relink resolving a fold-alias external to the row at its VA
 UIHealthMain::UIHealthMain(SwampSceneNode* node) : CritterMain(node)
 {
     GetCritter()->SetCollidable(false);
@@ -1697,14 +1745,13 @@ UIHealthMain::UIHealthMain(SwampSceneNode* node) : CritterMain(node)
     _destTime = gSettings._uiZoomonTime;
     RegisterFrameTick();
 }
-#endif
 
 // FUNCTION: USA 0x000E27C0
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match with GetBeadDest's definition visible (5.3 T9.c1; decl only: `pop ecx`
-// for retail's `add esp, 4`, 98.5). Wall: callee-dependent: GetBeadDest 0x000E1053 is a fail row (unresolved
-// 0x21EE68). Lift: resolve 0x21EE68, match GetBeadDest, unguard both together
+// best: match_one objdiff 100.0, bytes match with GetBeadDest's definition visible (5.3 T9.c1; 5.4 T6.c4 again;
+// decl only: `pop ecx` for retail's `add esp, 4`, 98.5). Wall: callee-dependent: GetBeadDest 0x000E1053 is a fail
+// row (fmul operand 0x21EE68 unnamed, see there). Lift: name 0x21EE68, match GetBeadDest, unguard both together
 UIBeadMain::UIBeadMain(SwampSceneNode* node) : CritterMain(node)
 {
     _val = 1;
@@ -1731,11 +1778,6 @@ UIPageMain::UIPageMain(SwampSceneNode* node) : CritterMain(node)
 
 // FUNCTION: USA 0x000E2A07
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0) (5.3 T7.c5); wall: precheck relink `external
-// ?Message@UIHeartMain@@UAEXPAVSwampScript@@HPAX@Z 0x000E0C5F lies in a replaced range`: the ctor emits ??_7UIHeartMain,
-// whose FrameTick/Message slots name fold aliases at 0x000E0F59/0x000E0C5F owned by the matched UIPageMain rows; a
-// defined copy is an unlisted extra (C0322). Lift: relink resolving a fold-alias external to the row at its VA
 UIHeartMain::UIHeartMain(SwampSceneNode* node) : CritterMain(node)
 {
     GetCritter()->SetCollidable(false);
@@ -1745,7 +1787,6 @@ UIHeartMain::UIHeartMain(SwampSceneNode* node) : CritterMain(node)
     _destTime = gSettings._uiZoomonTime;
     RegisterFrameTick();
 }
-#endif
 
 // FUNCTION: USA 0x000E2A7B
 // PROTOTYPE: PREVIEW 0x004CDDBB identical
@@ -2128,7 +2169,6 @@ void pin_emit_HealthUI_dtor(HealthUI* p)
     p->HealthUI::~HealthUI();
 }
 
-#ifdef NON_MATCHING
 // FUNCTION: USA 0x000E912A
 // PROTOTYPE: PREVIEW 0x004D43E8 near-identical
 // NAME: proto-pdb:default.pdb
@@ -2137,10 +2177,7 @@ void HUDUI::ClearSubtitle()
     if (!_subtitleQueue.empty())
         _subtitleQueue.pop_front();
 }
-#endif
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1): the push_back _Insert call 0x000E84F7 is unresolved
 // FUNCTION: USA 0x000E92E3
 // PROTOTYPE: PREVIEW 0x004D45A1 near-identical
 // NAME: proto-pdb:default.pdb
@@ -2159,7 +2196,48 @@ void HUDUI::SetQuickMessage(const unsigned short* ptr, int fontsize)
     qm._fontSize = fontsize;
     _quickMessages.push_back(qm);
 }
-#endif
+
+// FUNCTION: USA 0x000E93E6
+// PROTOTYPE: PREVIEW 0x004D46A4 near-identical
+// NAME: proto-pdb:default.pdb
+void HUDUI::SetSubtitle(const unsigned short* text, float lifetime)
+{
+    if (*text == '{') {
+        float remainingLifetime = lifetime;
+        // !FAKE: c2 register allocation; neutral stand-in local; retail computes the scan pointer as text + 1 (add, not inc inc; no PDB record)
+        const unsigned short* p = text + 1;
+        while (*p) {
+            const unsigned short* c = p;
+            while (*c) {
+                if (*c == '}') {
+                    _subtitleQueue.push_back(Subtitle());
+                    // !FAKE: c2 register allocation; neutral stand-in local; retail holds back() in esi across the calls (no PDB record)
+                    Subtitle& v0 = _subtitleQueue.back();
+                    v0.text.append(p, c - p);
+                    v0.timeRemaining = _wtof(c + 1);
+                    if (v0.timeRemaining == 0.0f)
+                        v0.timeRemaining = remainingLifetime;
+                    else
+                        remainingLifetime -= v0.timeRemaining;
+                    // !FAKE: c2 register allocation; reordered statement; match_one 99.43 -> 100.0
+                    p = c + 1;
+                    while (*p && *p != '{')
+                        ++p;
+                    if (*p)
+                        ++p;
+                    break;
+                }
+                ++c;
+            }
+        }
+    } else {
+        _subtitleQueue.push_back(Subtitle());
+        // !FAKE: c2 register allocation; neutral stand-in local; retail holds back() in esi across the call (no PDB record)
+        Subtitle& v0 = _subtitleQueue.back();
+        v0.text.assign(text);
+        v0.timeRemaining = lifetime;
+    }
+}
 
 class LocalizedStrings { // NAME: proto-pdb:default.pdb
 public:
@@ -2300,3 +2378,156 @@ template void std::list<HUDUI::QuickMessage,std::allocator<HUDUI::QuickMessage> 
 // PROTOTYPE: PREVIEW 0x004D1F28 identical
 // NAME: proto-pdb:default.pdb
 template void std::list<HUDUI::Subtitle,std::allocator<HUDUI::Subtitle> >::_Incsize(unsigned int);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x000E9A8A
+// NAME: proto-pdb:default.pdb
+UIHealthMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIHealthMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000E9AC6
+// NAME: proto-pdb:default.pdb
+UIBeadMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIBeadMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000E9B02
+// NAME: proto-pdb:default.pdb
+UIBonusBagMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIBonusBagMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000E9B3E
+// NAME: proto-pdb:default.pdb
+UIClusterMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIClusterMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000E9B7A
+// NAME: proto-pdb:default.pdb
+UIBagIconMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIBagIconMain", creationFunc);
+}
+
+class UIPageIconMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    UIPageIconMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(UIPageIconMain, 0xBC);
+
+class UIBoxIconMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    UIBoxIconMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(UIBoxIconMain, 0xBC);
+
+
+// FUNCTION: USA 0x000E9BB6
+// NAME: proto-pdb:default.pdb
+UIPageIconMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIPageIconMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000E9BF2
+// NAME: proto-pdb:default.pdb
+UIBoxIconMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIBoxIconMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000E9C6A
+// NAME: proto-pdb:default.pdb
+UIHeartMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIHeartMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000E9CA6
+// NAME: proto-pdb:default.pdb
+UIHeartIconMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("UIHeartIconMain", creationFunc);
+}
+
+class UIHealth { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x000E9A4E
+// NAME: proto-pdb:default.pdb
+UIHealth::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("UIHealth", creationFunc);
+}
+
+// FUNCTION: USA 0x000E2D5F
+// NAME: proto-pdb:default.pdb
+SwampScript* UIHeartMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("core\\HUDUI.cpp", 1954) UIHeartMain(node);
+}
+
+// FUNCTION: USA 0x000E75E0
+// NAME: proto-pdb:default.pdb
+SwampScript* UIPageIconMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("core\\HUDUI.cpp", 1604) UIPageIconMain(node);
+}
+
+// FUNCTION: USA 0x000E760A
+// NAME: proto-pdb:default.pdb
+SwampScript* UIBoxIconMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("core\\HUDUI.cpp", 1635) UIBoxIconMain(node);
+}
+
+// FUNCTION: USA 0x000E76B6
+// NAME: proto-pdb:default.pdb
+SwampScript* UIHeartIconMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("core\\HUDUI.cpp", 2019) UIHeartIconMain(node);
+}

@@ -39,6 +39,7 @@ public:
     basic_string& append(const basic_string& _Right, unsigned int _Roff, unsigned int _Count);
     basic_string& append(const E* _Ptr);
     unsigned int find(const basic_string& _Right, unsigned int _Off = 0) const;
+    int compare(const basic_string& _Right) const;
     const E* c_str() const { return _Myptr(); }
     bool empty() const { return (_Mysize == 0); }
     const E* _Myptr() const { return _BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf; }
@@ -692,6 +693,10 @@ CritterCollision::CritterCollision()
 struct AABox;                          // NAME: proto-pdb:default.pdb
 struct Quaternion;                     // NAME: proto-pdb:default.pdb
 
+class SwampScript; // NAME: proto-pdb:default.pdb
+struct Matrix;     // NAME: proto-pdb:default.pdb
+class BeepTDF;     // NAME: proto-pdb:default.pdb
+
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     virtual ~SwampSceneNode();                                     // vtable+0x00
@@ -700,11 +705,18 @@ public:
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     virtual void Invalidate();                                     // vtable+0x14
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
     const SwampString& GetName() const { return _Name; }
     enum NodeOptions { // NAME: proto-pdb:default.pdb
-        Invalid = 0x1
+        Invalid = 0x1,
+        DontDraw = 0x2
     };
     unsigned int GetZone() const;
+    SwampScript* GetScript() const;
+    void InvalidateAllSubScripts();
+    void SetOption(unsigned int option, bool value, bool recursive);
     bool GetRenderingOption(unsigned int option) const { return (_RenderingOptions & option) != 0; }
     bool IsValid() const { return !GetRenderingOption(Invalid); }
 
@@ -723,11 +735,87 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
 
-class GatorNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void AddRef() { ++_RefCount; }
+    void SubRef() { --_RefCount; }
+
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationControl : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    void SubRef();
+    void SetPaused(bool p) { _paused = p; }
+
+    char field_24[0x30 - 0x24];        // 0x24
+    bool _paused;                      // 0x30
+    char field_31[0x68 - 0x31];        // 0x31
+};
+DECOMP_SIZE_ASSERT(AnimationControl, 0x68);
+
+template <class T> class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle() : _Resource(0) {}
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) _Resource->AddRef(); }
+    ~ResourceHandle() { if (_Resource) _Resource->SubRef(); }
+    ResourceHandle& operator=(const ResourceHandle& h);
+    bool IsValid() const { return _Resource != 0; }
+    T& operator()() { return *_Resource; }
+
+    T* _Resource;                      // 0x00
+};
+
+// visible body: cl 13.10 /O1 keeps a handle local in a register only with it (C0136, C0330)
+template <class T> ResourceHandle<T>& ResourceHandle<T>::operator=(const ResourceHandle& h)
+{
+    if (_Resource)
+        _Resource->SubRef();
+    _Resource = h._Resource;
+    if (_Resource)
+        _Resource->AddRef();
+    return *this;
+}
+
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
+    virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
+    virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
+
+    char field_A4[0xAC - 0xA4];        // 0xA4
+};
+DECOMP_SIZE_ASSERT(CollidableNode, 0xAC);
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_AC[0xB4 - 0xAC];        // 0xAC
+};
+DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+};
+class ModelResource;                   // NAME: proto-pdb:default.pdb
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
 public:
     virtual void Update();
+    virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+    ResourceHandle<AnimationControl>& StartSecondaryAnimation(const ResourceHandle<AnimationResource>&, bool, bool);
+    bool IsMovingPlatform() const { return _movingPlatform; }
+    ResourceHandle<AnimationControl> GetCurrentAnimation() const { return _currentAnim; }
+    ResourceHandle<AnimationControl> GetSecondaryAnimation() const { return _secondaryAnim; }
 
-    char field_A4[0x200 - 0xA4];       // 0xA4
+    char field_B4[0xC0 - 0xB4];        // 0xB4
+    bool _movingPlatform;              // 0xC0
+    char field_C1[0x140 - 0xC1];       // 0xC1
+    ResourceHandle<AnimationControl> _currentAnim; // 0x140
+    ResourceHandle<AnimationControl> _secondaryAnim; // 0x144
+    char field_148[0x200 - 0x148];     // 0x148
 };
 DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
@@ -756,18 +844,46 @@ public:
 
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
+enum CritterType { // NAME: proto-pdb:default.pdb
+    CRITTER_TYPE_NONE = 0x0,
+    CRITTER_TYPE_ITEM = 0x1,
+    CRITTER_TYPE_ENEMY = 0x2,
+    CRITTER_TYPE_STATIC = 0x4,
+    CRITTER_TYPE_CARRIEDOBJECT = 0x8,
+    CRITTER_TYPE_DUST = 0x10,
+    CRITTER_TYPE_FRIEND = 0x20,
+    CRITTER_TYPE_HEAVY_OBJECT = 0x40
+};
+
+// Retail layout (C0147): _deathTemporary 0x252 -> 0x260, _dead 0x253 -> 0x261, _CritterType 0x258 -> 0x268.
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual bool CanJorgeCollideWithMe(const SwampSceneNode* jorgeNode, const Vector3&) const;
+    virtual bool DoesJorgeRepelMe(const SwampSceneNode* jorgeNode, bool bHorizontal) const;
+    virtual void Load(const BeepTDF&);                             // vtable+0x34
+    virtual SwampString Save();                                    // vtable+0x38
     virtual void Stun(float);                                      // vtable+0x3C
+    virtual float GetGravity();                                    // vtable+0x40
+    virtual void ReturnToHome();                                   // vtable+0x44
     CritterCollision MoveMyFatAss(float, unsigned int);
     void CheckRegions();
     virtual void Update();
     void StopSounds();
     Vector3 GetVelocityToTarget(const Vector3& start, const Vector3& target, float gravity, float lobfactor);
+    void MakeDead(bool);
+    bool IsDead() const { return _dead; }
+    bool GetPauseDuringWhammy() const { return _pauseDuringWhammy; }
 
     float _MaxSpeed;                   // 0x200
     float _CurSpeed;                   // 0x204
     float _stunTimer;                  // 0x208
+    char field_20C[0x260 - 0x20C];     // 0x20C
+    bool _deathTemporary;              // 0x260 proto 0x252
+    bool _dead;                        // 0x261 proto 0x253
+    char field_262[0x268 - 0x262];     // 0x262
+    CritterType _CritterType;          // 0x268 proto 0x258
+    char field_26C[0x2C5 - 0x26C];     // 0x26C
+    bool _pauseDuringWhammy;           // 0x2C5 proto 0x2B5
 };
 
 // FUNCTION: USA 0x000ECE3A
@@ -893,6 +1009,10 @@ public:
     virtual SwampString Save();                                    // vtable+0x58
     virtual void SetNode(SwampSceneNode*);                         // vtable+0x5C
     virtual void InvalidateScript();                               // vtable+0x60
+    void UnRegisterFrameTick();
+    void RemoveTimerEvents();
+    void ClearQueuedMessages();
+    void SetSleeping(bool sleep) { _sleeping = sleep; }
 
 protected:
     SwampScript(SwampSceneNode* node);
@@ -900,7 +1020,9 @@ protected:
 public:
     char field_4[0x20 - 0x4];          // 0x04
     SwampSceneNode* _node;             // 0x20
-    char field_24[0x4C - 0x24];        // 0x24
+    char field_24[0x2D - 0x24];        // 0x24
+    bool _sleeping;                    // 0x2D
+    char field_2E[0x4C - 0x2E];        // 0x2E
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
@@ -946,8 +1068,6 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 // FUNCTION: USA 0x000EDBA5
 // PROTOTYPE: PREVIEW 0x004D8E52 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (with ??_G 0x000EDC3B, 100.0 bytes match); gate pin_rows refuses: vptr store relocates through site-corr pin ??_7CritterMain 0x001ED988 (C0264)
 CritterMain::CritterMain(SwampSceneNode* node)
     : SwampScript(node), _state(-1), _wanderPatrolCenter(0.0f, 0.0f, 0.0f), _wanderPatrolRadius(0.0f),
       _wanderLeashRadius(0.0f), _wanderLeashMargin(1.0f), _wanderMode(0), _wanderDir(0.0f, 0.0f, 0.0f),
@@ -956,7 +1076,6 @@ CritterMain::CritterMain(SwampSceneNode* node)
       _chaseRangeOverride(0.0f)
 {
 }
-#endif
 
 // FUNCTION: USA 0x000EE88E
 // PROTOTYPE: PREVIEW 0x004D9AF7 identical
@@ -1030,10 +1149,16 @@ public:
     void RemoveMatching(const SwampString& s);
     void DestroyAll();
     int GetStartHealth(const SwampString& critterType);
+    void Apply(void (*f)(Critter*, void*), void* data);
+    void NotifyAllCritters(SwampScript* from, unsigned int message, void* data);
+    void NotifyMatchingCritters(const char* match, SwampScript* from, unsigned int message, void* data);
     void InvalidateMatching(const char* s, unsigned int zone);
     DamageInfo GetDamageInfo(const SwampString& critterType, const SwampString& attackType);
+    Critter* Find(const SwampString& s);
+    void SetSleepMatching(const SwampString& s, bool sleep, unsigned int zone);
+    void ActivateMatching(const SwampString& s, unsigned int zone);
 
-    NameMap _Critters;                 // 0x00
+    NameMap _Critters;                // 0x00
     bool _disableScripts;              // 0x0C
     std::map<SwampString, int> _startHealth; // 0x10
     std::map<SwampString, std::map<SwampString, DamageInfo> > _damageTable; // 0x1C
@@ -1180,6 +1305,177 @@ template <> inline std::_Tree<std::_Tmap_traits<SwampString, Critter*, std::less
 
 extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
+// Retail layout (C0147): Vince _vehicleName 0x518 -> 0x548.
+class Vince : public Critter { // NAME: proto-pdb:default.pdb
+public:
+    char field_2C8[0x548 - 0x2C8];     // 0x2C8
+    SwampString _vehicleName;          // 0x548 proto 0x518
+};
+
+// FUNCTION: USA 0x000ECF47
+// PROTOTYPE: PREVIEW 0x004D824A near-identical
+// NAME: proto-pdb:default.pdb
+bool Critter::DoesJorgeRepelMe(const SwampSceneNode* jorgeNode, bool bHorizontal) const
+{
+    if (((const Critter*)jorgeNode)->_CritterType & CRITTER_TYPE_DUST)
+        return false;
+    if (jorgeNode == pManager->_vinceCache && (_CritterType & (CRITTER_TYPE_ENEMY | CRITTER_TYPE_FRIEND)))
+        return false;
+    return true;
+}
+
+// FUNCTION: USA 0x000ED7EA
+// PROTOTYPE: PREVIEW 0x004D8AAB near-identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 99.92, bytes mismatch +0x55: v1-true exit of the first if jumps to the second if's body (cl/dl both threaded), retail re-tests at its start
+// T15.c6: 31 probe forms (nested ifs, !(v2||v1), else-if chain, bool v5 = v2||v1, decl order, v1 via if, positive test) leave this jump or worse
+bool Critter::CanJorgeCollideWithMe(const SwampSceneNode* jorgeNode, const Vector3& delta) const
+{
+    // !FAKE: provenance; neutral stand-in locals; the PDB records only this, jorgeNode and delta (edi, dl, cl)
+    Vince* v0 = pManager->_vinceCache;
+    bool v1 = _CritterType == CRITTER_TYPE_DUST && v0->_vehicleName.compare(jorgeNode->GetName()) == 0;
+    bool v2 = jorgeNode == v0;
+    if (delta.y != 0.0f && !v2 && !v1)
+        return false;
+    if ((v2 || v1) && _CritterType == CRITTER_TYPE_DUST)
+        return true;
+    bool v3 = (_CritterType & (CRITTER_TYPE_ENEMY | CRITTER_TYPE_STATIC | CRITTER_TYPE_FRIEND)) != 0;
+    bool v4 = v2 && _CritterType == CRITTER_TYPE_CARRIEDOBJECT;
+    return v3 && !v4 && !(((const Critter*)jorgeNode)->_CritterType & (CRITTER_TYPE_CARRIEDOBJECT | CRITTER_TYPE_HEAVY_OBJECT));
+}
+#endif
+
+enum { // NAME: proto-pdb:default.pdb
+    MESSAGE_WHAMMY_START = 0x9,
+    MESSAGE_WHAMMY_FINISH = 0xA,
+    MESSAGE_ENEMY_KILLED = 0xB
+};
+
+// FUNCTION: USA 0x000ED8FF
+// PROTOTYPE: PREVIEW 0x004D8BC0 near-identical
+// NAME: proto-pdb:default.pdb
+void CritterMain::Message(SwampScript* source, int message, void* data)
+{
+    if (GetCritter()->IsMovingPlatform() || GetCritter()->GetPauseDuringWhammy()) {
+        switch (message) {
+        case MESSAGE_WHAMMY_START: {
+            _sleeping = true;
+            ResourceHandle<AnimationControl> ach = GetCritter()->GetCurrentAnimation();
+            if (ach.IsValid())
+                ach().SetPaused(true);
+            ach = GetCritter()->GetSecondaryAnimation();
+            if (ach.IsValid())
+                ach().SetPaused(true);
+            break;
+        }
+        case MESSAGE_WHAMMY_FINISH: {
+            _sleeping = false;
+            ResourceHandle<AnimationControl> ach = GetCritter()->GetCurrentAnimation();
+            if (ach.IsValid())
+                ach().SetPaused(false);
+            ach = GetCritter()->GetSecondaryAnimation();
+            if (ach.IsValid())
+                ach().SetPaused(false);
+            break;
+        }
+        }
+    }
+}
+
+// FUNCTION: USA 0x000ED9D1
+// PROTOTYPE: PREVIEW 0x004D8C92 near-identical
+// NAME: proto-pdb:default.pdb
+void CritterManager::Apply(void (*f)(Critter*, void*), void* data)
+{
+    for (NameMap::iterator it = _Critters.begin(); it != _Critters.end(); ++it) {
+        if ((*it).second->IsValid() && !(*it).second->IsDead())
+            f((*it).second, data);
+    }
+}
+
+// FUNCTION: USA 0x000EE7CB
+// PROTOTYPE: PREVIEW 0x004D9A34 near-identical
+// NAME: proto-pdb:default.pdb
+void Critter::MakeDead(bool killedbyvince)
+{
+    if (_CritterType == CRITTER_TYPE_ENEMY && killedbyvince)
+        pManager->_vinceCache->GetScript()->Message(0, MESSAGE_ENEMY_KILLED, 0);
+    _dead = true;
+    if (_deathTemporary) {
+        InvalidateAllSubScripts();
+        GetScript()->UnRegisterFrameTick();
+        GetScript()->RemoveTimerEvents();
+        GetScript()->ClearQueuedMessages();
+        StartAnimation(ResourceHandle<AnimationResource>(), false, false);
+        StartSecondaryAnimation(ResourceHandle<AnimationResource>(), false, false);
+        ReturnToHome();
+        SetOption(DontDraw, true, false);
+    } else
+        Invalidate();
+}
+
+// FUNCTION: USA 0x000EE8AB
+// PROTOTYPE: PREVIEW 0x004D9B14 near-identical
+// NAME: proto-pdb:default.pdb
+void CritterManager::SetSleepMatching(const SwampString& s, bool sleep, unsigned int zone)
+{
+    SwampString lookup = BeepLib::MakeLower(s);
+    NameMap::iterator next;
+    // !FAKE: c2 register allocation; neutral stand-in local; the PDB records only next, retail walks the current node in esi
+    for (NameMap::iterator v0 = _Critters.begin(); v0 != _Critters.end(); v0 = next) {
+        next = v0;
+        ++next;
+        // !FAKE: c2 register allocation; neutral stand-in local; the PDB records no local for the critter (esi)
+        Critter* v1 = (*v0).second;
+        if (v1->IsValid() && v1->GetName().find(lookup) == 0 && !v1->IsDead()) {
+            if (zone == 0 || v1->GetZone() == zone)
+                v1->GetScript()->SetSleeping(sleep);
+        }
+    }
+}
+
+// FUNCTION: USA 0x000EE938
+// PROTOTYPE: PREVIEW 0x004D9BA1 near-identical
+// NAME: proto-pdb:default.pdb
+void CritterManager::ActivateMatching(const SwampString& s, unsigned int zone)
+{
+    SwampString lookup = BeepLib::MakeLower(s);
+    NameMap::iterator next;
+    // !FAKE: c2 register allocation; neutral stand-in local; the PDB records only next, retail walks the current node in esi
+    for (NameMap::iterator v0 = _Critters.begin(); v0 != _Critters.end(); v0 = next) {
+        next = v0;
+        ++next;
+        // !FAKE: c2 register allocation; neutral stand-in local; the PDB records no local for the critter (esi)
+        Critter* v1 = (*v0).second;
+        if (v1->IsValid() && v1->GetName().find(lookup) == 0 && !v1->IsDead()) {
+            if (zone == 0 || v1->GetZone() == zone) {
+                // !FAKE: provenance; neutral stand-in local; the PDB records only lookup and next, retail calls GetScript once
+                SwampScript* p = v1->GetScript();
+                if (p) {
+                    p->SetSleeping(false);
+                    p->Activate();
+                }
+            }
+        }
+    }
+}
+
+// FUNCTION: USA 0x000EE9CF
+// PROTOTYPE: PREVIEW 0x004D9C38 near-identical
+// NAME: proto-pdb:default.pdb
+void CritterManager::NotifyAllCritters(SwampScript* from, unsigned int message, void* data)
+{
+    for (NameMap::iterator it = _Critters.begin(); it != _Critters.end(); ++it) {
+        if ((*it).second && (*it).second->IsValid() && !(*it).second->IsDead()) {
+            // !FAKE: provenance; neutral stand-in local; the PDB records only it, retail calls GetScript once
+            SwampScript* p = (*it).second->GetScript();
+            if (p)
+                p->Message(from, message, data);
+        }
+    }
+}
+
 // FUNCTION: USA 0x000EF120
 // PROTOTYPE: PREVIEW 0x004DA389 identical
 // NAME: proto-pdb:default.pdb
@@ -1196,6 +1492,36 @@ void CritterManager::InvalidateMatching(const char* s, unsigned int zone)
         if (v1->IsValid() && v1->GetName().find(lookup) == 0) {
             if (zone == 0 || v1->GetZone() == zone)
                 v1->Invalidate();
+        }
+    }
+}
+
+// FUNCTION: USA 0x000EF1B7
+// PROTOTYPE: PREVIEW 0x004DA420 near-identical
+// NAME: proto-pdb:default.pdb
+Critter* CritterManager::Find(const SwampString& s)
+{
+    SwampString lookup = BeepLib::MakeLower(s);
+    NameMap::iterator it = _Critters.find(lookup);
+    if (it != _Critters.end() && (*it).second && !(*it).second->IsDead())
+        return (*it).second;
+    return 0;
+}
+
+// FUNCTION: USA 0x000EF31C
+// PROTOTYPE: PREVIEW 0x004DA585 near-identical
+// NAME: proto-pdb:default.pdb
+void CritterManager::NotifyMatchingCritters(const char* match, SwampScript* from, unsigned int message, void* data)
+{
+    SwampString lookup = BeepLib::MakeLower(match);
+    for (NameMap::iterator it = _Critters.begin(); it != _Critters.end(); ++it) {
+        // !FAKE: c2 register allocation; neutral stand-in local; the PDB records no local for the critter (esi)
+        Critter* v0 = (*it).second;
+        if (v0 && v0->IsValid() && v0->GetName().find(lookup) == 0 && !v0->IsDead()) {
+            // !FAKE: provenance; neutral stand-in local; the PDB records only lookup and it, retail calls GetScript once
+            SwampScript* p = v0->GetScript();
+            if (p)
+                p->Message(from, message, data);
         }
     }
 }
@@ -1338,10 +1664,7 @@ public:
 // FUNCTION: USA 0x000ECEA5
 // PROTOTYPE: PREVIEW 0x004D819F identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; relink red: fold VA, other units' externals to their _Inc aliases (CameraManager GameCam*) lie in a replaced range
 template void std::_Tree<std::_Tmap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,void *,std::less<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,void *> >,0> >::const_iterator::_Inc();
-#endif
 
 // FUNCTION: USA 0x000ECEDB
 // PROTOTYPE: PREVIEW 0x004D81D5 identical

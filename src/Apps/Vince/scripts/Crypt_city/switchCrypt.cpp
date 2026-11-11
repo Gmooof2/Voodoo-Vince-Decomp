@@ -193,6 +193,10 @@ public:
     virtual void Activate();
     virtual void TimerEvent(unsigned int id);
     virtual void Load(const BeepTDF& tdf);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     Critter* GetSwitch();
@@ -253,6 +257,10 @@ class CryptBlockMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     CryptBlockMain(SwampSceneNode* node);
     virtual void Activate();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -263,6 +271,11 @@ DECOMP_SIZE_ASSERT(CryptBlockMain, 0xC0);
 class CryptBlock_AaMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_AaMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -271,6 +284,11 @@ DECOMP_SIZE_ASSERT(CryptBlock_AaMain, 0xC0);
 class CryptBlock_AbMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_AbMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -279,6 +297,11 @@ DECOMP_SIZE_ASSERT(CryptBlock_AbMain, 0xC0);
 class CryptBlock_BaMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_BaMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -287,6 +310,11 @@ DECOMP_SIZE_ASSERT(CryptBlock_BaMain, 0xC0);
 class CryptBlock_BbMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_BbMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -295,6 +323,11 @@ DECOMP_SIZE_ASSERT(CryptBlock_BbMain, 0xC0);
 class CryptBlock_CaMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_CaMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -303,6 +336,11 @@ DECOMP_SIZE_ASSERT(CryptBlock_CaMain, 0xC0);
 class CryptBlock_CbMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_CbMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -311,6 +349,11 @@ DECOMP_SIZE_ASSERT(CryptBlock_CbMain, 0xC0);
 class CryptBlock_DaMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_DaMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -319,6 +362,11 @@ DECOMP_SIZE_ASSERT(CryptBlock_DaMain, 0xC0);
 class CryptBlock_DbMain : public CryptBlockMain { // NAME: proto-pdb:default.pdb
 private:
     CryptBlock_DbMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -386,6 +434,13 @@ void SwitchCryptMain::Load(const BeepTDF& tdf)
     }
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x0005E756
 // PROTOTYPE: PREVIEW 0x0044AB95 identical
 // NAME: proto-pdb:default.pdb
@@ -393,6 +448,13 @@ SwampScript* SwitchCryptMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 15) SwitchCryptMain(node);
+}
+
+// FUNCTION: USA 0x0005EB6E
+// NAME: proto-pdb:default.pdb
+SwitchCryptMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchCryptMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0005E9F7
@@ -404,6 +466,13 @@ SwampScript* CryptBlockMain::creationFunc(SwampSceneNode* node)
     return new("sarcophagusHustle\\switchCrypt.cpp", 48) CryptBlockMain(node);
 }
 
+// FUNCTION: USA 0x0005EBAA
+// NAME: proto-pdb:default.pdb
+CryptBlockMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlockMain", creationFunc);
+}
+
 // FUNCTION: USA 0x0005EA1E
 // PROTOTYPE: PREVIEW 0x0044AE5D identical
 // NAME: proto-pdb:default.pdb
@@ -411,6 +480,13 @@ SwampScript* CryptBlock_AaMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 255) CryptBlock_AaMain(node);
+}
+
+// FUNCTION: USA 0x0005EBE6
+// NAME: proto-pdb:default.pdb
+CryptBlock_AaMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_AaMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0005EA48
@@ -422,6 +498,13 @@ SwampScript* CryptBlock_AbMain::creationFunc(SwampSceneNode* node)
     return new("sarcophagusHustle\\switchCrypt.cpp", 256) CryptBlock_AbMain(node);
 }
 
+// FUNCTION: USA 0x0005EC22
+// NAME: proto-pdb:default.pdb
+CryptBlock_AbMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_AbMain", creationFunc);
+}
+
 // FUNCTION: USA 0x0005EA72
 // PROTOTYPE: PREVIEW 0x0044AEB1 identical
 // NAME: proto-pdb:default.pdb
@@ -429,6 +512,13 @@ SwampScript* CryptBlock_BaMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 257) CryptBlock_BaMain(node);
+}
+
+// FUNCTION: USA 0x0005EC5E
+// NAME: proto-pdb:default.pdb
+CryptBlock_BaMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_BaMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0005EA9C
@@ -440,6 +530,13 @@ SwampScript* CryptBlock_BbMain::creationFunc(SwampSceneNode* node)
     return new("sarcophagusHustle\\switchCrypt.cpp", 258) CryptBlock_BbMain(node);
 }
 
+// FUNCTION: USA 0x0005EC9A
+// NAME: proto-pdb:default.pdb
+CryptBlock_BbMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_BbMain", creationFunc);
+}
+
 // FUNCTION: USA 0x0005EAC6
 // PROTOTYPE: PREVIEW 0x0044AF05 identical
 // NAME: proto-pdb:default.pdb
@@ -447,6 +544,13 @@ SwampScript* CryptBlock_CaMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 259) CryptBlock_CaMain(node);
+}
+
+// FUNCTION: USA 0x0005ECD6
+// NAME: proto-pdb:default.pdb
+CryptBlock_CaMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_CaMain", creationFunc);
 }
 
 // FUNCTION: USA 0x0005EAF0
@@ -458,6 +562,13 @@ SwampScript* CryptBlock_CbMain::creationFunc(SwampSceneNode* node)
     return new("sarcophagusHustle\\switchCrypt.cpp", 260) CryptBlock_CbMain(node);
 }
 
+// FUNCTION: USA 0x0005ED12
+// NAME: proto-pdb:default.pdb
+CryptBlock_CbMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_CbMain", creationFunc);
+}
+
 // FUNCTION: USA 0x0005EB1A
 // PROTOTYPE: PREVIEW 0x0044AF59 identical
 // NAME: proto-pdb:default.pdb
@@ -467,6 +578,13 @@ SwampScript* CryptBlock_DaMain::creationFunc(SwampSceneNode* node)
     return new("sarcophagusHustle\\switchCrypt.cpp", 261) CryptBlock_DaMain(node);
 }
 
+// FUNCTION: USA 0x0005ED4E
+// NAME: proto-pdb:default.pdb
+CryptBlock_DaMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_DaMain", creationFunc);
+}
+
 // FUNCTION: USA 0x0005EB44
 // PROTOTYPE: PREVIEW 0x0044AF83 identical
 // NAME: proto-pdb:default.pdb
@@ -474,4 +592,11 @@ SwampScript* CryptBlock_DbMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("sarcophagusHustle\\switchCrypt.cpp", 262) CryptBlock_DbMain(node);
+}
+
+// FUNCTION: USA 0x0005ED8A
+// NAME: proto-pdb:default.pdb
+CryptBlock_DbMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptBlock_DbMain", creationFunc);
 }

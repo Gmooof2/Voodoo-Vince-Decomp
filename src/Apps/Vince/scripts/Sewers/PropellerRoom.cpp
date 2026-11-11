@@ -201,6 +201,13 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
 
     SwampScript* _propeller;           // 0x13C
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(Switch_PropellerMain, 0x140);
 
@@ -216,26 +223,80 @@ DECOMP_SIZE_ASSERT(Switch_ShimmerMain, 0x140);
 class Switch_ShimmerAMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
 public:
     Switch_ShimmerAMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(Switch_ShimmerAMain, 0x140);
 
 class Switch_ShimmerBMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
 public:
     Switch_ShimmerBMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(Switch_ShimmerBMain, 0x140);
 
 class Switch_ShimmerCMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
 public:
     Switch_ShimmerCMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(Switch_ShimmerCMain, 0x140);
 
 class Switch_ShimmerDMain : public Switch_ShimmerMain { // NAME: proto-pdb:default.pdb
 public:
     Switch_ShimmerDMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(Switch_ShimmerDMain, 0x140);
+
+void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
+
+class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
+
+    char field_4C[0x64 - 0x4C];        // 0x4C (not reached)
+};
+DECOMP_SIZE_ASSERT(LevelScript, 0x64);
+
+class PropellerRoomRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    PropellerRoomRegionMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x000A3926
 // PROTOTYPE: PREVIEW 0x0048EA02 identical
@@ -350,4 +411,262 @@ Switch_ShimmerCMain::Switch_ShimmerCMain(SwampSceneNode* node)
 Switch_ShimmerDMain::Switch_ShimmerDMain(SwampSceneNode* node)
     : Switch_ShimmerMain(node, 'D')
 {
+}
+
+// FUNCTION: USA 0x000A45D4
+// NAME: proto-pdb:default.pdb
+SwampScript* PropellerRoomRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\propellerroom\\PropellerRoom.h", 14) PropellerRoomRegionMain(node);
+}
+
+// FUNCTION: USA 0x000A45F8
+// NAME: proto-pdb:default.pdb
+PropellerRoomRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PropellerRoomRegionMain", creationFunc);
+}
+
+class ElevatorPropellorRoomMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    ElevatorPropellorRoomMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_BC[0xC0 - 0xBC];        // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(ElevatorPropellorRoomMain, 0xC0);
+
+class Switch_ElevatorPropellorRoomMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
+public:
+    Switch_ElevatorPropellorRoomMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(Switch_ElevatorPropellorRoomMain, 0x13C);
+
+class FroggerPlatformsScript : public CritterMain { // NAME: proto-pdb:default.pdb
+};
+DECOMP_SIZE_ASSERT(FroggerPlatformsScript, 0xBC);
+
+class PlatformsAMain : public FroggerPlatformsScript { // NAME: proto-pdb:default.pdb
+public:
+    PlatformsAMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PlatformsAMain, 0xBC);
+
+class PlatformsBMain : public FroggerPlatformsScript { // NAME: proto-pdb:default.pdb
+public:
+    PlatformsBMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PlatformsBMain, 0xBC);
+
+class PlatformsCMain : public FroggerPlatformsScript { // NAME: proto-pdb:default.pdb
+public:
+    PlatformsCMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PlatformsCMain, 0xBC);
+
+class PlatformsDMain : public FroggerPlatformsScript { // NAME: proto-pdb:default.pdb
+public:
+    PlatformsDMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(PlatformsDMain, 0xBC);
+
+// FUNCTION: USA 0x000A3BEB
+// NAME: proto-pdb:default.pdb
+SwampScript* PlatformsAMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 602) PlatformsAMain(node);
+}
+
+// FUNCTION: USA 0x000A3C15
+// NAME: proto-pdb:default.pdb
+SwampScript* PlatformsBMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 611) PlatformsBMain(node);
+}
+
+// FUNCTION: USA 0x000A3C3F
+// NAME: proto-pdb:default.pdb
+SwampScript* PlatformsCMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 620) PlatformsCMain(node);
+}
+
+// FUNCTION: USA 0x000A3C69
+// NAME: proto-pdb:default.pdb
+SwampScript* PlatformsDMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 629) PlatformsDMain(node);
+}
+
+// FUNCTION: USA 0x000A4497
+// NAME: proto-pdb:default.pdb
+SwampScript* ElevatorPropellorRoomMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\sewers\\propellerroom\\PropellerRoom.h", 74) ElevatorPropellorRoomMain(node);
+}
+
+// FUNCTION: USA 0x000A44BE
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_ElevatorPropellorRoomMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 439) Switch_ElevatorPropellorRoomMain(node);
+}
+
+// FUNCTION: USA 0x000A44E8
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_PropellerMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 455) Switch_PropellerMain(node);
+}
+
+// FUNCTION: USA 0x000A4512
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_ShimmerAMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 544) Switch_ShimmerAMain(node);
+}
+
+// FUNCTION: USA 0x000A453C
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_ShimmerBMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 555) Switch_ShimmerBMain(node);
+}
+
+// FUNCTION: USA 0x000A4566
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_ShimmerCMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 566) Switch_ShimmerCMain(node);
+}
+
+// FUNCTION: USA 0x000A4590
+// NAME: proto-pdb:default.pdb
+SwampScript* Switch_ShimmerDMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("PropellerRoom\\PropellerRoom.cpp", 577) Switch_ShimmerDMain(node);
+}
+
+// FUNCTION: USA 0x000A4670
+// NAME: proto-pdb:default.pdb
+ElevatorPropellorRoomMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ElevatorPropellorRoomMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A46AC
+// NAME: proto-pdb:default.pdb
+Switch_ElevatorPropellorRoomMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ElevatorPropellorRoomMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A46E8
+// NAME: proto-pdb:default.pdb
+Switch_PropellerMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_PropellerMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A4724
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ShimmerAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A4760
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ShimmerBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A479C
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ShimmerCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A47D8
+// NAME: proto-pdb:default.pdb
+Switch_ShimmerDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Switch_ShimmerDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A4814
+// NAME: proto-pdb:default.pdb
+PlatformsAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PlatformsAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A4850
+// NAME: proto-pdb:default.pdb
+PlatformsBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PlatformsBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A488C
+// NAME: proto-pdb:default.pdb
+PlatformsCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PlatformsCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000A48C8
+// NAME: proto-pdb:default.pdb
+PlatformsDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PlatformsDMain", creationFunc);
 }

@@ -296,6 +296,10 @@ public:
     virtual void AnimationFinished(unsigned int id);
     virtual void FrameTick();
     virtual void TimerEvent(unsigned int id);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -375,6 +379,13 @@ void KosmoJustDessertsCutscene::AnimationFinished(unsigned int id)
     }
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x00056C55
 // PROTOTYPE: PREVIEW 0x0044363D identical
 // NAME: proto-pdb:default.pdb
@@ -382,4 +393,11 @@ SwampScript* KosmoJustDessertsCutscene::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("InsideKosmobot\\InsideKosmobotCutscenes.cpp", 61) KosmoJustDessertsCutscene(node);
+}
+
+// FUNCTION: USA 0x00056C7C
+// NAME: proto-pdb:default.pdb
+KosmoJustDessertsCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KosmoJustDessertsCutscene", creationFunc);
 }

@@ -204,12 +204,20 @@ public:
         MESSAGE_BRACEFORIMPACT = 0x14,
         MESSAGE_IMPACTED = 0x15
     };
+    BumperTargetMain(SwampSceneNode* node);
     virtual void HitBy(CollisionType type, SwampSceneNode* critter, const Ptr<CollisionResultObject>& cr);
     virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
 
     bool _okayToImpact;                // 0xBC
     SwampScript* _bumperSwitchScript;  // 0xC0
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(BumperTargetMain, 0xC4);
 
@@ -247,12 +255,22 @@ public:
         MESSAGE_TARGETHIT = 0x18,
         MESSAGE_NEXTDEFCON = 0x19
     };
+    BumperSwitchMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
 
     Vector3 _worldButtonPos;           // 0x13C
     int _defConLevel;                  // 0x148
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_14C[0x150 - 0x14C];     // 0x14C (not reached; PDB size 0x14C, retail creationFunc pushes 0x150)
 };
-DECOMP_SIZE_ASSERT(BumperSwitchMain, 0x14C);
+DECOMP_SIZE_ASSERT(BumperSwitchMain, 0x150); // was 0x14C (PDB); retail push 0x150
 
 class BumperCarMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
@@ -267,6 +285,10 @@ public:
     };
     BumperCarMain(SwampSceneNode* node);
     virtual bool TestActivate() const;
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void RestoreVinceCam();
@@ -349,6 +371,13 @@ public:
     Vector3 _velstart;                 // 0x6C
     Vector3 _velend;                   // 0x78
     float _age;                        // 0x84
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(BumperCarExitArea, 0x88);
 
@@ -557,4 +586,136 @@ SwampScript* BumperCarMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\bumpercarbumpoff\\BumperCar.h", 35) BumperCarMain(node);
+}
+
+class VinceExitBumperCar : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    VinceExitBumperCar(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_4C[0x50 - 0x4C];        // 0x4C (not reached)
+};
+DECOMP_SIZE_ASSERT(VinceExitBumperCar, 0x50);
+
+class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
+
+    char field_BC[0x110 - 0xBC];       // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
+
+class BumperBlockMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    BumperBlockMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_110[0x11C - 0x110];     // 0x110 (not reached)
+};
+DECOMP_SIZE_ASSERT(BumperBlockMain, 0x11C);
+
+// FUNCTION: USA 0x00048429
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100, bytes match; wall: ctor pin ??0VinceExitBumperCar@@QAE@PAVSwampSceneNode@@@Z 0x00047A63 is site-corr only (callee-bytes-differ), I10 refuses it (D102): needs an accepted ctor pin (5.5 T27)
+SwampScript* VinceExitBumperCar::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\carnival\\bumpercarbumpoff\\BumperCar.h", 126) VinceExitBumperCar(node);
+}
+#endif
+
+// FUNCTION: USA 0x00048BDF
+// NAME: proto-pdb:default.pdb
+SwampScript* BumperCarExitArea::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumperCar.cpp", 893) BumperCarExitArea(node);
+}
+
+// FUNCTION: USA 0x00048C09
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100, bytes provisional (masked 1; wall: ctor ??0BumperSwitchMain@@QAE@PAVSwampSceneNode@@@Z call target 0x00047D19 has no retail VA row: needs a ctor pin + re-cut) (5.5 T27.c7)
+SwampScript* BumperSwitchMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumperCar.cpp", 1022) BumperSwitchMain(node);
+}
+#endif
+
+// FUNCTION: USA 0x0004991B
+// NAME: proto-pdb:default.pdb
+SwampScript* BumperTargetMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumperCar.cpp", 1169) BumperTargetMain(node);
+}
+
+// FUNCTION: USA 0x000499AE
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100, bytes match; wall: ctor pin ??0BumperBlockMain@@QAE@PAVSwampSceneNode@@@Z 0x00049945 is site-corr only (callee-bytes-differ; proto row 30 hits), I10 refuses it (D102): needs an accepted ctor pin (5.5 T27)
+SwampScript* BumperBlockMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("BumperCarBumpoff\\BumperCar.cpp", 969) BumperBlockMain(node);
+}
+#endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x000499D8
+// NAME: proto-pdb:default.pdb
+BumperCarMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BumperCarMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00049A50
+// NAME: proto-pdb:default.pdb
+VinceExitBumperCar::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceExitBumperCar", creationFunc);
+}
+
+// FUNCTION: USA 0x00049A8C
+// NAME: proto-pdb:default.pdb
+BumperCarExitArea::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BumperCarExitArea", creationFunc);
+}
+
+// FUNCTION: USA 0x00049AC8
+// NAME: proto-pdb:default.pdb
+BumperBlockMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BumperBlockMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00049B04
+// NAME: proto-pdb:default.pdb
+BumperSwitchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BumperSwitchMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00049B40
+// NAME: proto-pdb:default.pdb
+BumperTargetMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BumperTargetMain", creationFunc);
 }

@@ -77,6 +77,10 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 class VoodooShopLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     VoodooShopLevelMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -87,12 +91,84 @@ DECOMP_SIZE_ASSERT(VoodooShopLevelMain, 0x98);
 class FrenchquarterLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     FrenchquarterLevelMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     char field_64[0x68 - 0x64];        // 0x64 (not reached)
 };
 DECOMP_SIZE_ASSERT(FrenchquarterLevelMain, 0x68);
+
+class CryptCityLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    CryptCityLevelMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(CryptCityLevelMain, 0x64);
+
+class BayouLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    BayouLevelMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_64[0x6C - 0x64];        // 0x64 (not reached)
+};
+DECOMP_SIZE_ASSERT(BayouLevelMain, 0x6C);
+
+class SewersLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    SewersLevelMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_64[0x6C - 0x64];        // 0x64 (not reached)
+};
+DECOMP_SIZE_ASSERT(SewersLevelMain, 0x6C);
+
+class CarnivalLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    CarnivalLevelMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_64[0x68 - 0x64];        // 0x64 (not reached)
+};
+DECOMP_SIZE_ASSERT(CarnivalLevelMain, 0x68);
+
+class ManorHouseLevelMain : public LevelScript { // NAME: proto-pdb:default.pdb
+public:
+    ManorHouseLevelMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    char field_64[0x6C - 0x64];        // 0x64 (not reached)
+};
+DECOMP_SIZE_ASSERT(ManorHouseLevelMain, 0x6C);
 
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
@@ -111,6 +187,7 @@ public:
 
     ~SwampScriptManager();
     static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
 
 private:
     SwampScriptManager();
@@ -179,14 +256,52 @@ SwampScript* VoodooShopLevelMain::creationFunc(SwampSceneNode* node)
 
 // FUNCTION: USA 0x0001106C
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 16.666666, bytes match (masked 0); cut-extent wall C0093/C0140: retail cut symbol 0xD8 vs row 0x24 (5.3 T5.c2)
+// matched by the 5.4 T6 re-cut (pin route); re-verified by match_one in 5.4 T8
 SwampScript* FrenchquarterLevelMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts/french_Quarter/frenchQuarter.h", 13) FrenchquarterLevelMain(node);
 }
-#endif
+
+// FUNCTION: USA 0x00011090
+// NAME: proto-pdb:default.pdb
+SwampScript* CryptCityLevelMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts/Crypt_City/CryptCity.h", 13) CryptCityLevelMain(node);
+}
+
+// FUNCTION: USA 0x000110B4
+// NAME: proto-pdb:default.pdb
+SwampScript* BayouLevelMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts/Bayou/Bayou.h", 13) BayouLevelMain(node);
+}
+
+// FUNCTION: USA 0x000110D8
+// NAME: proto-pdb:default.pdb
+SwampScript* SewersLevelMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts/Sewers/Sewers.h", 13) SewersLevelMain(node);
+}
+
+// FUNCTION: USA 0x000110FC
+// NAME: proto-pdb:default.pdb
+SwampScript* CarnivalLevelMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts/Carnival/Carnival.h", 13) CarnivalLevelMain(node);
+}
+
+// FUNCTION: USA 0x00011120
+// NAME: proto-pdb:default.pdb
+SwampScript* ManorHouseLevelMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts/ManorHouse/ManorHouse.h", 13) ManorHouseLevelMain(node);
+}
 
 // FUNCTION: USA 0x00011144
 // PROTOTYPE: PREVIEW 0x00400544 identical
@@ -301,4 +416,53 @@ SwampScriptManager::~SwampScriptManager()
 // NAME: proto-pdb:default.pdb
 SwampScriptManager::SwampScriptManager() : _numRegisteredFrameTicks(0)
 {
+}
+
+// FUNCTION: USA 0x00011F1D
+// NAME: proto-pdb:default.pdb
+VoodooShopLevelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VoodooShopLevelMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00011F59
+// NAME: proto-pdb:default.pdb
+FrenchquarterLevelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("FrenchquarterLevelMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00011F95
+// NAME: proto-pdb:default.pdb
+CryptCityLevelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CryptCityLevelMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00011FD1
+// NAME: proto-pdb:default.pdb
+BayouLevelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BayouLevelMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0001200D
+// NAME: proto-pdb:default.pdb
+SewersLevelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SewersLevelMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00012049
+// NAME: proto-pdb:default.pdb
+CarnivalLevelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CarnivalLevelMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00012085
+// NAME: proto-pdb:default.pdb
+ManorHouseLevelMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ManorHouseLevelMain", creationFunc);
 }

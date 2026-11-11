@@ -4,7 +4,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -78,11 +88,23 @@ DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 
 class SwitchCarnivalMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     SwitchCarnivalMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(SwitchCarnivalMain, 0x13C);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x0003B5EC
 // PROTOTYPE: PREVIEW 0x00429CE4 identical
@@ -91,4 +113,11 @@ SwampScript* SwitchCarnivalMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("Midway\\SwitchCarnival.cpp", 8) SwitchCarnivalMain(node);
+}
+
+// FUNCTION: USA 0x0003B613
+// NAME: proto-pdb:default.pdb
+SwitchCarnivalMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchCarnivalMain", creationFunc);
 }

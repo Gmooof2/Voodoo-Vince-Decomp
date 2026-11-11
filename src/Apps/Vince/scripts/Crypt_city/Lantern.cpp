@@ -4,7 +4,18 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    unsigned int _pad00[5];            // 0x00
+    unsigned int _Mysize;              // 0x14
+    unsigned int _Myres;               // 0x18
+};
 }
 typedef std::basic_string<char, std::char_traits<char>, std::allocator<char> > SwampString;
 
@@ -86,6 +97,10 @@ class LanternMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     LanternMain(SwampSceneNode* node);
     virtual void FrameTick();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -95,13 +110,10 @@ DECOMP_SIZE_ASSERT(LanternMain, 0xCC);
 
 // FUNCTION: USA 0x0006A5D2
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0 + bytes match; gate relink REFUSED (InsideKosmobotCutscenes external ?FrameTick@CutsceneDriver@@UAEXXZ 0x0006A5D2 lies in a replaced range; C0233 Fix 1 n/a: non-template, KosmoPigCutscene also calls it)
 void LanternMain::FrameTick()
 {
     g_swamp->_input->GetPad(0);
 }
-#endif
 
 // FUNCTION: USA 0x0006AC3D
 // PROTOTYPE: PREVIEW 0x00456FFB identical
@@ -110,4 +122,18 @@ SwampScript* LanternMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Lantern.h", 17) LanternMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0006AC64
+// NAME: proto-pdb:default.pdb
+LanternMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LanternMain", creationFunc);
 }

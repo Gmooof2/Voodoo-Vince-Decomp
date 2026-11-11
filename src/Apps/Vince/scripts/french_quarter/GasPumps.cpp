@@ -463,6 +463,10 @@ class WrenchMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     WrenchMain(SwampSceneNode* node);
     virtual void FrameTick();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -529,6 +533,10 @@ public:
     virtual void TimerEvent(unsigned int);
     virtual Critter* GetPartner();                                 // vtable+0x70
     Critter* GetPrimo() { return (Critter*)_node; }
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -542,6 +550,10 @@ public:
     virtual SwampString Save();
     virtual Critter* GetPartner();                                 // vtable+0x70
     Critter* GetReggie() { return (Critter*)_node; }
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -564,10 +576,17 @@ public:
         ResourceHandle<AnimationResource> _anim; // 0x00
         ResourceHandle<SoundResource> _sound;    // 0x04
     };
+    ReggieWreckageMain(SwampSceneNode* node);
     virtual void AnimationFinished();
     virtual void GainingControl(SwampScript*);
 
     SwampShuffleQueue<ReggieTaunt> _taunts; // 0xBC
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(ReggieWreckageMain, 0xD0);
 
@@ -875,15 +894,11 @@ Critter* PrimoMain::GetPartner()
 // FUNCTION: USA 0x00080534
 // PROTOTYPE: PREVIEW 0x0046C47D identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 50.0, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* PrimoMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\GasPumps.h", 84) PrimoMain(node);
 }
-#endif
 
 // FUNCTION: USA 0x00080582
 // PROTOTYPE: PREVIEW 0x0046C5E0 identical
@@ -899,15 +914,95 @@ template <class T> void SwampShuffleQueue<T>::PushBack(T rval)
 }
 template void SwampShuffleQueue<ReggieWreckageMain::ReggieTaunt>::PushBack(ReggieWreckageMain::ReggieTaunt);
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x00081304
 // PROTOTYPE: PREVIEW 0x0046D1F6 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 29.545454, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* ReggieMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\mainstreet\\GasPumps.h", 64) ReggieMain(node);
 }
-#endif
+
+// FUNCTION: USA 0x0008132B
+// NAME: proto-pdb:default.pdb
+SwampScript* ReggieWreckageMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("mainstreet\\GasPumps.cpp", 623) ReggieWreckageMain(node);
+}
+
+class CanGasMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00081385
+// NAME: proto-pdb:default.pdb
+ReggieMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ReggieMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000813C1
+// NAME: proto-pdb:default.pdb
+PrimoMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("PrimoMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00081439
+// NAME: proto-pdb:default.pdb
+CanGasMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CanGasMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00081475
+// NAME: proto-pdb:default.pdb
+WrenchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WrenchMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000815B9
+// NAME: proto-pdb:default.pdb
+ReggieWreckageMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ReggieWreckageMain", creationFunc);
+}
+
+class CanGas { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
+};
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x000813FD
+// NAME: proto-pdb:default.pdb
+CanGas::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("CanGas", creationFunc);
+}

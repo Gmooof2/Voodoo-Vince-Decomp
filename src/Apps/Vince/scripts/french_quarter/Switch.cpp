@@ -68,6 +68,7 @@ DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
     void AddRef() { ++_RefCount; }
+    void SubRef() { _RefCount--; }
 
     char field_0[0x1C];                // 0x00
     unsigned int _RefCount;            // 0x1C
@@ -136,6 +137,10 @@ void* operator new(unsigned int size, const char* file, int line); // retail ??2
 
 class SwitchMuseumMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum State { // NAME: proto-pdb:default.pdb
         Off = 0,
         TurningOn = 1,
@@ -175,4 +180,31 @@ SwampScript* SwitchMuseumMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\museum\\Switch.h", 11) SwitchMuseumMain(node);
+}
+
+#ifdef NON_MATCHING
+// best: ??1SwitchMuseumMain (0x0008B511, cut extent 18 = row) match_one bytes match (masked 0), objdiff None; fold-name
+// wall (C0377): the delink cut and the lane row name the folded VA ??1WheelPlatformAMain (`not defined in Switch.obj`);
+// lift = the cut/row named ??1SwitchMuseumMain (pinned, symbols_pin.txt) + re-cut
+// !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1SwitchMuseumMain@@UAE@XZ (0x0008B511, folded
+// with ~WheelPlatformAMain and others) in this unit via the ctor 0x0008B485 (not matched); this qualified call
+// odr-uses it instead ([[emitter]] row)
+void pin_emit_SwitchMuseumMain_dtor(SwitchMuseumMain* p)
+{
+    p->SwitchMuseumMain::~SwitchMuseumMain();
+}
+#endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0008BA01
+// NAME: proto-pdb:default.pdb
+SwitchMuseumMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchMuseumMain", creationFunc);
 }

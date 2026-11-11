@@ -716,6 +716,10 @@ public:
     virtual void TimerEvent(unsigned int timerId);
     virtual void Load(const BeepTDF& tdf);
     virtual void SetState(int state);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -765,6 +769,10 @@ public:
     TrapOnionMain(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int timerId);
     virtual void SetState(int state);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -782,6 +790,10 @@ public:
     OnionTrapRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
     virtual void LeavingRegion(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -1009,13 +1021,10 @@ extern Globals gSettings; // NAME: proto-pdb:default.pdb
 
 // FUNCTION: USA 0x000180E1
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0 + bytes match (masked 0); precheck ADD REFUSED: pin has no size in symbols_pin.txt (C0377 unsized pin)
 float Critter::GetGravity()
 {
     return gSettings.GetGravity();
 }
-#endif
 
 // FUNCTION: USA 0x0001829A
 // PROTOTYPE: PREVIEW 0x00407558 identical
@@ -1357,13 +1366,9 @@ template void std::_Destroy_range<LevelStats, std::allocator<LevelStats> >(Level
 
 // FUNCTION: USA 0x000194FB
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0 + bytes match (masked 0); relink: our objects and a cut object both define
-// ?_Tidy@?$vector@VAreaStats@@... (0x00019214, a fail row `library: std:: name`); needs _Tidy matched with it
 LevelStats::~LevelStats()
 {
 }
-#endif
 
 // FUNCTION: USA 0x0001999E
 // PROTOTYPE: PREVIEW 0x00408C0F identical
@@ -1476,3 +1481,32 @@ void Vince::SetVehicleName(const SwampString& name)
 // NAME: proto-pdb:default.pdb
 template void std::_Destroy_range<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::basic_string<char,std::char_traits<char>,std::allocator<char> > > > >(std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::basic_string<char,std::char_traits<char>,std::allocator<char> > > *,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::basic_string<char,std::char_traits<char>,std::allocator<char> > > *,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::basic_string<char,std::char_traits<char>,std::allocator<char> > > > &,std::_Nonscalar_ptr_iterator_tag);
 #endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x000199C5
+// NAME: proto-pdb:default.pdb
+TrapOnionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TrapOnionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00019A01
+// NAME: proto-pdb:default.pdb
+OnionTrapRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("OnionTrapRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00019A93
+// NAME: proto-pdb:default.pdb
+OnionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("OnionMain", creationFunc);
+}

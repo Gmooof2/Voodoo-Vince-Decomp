@@ -283,6 +283,10 @@ enum { // NAME: proto-pdb:default.pdb
 
 class HannahDebrisMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum Timers { // NAME: proto-pdb:default.pdb
         TIMER_RESETCRASH = 0
     };
@@ -301,6 +305,10 @@ DECOMP_SIZE_ASSERT(HannahDebrisMain, 0xE0);
 
 class LighthouseMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     LighthouseMain(SwampSceneNode* node);
     virtual void FrameTick();
     virtual bool TestActivate() const;
@@ -309,8 +317,40 @@ public:
 
     ResourceHandle<AnimationResource> _animSpin; // 0xBC
     SwampString _padName;              // 0xC0
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(LighthouseMain, 0xDC);
+
+class VinceWindmillGibletsMain : public SwampScript { // NAME: proto-pdb:default.pdb
+public:
+    VinceWindmillGibletsMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(VinceWindmillGibletsMain, 0x4C);
+
+class BasicDoorMain : public CritterMain { // NAME: proto-pdb:default.pdb
+
+    char field_BC[0x110 - 0xBC];       // 0xBC (not reached)
+};
+DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
+
+class EntranceWallMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
+public:
+    EntranceWallMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(EntranceWallMain, 0x110);
 
 class LevelScript : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -325,7 +365,14 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class HurricaneHannahRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+    HurricaneHannahRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(HurricaneHannahRegionMain, 0x64);
 
@@ -368,6 +415,10 @@ DECOMP_SIZE_ASSERT(BasicWallSwitchMain, 0x13C);
 
 class SwitchSwampMain : public BasicWallSwitchMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     SwitchSwampMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -502,4 +553,85 @@ SwampScript* SwitchSwampMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("HurricaneHanna\\HurricaneHannah.cpp", 59) SwitchSwampMain(node);
+}
+
+// FUNCTION: USA 0x00028569
+// NAME: proto-pdb:default.pdb
+SwampScript* VinceWindmillGibletsMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HurricaneHanna\\HurricaneHannah.cpp", 371) VinceWindmillGibletsMain(node);
+}
+
+// FUNCTION: USA 0x00028590
+// NAME: proto-pdb:default.pdb
+SwampScript* LighthouseMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HurricaneHanna\\HurricaneHannah.cpp", 409) LighthouseMain(node);
+}
+
+// FUNCTION: USA 0x00028636
+// NAME: proto-pdb:default.pdb
+SwampScript* EntranceWallMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HurricaneHanna\\HurricaneHannah.cpp", 499) EntranceWallMain(node);
+}
+
+// FUNCTION: USA 0x00028660
+// NAME: proto-pdb:default.pdb
+SwampScript* HurricaneHannahRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("HurricaneHanna\\HurricaneHannah.cpp", 25) HurricaneHannahRegionMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00028684
+// NAME: proto-pdb:default.pdb
+HurricaneHannahRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HurricaneHannahRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000286C0
+// NAME: proto-pdb:default.pdb
+SwitchSwampMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchSwampMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00028738
+// NAME: proto-pdb:default.pdb
+HannahDebrisMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("HannahDebrisMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000287B0
+// NAME: proto-pdb:default.pdb
+VinceWindmillGibletsMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceWindmillGibletsMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000287EC
+// NAME: proto-pdb:default.pdb
+LighthouseMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("LighthouseMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00028828
+// NAME: proto-pdb:default.pdb
+EntranceWallMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("EntranceWallMain", creationFunc);
 }

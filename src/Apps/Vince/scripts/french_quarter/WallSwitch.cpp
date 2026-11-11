@@ -163,10 +163,21 @@ public:
     SwampString _padName;              // 0xC0
     int _pulledOnce;                   // 0xDC
 
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(WallSwitchMain, 0xE0);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1WallSwitchMain@@UAE@XZ in this unit (its ctor
 // is unmatched); this qualified call odr-uses it instead (matched_set [[emitter]] row)
@@ -217,4 +228,11 @@ SwampScript* WallSwitchMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\WallSwitch.h", 11) WallSwitchMain(node);
+}
+
+// FUNCTION: USA 0x0007C47E
+// NAME: proto-pdb:default.pdb
+WallSwitchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("WallSwitchMain", creationFunc);
 }

@@ -1,6 +1,8 @@
 // UNIT: src/Libs/SwampShared/Xbox/Official_Release/SwampBog.cpp OBJ: Xbox\Official_Release\SwampBog.obj OPT: /O1 /Oy
 #include "../../../../include/decomp.h"
 #include <string.h>
+// !FAKE: preprocessor; #pragma intrinsic(memset) compiler directive; retail has the inline stosd memset form
+#pragma intrinsic(memset)
 
 struct BogNode; // NAME: proto-pdb:default.pdb
 struct BogVertex; // NAME: proto-pdb:default.pdb
@@ -86,8 +88,6 @@ const BogVertex* Bog::GetVertices() const
 // FUNCTION: USA 0x000DF3E8
 // PROTOTYPE: PREVIEW 0x004CA7BF identical
 // NAME: proto-pdb:default.pdb
-// !FAKE: preprocessor; #pragma intrinsic(memset) compiler directive; retail has the inline stosd memset form
-#pragma intrinsic(memset)
 Bog::Bog(void* fileImage)
 {
     _bog = (BOG_HEADER*)fileImage;

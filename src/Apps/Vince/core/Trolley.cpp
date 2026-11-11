@@ -142,6 +142,10 @@ public:
     virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
     Vince* GetVince();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -162,12 +166,23 @@ class VinceBoardTrolley : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     VinceBoardTrolley(SwampSceneNode* node);
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     char field_4C[0x64 - 0x4C];        // 0x4C
 };
 DECOMP_SIZE_ASSERT(VinceBoardTrolley, 0x64);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x00130485
 // PROTOTYPE: PREVIEW 0x00518EB8 identical
@@ -177,24 +192,6 @@ SwampScript* VinceExitTrolley::creationFunc(SwampSceneNode* node)
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\common\\Trolley.h", 60) VinceExitTrolley(node);
 }
-
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); not finished: pManager pin is site-corr (provisional)
-// FUNCTION: USA 0x001304A9
-// PROTOTYPE: PREVIEW 0x00518EDC near-identical
-// NAME: proto-pdb:default.pdb
-void TrolleyMain::MoveVinceToPad()
-{
-    Vince* vince = pManager->_vinceCache;
-    SwampSceneNode* padnode;
-
-    _signScript->Message(this, 0x15, &padnode); // src proto-pdb:default.pdb MESSAGE_GETPADNODE
-    Vector3 pos = padnode->GetWorldPosition();
-    vince->SetWorldPosition(pos);
-    vince->_startPos = pos;
-    vince->SetRotation(padnode->_Rotation);
-}
-#endif
 
 // FUNCTION: USA 0x00130504
 // PROTOTYPE: PREVIEW 0x00518F37 identical
@@ -296,6 +293,12 @@ public:
 
 private:
     void MoveVinceToPad();
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(TrolleyMain, 0xEC);
@@ -337,6 +340,21 @@ extern SwampParticleManager* g_particleManager; // NAME: proto-pdb:default.pdb
 void pin_emit_TrolleyMain_dtor(TrolleyMain* p)
 {
     p->TrolleyMain::~TrolleyMain();
+}
+
+// FUNCTION: USA 0x001304A9
+// PROTOTYPE: PREVIEW 0x00518EDC near-identical
+// NAME: proto-pdb:default.pdb
+void TrolleyMain::MoveVinceToPad()
+{
+    Vince* vince = pManager->_vinceCache;
+    SwampSceneNode* padnode;
+
+    _signScript->Message(this, 0x15, &padnode); // src proto-pdb:default.pdb MESSAGE_GETPADNODE
+    Vector3 pos = padnode->GetWorldPosition();
+    vince->SetWorldPosition(pos);
+    vince->_startPos = pos;
+    vince->SetRotation(padnode->_Rotation);
 }
 
 // FUNCTION: USA 0x001306B6
@@ -468,4 +486,25 @@ void VinceExitTrolley::Message(SwampScript* source, int message, void* data)
 {
     if (message == MESSAGE_JUMPOUT)
         GetVince()->StartAnimation(g_swamp->GetAnimationManager().Load("vince_trolleyoff"), false, false);
+}
+
+// FUNCTION: USA 0x00130D1F
+// NAME: proto-pdb:default.pdb
+TrolleyMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TrolleyMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00130D5B
+// NAME: proto-pdb:default.pdb
+VinceBoardTrolley::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceBoardTrolley", creationFunc);
+}
+
+// FUNCTION: USA 0x00130D97
+// NAME: proto-pdb:default.pdb
+VinceExitTrolley::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceExitTrolley", creationFunc);
 }

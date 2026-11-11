@@ -213,6 +213,12 @@ public:
     void SetSparks(bool);
 private:
     void ResetPopupTimer();
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
 
@@ -310,4 +316,18 @@ void SwitchSafeMain::AnimationFinished()
     if (_state == STATE_DOWN) {
         SetSparks(true);
     }
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0007ED29
+// NAME: proto-pdb:default.pdb
+SwitchSafeMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SwitchSafeMain", creationFunc);
 }

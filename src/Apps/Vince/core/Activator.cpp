@@ -97,6 +97,13 @@ class ActivatorMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+public:
 
     bool _useable;                    // 0xBC
     float _alpha;                      // 0xC0
@@ -118,4 +125,18 @@ void ActivatorMain::Load(const BeepTDF& tdf)
 SwampString ActivatorMain::Save()
 {
     return CritterMain::Save() + format("\t\ttarget = %s;\n", _target.c_str());
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x00108583
+// NAME: proto-pdb:default.pdb
+ActivatorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ActivatorMain", creationFunc);
 }

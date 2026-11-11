@@ -252,6 +252,10 @@ class TeslaCoilLowerMain : public TeslaCoilPartMain { // NAME: proto-pdb:default
 public:
     TeslaCoilLowerMain(SwampSceneNode* node);
     virtual void Message(SwampScript*, int, void*);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -268,12 +272,24 @@ public:
     TeslaCoilUpperMain(SwampSceneNode* node);
     virtual void Message(SwampScript*, int, void*);
     virtual void Load(const BeepTDF&);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
     SwampString _model;                // 0x114
 };
 DECOMP_SIZE_ASSERT(TeslaCoilUpperMain, 0x130);
+
+// FUNCTION: USA 0x0008BCCD
+// NAME: proto-pdb:default.pdb
+void TeslaCoilUpperMain::Load(const BeepTDF& tdf)
+{
+    BasicDoorMain::Load(tdf);
+    GetBasicDoor()->SetModel(g_swamp->GetModelManager().Load(_model));
+}
 
 // FUNCTION: USA 0x0008BD7C
 // PROTOTYPE: PREVIEW 0x0047789F identical
@@ -385,4 +401,25 @@ SwampScript* TeslaCoilUpperMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\museum\\TeslaCoils.h", 45) TeslaCoilUpperMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0008C1BA
+// NAME: proto-pdb:default.pdb
+TeslaCoilLowerMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TeslaCoilLowerMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0008C1F6
+// NAME: proto-pdb:default.pdb
+TeslaCoilUpperMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TeslaCoilUpperMain", creationFunc);
 }

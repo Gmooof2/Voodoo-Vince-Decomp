@@ -183,6 +183,13 @@ class AABox;                 // NAME: proto-pdb:default.pdb
 class Matrix;                // NAME: proto-pdb:default.pdb
 class Quaternion;            // NAME: proto-pdb:default.pdb
 class ModelResource;         // NAME: proto-pdb:default.pdb
+class AnimationControl;      // NAME: proto-pdb:default.pdb
+class SwampScript;           // NAME: proto-pdb:default.pdb
+
+namespace BeepLib { // NAME: proto-pdb:default.pdb
+unsigned int Random();
+}
+const SwampString format(const char* fmt, ...); // NAME: proto-pdb:default.pdb
 
 class ResourceBase { // NAME: proto-pdb:default.pdb
 public:
@@ -246,6 +253,8 @@ public:
     virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
     virtual void Update();                                         // vtable+0x1C
     virtual void Render(const Matrix&) const;                      // vtable+0x20
+    Vector3 GetFacing() const;
+    SwampScript* GetScript() const;
 
     char field_4[0xA4 - 0x4];          // 0x04
 };
@@ -270,8 +279,14 @@ DECOMP_SIZE_ASSERT(CollidableCylinder, 0xB4);
 class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
 public:
     virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>& anim, bool, bool);
 
     char field_B4[0x200 - 0xB4];       // 0xB4 (not reached)
+};
+
+class SoundManager { // NAME: proto-pdb:default.pdb
+public:
+    static void PlaySound(const SwampString& name, unsigned int, SwampSceneNode*, bool, float, float);
 };
 
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
@@ -282,6 +297,7 @@ public:
     virtual float GetGravity();                                    // vtable+0x40
     void SetMaxSpeed(float v) { _MaxSpeed = v; }
     void SetVelocity(const Vector3& v) { _Velocity = v; }
+    void PlaySound(const SwampString& name, unsigned int flags, bool bAttach, float minDist3D, float maxDist3D);
 
     float _MaxSpeed;                   // 0x200
     char field_204[0x20C - 0x204];     // 0x204
@@ -304,6 +320,13 @@ public:
 };
 
 extern Globals gSettings; // NAME: proto-pdb:default.pdb
+
+class CritterManager { // NAME: proto-pdb:default.pdb
+public:
+    Critter* Find(const SwampString& name);
+};
+
+extern CritterManager* pManager; // NAME: proto-pdb:default.pdb
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -359,6 +382,14 @@ void* operator new(unsigned int size, const char* file, int line); // retail ??2
 
 class SoundResource; // NAME: proto-pdb:default.pdb
 
+// only the Message enum is needed here
+class SpringMain { // NAME: proto-pdb:default.pdb
+public:
+    enum Message { // NAME: proto-pdb:default.pdb
+        MESSAGE_INCREMENTBOUNCECOUNT = 0x19 // retail value (VinceSpring::SetState 0x0005C823); proto-pdb 0x18
+    };
+};
+
 // fold-alias owner of deque::_Growmap 0x0005CF1A (C0234); only ReggieTaunt is needed
 class ReggieWreckageMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
@@ -374,13 +405,28 @@ public:
         float height;                  // 0x00
         float time;                    // 0x04
     };
+    enum States { // NAME: proto-pdb:default.pdb
+        STATE_IDLE = 0,
+        STATE_GRAB = 1,
+        STATE_JUMP = 2,
+        STATE_FALL = 3,
+        STATE_LANDSTART = 4,
+        STATE_LANDEND = 5,
+        STATE_FALLOFDOOM = 6,
+        STATE_NONE = 7
+    };
     VinceSpring(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     virtual void SoundFinished(const SwampString& name);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void CalcSpeeds(float jumpheight);
     void IncreaseJumpHeight();
     void CacheAnims();
+    void SetState(int state, bool force);
     Vince* GetVince() { return (Vince*)_node; }
 
     ResourceHandle<AnimationResource> _idle;       // 0xBC
@@ -394,11 +440,13 @@ private:
     ResourceHandle<AnimationResource> _landstart;  // 0xDC
     ResourceHandle<AnimationResource> _landend;    // 0xE0
     ResourceHandle<AnimationResource> _tumble;     // 0xE4
-    char field_E8[0xF4 - 0xE8];        // 0xE8 (_oldModel .. _state; not reached)
+    char field_E8[0xF0 - 0xE8];        // 0xE8 (_oldModel, _oldHeight; not reached)
+    int _state;                        // 0xF0
     float _jumpHeight;                 // 0xF4
     bool _rejump;                      // 0xF8
     float _jumpDiff;                   // 0xFC
-    char field_100[0x128 - 0x100];     // 0x100 (not reached)
+    Vector3 _jumpFacing;               // 0x100
+    char field_10C[0x128 - 0x10C];     // 0x10C (not reached)
     bool _playingRaspberry;            // 0x128
     char field_129[0x148 - 0x129];     // 0x129 (not reached)
 };
@@ -421,6 +469,50 @@ void VinceSpring::CalcSpeeds(float jumpheight)
 void VinceSpring::IncreaseJumpHeight()
 {
     _jumpHeight = (gSettings.GetVinceSpringJumpHeight() < _jumpHeight + _jumpDiff) ? gSettings.GetVinceSpringJumpHeight() : _jumpHeight + _jumpDiff;
+}
+
+// FUNCTION: USA 0x0005C6F9
+// PROTOTYPE: PREVIEW 0x00448C66 near-identical
+// NAME: proto-pdb:default.pdb
+void VinceSpring::SetState(int state, bool force)
+{
+    if (state == _state && !force)
+        return;
+    switch (state) {
+    case STATE_IDLE:
+        GetVince()->StartAnimation(_idle, true, false);
+        break;
+    case STATE_GRAB:
+        GetVince()->StartAnimation(_grab, false, false);
+        break;
+    case STATE_JUMP: {
+        _jumpFacing = GetVince()->GetFacing();
+        GetVince()->StartAnimation(_jumpstart, false, false);
+        CalcSpeeds(_jumpHeight);
+        // !FAKE: inliner; hand form of the inline Critter::PlaySound body (stand-in local v0); Onion.cpp defines it out of
+        // line (0x000180E8), so an in-class body here emits a colliding COMDAT (LNK2005 at relink, C0282)
+        Vince* v0 = GetVince();
+        // !FAKE: c1xx front end; neutral stand-in local v1, comma expression; retail builds the string before the other arguments
+        const SwampString* v1;
+        SoundManager::PlaySound((v1 = &format("ccsh_sprg%02d", (BeepLib::Random() & 3) + 1), *v1), 0x20, v0, true, 0.0f, 0.0f);
+        _rejump = false;
+        // !FAKE: c1xx temporary lifetime; neutral stand-in local; retail destroys the "spring" string temp before GetScript (no PDB record)
+        Critter* p = pManager->Find("spring");
+        p->GetScript()->Message(this, SpringMain::MESSAGE_INCREMENTBOUNCECOUNT, 0);
+        break;
+    }
+    case STATE_FALL:
+        GetVince()->StartAnimation(_fall, true, false);
+        break;
+    case STATE_LANDSTART:
+        GetVince()->SetMaxSpeed(0.0f);
+        GetVince()->StartAnimation(_landstart, false, false);
+        break;
+    case STATE_LANDEND:
+        GetVince()->StartAnimation(_landend, false, false);
+        break;
+    }
+    _state = state;
 }
 
 // FUNCTION: USA 0x0005C8D5
@@ -479,6 +571,18 @@ template void std::deque<ReggieWreckageMain::ReggieTaunt,std::allocator<ReggieWr
 // FUNCTION: USA 0x0005D056
 // PROTOTYPE: PREVIEW 0x004494AE identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but its call to the declared-only _Construct<HeightSample> (fold 0x000AE5C1, SwampGatorNode's matched alias) is refused "lies in a replaced range" (4.3 T12)
 template void std::deque<VinceSpring::HeightSample,std::allocator<VinceSpring::HeightSample> >::push_back(VinceSpring::HeightSample const &);
-#endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0005D4CF
+// NAME: proto-pdb:default.pdb
+VinceSpring::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceSpring", creationFunc);
+}

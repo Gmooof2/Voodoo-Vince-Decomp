@@ -33,9 +33,13 @@ LISTED = tuple(sorted([
     "config/inputs.manifest.jsonl",  # 3.5 T4 F6: provenance_lint.inputs pins the PDB/EXE/XBE to its rows
     "config/objdiff_cli.sha256",  # 4.5 T16.1 G4: check_env pins the objdiff-cli binary
     "config/pin_accepted.txt",  # 4.2 T5: pin_rows literal-copy waivers (D119)
+    "config/pin_hand.txt",  # 5.5 T4: pin_rows hand/xref rows allowed by (VA, name)
     "config/provenance_accepted.txt",
     "config/retail/symbols.txt",  # 3.5 T4 F3: the name -> VA table the gate compares by (symbols_pin.txt not listed)
     "config/toolchain.sha256",
+    "config/units_text.txt",  # 2026-11-10 5.5 T28.c4 G7: pin_rows' unit ranges (units.toml: not listed)
+    "githooks/pre-commit",  # 5.5 T14.c2: the hooks ship; commit-msg does not (export/allowlist.txt)
+    "githooks/pre-push",
     "tools/annotations.py",
     "tools/audit_public.py",
     "tools/build.py",
@@ -43,6 +47,7 @@ LISTED = tuple(sorted([
     "tools/check_env.py",
     "tools/coff_info.py",
     "tools/gate.py",
+    "tools/gate_controls.py",  # 5.4 T5: the gate's self-test controls, imported by gate.main on --self-test
     "tools/matched_set.py",
     "tools/msvc71.py",
     "tools/pdb_info.py",
@@ -51,6 +56,7 @@ LISTED = tuple(sorted([
     "tools/pin_rows.py",  # 4.2 T5: the gate's pin_rows layer (D119)
     "tools/provenance_lint.py",
     "tools/relink.py",
+    "tools/timing.py",  # 5.4 T5.c2: gate_controls imports it (free_mb sizes the self-test's workers)
     "tools/verifier_lock.py",
     "tools/vv_inputs.py",
     "tools/xbe_info.py",

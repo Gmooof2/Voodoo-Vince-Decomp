@@ -26,7 +26,12 @@ Output: `functions: a of B (p%)   bytes: c of D (q%)`, sources, remainder, claim
   else `unchanged` is printed. --self-test builds last.json in a scratch dir under .run/<phase>/ from
   tests/gate/matched_set.toml (5 rows all pass + 1 row with a failed verdict) and runs two refusal controls;
   asserts the real gap list loads clean; gap controls no-evidence, non-game-section, record-overlap (scratch
-  lists) each pass unvalidated (rc 0) and refuse validated (rc 2).
+  lists) each pass unvalidated (rc 0) and refuse validated (rc 2); control stale-xdk (scratch copy of the xdk report
+  with a changed ingestSha256) passes unchecked (rc 0) and refuses checked (rc 2).
+Stale report (5.4 T1): load() refuses (2) a summary.json without ingestSha256 or whose value !=
+  xdk_report.ingest_sha256(pin) of the current derived/ghidra/retail-<pin8>/ ingest (`run PY tools/xdk_report.py`).
+Current last.json (5.5 T6): default and --last runs refuse (2) a last.json with a failed row, or whose `tree`
+  list_sha256 / fp_sha256 differ from config/matched_set.toml / config/verifier.sha256 now (last_current()).
 Exit: 0 ok; 1 a check failed; 2 refusal (stderr `progress: REFUSED <why>`).
 """
 import argparse
@@ -43,6 +48,7 @@ import byte_compare  # noqa: E402
 import coff_info  # noqa: E402
 import delink  # noqa: E402
 import matched_set  # noqa: E402
+import xdk_report  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 LAST = REPO / "derived" / "gate" / "last.json"
@@ -127,8 +133,9 @@ def load_gaps(gap_path, summ, recs, validate=True):
     return gaps
 
 
-def load(last_path, gap_path=None, validate=True):
-    """-> inputs dict; raises Refuse. validate=False skips the gap-list checks (self-test controls only)."""
+def load(last_path, gap_path=None, validate=True, xdk_dir=None, check_ingest=True):
+    """-> inputs dict; raises Refuse. validate=False skips the gap-list checks, xdk_dir replaces the xdk report dir,
+    check_ingest=False skips the ingestSha256 check (self-test controls only)."""
     pin = coff_info.pinned_sha()
     if not pin:
         raise Refuse("no retail_xbe pin in config/check.retail_xbe.sha")
@@ -137,7 +144,7 @@ def load(last_path, gap_path=None, validate=True):
     last = json.loads(last_path.read_text(encoding="utf-8"))
     if last.get("xbe_sha1") != pin:
         raise Refuse(f"{last_path} xbe_sha1 {last.get('xbe_sha1')} != pin {pin}")
-    xdk = REPO / "derived" / "xdk" / f"retail-{pin[:8]}"
+    xdk = xdk_dir or REPO / "derived" / "xdk" / f"retail-{pin[:8]}"
     sp, fp = xdk / "summary.json", xdk / "functions.jsonl"
     if not sp.is_file() or not fp.is_file():
         raise Refuse(f"{_rel(sp)} or {_rel(fp)} missing (run PY tools/xdk_report.py)")
@@ -148,6 +155,11 @@ def load(last_path, gap_path=None, validate=True):
         raise Refuse(f"{_rel(sp)} sumChecksFailed {summ['sumChecksFailed']} (run PY tools/xdk_report.py)")
     if "functions" not in summ:
         raise Refuse(f"{_rel(sp)} has no functions key (run PY tools/xdk_report.py)")
+    if check_ingest:  # 5.4 T1: a report built from another ingest is stale (a re-cut re-runs xdk_report)
+        cur = xdk_report.ingest_sha256(pin)
+        if not summ.get("ingestSha256") or summ["ingestSha256"] != cur:
+            raise Refuse(f"{_rel(sp)} ingestSha256 {str(summ.get('ingestSha256'))[:12]} != current ingest "
+                         f"{str(cur)[:12]} (run PY tools/xdk_report.py)")
     recs = [json.loads(line) for line in fp.read_text(encoding="utf-8").splitlines() if line.strip()]
     rp = REPO / "derived" / "delink" / f"retail-{pin[:8]}" / "report.json"
     if not rp.is_file():
@@ -254,10 +266,10 @@ def render(inp, fig):
             f"last.json date: {inp['last'].get('date')}"]
 
 
-def run(last_path, gap_path=None, validate=True):
-    """-> (rc, figures or None, output lines)."""
+def run(last_path, gap_path=None, validate=True, **kw):
+    """-> (rc, figures or None, output lines). kw: load()'s xdk_dir, check_ingest (self-test controls only)."""
     try:
-        inp = load(last_path, gap_path, validate)
+        inp = load(last_path, gap_path, validate, **kw)
     except Refuse as e:
         return 2, None, [f"progress: REFUSED {e}"]
     errs, fig, lines = compute(inp)
@@ -322,6 +334,20 @@ def self_test():
             results.append(ok)
             print(f"control gap {name}: unvalidated rc {rc0} == 0 (did not fail), validated rc {rc1} == 2 "
                   f"{'ok' if ok else 'FAIL'} ({l1[-1]})")
+        # 5.4 T1: a scratch copy of the xdk report whose ingestSha256 is not the current ingest's
+        real = REPO / "derived" / "xdk" / f"retail-{pin[:8]}"
+        sx = d / "xdk_stale"
+        sx.mkdir()
+        shutil.copyfile(real / "functions.jsonl", sx / "functions.jsonl")
+        ss = json.loads((real / "summary.json").read_text(encoding="utf-8"))
+        ss["ingestSha256"] = "0" * 64
+        (sx / "summary.json").write_text(json.dumps(ss, indent=1) + "\n", encoding="utf-8", newline="\n")
+        rc0, _, _ = run(lp, xdk_dir=sx, check_ingest=False)
+        rc1, _, l1 = run(lp, xdk_dir=sx)
+        ok = rc0 == 0 and rc1 == 2
+        results.append(ok)
+        print(f"control stale-xdk: unchecked rc {rc0} == 0 (did not fail), checked rc {rc1} == 2 "
+              f"{'ok' if ok else 'FAIL'} ({l1[-1]})")
         flip =dict(doc, xbe_sha1=("0" if pin[0] != "0" else "1") + pin[1:])
         lp.write_text(json.dumps(flip, indent=1) + "\n", encoding="utf-8", newline="\n")
         rc, _, lines = run(lp)
@@ -351,6 +377,34 @@ def self_test():
     return 0 if all(results) else 1
 
 
+def last_current(last_path):
+    """5.5 T6 (C1): -> refusal text or None. last.json must hold no failed row and a `tree` block (gate.py _write_last)
+    whose list_sha256 / fp_sha256 equal config/matched_set.toml / config/verifier.sha256 now; head and dirty are not
+    compared (a log commit moves head without touching a verdict); 5.5 T12.c2 (G1): its listed_dirty must be present
+    and empty (no LISTED file differed from HEAD at the gate). Default and --last runs; --self-test is
+    fixture-only (its last.json carries a deliberate failed row and no tree)."""
+    if not last_path.is_file():
+        return None  # load() refuses absence
+    last = json.loads(last_path.read_text(encoding="utf-8"))
+    bad = [r.get("symbol") for r in last.get("rows", []) if not r.get("passed")]
+    if bad:
+        return f"{_rel(last_path)} has {len(bad)} failed row(s), first {bad[0]} (fix and re-run PY tools/gate.py)"
+    tree = last.get("tree") or {}
+    for k, p in (("list_sha256", REPO / "config" / "matched_set.toml"),
+                 ("fp_sha256", REPO / "config" / "verifier.sha256")):  # gate.py LIST, verifier_lock.FP
+        now = hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() else None
+        if tree.get(k) != now:
+            return (f"{_rel(last_path)} tree {k} {str(tree.get(k))[:12]} != {_rel(p)} now {str(now)[:12]} "
+                    "(re-run PY tools/gate.py)")
+    ld = tree.get("listed_dirty")  # 5.5 T12.c2 (G1 ruling 1a): a verdict of uncommitted verifier files is no verdict
+    if ld is None:
+        return f"{_rel(last_path)} tree listed_dirty absent (git failed or an older gate; re-run PY tools/gate.py)"
+    if ld:
+        return (f"{_rel(last_path)} tree listed_dirty {len(ld)}: {', '.join(ld[:3])} (LISTED files differ from HEAD; "
+                "commit them, then re-run PY tools/gate.py)")
+    return None
+
+
 def main(argv):
     ap = argparse.ArgumentParser(prog="progress.py", description=__doc__.splitlines()[0])
     ap.add_argument("--last", help="gate last.json path (default derived/gate/last.json); no doc written")
@@ -363,7 +417,12 @@ def main(argv):
     if why:
         _print(2, [f"progress: REFUSED {why}"])
         return 2
-    rc, fig, lines = run(Path(args.last).resolve() if args.last else LAST)
+    lp = Path(args.last).resolve() if args.last else LAST
+    why = last_current(lp)  # 5.5 T6 (C1): was bound by xbe_sha1 only (load())
+    if why:
+        _print(2, [f"progress: REFUSED {why}"])
+        return 2
+    rc, fig, lines = run(lp)
     _print(rc, lines)
     if rc == 0 and not args.last:
         now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")

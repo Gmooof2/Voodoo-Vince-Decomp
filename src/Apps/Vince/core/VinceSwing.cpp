@@ -303,8 +303,6 @@ void VinceSwing::UpdateRope()
     }
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); not finished: g_CameraManager pin is site-corr (provisional)
 // FUNCTION: USA 0x0012900F
 // PROTOTYPE: PREVIEW 0x00511A7B near-identical
 // NAME: proto-pdb:default.pdb
@@ -316,7 +314,6 @@ void VinceSwing::KillSwing()
     VinceCam* cam = (VinceCam*)g_CameraManager->Find("vincecam");
     cam->ClearPositionFixed();
 }
-#endif
 
 // FUNCTION: USA 0x00129063
 // PROTOTYPE: PREVIEW 0x00511ACF identical

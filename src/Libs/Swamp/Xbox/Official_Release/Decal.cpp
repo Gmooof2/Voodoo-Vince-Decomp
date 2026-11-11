@@ -121,10 +121,12 @@ public:
     virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
     virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
     virtual void Invalidate();                                     // vtable+0x14
+protected:
     virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
     virtual void Update();                                         // vtable+0x1C
     virtual void Render(const Matrix&) const;                      // vtable+0x20
 
+public:
     unsigned int GetRenderingSetting(unsigned int setting) const { return _RenderingSetting[setting]; }
 
     char field_4[0x8C - 0x4];          // 0x04
@@ -234,9 +236,6 @@ void Decal::Render(const Matrix& m) const
 // ??0Decal 0x0014FA4E (candidates fail: unresolved target 0x2DE9D) (C0320); match_one: `not defined in Decal.obj` (5.3 T6)
 // FUNCTION: USA 0x0014FBE1
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (masked 0); wall: relink refuses: the vptr store emits ??_7Decal, whose slot ?UpdateAnimation@SwampSceneNode@@UAEXI@Z has no retail VA (`does not resolve by name`); lift = pin that slot (C0256) (5.3 T6)
 Decal::~Decal()
 {
 }
-#endif

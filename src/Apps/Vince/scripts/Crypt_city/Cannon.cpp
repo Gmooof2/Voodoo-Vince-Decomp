@@ -87,6 +87,11 @@ DECOMP_SIZE_ASSERT(CritterMain, 0xBC);
 void* operator new(unsigned int size, const char* file, int line);
 
 class CannonCartMain : public CritterMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     CannonCartMain(SwampSceneNode* node);
 private:
@@ -258,6 +263,10 @@ class SoundNode; // NAME: proto-pdb:default.pdb
 
 class CannonMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     enum States { // NAME: proto-pdb:default.pdb
         STATE_UPRIGHT = 0,
         STATE_TIPPING = 1,
@@ -270,9 +279,13 @@ public:
 
     CannonMain(SwampSceneNode* node);
     virtual ~CannonMain();
+    virtual void FrameTick();
+    virtual void TimerEvent(unsigned int id);
     virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
+    virtual void HitBy(CollisionType type, SwampSceneNode* critterHitBy, const Ptr<CollisionResultObject>& cr);
     virtual void Load(const BeepTDF& tdf);
+    virtual SwampString Save();
 private:
     void StartAiming();
     Cannon* GetCannon() { return (Cannon*)_node; }
@@ -298,11 +311,13 @@ void CannonMain::Message(SwampScript* source, int message, void* data)
     *(bool*)data = _state != STATE_UPRIGHT;
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 1 = the vptr store; gSettings+0x38C.. resolve)
 // FUNCTION: USA 0x0005D5AE
 // PROTOTYPE: PREVIEW 0x00449A06 near-identical
 // NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0) (5.5 T8.c4, ??_7CannonMain pinned); wall: precheck relink
+// `our ranges overlap at 0x000E2D89`: ??_7CannonMain slot 0 is the folded ??_E/??_G 0x000E2D89 (no CannonMain name
+// pinned there; ??_GRidesCannonMain etc. emitted by other objects), our ??_GCannonMain lands on it too
 CannonMain::CannonMain(SwampSceneNode* node) : CritterMain(node)
 {
     _cannonCam = 0;
@@ -366,4 +381,25 @@ SwampScript* CannonCartMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\sarcophagushustle\\Cannon.h", 82) CannonCartMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0005E231
+// NAME: proto-pdb:default.pdb
+CannonMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CannonMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0005E26D
+// NAME: proto-pdb:default.pdb
+CannonCartMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CannonCartMain", creationFunc);
 }

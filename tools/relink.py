@@ -21,7 +21,8 @@ Exit: 0 every region exactly covered and no flagged range; 1 check failed; 2 ref
 CLI: relink.py cut [--section NAME] [--repro] [--config P]   (T3; no --section: every linked section, T5)
   Range-export the section's census ranges via DelinkProgram (existing Ghidra project, -noanalysis -readOnly) into
   derived/relink/retail-<sha8>/cut/<NAME>/ + hashes.txt + cut.complete (delink marker), one dir per section (T4);
-  .text = its unit/gap ranges, one object each, batched over analyzeHeadless calls under delink.ARG_BUDGET.
+  .text = its unit/gap ranges, one object each; every section in one analyzeHeadless call
+  (DelinkRanges.java, args file); refuses (exit 2) on low free RAM (delink.ghidra_mem_guard) before removing anything.
   Prints externals per target section. --repro: second cut into cut.repro/<NAME>/; exit 0 only if both hashes.txt equal.
   No --section (T5): all 10 linked sections (pin order), then cut/partition.tsv (census --objects format: every cut
   object range, name `<NAME>/<file>`, + the header, inserted-file and uninitialized-tail ranges) and, LAST, the top
@@ -381,54 +382,57 @@ def _sec_dir(name):
     return name.replace("\\", "__").replace("/", "__")
 
 
-def _do_cut(cfg, sha1, xbe, ranges, d):
-    """Range-export ranges into d via DelinkProgram (existing project, -noanalysis -readOnly); hashes.txt and
-    cut.complete last. -> list of object file names; exits 1 on a failed export."""
+def _do_cut(cfg, sha1, xbe, jobs):
+    """Range-export every (ranges, d) job via DelinkProgram (existing project, -noanalysis -readOnly) in one
+    analyzeHeadless call; per d, hashes.txt and cut.complete last. -> list of object file name lists, one per job;
+    exits 1 on a failed export. The caller runs delink.ghidra_mem_guard first (5.4 T3.c3)."""
     import coff_info
     import delink  # cut only (T7: lazy, delink is not verifier-locked)
     tag = f"retail-{sha1[:8]}"
     proj = Path(cfg["ghidra_project_dir"]).resolve() / tag
     if not (proj / f"{tag}.gpr").is_file():
         refuse(f"project missing: {proj / (tag + '.gpr')} (run tools/delink.py ingest)")
-    d.mkdir(parents=True, exist_ok=True)
-    for p in [*d.glob("*.obj"), d / "hashes.txt", d / delink.CUT_MARKER]:
-        if p.is_file():
-            p.unlink()
-    files = [f for f, _a, _b in _cut_files(ranges)]
-    batches = [[]]  # one analyzeHeadless call per batch, each under delink.ARG_BUDGET (T4: .text 547 ranges)
-    for f, a, b in _cut_files(ranges):
-        one = ["/include-range", f"{a:08x}-{b - 1:08x}", "/export", str(d / f)]
-        if len(subprocess.list2cmdline(one)) > delink.ARG_BUDGET:
-            refuse(f"range {f} alone exceeds one call's argument budget")
-        if batches[-1] and len(subprocess.list2cmdline(batches[-1] + one)) > delink.ARG_BUDGET:
-            batches.append([])
-        batches[-1] += one
+    # 5.4 T3.c3: every section's ranges in one args file, one analyzeHeadless call (DelinkRanges.java runs
+    # DelinkProgram once); was: one call per section (T3.c2, 10), before that batches, one call each (24, cut 317 s)
+    lines, out = ["/exporter", "COFF relocatable object"], []
+    for ranges, d in jobs:
+        d.mkdir(parents=True, exist_ok=True)
+        for p in [*d.glob("*.obj"), d / "hashes.txt", d / delink.CUT_MARKER]:
+            if p.is_file():
+                p.unlink()
+        cf = _cut_files(ranges)
+        out.append([f for f, _a, _b in cf])
+        for f, a, b in cf:
+            lines += ["/include-range", f"{a:08x}-{b - 1:08x}", "/export", str(d / f)]
+    top = jobs[0][1].parent
     delink.LOGS.mkdir(parents=True, exist_ok=True)
+    argf = delink.LOGS / f"relink_cut_{top.name}.args"
+    argf.write_text("".join(s + "\n" for s in lines), encoding="utf-8")
     bat = Path(cfg["ghidra_dir"]) / "support" / "analyzeHeadless.bat"
-    for k, args in enumerate(batches):
-        log = delink.LOGS / f"relink_cut_{d.parent.name}_{d.name}_{k}.log"
-        # T4.c2: RenameDuplicates first (in memory, -readOnly): DelinkProgram fails an object on a duplicate name
-        cmd = [str(bat), str(proj), tag, "-process", xbe.name, "-noanalysis", "-readOnly",
-               "-scriptPath", str(delink.SCRIPTS), "-postScript", "RenameDuplicates.java",
-               "-postScript", "DelinkProgram.java", "/exporter", "COFF relocatable object", *args,
-               "-log", str(log.with_suffix(".ghidra.log")), "-scriptlog", str(log.with_suffix(".script.log"))]
-        with open(log, "w", encoding="utf-8") as lf:
-            rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=lf, stderr=subprocess.STDOUT).returncode
-        text = log.read_text(encoding="utf-8", errors="replace")
-        if rc != 0 or "REPORT SCRIPT ERROR" in text:
-            print(f"relink: FAIL analyzeHeadless rc {rc} (see {log})", file=sys.stderr)
-            sys.exit(1)
-    print(f"cut {d.name}: {len(files)} range(s) in {len(batches)} analyzeHeadless call(s)")
-    for f in files:
-        try:
-            coff_info.parse((d / f).read_bytes())
-        except (OSError, coff_info.BadCoff, struct.error, ValueError) as e:
-            print(f"relink: FAIL object {d / f}: {e}", file=sys.stderr)
-            sys.exit(1)
-    hashes = "".join(f"{hashlib.sha256((d / f).read_bytes()).hexdigest()}  {f}\n" for f in sorted(files))
-    (d / "hashes.txt").write_text(hashes, encoding="ascii", newline="\n")
-    delink.write_marker(d, len(files))
-    return files
+    log = delink.LOGS / f"relink_cut_{top.name}.log"
+    # T4.c2: RenameDuplicates first (in memory, -readOnly): DelinkProgram fails an object on a duplicate name
+    cmd = [str(bat), str(proj), tag, "-process", xbe.name, "-noanalysis", "-readOnly",
+           "-scriptPath", str(delink.SCRIPTS), "-postScript", "RenameDuplicates.java",
+           "-postScript", "DelinkRanges.java", str(argf),
+           "-log", str(log.with_suffix(".ghidra.log")), "-scriptlog", str(log.with_suffix(".script.log"))]
+    with open(log, "w", encoding="utf-8") as lf:
+        rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=lf, stderr=subprocess.STDOUT).returncode
+    text = log.read_text(encoding="utf-8", errors="replace")
+    if rc != 0 or "REPORT SCRIPT ERROR" in text:
+        print(f"relink: FAIL analyzeHeadless rc {rc} (see {log})", file=sys.stderr)
+        sys.exit(1)
+    print(f"cut {top.name}: {sum(map(len, out))} range(s), {len(jobs)} section(s) in 1 analyzeHeadless call")
+    for (_r, d), files in zip(jobs, out):
+        for f in files:
+            try:
+                coff_info.parse((d / f).read_bytes())
+            except (OSError, coff_info.BadCoff, struct.error, ValueError) as e:
+                print(f"relink: FAIL object {d / f}: {e}", file=sys.stderr)
+                sys.exit(1)
+        hashes = "".join(f"{hashlib.sha256((d / f).read_bytes()).hexdigest()}  {f}\n" for f in sorted(files))
+        (d / "hashes.txt").write_text(hashes, encoding="ascii", newline="\n")
+        delink.write_marker(d, len(files))
+    return out
 
 
 def _partition(x, names):
@@ -464,6 +468,17 @@ def _read_top(root, names):
 
 
 def cut(args):
+    """5.4 T5.c4: _cut inside one timing record (step `relink_cut`, label = the phase id, rc = its return or exit
+    code, a refusal's 2 included); stdout unchanged."""
+    import build  # lazy, as link/check do
+    import timing
+    mk = "relink.py cut" + (f" --section {args.section}" if args.section else "") + (" --repro" if args.repro else "")
+    with timing.step("relink_cut", label=build.phase_id(), marker=mk) as rec:  # 5.4 T21: shared gate marker
+        rec.rc = _cut(args)
+    return rec.rc
+
+
+def _cut(args):  # was: cut (5.4 T5.c4)
     import delink  # cut only (T7: lazy, delink is not verifier-locked)
     cfg = vv_inputs.load_config(args.config)
     x, sha1 = load_xbe(args.config)
@@ -474,15 +489,16 @@ def cut(args):
     t5 = REPO / "derived" / "ghidra" / f"retail-{sha1[:8]}"
     by_name = _name_vas(t5)
     got = []
+    if delink.ghidra_mem_guard("relink cut"):  # 5.4 T3.c3: before anything is removed, so a refused cut changes nothing
+        sys.exit(2)
     for top in [root / "cut"] + ([root / "cut.repro"] if args.repro else []):
         t0, nobj = time.monotonic(), 0
         if not args.section:  # the top marker goes first, so a cut stopped midway leaves no valid whole cut
             for p in (top / delink.CUT_MARKER, top / "hashes.txt", top / "partition.tsv"):
                 if p.is_file():
                     p.unlink()
-        for name in names:
-            d = top / _sec_dir(name)
-            files = _do_cut(cfg, sha1, xbe, _section_ranges(x, name), d)
+        jobs = [(_section_ranges(x, n), top / _sec_dir(n)) for n in names]
+        for (_r, d), files in zip(jobs, _do_cut(cfg, sha1, xbe, jobs)):
             nobj += len(files)
             h = (d / "hashes.txt").read_bytes()
             sizes = (", ".join(f"{f} {(d / f).stat().st_size} B" for f in files) if len(files) <= 4 else
@@ -834,12 +850,45 @@ def _weak_plant(o, path, mine, defs):
     return None
 
 
+def _site_plant(o, path, unit, mine, defs, rx):
+    """5.5 T12 control site-opcode (I54; Tesla 0x0008BFDD, 5.3 T2 review): Tesla's `??_G` row planted into o (in
+    memory: mine, defs; copy written to .run/<phase>/relink/control/ -> its path): a COMDAT .text of retail's 0x2B
+    bytes at its VA with +3 -> E8 (our call) and a REL32 at +4 into a new 1 B COMDAT .text that no name places
+    (pending). Retail +3 is 8B (mov eax,[esi+0x110]): the site reads inlined bytes, derived VA 0x0009D06B."""
+    va, size, nm = 0x0008BFDD, 0x2B, "??_GTeslaCoilPartMain@@UAEPAXI@Z"
+    fo = xbe_info.va_to_off(rx[0], va)
+    raw = bytearray(rx[1][fo:fo + size])
+    raw[3], raw[4:8] = 0xE8, bytes(4)
+    for body, nrel in ((bytes(raw), 1), (b"\xC3", 0)):
+        num = len(o["secs"]) + 1
+        o["secs"].append({"name8": b".text\0\0\0", "vsz": 0, "va": 0, "size": len(body), "raw": body, "relocs": [],
+                          "chars": 0x60101020})
+        o["syms"].append([b".text\0\0\0", 0, num, 0, 3,
+                          struct.pack("<IHHIHB", len(body), nrel, 0, 0, 0, 2).ljust(18, b"\0")])
+    num = len(o["secs"]) - 1
+    o["syms"].append([_obj_name8(o, nm), 0, num, 0x20, 2, b""])
+    o["syms"].append([_obj_name8(o, "$Lctl_site"), 0, num + 1, 0, 3, b""])
+    o["secs"][num - 1]["relocs"] = [[4, len(o["syms"]) - 1, REL_REL32]]
+    defs[nm] = (num, 0)
+    mine.append({"symbol": nm, "va": va, "size": size, "unit": unit})
+    cd = byte_compare._phase_run_dir() / "relink" / "control"
+    if cd.exists():
+        shutil.rmtree(cd)
+    cd.mkdir(parents=True)
+    q = cd / path.name
+    q.write_bytes(_obj_dump(o))
+    print(f"control site-opcode: {nm} 0x{va:08X} (0x{size:X} B, retail +3 0x{rx[1][fo + 3]:02X} -> E8) in "
+          f"{q.relative_to(REPO).as_posix()}, REL32 +4 -> $Lctl_site (section #{num + 1}, pending)")
+    return q
+
+
 def _ours(units, cfg_path, layout, bdir=None, list_path=None, control=None):
     """--units U[,V..] -> our compiled objects (bdir or .run/<phase>/build/<build.obj_rels() path of the matched-set
     unit>; 5.1 T4.c2, was <basename of the matched-set unit>) with
     their matched rows, undefined externals and image data sections ({sec, va, size, num}: VA from a symbol in the
     section by name, byname then config/retail/symbols_pin.txt). list_path: matched list (default MATCHED; T7 gate).
-    control weak (4.5 T16.2.c4): _weak_plant on the first object that allows it, before the kept walk."""
+    control weak (4.5 T16.2.c4): _weak_plant on the first object that allows it, before the kept walk.
+    control site-opcode (5.5 T12): _site_plant on the first object, before the kept walk."""
     import coff_info
     from pathlib import PureWindowsPath
     rows = tomllib.loads(Path(list_path or MATCHED).read_text(encoding="utf-8")).get("function", [])
@@ -878,6 +927,9 @@ def _ours(units, cfg_path, layout, bdir=None, list_path=None, control=None):
             if t is None or v != 0 or not t["chars"] & 0x1000 or t["size"] != r["size"] \
                     or _obj_name(o, t["name8"]) != ".text":
                 refuse(f"{path.name}: {r['symbol']} is not a COMDAT .text section of 0x{r['size']:X} bytes at 0")
+        if control == "site-opcode" and not planted:  # 5.5 T12 (I54): planted before the kept walk (its row and
+            rx = rx or _retail_bytes(cfg_path)  # pending section join `kept`)
+            path, planted = _site_plant(o, path, unit, mine, defs, rx), True
         if control == "weak" and not planted:  # 4.5 T16.2.c4: planted before the kept walk, so _weak_tag sees it
             q = _weak_plant(o, path, mine, defs)
             if q is not None:
@@ -943,6 +995,14 @@ def _ours(units, cfg_path, layout, bdir=None, list_path=None, control=None):
                         fo = xbe_info.va_to_off(rx[0], site)
                         if fo is None:
                             refuse(f"{path.name}: reloc site 0x{site:08X} into {sname} not raw-backed")
+                        if typ == REL_REL32:  # 5.5 T12 (I54): retail's opcode before the site is ours (E8/E9 one
+                            raw = t["raw"]  # byte, 0F 8x two), else the field read is retail's other bytes (Tesla
+                            n = 2 if off >= 2 and raw[off - 2] == 0x0F and 0x80 <= raw[off - 1] <= 0x8F else 1
+                            mo, ro = raw[max(off - n, 0):off], rx[1][fo - n:fo]  # 0x0008BFDD: inlined, mid-insn)
+                            if off < n or mo != ro:
+                                refuse(f"retail opcode {ro.hex()} != ours {mo.hex() or 'none'} before REL32 site "
+                                       f"0x{site:08X} ({path.name} {_obj_name(o, t['name8'])}+0x{off:X} -> {sname} "
+                                       f"#{num})")
                         ret, field = struct.unpack_from("<I", rx[1], fo)[0], struct.unpack_from("<I", t["raw"], off)[0]
                         sv = (ret - field) if typ == REL_DIR32 else (ret + site + 4 - field)
                         got.setdefault(num, {}).setdefault((sv - v) & 0xFFFFFFFF, []).append(
@@ -1329,7 +1389,7 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
             c["o"]["syms"][k][0] = _obj_name8(c["o"], uname(nm, sites[nm][0][2]))
             c["dirty"] = True
     sst = {"split": nsplit, "pieces": npieces, "holes": len(holes), "retargeted": 0, "neutralized": 0, "hole aliases": 0,
-           "by name": 0, "our aliases": 0,
+           "by name": 0, "our aliases": 0, "fold alias weak": 0,  # 5.4 T3 (G8): +fold alias weak
            "grouped": sst_grouped, "dups": ndup, "weak": {h["sym"]: g["sym"] for h, g in folds}}
     if holes:  # T4.c2: references into a hole -> our symbol there (+offset patched into the original's field)
         def_va = {}
@@ -1404,6 +1464,11 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
                 h = hole_at(va)
                 if h is not None and slotted(h) and va == h["lo"]:  # 3.4 T6.1: another public of the folded member
                     sst["weak"][nm] = h["sym"]  # our copy fills (C0130 alias pins) -> weak external to it
+                    continue
+                if h is not None and "num" not in h and va == h["lo"] and not h.get("data") \
+                        and h["sym"] not in (None, nm) and {(va, nm), (va, h["sym"])} <= fpins:
+                    sst["weak"][nm] = h["sym"]  # 5.4 T3 (G8): a fold alias (both func pins, C0130) at a matched
+                    sst["fold alias weak"] += 1  # row's start -> weak external to the row's symbol (--control alias)
                     continue
                 if h is not None:
                     refuse(f"our {ob['path'].name}: external {nm} 0x{va:08X} lies in a replaced range")
@@ -1577,7 +1642,8 @@ def _link(cfg, sha1, x, rx, names, reverse_text=False, sub=None, control=None, l
     rsp = ld / "link.rsp"
     rsp.write_text("".join((f'"{a}"' if " " in a else a) + "\n" for a in args), encoding="ascii", newline="\n")
     bindir = Path(cfg["msvc71_dir"])
-    tmp = byte_compare._phase_run_dir() / "relink_link_tmp"
+    # 5.5 T12 B1: one tmp per link dir (two tags never share or remove each other's); was: .../"relink_link_tmp"
+    tmp = byte_compare._phase_run_dir() / f"relink_link_tmp.{ld.name}"
     tmp.mkdir(parents=True, exist_ok=True)
     t0 = time.monotonic()
     try:
@@ -1804,6 +1870,12 @@ def _all_ours(cfg_path, layout, control=None, list_path=None, bdir=None):
     if control == "weak" and not any("relink/control/" in ob["path"].as_posix() for ob in sub["objs"]):
         refuse("control weak: no matched row with a DIR32/REL32 reloc to an external beside a non-row COMDAT .text "
                "no reloc reaches")
+    if control == "alias":  # 5.4 T3 (G8, C0296): planted on the external loop's input before _link resolves it: a
+        ob, r = min(((ob, r) for ob in sub["objs"] for r in ob["rows"]), key=lambda x: x[1]["va"])  # name at the
+        nm = "?pa_control_alias@@3HA"  # first matched row's start, pinned there but not a func pin (no fold alias)
+        sub["pins"][nm] = {r["va"]}
+        ob["und"].append(nm)
+        print(f"control alias: {nm} 0x{r['va']:08X} (row {r['symbol']}) an external of {ob['path'].name}")
     sub["units"] = "all"
     how = "built" if bdir == rd / "build" else "found built"  # T7: the gate's own build dir
     print(f"ours: {how} {len(built)} objects into {bdir.relative_to(REPO).as_posix()}; matched-set units "
@@ -2137,9 +2209,10 @@ def check_whole(cfg, sha1, x, rx, ours=False, control=None, cfg_path=None, list_
     return rc
 
 
-def gate_check(list_path, bdir, cfg_path=None, control=None):
+def gate_check(list_path, bdir, cfg_path=None, control=None, tag="gate"):
     """T7 (the gate's relink layer): the T6 whole-image check substituting every function of list_path from the
-    objects ALREADY built in bdir (no build, bdir untouched) -> link/all=gate[-<control>]/. -> (rc, output lines):
+    objects ALREADY built in bdir (no build, bdir untouched) -> link/all=<tag>[-<control>]/ (5.5 T12 B1: tag, precheck's
+    `pre_<TAG>`, so a precheck never links in the gate's folder; was: always `gate`). -> (rc, output lines):
     rc 0 all digests and the sha1 equal, 1 any differ, 2 refusal (refuse()'s SystemExit code; any other exit, code 0
     and None included, is 2: 4.5 T16.2 G12); stdout + stderr
     captured into the lines (text for the message only, the verdict is the rc, D26)."""
@@ -2152,7 +2225,7 @@ def gate_check(list_path, bdir, cfg_path=None, control=None):
             x, sha1 = load_xbe(cfg_path)
             rx = vv_inputs.input_path("retail_xbe", cfg=cfg).read_bytes()
             rc = check_whole(cfg, sha1, x, rx, ours=True, control=control, cfg_path=cfg_path, list_path=list_path,
-                             bdir=bdir, tag="gate")
+                             bdir=bdir, tag=tag)  # was: tag="gate" (5.5 T12 B1)
     except SystemExit as e:
         # 3.5 T4 W1: a bare/non-int SystemExit is a refusal; was: (0 if e.code is None else 2) (bare exit -> pass)
         # 4.5 T16.2 G12: code 0 is a refusal too (an exit is never a verdict); was: e.code if int and not bool, else 2
@@ -2163,7 +2236,8 @@ def gate_check(list_path, bdir, cfg_path=None, control=None):
 WHOLE_CONTROLS = ("one-function", "rdata-unsorted", "entry", "literal", "fold", "samename", "weak",
                   "samevt", "xdata-order", "data-order",  # 5.1 T4: +samevt, +xdata-order; 5.1 T13: +data-order
                   "label-unref", "unit-key",  # 5.1 T14: +label-unref, +unit-key
-                  "site-past-buffer")  # 5.3 T2
+                  "site-past-buffer",  # 5.3 T2
+                  "alias")  # 5.4 T3 (G8)
 
 
 def check_section(args):

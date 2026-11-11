@@ -318,6 +318,13 @@ public:
 class NeedleHat : public Critter { // NAME: proto-pdb:default.pdb
 public:
     void SetVisible(bool visible);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
 };
 
 class Level { // NAME: proto-pdb:default.pdb
@@ -460,6 +467,11 @@ DECOMP_SIZE_ASSERT(ScareHouseDoor, 0x110);
 class CarRideMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     CarRideMain(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -512,6 +524,11 @@ public:
     };
     VinceCarRide(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int id);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -536,6 +553,11 @@ public:
     };
     NeedleHatMain(SwampSceneNode* node);
     virtual void Message(SwampScript* source, int message, void* data);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     void CheckHair();
@@ -546,6 +568,11 @@ class SewingBulletMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
     SewingBulletMain(SwampSceneNode* node);
     virtual void FrameTick();
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -567,6 +594,11 @@ public:
     virtual void AnimationFinished();
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void HitBy(CollisionType type, SwampSceneNode* other, const Ptr<CollisionResultObject>& result);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);
@@ -585,6 +617,17 @@ public:
     };
     virtual void TimerEvent(unsigned int id);
     void SetCreator(class MonsterSpawnLocatorMain* creator) { _creator = creator; }
+    static void ResetKillQuip();
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+
+    static int _killsTilQuip;
+public:
 
     int _bone;                         // 0xBC
     class MonsterSpawnLocatorMain* _creator; // 0xC0
@@ -604,9 +647,35 @@ DECOMP_SIZE_ASSERT(LevelScript, 0x64);
 
 class ScareHouseRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
+    ScareHouseRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
 };
 DECOMP_SIZE_ASSERT(ScareHouseRegionMain, 0x64);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+namespace BeepLib { // NAME: proto-pdb:default.pdb
+double Random(unsigned int, unsigned int); // src proto-pdb:default.pdb Random
+}
+
+// FUNCTION: USA 0x0003FA0F
+// NAME: proto-pdb:default.pdb
+void ScareHouseMonsterMain::ResetKillQuip()
+{
+    _killsTilQuip = BeepLib::Random(10, 25);
+}
 
 // FUNCTION: USA 0x0003FE18
 // PROTOTYPE: PREVIEW 0x0042E2C3 ambiguous
@@ -639,6 +708,11 @@ public:
     virtual void Message(SwampScript* source, int message, void* data);
     virtual void TimerEvent(unsigned int id);
     MonsterSpawnLocatorMain(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 public:
@@ -676,6 +750,19 @@ void CarRideMain::InvalidateScript()
         _sound->Invalidate();
     CritterMain::InvalidateScript();
 }
+
+// FUNCTION: USA 0x0003F9AB
+// PROTOTYPE: PREVIEW 0x0047DAF5 identical
+// NAME: proto-pdb:default.pdb
+#ifdef NON_MATCHING
+// best: match_one ?AnimationFinished@TargetSwitchMain bytes match (masked 0), objdiff None; fold-name wall (C0377):
+// row 0x0003F9AB is named ?AnimationFinished@RagDollMain (proto FrontPorch.obj), refused `not defined in ScareHouse.obj`;
+// lift: the row renamed to the unit's folded ?AnimationFinished@TargetSwitchMain@@UAEXXZ (pin, symbols_pin.txt:4199) + re-cut
+void TargetSwitchMain::AnimationFinished()
+{
+    SetState(STATE_UP);
+}
+#endif
 
 // FUNCTION: USA 0x0003F9B3
 // PROTOTYPE: PREVIEW 0x0042DE5E identical
@@ -836,17 +923,12 @@ void pin_emit_LocatorMain_dtor(LocatorMain* p)
 // FUNCTION: USA 0x0003FE34
 // PROTOTYPE: PREVIEW 0x0045D94C identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match (fold-name relink wall: theSquare.obj's external
-// ?SetVisible@Beret@@QAEX_N@Z at this fold VA lies in a replaced range; lift = Beret::SetVisible body in
-// theSquare.cpp so its copy merges as a fold duplicate (C0233 fix 1); 1 draft)
 void NeedleHat::SetVisible(bool b)
 {
     SetOption(DontDraw, !b, false);
     if (GetScript())
         GetScript()->Message(GetScript(), NeedleHatMain::MESSAGE_CHECKHAIR, 0);
 }
-#endif
 
 // FUNCTION: USA 0x0003FFD9
 // PROTOTYPE: PREVIEW 0x0042E440 identical
@@ -951,6 +1033,8 @@ void ScareHouseTryAgainMenu::Update()
 // unit (no matched function odr-uses it); this qualified call odr-uses it instead (matched_set [[emitter]] row)
 #ifdef NON_MATCHING
 // best: match_one ??1VinceCarRide objdiff 1.30, bytes match (masked 0); cut-extent wall: delink symbol runs to FUN_00042bfd
+// (5.4 T12.1.c4: unguarded once, 1.30 again; lift: a pin at the neighbour + re-cut, C0377).
+// ??_GVinceCarRide 0x0004271B: no draft; companion wall (C0320): ctor 0x0004261B fails, 3 unresolved reloc targets
 void pin_emit_VinceCarRide_dtor(VinceCarRide* p)
 {
     p->VinceCarRide::~VinceCarRide();
@@ -1093,18 +1177,15 @@ SwampScript* SewingBulletMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 190) SewingBulletMain(node);
 }
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x000419A0
 // PROTOTYPE: PREVIEW 0x0042FDA8 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 50.0, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* MonsterSpawnLocatorMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 209) MonsterSpawnLocatorMain(node);
 }
-#endif
 
 // FUNCTION: USA 0x00041B79
 // PROTOTYPE: PREVIEW 0x0042FF81 identical
@@ -1144,6 +1225,63 @@ SwampScript* TargetSwitchMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 274) TargetSwitchMain(node);
+}
+
+// FUNCTION: USA 0x00042202
+// NAME: proto-pdb:default.pdb
+SwampScript* ScareHouseRegionMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 18) ScareHouseRegionMain(node);
+}
+
+// FUNCTION: USA 0x00042226
+// NAME: proto-pdb:default.pdb
+ScareHouseRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ScareHouseRegionMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00042262
+// NAME: proto-pdb:default.pdb
+CarRideMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CarRideMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000422DA
+// NAME: proto-pdb:default.pdb
+NeedleHatMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("NeedleHatMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00042316
+// NAME: proto-pdb:default.pdb
+SewingBulletMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SewingBulletMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00042352
+// NAME: proto-pdb:default.pdb
+MonsterSpawnLocatorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("MonsterSpawnLocatorMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004238E
+// NAME: proto-pdb:default.pdb
+ScareHouseMonsterMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("ScareHouseMonsterMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000423CA
+// NAME: proto-pdb:default.pdb
+TargetSwitchMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TargetSwitchMain", creationFunc);
 }
 
 // FUNCTION: USA 0x00042532
@@ -1186,4 +1324,156 @@ SwampScript* VinceCarRide::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 98) VinceCarRide(node);
+}
+
+// FUNCTION: USA 0x00042FCF
+// NAME: proto-pdb:default.pdb
+VinceCarRide::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceCarRide", creationFunc);
+}
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x0004229E
+// NAME: proto-pdb:default.pdb
+NeedleHat::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("NeedleHat", creationFunc);
+}
+
+class DoorAMain : public ScareHouseDoor { // NAME: proto-pdb:default.pdb
+public:
+    DoorAMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorAMain, 0x110);
+
+class DoorBMain : public ScareHouseDoor { // NAME: proto-pdb:default.pdb
+public:
+    DoorBMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorBMain, 0x110);
+
+class DoorDMain : public ScareHouseDoor { // NAME: proto-pdb:default.pdb
+public:
+    DoorDMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorDMain, 0x110);
+
+class DoorEMain : public ScareHouseDoor { // NAME: proto-pdb:default.pdb
+public:
+    DoorEMain(SwampSceneNode* node);
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+DECOMP_SIZE_ASSERT(DoorEMain, 0x110);
+
+
+class DoorCMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+
+// FUNCTION: USA 0x00042406
+// NAME: proto-pdb:default.pdb
+DoorAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00042442
+// NAME: proto-pdb:default.pdb
+DoorBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0004247E
+// NAME: proto-pdb:default.pdb
+DoorCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorCMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000424BA
+// NAME: proto-pdb:default.pdb
+DoorDMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorDMain", creationFunc);
+}
+
+// FUNCTION: USA 0x000424F6
+// NAME: proto-pdb:default.pdb
+DoorEMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorEMain", creationFunc);
+}
+
+// FUNCTION: USA 0x00042116
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorAMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 314) DoorAMain(node);
+}
+
+// FUNCTION: USA 0x00042140
+// PROTOTYPE: PREVIEW 0x00479907 identical
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorBMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 322) DoorBMain(node);
+}
+
+// FUNCTION: USA 0x00042194
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorDMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 338) DoorDMain(node);
+}
+
+// FUNCTION: USA 0x000421BE
+// NAME: proto-pdb:default.pdb
+SwampScript* DoorEMain::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
+    return new("d:\\beep\\apps\\vince\\scripts\\carnival\\scarehouse\\ScareHouse.h", 346) DoorEMain(node);
 }

@@ -121,6 +121,10 @@ class CourtyardRegionMain : public LevelScript { // NAME: proto-pdb:default.pdb
 public:
     CourtyardRegionMain(SwampSceneNode* node);
     virtual void EnteringRegion(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -149,4 +153,19 @@ SwampScript* CourtyardRegionMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("courtyard\\Courtyard.cpp", 23) CourtyardRegionMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+
+// FUNCTION: USA 0x0006FE48
+// NAME: proto-pdb:default.pdb
+CourtyardRegionMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CourtyardRegionMain", creationFunc);
 }

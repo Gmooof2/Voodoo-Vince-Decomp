@@ -178,6 +178,10 @@ public:
     BellMain(SwampSceneNode* node);
     virtual void Load(const BeepTDF& tdf);
     virtual SwampString Save();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     bool ReadyToOpenDoor();
@@ -203,6 +207,10 @@ public:
     BellRingerMain(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int id);
     virtual void Message(SwampScript* source, int message, void* data);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -223,6 +231,10 @@ public:
     };
     DoorExitMain(SwampSceneNode* node);
     virtual void Load(const BeepTDF& tdf);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
     Critter* GetDoor() { return (Critter*)_node; }
@@ -312,6 +324,7 @@ void DoorExitMain::Load(const BeepTDF& tdf)
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes match (masked 0); gate pin_rows: ctor pin 0x0006C10A is site-corr, relocated through by this row (D102); lift = a disasm-/corr-verified ctor pin (5.3 T5)
+// 5.4 wall (T6.c4): promote-corr refuses the 0x0006C10A ctor pin `route-near:no-agreeing-site`, so D102 still applies
 SwampScript* BellMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
@@ -319,18 +332,77 @@ SwampScript* BellMain::creationFunc(SwampSceneNode* node)
 }
 #endif
 
+// row-end pin 5.4 T26.c1
 // FUNCTION: USA 0x0006C734
 // PROTOTYPE: PREVIEW 0x00458A1C identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 5.2, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* DoorExitMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\crypt_city\\gwistlethorpe\\Bell.h", 87) DoorExitMain(node);
 }
-#endif
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0006CA57
+// NAME: proto-pdb:default.pdb
+BellMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BellMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0006CA93
+// NAME: proto-pdb:default.pdb
+BellRingerMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BellRingerMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0006CACF
+// NAME: proto-pdb:default.pdb
+DoorExitMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorExitMain", creationFunc);
+}
+
+class BellRingerLeftMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+class BellRingerRightMain { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
+};
+
+// FUNCTION: USA 0x0006CB0B
+// NAME: proto-pdb:default.pdb
+BellRingerLeftMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BellRingerLeftMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0006CB47
+// NAME: proto-pdb:default.pdb
+BellRingerRightMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BellRingerRightMain", creationFunc);
+}
 
 // !FAKE: c1xx front end; scaffold call; retail emits the implicit ??1BellMain@@UAE@XZ in this unit (its ??_G caller
 // sits with the unpinned ctor 0x0006C10A, not matched); this qualified call odr-uses it instead (matched_set [[emitter]] row)

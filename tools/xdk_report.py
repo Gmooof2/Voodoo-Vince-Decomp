@@ -17,7 +17,10 @@ CLI: xdk_report.py [--config P]
   5 section-name signal: exec section name vs library-table names (exact, prefix, abbreviation) + dominant class.
 Outputs derived/xdk/retail-<sha1[:8]>/ (cleared first): modules.jsonl, xdk_procs.jsonl, crosscheck.jsonl,
   unidentified.jsonl, functions.jsonl (one per population function: entry, size, section, class = bucket class of
-  its entry byte, "outside" if in no exec section), summary.json (summary["functions"] = {source, count, byClass}).
+  its entry byte, "outside" if in no exec section), summary.json (summary["functions"] = {source, count, byClass};
+  summary["ingestSha256"] = ingest_sha256(pin) over exactly the ingest files read: derived/ghidra/retail-<pin8>/
+  summary.json, functions.jsonl, symbols.jsonl, plus applied/summary.json and applied/functions.jsonl when applied/
+  is used; progress.py and recut_proof.py refuse a report whose value != the current ingest's (5.4 T1)).
   Prints counts, names and addresses only, never bytes (D46).
 Exit: 0 ok; 1 a sum check failed; 2 refusal (input missing, proto_map targetSha1 or T5/applied summary sha != pin).
 """
@@ -108,6 +111,26 @@ def name_signal(sec, libnames):
     return None, None
 
 
+INGEST_FILES = ("summary.json", "functions.jsonl", "symbols.jsonl")
+APPLIED_FILES = ("applied/summary.json", "applied/functions.jsonl")
+
+
+def ingest_sha256(pin):
+    """sha256 over exactly the ingest files main() reads from derived/ghidra/retail-<pin8>/ (INGEST_FILES, plus
+    APPLIED_FILES when applied/summary.json exists): per file its relative name, NUL, its byte length, NUL, its bytes.
+    -> hex digest, or None when a file is missing. progress.py and recut_proof.py recompute it with this function."""
+    t5 = REPO / "derived" / "ghidra" / f"retail-{pin[:8]}"
+    names = INGEST_FILES + (APPLIED_FILES if (t5 / "applied" / "summary.json").is_file() else ())
+    h = hashlib.sha256()
+    for n in names:
+        p = t5 / n
+        if not p.is_file():
+            return None
+        b = p.read_bytes()
+        h.update(n.encode() + b"\0" + str(len(b)).encode() + b"\0" + b)
+    return h.hexdigest()
+
+
 def main(argv):
     ap = argparse.ArgumentParser(prog="xdk_report.py", description=__doc__.splitlines()[0])
     ap.add_argument("--config", help="config path (default config/local_paths.json)")
@@ -156,7 +179,7 @@ def main(argv):
     libnames = {lib["name"].upper() for lib in x["libraries"]}
     out = REPO / "derived" / "xdk" / f"retail-{pin[:8]}"
     summ = {"targetSha1": pin, "libraryTable": sorted(libnames), "source": "xdk_report",
-            "status_note": "unverified"}
+            "status_note": "unverified", "ingestSha256": ingest_sha256(pin)}  # 5.4 T1: the stale-report guard
 
     # 1 modules
     print(f"library table ({len(libnames)}): {' '.join(sorted(libnames))}")

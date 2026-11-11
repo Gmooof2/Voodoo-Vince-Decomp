@@ -489,9 +489,7 @@ DECOMP_SIZE_ASSERT(SwampScriptManager::ScriptTimerEvent, 0x14);
 // FUNCTION: USA 0x000AB5CD
 // PROTOTYPE: PREVIEW 0x004E05F6 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but 0x000AB5CD also folds vector<MusicManager::Overlay>::size, which Music.obj calls as an external (4.3 T12)
 template unsigned int std::vector<SwampScript::SaveLoadVar,std::allocator<SwampScript::SaveLoadVar> >::size()const;
-#endif
 
 // FUNCTION: USA 0x000AB638
 // PROTOTYPE: PREVIEW 0x0049646A identical

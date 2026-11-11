@@ -3,7 +3,17 @@
 namespace std { // NAME: proto-pdb:default.pdb
 template <class E> struct char_traits;
 template <class T> class allocator;
-template <class E, class T, class A> class basic_string;
+template <class E, class T, class A> class basic_string {
+public:
+    basic_string(const E* ptr);
+    ~basic_string() { _Tidy(true); }
+
+protected:
+    void _Tidy(bool _Built = false, unsigned int _Newsize = 0);
+
+private:
+    char _pad00[0x1C];
+};
 template <class T, class A = allocator<T> > class vector {
 public:
     unsigned int capacity() const { return (_Myfirst == 0 ? 0 : _Myend - _Myfirst); }
@@ -83,6 +93,10 @@ DECOMP_SIZE_ASSERT(MonsterMain, 0x240);
 
 class BubbaGatorMain : public MonsterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
     BubbaGatorMain(SwampSceneNode* node);
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
@@ -177,6 +191,20 @@ SwampScript* BubbaGatorMain::creationFunc(SwampSceneNode* node)
     return new("d:\\beep\\apps\\vince\\scripts\\common\\BubbaGator.h", 14) BubbaGatorMain(node);
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0011143A
+// NAME: proto-pdb:default.pdb
+BubbaGatorMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("BubbaGatorMain", creationFunc);
+}
+
 enum PARAM_TYPES { // NAME: proto-pdb:default.pdb
     PARAM_FLOAT = 0x0,
     PARAM_STRING = 0x1,
@@ -203,6 +231,4 @@ DECOMP_SIZE_ASSERT(Param, 0x1C);
 
 // FUNCTION: USA 0x00111476
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING // wall-fold-va-callers (C0233): match_one 100, but 0x00111476 also folds vector<std::string>::capacity, which FrontEndUI.obj calls as an external (4.3 T12)
 template unsigned int std::vector<Param,std::allocator<Param> >::capacity()const;
-#endif

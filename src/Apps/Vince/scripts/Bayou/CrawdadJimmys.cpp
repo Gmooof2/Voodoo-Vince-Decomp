@@ -117,6 +117,9 @@ class BeepTDF;               // NAME: proto-pdb:default.pdb
 class CollisionResultObject; // NAME: proto-pdb:default.pdb
 template <class T> class Ptr; // NAME: proto-pdb:default.pdb
 struct Vector3 { // NAME: proto-pdb:default.pdb
+    Vector3() {}
+    Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+
     float x;                           // 0x00
     float y;                           // 0x04
     float z;                           // 0x08
@@ -124,16 +127,32 @@ struct Vector3 { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(Vector3, 0xC);
 
 struct Quaternion { // NAME: proto-pdb:default.pdb
+    Quaternion() {}
+    Quaternion(float x, float y, float z, float w_) : v(x, y, z), w(w_) {}
+
     Vector3 v;                         // 0x00
     float w;                           // 0x0C
 };
 DECOMP_SIZE_ASSERT(Quaternion, 0x10);
+
+class AABox;  // NAME: proto-pdb:default.pdb
+class Matrix; // NAME: proto-pdb:default.pdb
 
 class SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
     enum NodeOptions { // NAME: proto-pdb:default.pdb
         Invalid = 0x1
     };
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+
     const Quaternion& SetRotation(const Quaternion& q);
     void SetVisible(bool b, bool r);
     void SetOption(unsigned int, bool, bool);
@@ -142,7 +161,7 @@ public:
 protected:
     void InvalidateCachedWorldPos();
 public:
-    char field_0[0x40];                // 0x00
+    char field_4[0x40 - 0x4];          // 0x04
     Quaternion _Rotation;              // 0x40
     char field_50[0x88 - 0x50];        // 0x50
     unsigned int _RenderingOptions;    // 0x88
@@ -168,6 +187,31 @@ void SwampSceneNode::SetVisible(bool b, bool r)
 {
     SetOption(2, !b, r);
 }
+
+class ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_0[0x1C];                // 0x00
+    unsigned int _RefCount;            // 0x1C
+    bool _valid;                       // 0x20
+};
+DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
+
+class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
+public:
+    char field_24[0x10];               // 0x24
+};
+DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+
+template<class T>
+class ResourceHandle { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) ++_Resource->_RefCount; }
+    ~ResourceHandle() { if (_Resource) --_Resource->_RefCount; }
+    ResourceHandle& operator=(const ResourceHandle&);
+    bool IsValid() const { return _Resource != 0; }
+    T& operator()() { return *_Resource; }
+    T* _Resource;                      // 0x00
+};
 
 class SwampScript { // NAME: proto-pdb:default.pdb
 public:
@@ -236,13 +280,18 @@ public:
     CrawdadJimmyMain(SwampSceneNode* node);
     virtual bool TestActivate() const;
     virtual void GainingControl(SwampScript*);
-    virtual void SetState(int);
 
     bool _didintro;                    // 0xBC
     bool _didchallenge;                // 0xBD
-    char field_BE[0x6];                // 0xBE
+    char field_BE[0x2];                // 0xBE
+    ResourceHandle<AnimationResource> _idleCheckTime; // 0xC0
 
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
+    virtual void SetState(int);
     static SwampScript* creationFunc(SwampSceneNode* node);
     void ResetAmbients();
     void GiveHint(int item);
@@ -278,6 +327,10 @@ DECOMP_SIZE_ASSERT(Activator_FanBoatMain, 0xE0);
 class Activator_FanBoatAMain : public Activator_FanBoatMain { // NAME: proto-pdb:default.pdb
 public:
     Activator_FanBoatAMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -286,6 +339,10 @@ DECOMP_SIZE_ASSERT(Activator_FanBoatAMain, 0xE0);
 class Activator_FanBoatBMain : public Activator_FanBoatMain { // NAME: proto-pdb:default.pdb
 public:
     Activator_FanBoatBMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -294,6 +351,10 @@ DECOMP_SIZE_ASSERT(Activator_FanBoatBMain, 0xE0);
 class Activator_FanBoatCMain : public Activator_FanBoatMain { // NAME: proto-pdb:default.pdb
 public:
     Activator_FanBoatCMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -306,38 +367,37 @@ void pin_emit_ActivatorMain_dtor(ActivatorMain* p)
     p->ActivatorMain::~ActivatorMain();
 }
 
-class ResourceBase { // NAME: proto-pdb:default.pdb
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
 public:
-    char field_0[0x1C];                // 0x00
-    unsigned int _RefCount;            // 0x1C
-    bool _valid;                       // 0x20
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
+    virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
+    virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
 };
-DECOMP_SIZE_ASSERT(ResourceBase, 0x24);
 
-class AnimationResource : public ResourceBase { // NAME: proto-pdb:default.pdb
-public:
-    char field_24[0x10];               // 0x24
-};
-DECOMP_SIZE_ASSERT(AnimationResource, 0x34);
+class AnimationControl;  // NAME: proto-pdb:default.pdb
+class ModelResource;     // NAME: proto-pdb:default.pdb
 
-template<class T>
-class ResourceHandle { // NAME: proto-pdb:default.pdb
+// src proto-pdb:default.pdb GatorNode base CollidableCylinder : CollidableNode, all at 0x0; CollidableCylinder not modelled
+class GatorNode : public CollidableNode { // NAME: proto-pdb:default.pdb
 public:
-    ResourceHandle(const ResourceHandle& h) : _Resource(h._Resource) { if (_Resource) ++_Resource->_RefCount; }
-    ~ResourceHandle() { if (_Resource) --_Resource->_RefCount; }
-    ResourceHandle& operator=(const ResourceHandle&);
-    bool IsValid() const { return _Resource != 0; }
-    T& operator()() { return *_Resource; }
-    T* _Resource;                      // 0x00
+    virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
+
+    ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>& anim, bool restart, bool loop);
 };
 
 // Retail layout: retail disasm puts _defaultIdleAnim at 0x288 (proto PDB 0x278, Critter 0x2C8).
-class Critter { // NAME: proto-pdb:default.pdb
+class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual void Load(const BeepTDF&);                             // vtable+0x34
+    virtual SwampString Save();                                    // vtable+0x38
+    virtual void Stun(float);                                      // vtable+0x3C
+    virtual float GetGravity();                                    // vtable+0x40
+    virtual void ReturnToHome();                                   // vtable+0x44
+
     ResourceHandle<AnimationResource> GetDefaultIdleAnim() const;
     void SetDefaultIdleAnim(ResourceHandle<AnimationResource> ah);
 
-    char field_0[0x288];               // 0x00
+    char field_A4[0x288 - 0xA4];       // 0xA4
     ResourceHandle<AnimationResource> _defaultIdleAnim; // 0x288
 };
 
@@ -378,6 +438,68 @@ RegionTrigger* RegionManager::Find(const SwampString& name)
 {
     RegionMap::const_iterator tmp = _regions.find(BeepLib::MakeLower(name));
     return tmp != _regions.end() ? tmp->second : 0;
+}
+
+template <class T> class ResourceManager { // NAME: proto-pdb:default.pdb
+public:
+    ResourceHandle<T> Load(const SwampString& name);
+};
+
+class AnimationManager : public ResourceManager<AnimationResource> { // NAME: proto-pdb:default.pdb
+};
+
+class Swamp { // NAME: proto-pdb:default.pdb
+public:
+    AnimationManager& GetAnimationManager() const { return *_animationManager; }
+
+    char field_0[0x18];                // 0x00
+    AnimationManager* _animationManager; // 0x18
+};
+extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
+
+// FUNCTION: USA 0x0001A090
+// PROTOTYPE: PREVIEW 0x0040930D near-identical
+// NAME: proto-pdb:default.pdb
+void CrawdadJimmyMain::SetState(int state)
+{
+    _state = state;
+    // !FAKE: c2 register allocation; stand-in local; the PDB records no local for the node (esi in retail)
+    Critter* v0 = (Critter*)GetNode();
+    switch (state) {
+    case STATE_IDLE:
+        v0->ReturnToHome();
+        // !FAKE: inline copy; retail inlines GetDefaultIdleAnim here, which this unit defines out of line (0x19E39)
+        v0->StartAnimation(ResourceHandle<AnimationResource>(((Critter*)GetNode())->_defaultIdleAnim), true, false);
+        break;
+    case STATE_CHECKTIME:
+        v0->StartAnimation(_idleCheckTime, false, false);
+        break;
+    case STATE_ASK_CRAWDAD:
+        v0->SetWorldPosition(Vector3(0.0f, 0.0f, 0.0f));
+        v0->SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
+        v0->StartAnimation(g_swamp->GetAnimationManager().Load("crawdadjimmy_askcrawdad"), false, false);
+        break;
+    case STATE_ASK_ONION:
+        v0->SetWorldPosition(Vector3(0.0f, 0.0f, 0.0f));
+        v0->SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
+        v0->StartAnimation(g_swamp->GetAnimationManager().Load("crawdadjimmy_askonion"), false, false);
+        break;
+    case STATE_ASK_SAUSAGE:
+        v0->SetWorldPosition(Vector3(0.0f, 0.0f, 0.0f));
+        v0->SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
+        v0->StartAnimation(g_swamp->GetAnimationManager().Load("crawdadjimmy_asksausage"), false, false);
+        break;
+    case STATE_V_NOTHING:
+        v0->SetWorldPosition(Vector3(0.0f, 0.0f, 0.0f));
+        v0->SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
+        v0->StartAnimation(g_swamp->GetAnimationManager().Load("crawdadjimmy_vincehasnothing"), false, false);
+        break;
+    case STATE_GOTALL:
+        v0->SetWorldPosition(Vector3(0.0f, 0.0f, 0.0f));
+        v0->SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
+        v0->StartAnimation(g_swamp->GetAnimationManager().Load("crawdadjimmy_mightyfinegumbo"), false, false);
+        break;
+    }
 }
 
 class SoundResource : public ResourceBase { // NAME: proto-pdb:default.pdb
@@ -511,6 +633,10 @@ DECOMP_SIZE_ASSERT(BasicDoorMain, 0x110);
 class GrateExitMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
     GrateExitMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -519,6 +645,10 @@ DECOMP_SIZE_ASSERT(GrateExitMain, 0x110);
 class TimberGateMain : public BasicDoorMain { // NAME: proto-pdb:default.pdb
 public:
     TimberGateMain(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 };
@@ -547,6 +677,55 @@ SwampScript* TimberGateMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("CrawdadJimmys\\CrawdadJimmys.cpp", 521) TimberGateMain(node);
+}
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
+// FUNCTION: USA 0x0001A7D1
+// NAME: proto-pdb:default.pdb
+CrawdadJimmyMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("CrawdadJimmyMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0001A80D
+// NAME: proto-pdb:default.pdb
+TimberGateMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("TimberGateMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0001A849
+// NAME: proto-pdb:default.pdb
+GrateExitMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("GrateExitMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0001A885
+// NAME: proto-pdb:default.pdb
+Activator_FanBoatAMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Activator_FanBoatAMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0001A8C1
+// NAME: proto-pdb:default.pdb
+Activator_FanBoatBMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Activator_FanBoatBMain", creationFunc);
+}
+
+// FUNCTION: USA 0x0001A8FD
+// NAME: proto-pdb:default.pdb
+Activator_FanBoatCMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("Activator_FanBoatCMain", creationFunc);
 }
 
 class Level { // NAME: proto-pdb:default.pdb

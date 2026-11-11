@@ -51,6 +51,14 @@ typedef struct _XINPUT_GAMEPAD { // NAME: proto-pdb:default.pdb
     short sThumbRY;                    // 0x10
 } XINPUT_GAMEPAD;
 DECOMP_SIZE_ASSERT(XINPUT_GAMEPAD, 0x12);
+#pragma pack(push, 1)
+typedef struct _XINPUT_STATE { // NAME: proto-pdb:default.pdb
+    unsigned long dwPacketNumber;      // 0x00
+    _XINPUT_GAMEPAD Gamepad;           // 0x04
+} XINPUT_STATE;
+#pragma pack(pop)
+DECOMP_SIZE_ASSERT(XINPUT_STATE, 0x16);
+extern "C" unsigned long __stdcall XInputGetState(void* hDevice, _XINPUT_STATE* pState); // NAME: proto-pdb:default.pdb
 
 namespace BeepLib { // NAME: proto-pdb:default.pdb
 double GetTime();
@@ -102,6 +110,7 @@ typedef struct _XINPUT_FEEDBACK { // NAME: proto-pdb:default.pdb
 } XINPUT_FEEDBACK;
 #pragma pack(pop)
 DECOMP_SIZE_ASSERT(XINPUT_FEEDBACK, 0x46);
+extern "C" unsigned long __stdcall XInputSetState(void* hDevice, _XINPUT_FEEDBACK* pFeedback); // NAME: proto-pdb:default.pdb
 
 class SwampGamePad { // NAME: proto-pdb:default.pdb
 public:
@@ -460,6 +469,95 @@ void SwampGamePad::PlayRumble(const ResourceHandle<RumbleResource>& rumble)
     _rumbleCurrent = 0;
     _rumbleLast = g_swamp->GetInput().GetGameTime();
     _rumblePlaying = true;
+}
+
+// FUNCTION: USA 0x000ADBBA
+// PROTOTYPE: PREVIEW 0x00498A41 identical
+// NAME: proto-pdb:default.pdb
+void SwampGamePad::Update()
+{
+    if (!_handle)
+        return;
+    if (_ignoreNextUpdate) {
+        _lastPacketNum--;
+        _ignoreNextUpdate = false;
+        return;
+    }
+    if (g_swamp->GetInput()._pauseGame) {
+        if (!_rumblePaused) {
+            _rumblePaused = true;
+            _rumbleDirty = true;
+        }
+    } else if (_rumblePaused) {
+        _rumblePaused = false;
+        _rumbleDirty = true;
+    }
+    if (_rumblePlaying) {
+        float now = g_swamp->GetInput().GetGameTime();
+        if (_rumblePaused) {
+            _rumbleLast = now;
+        } else {
+            unsigned int samples = (unsigned int)((now - _rumbleLast) * _rumbleRate);
+            if (samples) {
+                _rumbleCurrent += samples;
+                _rumbleLast = now;
+                _rumbleDirty = true;
+                if (_rumbleLoop)
+                    _rumbleCurrent %= _rumbleHi;
+                else if (_rumbleCurrent >= _rumbleHi)
+                    _rumblePlaying = false;
+            }
+        }
+    }
+    _XINPUT_STATE state;
+    if (XInputGetState(_handle, &state) == 0) {
+        _previous = _current;
+        if (state.dwPacketNumber != _lastPacketNum) {
+            _current = state.Gamepad;
+            _lastPacketNum = state.dwPacketNumber;
+        }
+        if (_rumbleDirty && _feedback.Header.dwStatus != 0x3E5) {
+            if (_rumblePlaying && !_rumblePaused) {
+                unsigned short* sample = &_rumblePattern[_rumbleCurrent * 2];
+                _feedback.Rumble.wLeftMotorSpeed = sample[0];
+                _feedback.Rumble.wRightMotorSpeed = sample[1];
+            } else {
+                _feedback.Rumble.wLeftMotorSpeed = 0;
+                _feedback.Rumble.wRightMotorSpeed = 0;
+            }
+            XInputSetState(_handle, &_feedback);
+            _rumbleDirty = false;
+        }
+        if (g_swamp->GetInput()._pipeJpadToDpad) {
+            float x = _current.sThumbLX * (1.0f / 32767.0f);
+            float y = _current.sThumbLY * (1.0f / 32767.0f);
+            if (x > 0.5f)
+                _current.wButtons |= 8;
+            else if (x < -0.5f)
+                _current.wButtons |= 4;
+            if (y > 0.5f)
+                _current.wButtons |= 1;
+            else if (y < -0.5f)
+                _current.wButtons |= 2;
+        }
+        SwampInput& input = g_swamp->GetInput();
+        if (input._autoRepeatEnabled) {
+            if ((_buttonsHeld ^ _current.wButtons) & 0xF) {
+                _buttonsHeld = _current.wButtons;
+                _autoRepeatTimer = g_swamp->GetInput()._autoRepeatStart;
+            } else {
+                _autoRepeatTimer -= input._actualElapsed;
+                if (_autoRepeatTimer <= 0.0f) {
+                    _previous.wButtons &= ~0xF;
+                    _autoRepeatTimer = g_swamp->GetInput()._autoRepeatRate;
+                }
+            }
+        }
+    } else {
+        XInputClose(_handle);
+        _handle = 0;
+        _rumblePlaying = false;
+    }
 }
 
 // FUNCTION: USA 0x000ADE2A

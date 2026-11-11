@@ -155,6 +155,13 @@ public:
 };
 DECOMP_SIZE_ASSERT(SwampScript, 0x4C);
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     virtual ~CritterMain();
@@ -189,7 +196,15 @@ public:
 DECOMP_SIZE_ASSERT(CutsceneDriver, 0x78);
 
 class KosmoAppearsMainTunnelCutscene : public CutsceneDriver { // NAME: proto-pdb:default.pdb
+public:
+    KosmoAppearsMainTunnelCutscene(SwampSceneNode* node);
+
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
+    static SwampScript* creationFunc(SwampSceneNode* node);
     virtual void SetState(int state);
 
 public:
@@ -227,11 +242,30 @@ void KosmoAppearsMainTunnelCutscene::SetState(int state)
 
 void* operator new(unsigned int size, const char* file, int line); // retail ??2@YAPAXIPBDH@Z
 
+// FUNCTION: USA 0x000A1461
+// NAME: proto-pdb:default.pdb
+SwampScript* KosmoAppearsMainTunnelCutscene::creationFunc(SwampSceneNode* node)
+{
+    // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
+    return new("MainTunnel\\MainTunnelCutscenes.cpp", 19) KosmoAppearsMainTunnelCutscene(node);
+}
+
+// FUNCTION: USA 0x000A1488
+// NAME: proto-pdb:default.pdb
+KosmoAppearsMainTunnelCutscene::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("KosmoAppearsMainTunnelCutscene", creationFunc);
+}
+
 class VinceListeningToKosmoMT : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     VinceListeningToKosmoMT(SwampSceneNode* node);
     virtual void TimerEvent(unsigned int timerId);
     virtual void AnimationFinished();
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 private:
     static SwampScript* creationFunc(SwampSceneNode* node);
 
@@ -281,12 +315,15 @@ void VinceListeningToKosmoMT::TimerEvent(unsigned int timerId)
 // FUNCTION: USA 0x000A143A
 // PROTOTYPE: PREVIEW 0x0048C4E9 identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 50.0, bytes match (cut-extent wall: retail cut symbol runs past the
-// row; va_dis no difference; fix is row-end pins + re-cut, source is final; generated, 4.4 T10)
 SwampScript* VinceListeningToKosmoMT::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (relative path), ours differs
     return new("MainTunnel\\MainTunnelCutscenes.cpp", 167) VinceListeningToKosmoMT(node);
 }
-#endif
+
+// FUNCTION: USA 0x000A14C4
+// NAME: proto-pdb:default.pdb
+VinceListeningToKosmoMT::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("VinceListeningToKosmoMT", creationFunc);
+}

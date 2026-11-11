@@ -967,9 +967,12 @@ class VertexShaderManager : public ResourceManager<VertexShaderResource> { // NA
 
 const std::string format(const char*, ...); // NAME: proto-pdb:default.pdb
 
+// FUNCTION: USA 0x000C114C
+// NAME: proto-pdb:default.pdb
 class SmartBase { // NAME: proto-pdb:default.pdb
-public:
+protected:
     virtual ~SmartBase() {}            // vtable+0x00
+public:
     void AddRef() { _RefCount++; }
     void SubRef()
     {
@@ -1342,18 +1345,12 @@ void DrawLevel::EnableMirrors(bool enable)
 // FUNCTION: USA 0x000C10B1
 // PROTOTYPE: PREVIEW 0x004AC06D identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; relink: FFlyController.obj, SwampGatorNode.obj and others reference capacity aliases at this fold VA lie in a replaced range (C0233)
 template unsigned int std::vector<ResourceHandle<TextureResource> >::capacity() const;
-#endif
 
 // FUNCTION: USA 0x000C10C4
 // PROTOTYPE: PREVIEW 0x004AC05A identical
 // NAME: proto-pdb:default.pdb
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; relink: ParticleManager.obj's external ?size@?$vector@PAVFireFlyNode@@...@QBEIXZ at this fold VA lie in a replaced range (C0233)
 template unsigned int std::vector<ResourceHandle<TextureResource> >::size() const;
-#endif
 
 // FUNCTION: USA 0x000C1169
 // PROTOTYPE: PREVIEW 0x004AC132 identical
@@ -1519,7 +1516,7 @@ void ZoneNode::RasterCheckPortals(unsigned int visMask)
 // PROTOTYPE: PREVIEW 0x0040072B identical
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes match; relink: CameraManager.obj's external ?clear@?$list@PAVSwampSceneNode@@...@QAEXXZ at this fold VA lies in a replaced range (C0233)
+// 5.4 T19: pin_rows: 0x000113EB 0x00011473 route-bracket:outside-bracket when listed (proto 0x0040072B is a COMDAT in 5 PDB modules incl. Init.obj, so it anchors Init's bracket at retail 0x000C1AA9 outside Init's text)
 template void std::list<SwampScriptManager::ScriptTimerEvent>::clear();
 #endif
 

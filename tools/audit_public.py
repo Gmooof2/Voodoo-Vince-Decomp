@@ -5,6 +5,10 @@ CLI: audit_public.py [--worktree|--staged|--history|--range OLD..NEW|--paths P..
 Classes: forbidden-hash (content sha1 in manifest + config/check.*.sha), magic (offset 0), oversize
 (not for paths under .claude-state/journal/), toolchain (name or magic),
 text-run (x86 disassembly / hex-dump line runs in text blobs). Rules: docs/ops/INDEX.md.
+5.5 T14.c1: magic also fails closed on an archive at offset 0 (zip, 7z, rar 4/5, xz, bzip2, cab, zstd; tar: `ustar` at
+257), magic only, not toolchain. A blob starting with a UTF-32 or UTF-16 BOM (UTF-32 tested first) is transcoded to
+UTF-8 (errors replaced) and every class runs on that as text, as gzip blobs run on their decompressed bytes;
+forbidden-hash and oversize also on the raw bytes.
 address (T7 phase 2.1): the local config's xbox_ip (read at run time, never in source) as a whole token; a blob
 holding it passes iff its git blob id is in config/audit_address_accepted.txt, or every line of it holding the
 address occurs in a listed blob (in .claude-state/journal/INDEX-*.md only, compared without the trailing ' | ' link
@@ -31,10 +35,20 @@ stale; a listed blob id missing from the object store; 4.5 T16.2: the history sc
 with no file). A history blob tracked under several paths is classified under each (4.5 T16.2).
 Prints paths, oids, sizes and counts only, never file content.
 Test overrides (env): AUDIT_PUBLIC_MANIFEST, AUDIT_PUBLIC_CONFIG (check.*.sha are read beside the manifest).
+History cache (5.4 T5.c5), opt-in, before the scope args: `--cache FILE` writes FILE, `--warm` (needs --cache) reads it
+too. FILE: JSON {key, clean: sorted ["<oid> <path>"], binary: sorted [oid of a clean non-text blob], heads: sorted
+[tip commit at the scan, `rev-list --no-walk --all`] (5.5 T12.c3, I73 F3)}, written atomically
+after a run with the history scope, holding only pairs clean in this run (a warm run's cache hits included). The key
+(history_key) is a sha256 over everything a history verdict reads; a missing, unreadable, malformed, heads-less or
+other-key file is a full miss. Warm, the history scope skips `cat-file` for an oid whose every path has a clean entry,
+except a blob reachable from a commit not under the recorded heads (`rev-list --objects --all --not <heads>`): its
+pairs are dropped first, so a pair forged for a commit made after the write is read; rev-list, log --raw
+and --batch-check still run. One stderr line: `audit: history cache <hits> of <n> (key ok|changed|none)` (cold: none).
 """
 import contextlib
 import hashlib
 import io
+import json
 import os
 import re
 import shutil
@@ -63,6 +77,11 @@ OVERSIZE = 1_572_864  # 1.5 MiB: largest history blob 857,215 (journal); retail 
 GZ_MAGIC = b"\x1f\x8b"  # 4.5 T16.1 G8: gzip blobs are audited on their decompressed bytes
 GZ_CAP = 64 << 20  # 64 MiB decompressed per blob: a gzip-bomb bound; largest tracked ledger 18,221,397 (4.5 T16.1);
 # over it, or not valid gzip = an oversize hit (fail closed, OVERSIZE_EXEMPT does not apply)
+BOMS = ((b"\xff\xfe\0\0", "utf-32"), (b"\0\0\xfe\xff", "utf-32"),  # 5.5 T14.c1: UTF-32 first (its LE BOM starts
+        (b"\xff\xfe", "utf-16"), (b"\xfe\xff", "utf-16"))  # with UTF-16's); such a blob is audited transcoded to UTF-8
+ARCHIVE_MAGICS = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08", b"7z\xbc\xaf\x27\x1c",  # 5.5 T14.c1: zip, 7z,
+                  b"Rar!\x1a\x07\x00", b"Rar!\x1a\x07\x01\x00", b"\xfd7zXZ\x00", b"MSCF",  # rar 4/5, xz, cab,
+                  b"\x28\xb5\x2f\xfd")  # zstd; bzip2 and tar (ustar at 257) in _archive; a magic hit (fail closed)
 INDEX_RE = re.compile(r"\.claude-state/journal/INDEX-[^/]*\.md")  # address: link field dropped (T8 phase 2.4)
 OVERSIZE_EXEMPT = (".claude-state/journal/", ".claude-state/ledger/")  # repo-relative prefixes; only the oversize
 # class is skipped (journal 1.7 T7, ledger slices 4.4 T1); was: ".claude-state/journal/"
@@ -144,6 +163,17 @@ def _magic(data):
     return False
 
 
+def _archive(data):
+    """5.5 T14.c1: an archive magic at offset 0 (tar: `ustar` at 257); gzip has its own branch in audit."""
+    return (data.startswith(ARCHIVE_MAGICS) or (data[:3] == b"BZh" and data[3:4] in b"123456789" and len(data) > 3)
+            or data[257:262] == b"ustar")
+
+
+def _bom(data):
+    """5.5 T14.c1: the codec for a blob starting with a UTF-32 or UTF-16 BOM, else None."""
+    return next((codec for bom, codec in BOMS if data.startswith(bom)), None)
+
+
 def _gunzip(data):
     """(decompressed bytes, at most GZ_CAP, of every member; ok) for a gzip blob; not ok: over GZ_CAP or not valid gzip."""
     out, n, rest = [], 0, data
@@ -161,19 +191,19 @@ def _gunzip(data):
     return b"".join(out), True
 
 
-def classify(path, data, forbidden):
-    """(set of classes hit, is_text) for one blob."""
+def classify(path, data, forbidden, text=None):
+    """(set of classes hit, is_text) for one blob; text True: treat as text (a transcoded blob, 5.5 T14.c1)."""
     hits = set()
     if hashlib.sha1(data).hexdigest() in forbidden:
         hits.add("forbidden-hash")
     magic = _magic(data)
-    if magic:
+    if magic or _archive(data):  # 5.5 T14.c1: + archive magics (magic only, not toolchain)
         hits.add("magic")
     if len(data) > OVERSIZE and not path.replace("\\", "/").startswith(OVERSIZE_EXEMPT):
         hits.add("oversize")
     if magic or data.startswith(AR_MAGIC) or Path(path).suffix.lower() in TOOL_SUFFIXES:
         hits.add("toolchain")
-    is_text = b"\0" not in data[:SNIFF]
+    is_text = text or b"\0" not in data[:SNIFF]
     if is_text:
         runs = max_runs(data)
         if any(runs[s][0] >= RUN_N[s] for s in RUN_N):
@@ -244,8 +274,9 @@ def _objects_blobs(revargs, cwd, env):
     return sorted((oid, p) for oid in blobs for p in paths[oid])
 
 
-def iter_scope(scope, cwd, env, arg=None):
-    """Yield (path, oid or None, data) for a scope."""
+def iter_scope(scope, cwd, env, arg=None, cached=None):
+    """Yield (path, oid or None, data) for a scope. cached (history only, 5.4 T5.c5): {(oid, path)} cached clean; an oid
+    whose every path is in it is not read and yields data None under each path, after the read ones."""
     if scope == "worktree":
         names = _git(["ls-files", "-z"], cwd, env).decode("utf-8", "replace").split("\0")
         for n in sorted(set(filter(None, names))):
@@ -276,9 +307,13 @@ def iter_scope(scope, cwd, env, arg=None):
         paths = {}
         for oid, path in blobs:
             paths.setdefault(oid, []).append(path)
-        for oid, data in _cat_blobs(list(paths), cwd, env):  # each blob read once, yielded under every path
-            for path in paths[oid]:
+        skip = {o for o, ps in paths.items() if all((o, p) in cached for p in ps)} if cached else set()
+        for oid, data in _cat_blobs([o for o in paths if o not in skip], cwd, env):  # each blob read once, yielded
+            for path in paths[oid]:  # under every path
                 yield path, oid, data
+        for oid in sorted(skip):  # 5.4 T5.c5: cached clean under every path; was: none skipped
+            for path in paths[oid]:
+                yield path, oid, None
         # was: paths = dict(blobs); for oid, data in _cat_blobs([o for o, _ in blobs], ...): yield paths[oid], oid, data
 
 
@@ -391,33 +426,47 @@ def value_rule(rx, literals, fold, accept_path, cwd, env):
     return rx, frozenset(ids), frozenset(lines), unlinked, literals, fold
 
 
-def audit(scope, cwd, env, forbidden, arg=None, rules=None):
+def audit(scope, cwd, env, forbidden, arg=None, rules=None, cache=None):
     """Return (counts {class: [hits, scanned]}, hits [(class, path, oid, commit)]); rules {value class: rule};
-    a value class absent from rules or None there is unchecked."""
+    a value class absent from rules or None there is unchecked. cache: a HistoryCache, used by the history scope only."""
     rules = rules or {}
     counts = {c: [0, 0] for c in CLASSES if c != "user-path" or rules.get(c) is not None}
     hits = []
-    for path, oid, data in iter_scope(scope, cwd, env, arg):
-        rel = path
-        if scope == "paths":  # git scopes are repo-relative already; --paths may be absolute
-            try:
-                rel = Path(path).resolve().relative_to(Path(cwd).resolve()).as_posix()
-            except ValueError:
-                pass
-        raw, gz = data, data[:2] == GZ_MAGIC
-        if gz:  # 4.5 T16.1 G8: every class below sees the decompressed bytes; was: the raw blob
-            data, gz_ok = _gunzip(raw)
-        found, is_text = classify(rel, data, forbidden)
-        if gz:
-            if hashlib.sha1(raw).hexdigest() in forbidden:  # forbidden-hash on raw and decompressed
-                found.add("forbidden-hash")
-            if not gz_ok:
-                found.add("oversize")
-        for c in VALUE_KEYS:
-            if rules.get(c) is not None and address_hit(data, rules[c], rel):
-                found.add(c)
-        if "user-path" in counts and is_text and rules["user-path"].search(data):
-            found.add("user-path")
+    hc = cache if scope == "history" else None
+    if hc:  # 5.5 T12.c3 (I73 F3): tips recorded, pairs under newer commits dropped, before iter_scope takes hc.clean
+        hc.begin(cwd, env)
+    for path, oid, data in iter_scope(scope, cwd, env, arg, hc.clean if hc else None):
+        if data is None:  # 5.4 T5.c5: a cached clean pair (same key): no class, text as recorded
+            found, is_text = set(), oid not in hc.binary
+            hc.hits += 1
+        else:
+            rel = path
+            if scope == "paths":  # git scopes are repo-relative already; --paths may be absolute
+                try:
+                    rel = Path(path).resolve().relative_to(Path(cwd).resolve()).as_posix()
+                except ValueError:
+                    pass
+            raw, gz = data, data[:2] == GZ_MAGIC
+            codec = None if gz else _bom(raw)
+            if gz:  # 4.5 T16.1 G8: every class below sees the decompressed bytes; was: the raw blob
+                data, gz_ok = _gunzip(raw)
+            elif codec:  # 5.5 T14.c1: every class below sees the UTF-8 transcoding, as text; was: the raw blob
+                data = raw.decode(codec, errors="replace").encode("utf-8")
+            found, is_text = classify(rel, data, forbidden, True if codec else None)
+            if gz or codec:
+                if hashlib.sha1(raw).hexdigest() in forbidden:  # forbidden-hash on raw and decompressed/transcoded
+                    found.add("forbidden-hash")
+                if gz and not gz_ok:
+                    found.add("oversize")
+                if codec and len(raw) > OVERSIZE and not rel.replace("\\", "/").startswith(OVERSIZE_EXEMPT):
+                    found.add("oversize")  # 5.5 T14.c1: transcoding can halve the size; the raw size counts too
+            for c in VALUE_KEYS:
+                if rules.get(c) is not None and address_hit(data, rules[c], rel):
+                    found.add(c)
+            if "user-path" in counts and is_text and rules["user-path"].search(data):
+                found.add("user-path")
+        if hc:
+            hc.note(oid, path, found, is_text)
         for c in CLASSES:
             if c not in counts or (c in VALUE_KEYS and rules.get(c) is None):
                 continue
@@ -506,16 +555,105 @@ def coverage(rows, cfg):
         _refuse("manifest stale: run tools/manifest.py build")
 
 
-def run(scopes, forbidden, cwd, env, rules=None):
+# ---- history cache (5.4 T5.c5) ----
+
+CACHE_ENTRY = re.compile(r"^([0-9a-f]{40}) (.+)$")
+
+
+def history_key(root, forbidden, cfg):
+    """sha256 over everything a history verdict reads, for the tree at root: its fingerprint line for this tool, this
+    source, both accept lists, the sorted forbidden set, a sha256 per value class's value (never the value, D46), the
+    marker, and the rule constants. Paths are root-relative so a scratch tree keys on its own lists."""
+    conf, h = Path(root) / "config", hashlib.sha256()
+
+    def part(name, data):
+        h.update(name.encode() + b"\0" + hashlib.sha256(data).hexdigest().encode() + b"\n")
+    fp = conf / "verifier.sha256"
+    lines = fp.read_bytes().splitlines() if fp.is_file() else [b"<missing>"]
+    part("fp", b"\n".join(ln for ln in lines if ln.endswith(b"  tools/audit_public.py")) or b"<absent>")
+    part("source", Path(__file__).read_bytes())
+    for p in (conf / ACCEPT.name, conf / ACCEPT_PRIVATE.name):
+        part(p.name, p.read_bytes() if p.is_file() else b"<missing>")
+    part("forbidden", "\n".join(sorted(forbidden)).encode())
+    for c, k in sorted(VALUE_KEYS.items()):
+        part(c, b"<unset>" if cfg.get(k) is None else json.dumps(cfg.get(k), sort_keys=True).encode())
+    part("marker", str((conf / PUBLIC_MARKER).is_file()).encode())
+    part("rules", repr((CLASSES, OVERSIZE, GZ_CAP, OVERSIZE_EXEMPT, sorted(TOOL_SUFFIXES), SNIFF, RUN_N,
+                        INDEX_RE.pattern, USER_PATH.pattern, "private")).encode())
+    return h.hexdigest()
+
+
+class HistoryCache:
+    """Clean history verdicts by (oid, path) under one key. warm False: never reads the file (cold)."""
+
+    def __init__(self, path, key, warm):
+        self.path, self.key, self.state = Path(path), key, "none"
+        self.clean, self.binary = set(), set()
+        self.hits = self.n = 0
+        self.ran, self.new_clean, self.new_binary = False, set(), set()
+        self.heads, self.tips = [], None  # 5.5 T12.c3 (I73 F3): the file's recorded tips; this run's (begin)
+        if warm:
+            self._load()
+
+    def _load(self):
+        try:
+            doc = json.loads(self.path.read_text(encoding="ascii"))
+            key, clean, binary, heads = doc["key"], doc["clean"], doc["binary"], doc["heads"]  # 5.5 T12.c3: + heads
+            pairs = {CACHE_ENTRY.match(e).groups() for e in clean}  # a non-str or non-matching entry raises
+            if not isinstance(key, str) or not all(isinstance(o, str) and SHA1_RE.match(o) for o in [*binary, *heads]):
+                raise ValueError("cache shape")
+        except Exception:  # missing, unreadable or malformed (5.5 T12.c3: or no heads, a pre-F3 file): a full miss
+            return
+        if key != self.key:
+            self.state = "changed"
+            return
+        self.state, self.clean, self.binary, self.heads = "ok", pairs, set(binary), list(heads)
+
+    def begin(self, cwd, env):
+        """5.5 T12.c3 (I73 F3): before the history scope reads: record this run's tip commits (finish writes them as
+        `heads`); warm, drop every cached pair whose blob is reachable from a commit not under the recorded heads
+        (`rev-list --objects --all --not <heads>`, heads gone from the store ignored), so a clean pair forged for a
+        commit made after the write is read, never skipped; was: any cached pair skipped, whatever its commit."""
+        self.tips = sorted(set(_git(["rev-list", "--no-walk", "--all"], cwd, env).decode().split()))
+        if not self.clean:
+            return
+        have = _git(["cat-file", "--batch-check"], cwd, env, inp="\n".join(self.heads).encode() + b"\n").decode() \
+            if self.heads else ""
+        known = [ln.split()[0] for ln in have.splitlines() if ln.split()[1:2] == ["commit"]]
+        newer = {o for o, _p in _objects_blobs(["--all", "--not", *known], cwd, env)}
+        self.clean = {(o, p) for o, p in self.clean if o not in newer}
+
+    def note(self, oid, path, found, is_text):
+        self.ran, self.n = True, self.n + 1
+        if not found:
+            self.new_clean.add((oid, path))
+            if not is_text:
+                self.new_binary.add(oid)
+
+    def finish(self):
+        """Write the file (history ran) atomically; print the stats line on stderr."""
+        if self.ran:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_name(self.path.name + ".tmp")
+            tmp.write_text(json.dumps({"key": self.key, "clean": sorted(f"{o} {p}" for o, p in self.new_clean),
+                                       "binary": sorted(self.new_binary), "heads": self.tips or []},  # 5.5 T12.c3
+                                      indent=0) + "\n", encoding="ascii")
+            os.replace(tmp, self.path)
+        print(f"audit: history cache {self.hits} of {self.n} (key {self.state})", file=sys.stderr)
+
+
+def run(scopes, forbidden, cwd, env, rules=None, cache=None):
     rules = rules or {}
     unchecked = [c for c in VALUE_KEYS if rules.get(c) is None]
     total = 0
     for scope, arg in scopes:
-        counts, hits = audit(scope, cwd, env, forbidden, arg, rules)
+        counts, hits = audit(scope, cwd, env, forbidden, arg, rules, cache)
         report(scope if scope != "range" else f"range {arg}", counts, hits, unchecked)
         total += len(hits)
     print(f"audit_public: {'OK' if total == 0 else 'FAIL'} ({total} hits)"
           + "".join(f"; {c} NOT CHECKED" for c in unchecked))
+    if cache:
+        cache.finish()
     return 0 if total == 0 else 1
 
 
@@ -590,6 +728,16 @@ def main(argv):
         return self_test()
     if argv[:1] == [PUBLIC_FLAG]:
         return public_ci(argv[1:])
+    cache_path, warm = None, False
+    while argv[:1] in (["--cache"], ["--warm"]):  # 5.4 T5.c5: options before the scope args
+        if argv[0] == "--warm":
+            warm, argv = True, argv[1:]
+        elif len(argv) < 2:
+            _refuse("--cache needs FILE")
+        else:
+            cache_path, argv = argv[1], argv[2:]
+    if warm and cache_path is None:
+        _refuse("--warm needs --cache FILE")
     scopes = parse(argv)
     rows, forbidden = forbidden_set(os.environ.get("AUDIT_PUBLIC_MANIFEST") or vv_inputs.MANIFEST)
     unclassed = set(vv_inputs.KEYS) - {k for k, _ in COVER} - set(NOT_INPUTS)
@@ -598,7 +746,9 @@ def main(argv):
         return 2
     cfg = vv_inputs.load_config(os.environ.get("AUDIT_PUBLIC_CONFIG") or None)
     coverage(rows, cfg)
-    return run(scopes, forbidden, REPO, None, build_rules(cfg, REPO, None))
+    rules = build_rules(cfg, REPO, None)
+    cache = HistoryCache(cache_path, history_key(REPO, forbidden, cfg), warm) if cache_path else None
+    return run(scopes, forbidden, REPO, None, rules, cache)
 
 
 # ---- self-test ----
@@ -636,6 +786,15 @@ def _fixtures():
         "hexdump.txt": (hexd.encode(), {"text-run"}),
         "hexarray.c": (arr.encode(), {"text-run"}),
         "hexesc.c": (esc.encode(), {"text-run"}),
+        "asm16le.txt": (b"\xff\xfe" + asm.encode("utf-16-le"), {"text-run"}),  # 5.5 T14.c1: BOM blobs transcoded
+        "hex16be.txt": (b"\xfe\xff" + hexd.encode("utf-16-be"), {"text-run"}),
+        "arr32le.c": (b"\xff\xfe\0\0" + arr.encode("utf-32-le"), {"text-run"}),
+        "esc32be.c": (b"\0\0\xfe\xff" + esc.encode("utf-32-be"), {"text-run"}),
+        "plain16le.txt": (b"\xff\xfe" + "plain text, no run\n".encode("utf-16-le"), set()),
+        **{f"arch{i}.dat": (m + bytes([i]) * 40, {"magic"}) for i, m in enumerate(  # 5.5 T14.c1: archive magics
+            (*ARCHIVE_MAGICS, b"BZh9"))},
+        "tar.dat": (b"name.txt" + b"\0" * 249 + b"ustar\x0000" + b"\0" * 248, {"magic"}),
+        "bzh0.txt": (b"BZh0 is not a bzip2 header\n", set()),
     }
 
 

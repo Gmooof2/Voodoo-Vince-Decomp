@@ -329,6 +329,11 @@ DECOMP_SIZE_ASSERT(DamageSourceInfo, 0x40);
 // NAME: proto-pdb:default.pdb
 class SafeHookRopeMain : public CritterMain { // NAME: proto-pdb:default.pdb
 public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+public:
     enum Messages { // NAME: proto-pdb:default.pdb
         MESSAGE_DROP = 0x14
     };
@@ -357,6 +362,13 @@ private:
     bool _vinceWasCollidable;          // 0xE4
 };
 DECOMP_SIZE_ASSERT(SafeHookRopeMain, 0xE8);
+
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
 
 // FUNCTION: USA 0x0007E3AF
 // PROTOTYPE: PREVIEW 0x0046A2B9 identical
@@ -523,4 +535,11 @@ void SafeHookRopeMain::AnimationFinished()
         break;
     }
     }
+}
+
+// FUNCTION: USA 0x0007E9DA
+// NAME: proto-pdb:default.pdb
+SafeHookRopeMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("SafeHookRopeMain", creationFunc);
 }

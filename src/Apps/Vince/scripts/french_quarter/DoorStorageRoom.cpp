@@ -95,6 +95,13 @@ public:
 DECOMP_SIZE_ASSERT(Critter, 0x2C8);
 
 class DoorStorageRoom : public Critter { // NAME: proto-pdb:default.pdb
+public:
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
+private:
+    static SwampSceneNode* creationFunc();
 };
 DECOMP_SIZE_ASSERT(DoorStorageRoom, 0x2C8);
 
@@ -181,6 +188,10 @@ public:
 private:
     DoorStorageRoom* GetDoor() { return static_cast<DoorStorageRoom*>(_node); }
     static SwampScript* creationFunc(SwampSceneNode* node);
+    struct RegisterMe { // NAME: proto-pdb:default.pdb
+        RegisterMe();
+    };
+    static RegisterMe registerMe;
 };
 DECOMP_SIZE_ASSERT(DoorStorageRoomMain, 0xC0);
 
@@ -248,13 +259,41 @@ void DoorStorageRoomMain::Load(const BeepTDF& tdf)
     }
 }
 
+class SwampScriptManager { // NAME: proto-pdb:default.pdb
+public:
+    typedef SwampScript* (*CreationFunc)(SwampSceneNode*);
+    static SwampScriptManager& Instance();
+    void Add(const SwampString& name, CreationFunc func);
+};
+
 // FUNCTION: USA 0x000795AC
 // NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
 // best: match_one objdiff 100.0, bytes match (masked 0); gate pin_rows: ctor pin 0x000793AB is site-corr, relocated through by this row (D102); lift = a disasm-/corr-verified ctor pin (5.3 T5)
+// 5.4 wall (T6.c4): promote-corr refuses the 0x000793AB ctor pin `route-near:no-agreeing-site`, so D102 still applies
 SwampScript* DoorStorageRoomMain::creationFunc(SwampSceneNode* node)
 {
     // !FAKE: retail string literal; __FILE__/__LINE__ text; the original passes its build's __FILE__/__LINE__ (header path), ours differs
     return new("d:\\beep\\apps\\vince\\scripts\\french_quarter\\bakery\\DoorStorageRoom.h", 22) DoorStorageRoomMain(node);
 }
 #endif
+
+// FUNCTION: USA 0x0007960F
+// NAME: proto-pdb:default.pdb
+DoorStorageRoomMain::RegisterMe::RegisterMe()
+{
+    SwampScriptManager::Instance().Add("DoorStorageRoomMain", creationFunc);
+}
+
+class SwampNodeManager { // NAME: proto-pdb:default.pdb
+public:
+    static SwampNodeManager& Instance();
+    void Add(const SwampString& name, SwampSceneNode* (*func)());
+};
+
+// FUNCTION: USA 0x000795D3
+// NAME: proto-pdb:default.pdb
+DoorStorageRoom::RegisterMe::RegisterMe()
+{
+    SwampNodeManager::Instance().Add("DoorStorageRoom", creationFunc);
+}

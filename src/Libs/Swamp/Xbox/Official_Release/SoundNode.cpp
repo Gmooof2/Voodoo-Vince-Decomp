@@ -92,6 +92,11 @@ struct Quaternion { // NAME: proto-pdb:default.pdb
 DECOMP_SIZE_ASSERT(Quaternion, 0x10);
 struct IDirectSoundBuffer { // NAME: proto-pdb:default.pdb
     long __stdcall SetPosition(float x, float y, float z, unsigned long apply);
+    long __stdcall SetPitch(long pitch);
+    long __stdcall Play(unsigned long reserved1, unsigned long reserved2, unsigned long flags);
+    long __stdcall SetPlayRegion(unsigned long playStart, unsigned long playLength);
+    long __stdcall SetCurrentPosition(unsigned long playCursor);
+    long __stdcall SetBufferData(void* bufferData, unsigned long bufferBytes);
 };
 
 class GatorNode { // NAME: proto-pdb:default.pdb
@@ -105,6 +110,28 @@ extern "C" long __stdcall IDirectSoundBuffer_Pause(IDirectSoundBuffer*, unsigned
 extern "C" long __stdcall IDirectSoundBuffer_GetStatus(IDirectSoundBuffer*, unsigned long*); // src proto-pdb:default.pdb IDirectSoundBuffer_GetStatus
 extern "C" long __stdcall IDirectSoundBuffer_SetVolume(IDirectSoundBuffer*, long); // src proto-pdb:default.pdb IDirectSoundBuffer_SetVolume
 extern "C" long __stdcall IDirectSoundBuffer_StopEx(IDirectSoundBuffer*, __int64, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetBufferData(IDirectSoundBuffer*, void*, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetPlayRegion(IDirectSoundBuffer*, unsigned long, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetCurrentPosition(IDirectSoundBuffer*, unsigned long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_SetPitch(IDirectSoundBuffer*, long); // NAME: proto-pdb:default.pdb
+extern "C" long __stdcall IDirectSoundBuffer_Play(IDirectSoundBuffer*, unsigned long, unsigned long, unsigned long); // NAME: proto-pdb:default.pdb
+inline long __stdcall IDirectSoundBuffer::SetPitch(long pitch) { return IDirectSoundBuffer_SetPitch(this, pitch); }
+inline long __stdcall IDirectSoundBuffer::Play(unsigned long reserved1, unsigned long reserved2, unsigned long flags)
+{
+    return IDirectSoundBuffer_Play(this, reserved1, reserved2, flags);
+}
+inline long __stdcall IDirectSoundBuffer::SetPlayRegion(unsigned long playStart, unsigned long playLength)
+{
+    return IDirectSoundBuffer_SetPlayRegion(this, playStart, playLength);
+}
+inline long __stdcall IDirectSoundBuffer::SetCurrentPosition(unsigned long playCursor)
+{
+    return IDirectSoundBuffer_SetCurrentPosition(this, playCursor);
+}
+inline long __stdcall IDirectSoundBuffer::SetBufferData(void* bufferData, unsigned long bufferBytes)
+{
+    return IDirectSoundBuffer_SetBufferData(this, bufferData, bufferBytes);
+}
 
 struct tWAVEFORMATEX; // NAME: proto-pdb:default.pdb
 class SoundNode;
@@ -129,14 +156,29 @@ public:
     float field_84;                    // 0x84
 
 private:
+    bool AcquireBuffer(bool, const tWAVEFORMATEX*, IDirectSoundBuffer**, SoundNode*);
+    void Playing(SoundNode*);
     void ReleaseBuffer(bool, const tWAVEFORMATEX*, IDirectSoundBuffer*);
     void Stopped(SoundNode*);
     friend class SoundNode;
 };
 
+class SwampInput { // NAME: proto-pdb:default.pdb
+public:
+    float GetSessionTime() const { return _sessionTimePublic; }
+
+    char field_0[0xC];                 // 0x00
+    float _sessionTimePublic;          // 0x0C
+};
+
 class Swamp { // NAME: proto-pdb:default.pdb
 public:
-    char field_0[0x34];                // 0x00
+    SwampInput& GetInput() const { return *_input; }
+    SoundManager& GetSoundManager() const { return *_soundManager; }
+
+    char field_0[0x4];                 // 0x00
+    SwampInput* _input;                // 0x04
+    char field_8[0x34 - 0x8];          // 0x08
     SoundManager* _soundManager;       // 0x34
 };
 
@@ -199,9 +241,14 @@ class SoundResource : public ResourceBase { // NAME: proto-pdb:default.pdb
 public:
     const tWAVEFORMATEX* GetFormat() const { return _format; }
     const void* GetBuffer() const { return _buffer; }
+    unsigned int GetBufferLen() const { return _bufferLen; }
+    unsigned int GetOffset() const { return _offset; }
+    unsigned int GetLength() const { return _dataLen; }
 
     void* _buffer;                     // 0x24
-    char field_28[0x34 - 0x28];        // 0x28
+    unsigned int _bufferLen;           // 0x28
+    unsigned int _offset;              // 0x2C
+    unsigned int _dataLen;             // 0x30
     tWAVEFORMATEX* _format;            // 0x34
 };
 
@@ -288,8 +335,7 @@ void SoundNode::Pause()
     }
 }
 
-#ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 2)
+// callees/literals pinned 5.4 T25.c1
 // FUNCTION: USA 0x000C5B67
 // PROTOTYPE: PREVIEW 0x004B0E6A near-identical
 // NAME: proto-pdb:default.pdb
@@ -312,7 +358,6 @@ void SoundNode::SetVolume(float vol)
     }
     _volume = vol;
 }
-#endif
 
 // FUNCTION: USA 0x000C5C6F
 // PROTOTYPE: PREVIEW 0x004B0F71 identical
@@ -435,6 +480,61 @@ void SoundNode::Update()
                 Stop();
         } else {
             UpdatePosition();
+        }
+    }
+}
+
+// FUNCTION: USA 0x000C5F3D
+// PROTOTYPE: PREVIEW 0x004B123F identical
+// NAME: proto-pdb:default.pdb
+void SoundNode::Play()
+{
+    if (!_active) {
+        if (_sound.IsValid() && _sound().GetBuffer()) {
+            UpdatePosition();
+            if (!_obj) {
+                if (g_swamp->GetSoundManager().AcquireBuffer((_flags & USE3D) != 0, _sound().GetFormat(), &_obj, this)) {
+                    // !FAKE: c2 block layout; stand-in local; the PDB records no local; the ||-condition form puts the
+                    // error block after the body (match_one 89.2 -> 100.0)
+                    bool ok = _obj->SetBufferData(_sound()._buffer, _sound().GetBufferLen()) >= 0
+                        && _obj->SetPlayRegion(_sound().GetOffset(), _sound().GetLength()) >= 0;
+                    if (!ok) {
+                        DoNotifyParent();
+                        if (_flags & ONESHOT)
+                            Invalidate();
+                        else
+                            Stop();
+                        return;
+                    }
+                    _obj->SetCurrentPosition(0);
+                    if (_pitch != 0.0f)
+                        _obj->SetPitch((long)(_pitch * 4096.0f));
+                    if (_flags & USE3D) {
+                        Vector3 pos = GetWorldPosition();
+                        _obj->SetPosition(pos.x, pos.y, pos.z, 1);
+                        IDirectSoundBuffer_SetMinDistance(_obj, _minDist, 1);
+                        IDirectSoundBuffer_SetMaxDistance(_obj, _maxDist, 1);
+                    }
+                } else {
+                    DoNotifyParent();
+                    if (_flags & ONESHOT)
+                        Invalidate();
+                    return;
+                }
+            }
+            SetVolume(_volume);
+            if (IsPaused()) {
+                IDirectSoundBuffer_Pause(_obj, 0);
+            } else {
+                _playTime = g_swamp->GetInput().GetSessionTime();
+                _obj->Play(0, 0, _flags & LOOPED);
+                g_swamp->GetSoundManager().Playing(this);
+            }
+            _active = true;
+        } else {
+            DoNotifyParent();
+            if (_flags & ONESHOT)
+                Invalidate();
         }
     }
 }

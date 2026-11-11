@@ -72,16 +72,87 @@ public:
 
 extern Swamp* g_swamp; // NAME: proto-pdb:default.pdb
 
-class GatorNode { // NAME: proto-pdb:default.pdb
+class AABox;                 // NAME: proto-pdb:default.pdb
+class Quaternion;            // NAME: proto-pdb:default.pdb
+class Matrix;                // NAME: proto-pdb:default.pdb
+class ModelResource;         // NAME: proto-pdb:default.pdb
+
+class DumbBase { // NAME: proto-pdb:default.pdb
 public:
+    void SubRef() { _RefCount--; }
+
+    unsigned int _RefCount;            // 0x00
+};
+
+class CollisionResultObject : public DumbBase { // NAME: proto-pdb:default.pdb
+};
+
+template <class T> class Ptr { // NAME: proto-pdb:default.pdb
+public:
+    ~Ptr()
+    {
+        if (_Object)
+            _Object->SubRef();
+    }
+
+    T* _Object;                        // 0x00
+};
+
+class CritterCollision { // NAME: proto-pdb:default.pdb
+public:
+    Ptr<CollisionResultObject> _wall;  // 0x00
+    Ptr<CollisionResultObject> _floor; // 0x04
+};
+
+class SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual ~SwampSceneNode();                                     // vtable+0x00
+    virtual const AABox& GetBounds() const;                        // vtable+0x04
+    virtual Vector3 GetWorldPosition() const;                      // vtable+0x08
+    virtual Quaternion GetWorldRotation() const;                   // vtable+0x0C
+    virtual void SetWorldPosition(const Vector3&);                 // vtable+0x10
+    virtual void Invalidate();                                     // vtable+0x14
+    virtual void UpdateAnimation(unsigned int);                    // vtable+0x18
+    virtual void Update();                                         // vtable+0x1C
+    virtual void Render(const Matrix&) const;                      // vtable+0x20
+
+    char field_4[0xA4 - 0x4];          // 0x04
+};
+DECOMP_SIZE_ASSERT(SwampSceneNode, 0xA4);
+
+class CollidableNode : public SwampSceneNode { // NAME: proto-pdb:default.pdb
+public:
+    virtual Ptr<CollisionResultObject> CheckLine(const Vector3&, const Vector3&, float) const; // vtable+0x24
+    virtual bool CanJorgeCollideWithMe(const SwampSceneNode*, const Vector3&) const; // vtable+0x28
+    virtual bool DoesJorgeRepelMe(const SwampSceneNode*, bool) const; // vtable+0x2C
+
+    char field_A4[0xAC - 0xA4];        // 0xA4
+};
+
+class CollidableCylinder : public CollidableNode { // NAME: proto-pdb:default.pdb
+public:
+    char field_AC[0xB4 - 0xAC];        // 0xAC
+};
+
+class GatorNode : public CollidableCylinder { // NAME: proto-pdb:default.pdb
+public:
+    virtual void SetModel(const ResourceHandle<ModelResource>&);   // vtable+0x30
     ResourceHandle<AnimationControl>& StartAnimation(const ResourceHandle<AnimationResource>& anim, bool a, bool b);
 
-    char field_0[0x200];               // 0x00
+    char field_B4[0x200 - 0xB4];       // 0xB4
 };
 DECOMP_SIZE_ASSERT(GatorNode, 0x200);
 
 class Critter : public GatorNode { // NAME: proto-pdb:default.pdb
 public:
+    virtual void Load(const BeepTDF&);                             // vtable+0x34
+    virtual SwampString Save();                                    // vtable+0x38
+    virtual void Stun(float);                                      // vtable+0x3C
+    virtual float GetGravity();                                    // vtable+0x40
+    CritterCollision MoveMyFatAss(float, unsigned int);
+    const Vector3& GetVelocity() const { return _Velocity; }
+    void SetVelocity(const Vector3& v) { _Velocity = v; }
+
     char field_200[0x4];               // 0x200
     float _CurSpeed;                   // 0x204
     char field_208[0x4];               // 0x208
@@ -139,6 +210,7 @@ class CritterMain : public SwampScript { // NAME: proto-pdb:default.pdb
 public:
     CritterMain(SwampSceneNode* node);
     virtual ~CritterMain();
+    Critter* GetCritter() { return (Critter*)_node; }
 
     char field_4C[0xBC - 0x4C];        // 0x4C
 };
@@ -154,8 +226,24 @@ public:
 };
 DECOMP_SIZE_ASSERT(VinceDrinkjug, 0xBC);
 
+// FUNCTION: USA 0x00129CEB
+// NAME: proto-pdb:default.pdb
 #ifdef NON_MATCHING
-// best: match_one objdiff 100.0, bytes provisional (masked 2 = vptr store, literal)
+// best: match_one objdiff 100.0, bytes match (masked 0), 5.5 T8.c7; wall: precheck matched_set `REFUSED
+// ?FrameTick@VinceDrinkjug@@UAEXXZ pin has no size in symbols_pin.txt` (:7135 `func -`; retail extent 0x5E)
+void VinceDrinkjug::FrameTick()
+{
+    Vector3 v = GetCritter()->GetVelocity();
+    v.z = 0.0f;
+    v.x = 0.0f;
+    GetCritter()->SetVelocity(v);
+    GetCritter()->MoveMyFatAss(GetCritter()->GetGravity(), 0);
+}
+#endif
+
+#ifdef NON_MATCHING
+// best: match_one objdiff 100.0, bytes match (masked 0), 5.5 T8.c6; wall: gate_check `our ranges overlap at 0x000E2D89`:
+// the emitted ??_GVinceDrinkjug (vtable 0x001F79D0 slot 0) lands on fold VA 0x000E2D89, which has no ??_G/??_EVinceDrinkjug fold-alias pin (C0250)
 // FUNCTION: USA 0x00129D49
 // PROTOTYPE: PREVIEW 0x005127BA near-identical
 // NAME: proto-pdb:default.pdb

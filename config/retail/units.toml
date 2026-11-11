@@ -2194,7 +2194,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.5 T8.c6: ??0RegisterMe@VinceCannon@@QAE@XZ control "/O1 /Oy" PASS 100.0 bytes match; /O2 control fails (86.68)
 
 [[unit]]
 name = "Xbox\\OfficialRelease\\switchCrypt.obj"
@@ -2650,7 +2650,7 @@ language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy" # was "unknown"; 5.4 T27 controls: ??0RegisterMe@BakeryRegionMain /O1 /Oy 100 + bytes, /O2 86.68
 
 [[unit]]
 name = "Xbox\\OfficialRelease\\DocksMain.obj"
@@ -5302,23 +5302,28 @@ lib = "core\\XBox\\OfficialRelease\\VinceLib.lib"
 objname = "d:\\beep\\Apps\\Vince\\core\\XBox\\OfficialRelease\\Monster.obj"
 source = "proto-pdb:default.pdb"
 kind = "game"
-text_start = 0x000F36E3
-text_end = 0x000F5020
-edge_start = "unpinned-ambiguous"
-edge_end = "unpinned-ambiguous"
+text_start = 0x000F36C6
+text_end = 0x000F5289
+edge_start = "pin"
+edge_end = "pin"
 procs = 67
 procs_identical = 41
 procs_tail = 2
-delink = false
+delink = true
 # was: delink_reason = "edge start unpinned-ambiguous; edge end unpinned-ambiguous; inconsistent: 3 procs outside range"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; fails: no pin, chain fails; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; fails: no pin, chain fails; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
 # was: delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; neighbour RegisterMe.obj#452 end unpinned-ambiguous; fails: no pin, chain fails, neighbour edge not fixed; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; neighbour Vince.obj#455 start unpinned-near-identical; fails: no pin, chain fails, neighbour edge not fixed; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
-delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; neighbour RegisterMe.obj#452 end unpinned-ambiguous; M27 start: WaitForWhammyMain::WaitForWhammyMain proto 0x004DE925 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0WaitForWhammyMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; neighbour Vince.obj#455 start unpinned-near-identical; M27 end: WaitForWhammyMain::RegisterMe::RegisterMe proto 0x004E0552 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@WaitForWhammyMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# was: delink_reason = "edge start unpinned-ambiguous; searched: anchor std::vector<MonsterGiblets::Giblet,std:: 0x000F36E3, 1 procs, WaitForWhammyMain::WaitForWhammyMain not masked-equal at 0x000F36CB; neighbour RegisterMe.obj#452 end unpinned-ambiguous; M27 start: WaitForWhammyMain::WaitForWhammyMain proto 0x004DE925 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0WaitForWhammyMain@@QAE@PAVSwampSceneNode@@@Z, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; edge end unpinned-ambiguous; searched: anchor MonsterMain::DeathFX 0x000F4F77, 4 procs, MonsterMain::MonsterMain not masked-equal at 0x000F5020; neighbour Vince.obj#455 start unpinned-near-identical; M27 end: WaitForWhammyMain::RegisterMe::RegisterMe proto 0x004E0552 class ambiguous candidateVA null, form (a): needs disasm-verified pin ??0RegisterMe@WaitForWhammyMain@@QAE@XZ, form (b): class ambiguous, candidateVA null: no form (b); fails: no pin, chain fails, neighbour edge not fixed, no M27 form; inconsistent: 3 procs outside range; searched: not searched; fails: edges not fixed"
+# route: range 0x000F36C6-0x000F5289 edges pin/pin
+# route: start pin: pin ??0WaitForWhammyMain@@QAE@PAVSwampSceneNode@@@Z 0x000F36C6 in own anchor gap
+# route: end pin: pin ??0RegisterMe@WaitForWhammyMain@@QAE@XZ 0x000F524D in own anchor gap
+# route: std::deque<ResourceHandle<ModelResource>,std::al proto 0x004DE953 -> 0x00057A0D moved into ZombieGuidanceCounselor.obj#278
+# route: SwampShuffleQueue<ResourceHandle<ModelResource>  proto 0x004DF813 -> 0x0001F1A5 moved into SausageWorks.obj#227
 language = "c++"
 machine = "pentium pro"
 security_checks = false
 fltcg = 0
-opt = "unknown"
+opt = "/O1 /Oy"  # was "unknown"; 5.4 T12.1.c13: ?Message@WaitForWhammyMain@@ /O1 /Oy objdiff 100 bytes match, control "/O2" FAIL objdiff 62.5; ?Explode@MonsterGiblets@@ /O1 /Oy 100, /O2 FAIL 75.75
 
 [[unit]]
 name = "core\\XBox\\OfficialRelease\\Vince.obj"
